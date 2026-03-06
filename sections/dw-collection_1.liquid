@@ -1,0 +1,1158 @@
+{% comment %}
+  DoingWell Collection Section
+  - Grid/List layout options
+  - Cyber-themed product cards with glow effects
+  - Preorder badges and labels
+  - Full mobile/desktop control
+  - Animated entrance effects
+{% endcomment %}
+
+{%- liquid
+  assign collection_to_show = section.settings.collection | default: collection
+  
+  if collection_to_show == blank
+    assign show_placeholder = true
+  endif
+-%}
+
+<section 
+  class="dw-collection{% if section.settings.enable_animations %} dw-collection--animate{% endif %}" id="pdp-section"
+  data-animation="{{ section.settings.animation_style }}"
+  style="
+    --collection-bg: {{ section.settings.background_color }};
+    --collection-text: {{ section.settings.text_color }};
+    --collection-card-bg: {{ section.settings.card_background }};
+    --collection-card-border: {{ section.settings.card_border_color }};
+    --collection-accent: {{ section.settings.accent_color }};
+    --collection-columns-desktop: {{ section.settings.columns_desktop }};
+    --collection-columns-mobile: {{ section.settings.columns_mobile }};
+    --collection-gap-desktop: {{ section.settings.gap_desktop }}px;
+    --collection-gap-mobile: {{ section.settings.gap_mobile }}px;
+    --collection-padding-top-desktop: {{ section.settings.padding_top_desktop }}px;
+    --collection-padding-bottom-desktop: {{ section.settings.padding_bottom_desktop }}px;
+    --collection-padding-top-mobile: {{ section.settings.padding_top_mobile }}px;
+    --collection-padding-bottom-mobile: {{ section.settings.padding_bottom_mobile }}px;
+    --collection-animation-duration: {{ section.settings.animation_duration }}ms;
+    --collection-animation-stagger: {{ section.settings.animation_stagger }}ms;
+    --card-glow-color-1: {{ section.settings.glow_color_1 }};
+    --card-glow-color-2: {{ section.settings.glow_color_2 }};
+  "
+>
+  <div class="dw-collection__container">
+    
+    {%- if section.settings.show_header -%}
+      <div class="dw-collection__header dw-collection__header--{{ section.settings.header_alignment }}">
+        {%- if section.settings.eyebrow != blank -%}
+          <p class="dw-collection__eyebrow">{{ section.settings.eyebrow }}</p>
+        {%- endif -%}
+        
+        {%- if section.settings.title != blank -%}
+          <h2 class="dw-collection__title">{{ section.settings.title }}</h2>
+        {%- elsif collection_to_show.title != blank -%}
+          <h2 class="dw-collection__title">{{ collection_to_show.title }}</h2>
+        {%- endif -%}
+        
+        {%- if section.settings.description != blank -%}
+          <div class="dw-collection__description">{{ section.settings.description }}</div>
+        {%- elsif collection_to_show.description != blank and section.settings.show_collection_description -%}
+          <div class="dw-collection__description">{{ collection_to_show.description }}</div>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    <div class="dw-collection__grid dw-collection__grid--{{ section.settings.layout }}">
+      {%- if show_placeholder -%}
+        {%- for i in (1..2) -%}
+          <div class="dw-product-card dw-product-card--placeholder dw-collection__item" style="--item-index: {{ forloop.index }};">
+            <div class="dw-product-card__media">
+              <div class="dw-product-card__placeholder-image">
+                {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
+              </div>
+            </div>
+            <div class="dw-product-card__content">
+              <h3 class="dw-product-card__title">Product {{ i }}</h3>
+              <p class="dw-product-card__price">$50.00</p>
+            </div>
+          </div>
+        {%- endfor -%}
+      {%- else -%}
+        {%- for product in collection_to_show.products limit: section.settings.products_to_show -%}
+          <div class="dw-product-card dw-collection__item{% if section.settings.enable_card_glow %} dw-product-card--glow{% endif %}" style="--item-index: {{ forloop.index }};">
+            
+            {%- if section.settings.enable_card_glow -%}
+              <div class="dw-product-card__glow">
+                <div class="dw-product-card__glow-orb dw-product-card__glow-orb--1"></div>
+                <div class="dw-product-card__glow-orb dw-product-card__glow-orb--2"></div>
+              </div>
+            {%- endif -%}
+            
+            <a href="{{ product.url }}" class="dw-product-card__link">
+              
+              {%- comment -%} Badges {%- endcomment -%}
+              <div class="dw-product-card__badges">
+                {%- if section.settings.show_preorder_badge -%}
+                  <span class="dw-product-card__badge dw-product-card__badge--preorder">
+                    {{ section.settings.preorder_badge_text }}
+                  </span>
+                {%- endif -%}
+                
+                {%- if product.available == false -%}
+                  <span class="dw-product-card__badge dw-product-card__badge--soldout">Sold Out</span>
+                {%- elsif product.compare_at_price > product.price -%}
+                  <span class="dw-product-card__badge dw-product-card__badge--sale">Sale</span>
+                {%- endif -%}
+                
+                {%- for tag in product.tags -%}
+                  {%- if tag == 'insider-club' and section.settings.show_insider_badge -%}
+                    <span class="dw-product-card__badge dw-product-card__badge--insider">Insider Club</span>
+                  {%- endif -%}
+                  {%- if tag == 'limited' -%}
+                    <span class="dw-product-card__badge dw-product-card__badge--limited">Limited</span>
+                  {%- endif -%}
+                {%- endfor -%}
+              </div>
+              
+              {%- comment -%} Product Image {%- endcomment -%}
+              <div class="dw-product-card__media">
+                {%- if product.featured_media -%}
+                  <img 
+                    src="{{ product.featured_media | image_url: width: 800 }}"
+                    alt="{{ product.featured_media.alt | default: product.title | escape }}"
+                    loading="lazy"
+                    width="{{ product.featured_media.width }}"
+                    height="{{ product.featured_media.height }}"
+                    class="dw-product-card__image dw-product-card__image--primary"
+                  >
+                  {%- if product.media[1] and section.settings.enable_hover_image -%}
+                    <img 
+                      src="{{ product.media[1] | image_url: width: 800 }}"
+                      alt="{{ product.media[1].alt | default: product.title | escape }}"
+                      loading="lazy"
+                      width="{{ product.media[1].width }}"
+                      height="{{ product.media[1].height }}"
+                      class="dw-product-card__image dw-product-card__image--hover"
+                    >
+                  {%- endif -%}
+                {%- else -%}
+                  <div class="dw-product-card__placeholder-image">
+                    {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
+                  </div>
+                {%- endif -%}
+              </div>
+              
+              {%- comment -%} Product Info {%- endcomment -%}
+              <div class="dw-product-card__content">
+                {%- if section.settings.show_vendor and product.vendor != blank -%}
+                  <p class="dw-product-card__vendor">{{ product.vendor }}</p>
+                {%- endif -%}
+                
+                <h3 class="dw-product-card__title">{{ product.title }}</h3>
+                
+                {%- if section.settings.show_variant_info -%}
+                  <p class="dw-product-card__variant-info">
+                    {%- if product.variants.size > 1 -%}
+                      {{ product.variants.size }} options
+                    {%- else -%}
+                      {{ product.variants.first.title | replace: 'Default Title', '' }}
+                    {%- endif -%}
+                  </p>
+                {%- endif -%}
+                
+                <div class="dw-product-card__price-row">
+                  <p class="dw-product-card__price">
+                    {%- if product.price_varies -%}
+                      From {{ product.price_min | money }}
+                    {%- else -%}
+                      {{ product.price | money }}
+                    {%- endif -%}
+                  </p>
+                  
+                  {%- if product.compare_at_price > product.price -%}
+                    <p class="dw-product-card__compare-price">{{ product.compare_at_price | money }}</p>
+                  {%- endif -%}
+                </div>
+                
+                {%- if section.settings.show_subscription_price and product.selling_plan_groups.size > 0 -%}
+                  <p class="dw-product-card__subscription">
+                    {%- assign first_plan = product.selling_plan_groups.first.selling_plans.first -%}
+                    {%- if first_plan.price_adjustments.size > 0 -%}
+                      {%- assign adjustment = first_plan.price_adjustments.first -%}
+                      {%- if adjustment.value_type == 'percentage' -%}
+                        Subscribe & save {{ adjustment.value }}%
+                      {%- else -%}
+                        Subscribe: {{ product.price | minus: adjustment.value | money }}/mo
+                      {%- endif -%}
+                    {%- else -%}
+                      Subscribe available
+                    {%- endif -%}
+                  </p>
+                {%- endif -%}
+                
+                {%- if section.settings.show_description -%}
+                  <p class="dw-product-card__description">
+                    {{ product.description | strip_html | truncate: 100 }}
+                  </p>
+                {%- endif -%}
+              </div>
+              
+              {%- comment -%} Quick Add / CTA {%- endcomment -%}
+              {%- if section.settings.show_cta -%}
+                <div class="dw-product-card__cta">
+                  <span class="dw-btn dw-btn--{{ section.settings.cta_style }}{% if section.settings.cta_style == 'gradient' or section.settings.cta_style == 'gradient-glow' %} dw-btn--gradient-animate{% endif %}">
+                    <span>{{ section.settings.cta_text }}</span>
+                  </span>
+                </div>
+              {%- endif -%}
+              
+            </a>
+          </div>
+        {%- endfor -%}
+      {%- endif -%}
+    </div>
+
+    {%- if section.settings.show_view_all and collection_to_show.products.size > section.settings.products_to_show -%}
+      <div class="dw-collection__footer">
+        <a href="{{ collection_to_show.url }}" class="dw-btn dw-btn--{{ section.settings.view_all_style }}{% if section.settings.view_all_style == 'gradient' %} dw-btn--gradient-animate{% endif %}">
+          <span>{{ section.settings.view_all_text }}</span>
+        </a>
+      </div>
+    {%- endif -%}
+
+  </div>
+</section>
+
+<style>
+  /* ==========================================
+     COLLECTION BASE
+     ========================================== */
+  
+  .dw-collection {
+    background: var(--collection-bg);
+    color: var(--collection-text);
+    padding: var(--collection-padding-top-mobile) 20px var(--collection-padding-bottom-mobile);
+  }
+
+  @media (min-width: 750px) {
+    .dw-collection {
+      padding: var(--collection-padding-top-desktop) 50px var(--collection-padding-bottom-desktop);
+    }
+  }
+
+  .dw-collection__container {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* ==========================================
+     HEADER
+     ========================================== */
+  
+  .dw-collection__header {
+    margin-bottom: 40px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-collection__header {
+      margin-bottom: 60px;
+    }
+  }
+
+  .dw-collection__header--left { text-align: left; }
+  .dw-collection__header--center { text-align: center; }
+  .dw-collection__header--right { text-align: right; }
+
+  .dw-collection__eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--collection-accent);
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+
+  .dw-collection__title {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 16px;
+    line-height: 1.2;
+  }
+
+  @media (min-width: 750px) {
+    .dw-collection__title {
+      font-size: 48px;
+    }
+  }
+
+  .dw-collection__description {
+    font-size: 16px;
+    line-height: 1.6;
+    opacity: 0.8;
+    max-width: 600px;
+  }
+
+  .dw-collection__header--center .dw-collection__description {
+    margin: 0 auto;
+  }
+
+  /* ==========================================
+     GRID
+     ========================================== */
+  
+  .dw-collection__grid {
+    display: grid;
+    grid-template-columns: repeat(var(--collection-columns-mobile), 1fr);
+    gap: var(--collection-gap-mobile);
+  }
+
+  @media (min-width: 750px) {
+    .dw-collection__grid {
+      grid-template-columns: repeat(var(--collection-columns-desktop), 1fr);
+      gap: var(--collection-gap-desktop);
+    }
+  }
+
+  /* List Layout */
+  .dw-collection__grid--list {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .dw-collection__grid--list .dw-product-card {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 750px) {
+    .dw-collection__grid--list {
+      gap: 24px;
+    }
+
+    .dw-collection__grid--list .dw-product-card {
+      grid-template-columns: 300px 1fr;
+    }
+
+    .dw-collection__grid--list .dw-product-card__link {
+      display: contents;
+    }
+
+    .dw-collection__grid--list .dw-product-card__content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 30px 40px;
+    }
+
+    .dw-collection__grid--list .dw-product-card__cta {
+      position: relative;
+      margin-top: 20px;
+    }
+  }
+
+  /* ==========================================
+     PRODUCT CARD
+     ========================================== */
+  
+  .dw-product-card {
+    position: relative;
+    background: var(--collection-card-bg);
+    border: 1px solid var(--collection-card-border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .dw-product-card:hover {
+    border-color: var(--collection-accent);
+    transform: translateY(-4px);
+  }
+
+  .dw-product-card__link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  /* Card Glow Effect */
+  .dw-product-card--glow {
+    overflow: visible;
+  }
+
+  .dw-product-card__glow {
+    position: absolute;
+    inset: -2px;
+    border-radius: 14px;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .dw-product-card:hover .dw-product-card__glow {
+    opacity: 1;
+  }
+
+  .dw-product-card__glow-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(40px);
+    animation: card-glow-pulse 3s ease-in-out infinite;
+  }
+
+  .dw-product-card__glow-orb--1 {
+    width: 100px;
+    height: 100px;
+    background: var(--card-glow-color-1);
+    top: -20px;
+    left: -20px;
+  }
+
+  .dw-product-card__glow-orb--2 {
+    width: 80px;
+    height: 80px;
+    background: var(--card-glow-color-2);
+    bottom: -20px;
+    right: -20px;
+    animation-delay: -1.5s;
+  }
+
+  @keyframes card-glow-pulse {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+
+  /* Badges */
+  .dw-product-card__badges {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    z-index: 2;
+  }
+
+  .dw-product-card__badge {
+    padding: 6px 12px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 24px;
+  }
+
+  .dw-product-card__badge--preorder {
+    background: linear-gradient(135deg, var(--collection-accent), #9eb800);
+    color: #0a0a0a;
+  }
+
+  .dw-product-card__badge--insider {
+    background: linear-gradient(135deg, #ff00ff, #00d4ff);
+    color: #fff;
+  }
+
+  .dw-product-card__badge--sale {
+    background: #ff4444;
+    color: #fff;
+  }
+
+  .dw-product-card__badge--soldout {
+    background: #666;
+    color: #fff;
+  }
+
+  .dw-product-card__badge--limited {
+    background: #ff9500;
+    color: #0a0a0a;
+  }
+
+  /* Media */
+  .dw-product-card__media {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: #111;
+     border-radius: 12px;
+  }
+
+  .dw-product-card__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+     border-radius: 12px;
+    transition: opacity 0.3s ease, transform 0.5s ease;
+  }
+
+  .dw-product-card__image--hover {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+  }
+
+  .dw-product-card:hover .dw-product-card__image--primary {
+    opacity: 0;
+  }
+
+  .dw-product-card:hover .dw-product-card__image--hover {
+    opacity: 1;
+  }
+
+  .dw-product-card:hover .dw-product-card__image {
+    transform: scale(1.05);
+  }
+
+  .dw-product-card__placeholder-image {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1a1a1a;
+  }
+
+  .dw-product-card__placeholder-image svg {
+    width: 60%;
+    height: auto;
+    opacity: 0.3;
+  }
+
+  /* Content */
+  .dw-product-card__content {
+    padding: 20px;
+  }
+
+  .dw-product-card__vendor {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--collection-accent);
+    margin: 0 0 8px;
+  }
+
+  .dw-product-card__title {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    line-height: 1.3;
+  }
+
+  @media (min-width: 750px) {
+    .dw-product-card__title {
+      font-size: 20px;
+    }
+  }
+
+  .dw-product-card__variant-info {
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    margin: 0 0 12px;
+  }
+
+  .dw-product-card__price-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .dw-product-card__price {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--collection-accent);
+  }
+
+  .dw-product-card__compare-price {
+    font-size: 14px;
+    color: #888;
+    text-decoration: line-through;
+    margin: 0;
+  }
+
+  .dw-product-card__subscription {
+    font-size: 12px;
+    color: #888;
+    margin: 0 0 12px;
+  }
+
+  .dw-product-card__description {
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.7);
+    margin: 12px 0 0;
+  }
+
+  /* CTA */
+  .dw-product-card__cta {
+    padding: 0 20px 20px;
+  }
+
+  .dw-product-card__cta .dw-btn {
+    width: 100%;
+  }
+
+  /* ==========================================
+     FOOTER
+     ========================================== */
+  
+  .dw-collection__footer {
+    text-align: center;
+    margin-top: 40px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-collection__footer {
+      margin-top: 60px;
+    }
+  }
+
+  /* ==========================================
+     BUTTONS (Shared from Hero)
+     ========================================== */
+  
+  .dw-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 28px;
+    font-size: 20px;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 40px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+    position: relative;
+  }
+
+  .dw-btn--primary {
+    background: var(--collection-accent);
+    color: #ffffff;
+    border-color: var(--collection-accent);
+  }
+
+  .dw-btn--primary:hover {
+    filter: brightness(0.9);
+  }
+
+  .dw-btn--secondary {
+    background: transparent;
+    color: var(--collection-text);
+    border-color: var(--collection-card-border);
+  }
+
+  .dw-btn--secondary:hover {
+    border-color: var(--collection-accent);
+    background: rgba(196, 214, 0, 0.1);
+  }
+
+  .dw-btn--gradient {
+    background: transparent;
+    color: #fff;
+    border: none;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  .dw-btn--gradient::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 40px;
+    padding: 2px;
+    background: linear-gradient(90deg, var(--card-glow-color-1), var(--card-glow-color-2), var(--card-glow-color-1), var(--card-glow-color-2));
+    background-size: 300% 100%;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    z-index: -1;
+  }
+
+  .dw-btn--gradient-animate::before {
+    animation: gradient-shift 3s linear infinite;
+  }
+
+  .dw-btn--gradient:hover::before {
+    animation: gradient-shift 1.5s linear infinite;
+  }
+
+  .dw-btn--gradient::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border-radius: 40px;
+    background: #0a0a0a;
+    z-index: -1;
+  }
+
+  .dw-btn--gradient span {
+    position: relative;
+    z-index: 2;
+  }
+
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
+  }
+
+  /* ==========================================
+     ANIMATIONS
+     ========================================== */
+  
+  .dw-collection--animate .dw-collection__item {
+    opacity: 0;
+    animation-fill-mode: forwards;
+    animation-duration: var(--collection-animation-duration);
+    animation-delay: calc(var(--item-index, 1) * var(--collection-animation-stagger));
+  }
+
+  .dw-collection--animate[data-animation="fade-up"] .dw-collection__item {
+    animation-name: dw-col-fade-up;
+  }
+
+  @keyframes dw-col-fade-up {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .dw-collection--animate[data-animation="fade-in"] .dw-collection__item {
+    animation-name: dw-col-fade-in;
+  }
+
+  @keyframes dw-col-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .dw-collection--animate[data-animation="scale-up"] .dw-collection__item {
+    animation-name: dw-col-scale-up;
+  }
+
+  @keyframes dw-col-scale-up {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .dw-collection--animate[data-animation="slide-up"] .dw-collection__item {
+    animation-name: dw-col-slide-up;
+  }
+
+  @keyframes dw-col-slide-up {
+    from { opacity: 0; transform: translateY(50px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dw-collection--animate .dw-collection__item {
+      animation: none;
+      opacity: 1;
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "DW Collection",
+  "tag": "section",
+  "class": "dw-collection-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Collection"
+    },
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Collection"
+    },
+    {
+      "type": "range",
+      "id": "products_to_show",
+      "label": "Products to show",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "header",
+      "content": "Header"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_header",
+      "label": "Show header",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow",
+      "default": "SECRET PREORDER"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Our Products"
+    },
+    {
+      "type": "richtext",
+      "id": "description",
+      "label": "Description"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_collection_description",
+      "label": "Show collection description if no custom description",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "header_alignment",
+      "label": "Header alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Layout",
+      "options": [
+        { "value": "grid", "label": "Grid" },
+        { "value": "list", "label": "List" }
+      ],
+      "default": "grid"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "label": "Columns (desktop)",
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "default": 2
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "Columns (mobile)",
+      "options": [
+        { "value": "1", "label": "1" },
+        { "value": "2", "label": "2" }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "range",
+      "id": "gap_desktop",
+      "label": "Gap (desktop)",
+      "min": 16,
+      "max": 60,
+      "step": 4,
+      "default": 32,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "gap_mobile",
+      "label": "Gap (mobile)",
+      "min": 12,
+      "max": 40,
+      "step": 4,
+      "default": 20,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Product Cards"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_vendor",
+      "label": "Show vendor",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_variant_info",
+      "label": "Show variant info",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_description",
+      "label": "Show description",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_subscription_price",
+      "label": "Show subscription info",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_hover_image",
+      "label": "Enable hover image",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_card_glow",
+      "label": "Enable card glow effect",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Badges"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_preorder_badge",
+      "label": "Show preorder badge",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "preorder_badge_text",
+      "label": "Preorder badge text",
+      "default": "Secret Preorder"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_insider_badge",
+      "label": "Show Insider Club badge",
+      "default": true,
+      "info": "Shows for products tagged 'insider-club'"
+    },
+    {
+      "type": "header",
+      "content": "Card CTA"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_cta",
+      "label": "Show CTA button",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "cta_text",
+      "label": "CTA text",
+      "default": "View Product"
+    },
+    {
+      "type": "select",
+      "id": "cta_style",
+      "label": "CTA style",
+      "options": [
+        { "value": "primary", "label": "Primary (lime)" },
+        { "value": "secondary", "label": "Secondary (outline)" },
+        { "value": "gradient", "label": "Cyber Gradient ✨" }
+      ],
+      "default": "primary"
+    },
+    {
+      "type": "header",
+      "content": "View All"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_view_all",
+      "label": "Show view all button",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "view_all_text",
+      "label": "View all text",
+      "default": "View All Products"
+    },
+    {
+      "type": "select",
+      "id": "view_all_style",
+      "label": "View all style",
+      "options": [
+        { "value": "primary", "label": "Primary (lime)" },
+        { "value": "secondary", "label": "Secondary (outline)" },
+        { "value": "gradient", "label": "Cyber Gradient ✨" }
+      ],
+      "default": "secondary"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent",
+      "default": "#c4d600"
+    },
+    {
+      "type": "color",
+      "id": "card_background",
+      "label": "Card background",
+      "default": "#1a1a1a"
+    },
+    {
+      "type": "color",
+      "id": "card_border_color",
+      "label": "Card border",
+      "default": "#333333"
+    },
+    {
+      "type": "color",
+      "id": "glow_color_1",
+      "label": "Glow color 1",
+      "default": "#c4d600"
+    },
+    {
+      "type": "color",
+      "id": "glow_color_2",
+      "label": "Glow color 2",
+      "default": "#ff00ff"
+    },
+    {
+      "type": "header",
+      "content": "Desktop Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top_desktop",
+      "label": "Padding top",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom_desktop",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Mobile Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top_mobile",
+      "label": "Padding top",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "default": 50,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom_mobile",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "default": 50,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Animations"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_animations",
+      "label": "Enable animations",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "animation_style",
+      "label": "Animation style",
+      "options": [
+        { "value": "fade-up", "label": "Fade Up" },
+        { "value": "fade-in", "label": "Fade In" },
+        { "value": "scale-up", "label": "Scale Up" },
+        { "value": "slide-up", "label": "Slide Up" }
+      ],
+      "default": "fade-up"
+    },
+    {
+      "type": "range",
+      "id": "animation_duration",
+      "label": "Animation duration",
+      "min": 300,
+      "max": 1200,
+      "step": 100,
+      "default": 600,
+      "unit": "ms"
+    },
+    {
+      "type": "range",
+      "id": "animation_stagger",
+      "label": "Stagger delay",
+      "min": 50,
+      "max": 300,
+      "step": 50,
+      "default": 100,
+      "unit": "ms"
+    }
+  ],
+  "presets": [
+    {
+      "name": "DW Collection",
+      "settings": {
+        "eyebrow": "SECRET PREORDER",
+        "title": "Choose Your Flavor",
+        "products_to_show": 4,
+        "columns_desktop": 2,
+        "show_preorder_badge": true,
+        "enable_card_glow": true
+      }
+    },
+    {
+      "name": "DW Collection - Cyber",
+      "settings": {
+        "eyebrow": "LIMITED DROP",
+        "title": "Founding Access",
+        "products_to_show": 4,
+        "columns_desktop": 2,
+        "show_preorder_badge": true,
+        "enable_card_glow": true,
+        "cta_style": "gradient",
+        "glow_color_1": "#ff00ff",
+        "glow_color_2": "#00d4ff"
+      }
+    }
+  ]
+}
+{% endschema %}

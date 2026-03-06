@@ -1,0 +1,505 @@
+{%- doc -%}
+  Renders a mobile header drawer menu with DoingWell styling
+  Shows submenu items (children) as image cards, grouped by parent
+{%- enddoc -%}
+
+{% liquid
+  assign block_settings = block.settings
+  assign bg_color = block_settings.drawer_bg_color | default: '#C6D76B'
+  assign bg_color_2 = block_settings.drawer_bg_color_2 | default: '#a8c054'
+  assign gradient_dir = block_settings.drawer_gradient_direction | default: 'to bottom'
+  assign use_gradient = block_settings.drawer_bg_gradient
+  assign text_color = block_settings.drawer_text_color | default: '#1a1a1a'
+  assign border_color = block_settings.drawer_border_color | default: '#1a1a1a'
+  assign border_radius = block_settings.drawer_border_radius | default: 16
+  assign gap = block_settings.drawer_gap | default: 16
+  assign padding = block_settings.drawer_padding | default: 20
+  assign show_labels = true
+  if block_settings.drawer_show_labels == false
+    assign show_labels = false
+  endif
+  
+  if block_settings.drawer_menu_secondary != blank
+    assign secondary_menu = linklists[block_settings.drawer_menu_secondary]
+  endif
+%}
+
+<script
+  src="{{ 'header-drawer.js' | asset_url }}"
+  type="module"
+  fetchpriority="low"
+></script>
+
+<header-drawer
+  class="header-drawer {{ class }}"
+>
+  <details
+    id="Details-menu-drawer-container"
+    data-skip-node-update="true"
+    class="menu-drawer-container"
+    ref="details"
+    scroll-lock
+  >
+    <summary
+      class="header__icon header__icon--menu header__icon--summary"
+      aria-label="{{ 'accessibility.menu' | t }}"
+      on:click="/toggle"
+    >
+      <span class="svg-wrapper header-drawer-icon header-drawer-icon--open">
+        {{- 'icon-menu.svg' | inline_asset_content -}}
+      </span>
+      <span class="svg-wrapper header-drawer-icon header-drawer-icon--close">
+        {{- 'icon-close.svg' | inline_asset_content -}}
+      </span>
+    </summary>
+    
+    <div
+      data-header-drawer
+      class="dw-mobile-drawer{% unless show_labels %} dw-mobile-drawer--no-labels{% endunless %}"
+      style="
+        {% if use_gradient %}
+          --dw-bg: linear-gradient({{ gradient_dir }}, {{ bg_color }}, {{ bg_color_2 }});
+        {% else %}
+          --dw-bg: {{ bg_color }};
+        {% endif %}
+        --dw-text: {{ text_color }};
+        --dw-border: {{ border_color }};
+        --dw-radius: {{ border_radius }}px;
+        --dw-gap: {{ gap }}px;
+        --dw-padding: {{ padding }}px;
+      "
+    >
+      <!-- Close Button -->
+      <button
+        class="dw-mobile-drawer__close"
+        type="button"
+        aria-label="{{ 'actions.close' | t }}"
+        on:click="/close"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <!-- Scrollable Menu -->
+      <nav class="dw-mobile-drawer__nav">
+        <div class="dw-mobile-drawer__scroll">
+          
+          {% assign animation_index = 0 %}
+          
+          {% for parent_link in linklist.links %}
+            {% if parent_link.links != blank %}
+              <!-- Parent with children - show children as image cards -->
+              <div class="dw-mobile-drawer__group">
+                <span class="dw-mobile-drawer__group-title" style="--i: {{ animation_index }};">
+                  {{ parent_link.title }}
+                </span>
+                {% assign animation_index = animation_index | plus: 1 %}
+                
+                <div class="dw-mobile-drawer__mega">
+                  {% for link in parent_link.links %}
+                    {% liquid
+                      assign item_image = nil
+                      if link.type == 'collection_link' and link.object.image != blank
+                        assign item_image = link.object.image
+                      elsif link.type == 'collection_link' and link.object.products.first.featured_image != blank
+                        assign item_image = link.object.products.first.featured_image
+                      elsif link.type == 'product_link' and link.object.featured_image != blank
+                        assign item_image = link.object.featured_image
+                      endif
+                    %}
+
+                    <a href="{{ link.url }}" class="dw-mobile-drawer__item" style="--i: {{ animation_index }};">
+                      <div class="dw-mobile-drawer__item-img">
+                        {% if item_image != blank %}
+                          <img 
+                            src="{{ item_image | image_url: width: 600 }}" 
+                            alt="{{ link.title | escape }}"
+                            loading="lazy"
+                          >
+                        {% else %}
+                          <div class="dw-mobile-drawer__placeholder">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                              <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg>
+                          </div>
+                        {% endif %}
+                      </div>
+                      {% if show_labels %}
+                        <span class="dw-mobile-drawer__item-label">{{ link.title }}</span>
+                      {% endif %}
+                    </a>
+                    {% assign animation_index = animation_index | plus: 1 %}
+                  {% endfor %}
+                </div>
+              </div>
+            {% else %}
+              <!-- No children - show as text link in secondary -->
+            {% endif %}
+          {% endfor %}
+
+          <!-- Secondary Menu - includes parent links without children + custom secondary menu -->
+          <div class="dw-mobile-drawer__secondary">
+            {% for parent_link in linklist.links %}
+              {% if parent_link.links == blank %}
+                <a href="{{ parent_link.url }}" class="dw-mobile-drawer__link" style="--i: {{ animation_index }};">
+                  {{ parent_link.title }}
+                </a>
+                {% assign animation_index = animation_index | plus: 1 %}
+              {% endif %}
+            {% endfor %}
+            
+            {% if secondary_menu.links.size > 0 %}
+              {% for link in secondary_menu.links %}
+                <a href="{{ link.url }}" class="dw-mobile-drawer__link" style="--i: {{ animation_index }};">
+                  {{ link.title }}
+                </a>
+                {% assign animation_index = animation_index | plus: 1 %}
+              {% endfor %}
+            {% endif %}
+          </div>
+
+        </div>
+      </nav>
+
+      <!-- Footer -->
+      <div class="dw-mobile-drawer__footer">
+        {% liquid
+          assign show_language = section.settings.show_language
+          if localization.available_languages.size <= 1
+            assign show_language = false
+          endif
+
+          assign show_country = section.settings.show_country
+          if localization.available_countries.size <= 1
+            assign show_country = false
+          endif
+        %}
+        {% if show_country or show_language %}
+          <div class="dw-mobile-drawer__localization">
+            {% render 'drawer-localization',
+              show_country: show_country,
+              show_language: show_language,
+              country_style: section.settings.country_selector_style
+            %}
+          </div>
+        {%- endif -%}
+      </div>
+    </div>
+
+    <div
+      class="dw-mobile-drawer__backdrop"
+      on:click="header-drawer/close"
+    ></div>
+  </details>
+</header-drawer>
+
+<style>
+  .dw-mobile-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: 400px;
+    height: 100vh;
+    height: 100dvh;
+    background: var(--dw-bg);
+    color: var(--dw-text);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    visibility: hidden;
+  }
+
+  .menu-open .dw-mobile-drawer {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  .dw-mobile-drawer__close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--dw-text);
+    z-index: 10;
+    transition: opacity 0.2s ease;
+  }
+
+  .dw-mobile-drawer__close:hover {
+    opacity: 0.6;
+  }
+
+  .dw-mobile-drawer__close svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .dw-mobile-drawer__nav {
+    flex: 1;
+    overflow: hidden;
+    padding-top: 60px;
+  }
+
+  .dw-mobile-drawer__scroll {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--dw-padding);
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dw-mobile-drawer__scroll::-webkit-scrollbar {
+    width: 3px;
+  }
+
+  .dw-mobile-drawer__scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .dw-mobile-drawer__scroll::-webkit-scrollbar-thumb {
+    background: var(--dw-text);
+    opacity: 0.2;
+    border-radius: 3px;
+  }
+
+  /* Group (parent with children) */
+  .dw-mobile-drawer__group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .dw-mobile-drawer__group-title {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    opacity: 0.5;
+    padding-left: 4px;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: dw-mobile-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: calc(var(--i, 1) * 50ms);
+  }
+
+  .dw-mobile-drawer__mega {
+    display: flex;
+    flex-direction: column;
+    gap: var(--dw-gap);
+  }
+
+  .dw-mobile-drawer__item {
+    display: block;
+    text-decoration: none;
+    color: var(--dw-text);
+    opacity: 0;
+    transform: translateY(20px);
+    animation: dw-mobile-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: calc(var(--i, 1) * 50ms);
+    position: relative;
+  }
+
+  @keyframes dw-mobile-fade-up {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .dw-mobile-drawer__item-img {
+    position: relative;
+    width: 100%;
+    border-radius: var(--dw-radius);
+    overflow: hidden;
+    background: rgba(0,0,0,0.05);
+  }
+
+  .dw-mobile-drawer__item-img::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--dw-radius);
+    border: 3px solid var(--dw-border);
+    opacity: 0;
+    transform: scale(0.95);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .dw-mobile-drawer__item:hover .dw-mobile-drawer__item-img::before,
+  .dw-mobile-drawer__item:active .dw-mobile-drawer__item-img::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .dw-mobile-drawer__item-img img {
+    display: block;
+    width: 100%;
+    height: auto;
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .dw-mobile-drawer__item:hover .dw-mobile-drawer__item-img img {
+    transform: scale(1.04);
+  }
+
+  .dw-mobile-drawer__placeholder {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dw-mobile-drawer__placeholder svg {
+    width: 32px;
+    height: 32px;
+    opacity: 0.2;
+    color: var(--dw-text);
+  }
+
+  .dw-mobile-drawer__item-label {
+    display: block;
+    padding: 12px 4px 0;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: opacity 0.2s ease;
+  }
+
+  .dw-mobile-drawer__item:hover .dw-mobile-drawer__item-label {
+    opacity: 0.7;
+  }
+
+  .dw-mobile-drawer--no-labels .dw-mobile-drawer__mega {
+    gap: calc(var(--dw-gap) * 0.75);
+  }
+
+  /* Secondary Menu */
+  .dw-mobile-drawer__secondary {
+    display: flex;
+    flex-direction: column;
+    padding-top: 16px;
+    border-top: 1px solid rgba(0,0,0,0.1);
+  }
+
+  .dw-mobile-drawer__secondary:empty {
+    display: none;
+  }
+
+  .dw-mobile-drawer__link {
+    display: block;
+    padding: 14px 4px;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--dw-text);
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    opacity: 0;
+    transform: translateY(10px);
+    animation: dw-mobile-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: calc(var(--i, 1) * 40ms);
+    transition: opacity 0.2s ease;
+  }
+
+  .dw-mobile-drawer__link:last-child {
+    border-bottom: none;
+  }
+
+  .dw-mobile-drawer__link:hover {
+    opacity: 0.6;
+  }
+
+  /* Footer */
+  .dw-mobile-drawer__footer {
+    padding: var(--dw-padding);
+    flex-shrink: 0;
+  }
+
+  .dw-mobile-drawer__footer:empty {
+    display: none;
+  }
+
+  .dw-mobile-drawer__localization {
+    padding-top: 16px;
+    border-top: 1px solid rgba(0,0,0,0.1);
+  }
+
+  /* Backdrop */
+  .dw-mobile-drawer__backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 9998;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+
+  .menu-open .dw-mobile-drawer__backdrop {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Header icon styles */
+  .header__icon--menu {
+    position: initial;
+  }
+
+  .menu-drawer-container .header__icon--summary {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--padding-lg);
+  }
+
+  .header__icon--summary .header-drawer-icon {
+    margin: auto;
+    width: var(--icon-size-xs);
+    height: var(--icon-size-xs);
+  }
+
+  details:not([open]) .header__icon--menu .header-drawer-icon--close {
+    display: none;
+  }
+
+  details[open] .header__icon--menu .header-drawer-icon--open {
+    display: none;
+  }
+
+  .header__drawer {
+    display: flex;
+    min-height: 60px;
+    align-items: center;
+  }
+
+  @media screen and (min-width: 750px) {
+    .header__drawer {
+      min-height: 0;
+    }
+    
+    .header--desktop header-menu + .header__drawer header-drawer {
+      display: none;
+    }
+  }
+</style>

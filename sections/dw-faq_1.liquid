@@ -1,0 +1,1388 @@
+{% comment %}
+  DoingWell FAQ Section v2
+  - Cyber-themed with animated effects
+  - Glowing active accordion items
+  - Animated gradient borders
+  - Staggered entrance animations
+  - Number indicators with glow
+  - Full button customization including radius
+{% endcomment %}
+
+<section 
+  class="dw-faq"
+  data-faq-section
+  style="
+    --faq-bg: {{ section.settings.background_color }};
+    --faq-text: {{ section.settings.text_color }};
+    --faq-heading-color: {{ section.settings.heading_color }};
+    --faq-accent: {{ section.settings.accent_color }};
+    --faq-border: {{ section.settings.border_color }};
+    --faq-glow-1: {{ section.settings.glow_color_1 }};
+    --faq-glow-2: {{ section.settings.glow_color_2 }};
+    --faq-padding-desktop: {{ section.settings.padding_desktop }}px;
+    --faq-padding-mobile: {{ section.settings.padding_mobile }}px;
+    --faq-split-ratio: {{ section.settings.content_width }}%;
+    --faq-btn-bg: {{ section.settings.button_bg_color }};
+    --faq-btn-text: {{ section.settings.button_text_color }};
+    --faq-btn-border: {{ section.settings.button_border_color }};
+    --faq-btn-radius: {{ section.settings.button_radius }}px;
+    --faq-btn-gradient-1: {{ section.settings.button_gradient_1 }};
+    --faq-btn-gradient-2: {{ section.settings.button_gradient_2 }};
+    --faq-bg-position-desktop: {{ section.settings.bg_image_position_desktop }};
+    --faq-bg-position-mobile: {{ section.settings.bg_image_position_mobile }};
+    --faq-bg-overlay-opacity: {{ section.settings.bg_overlay_opacity | divided_by: 100.0 }};
+  "
+>
+  <!-- Background Image -->
+  {%- liquid
+    assign mobile_bg = section.settings.bg_image_mobile | default: section.settings.bg_image_desktop
+  -%}
+  {%- if section.settings.bg_image_desktop != blank -%}
+    <div class="dw-faq__bg-image-wrapper">
+      <picture class="dw-faq__bg-picture">
+        {%- if mobile_bg != blank -%}
+          <source 
+            media="(max-width: 989px)" 
+            srcset="{{ mobile_bg | image_url: width: 1000 }},
+                    {{ mobile_bg | image_url: width: 2000 }} 2x"
+          >
+        {%- endif -%}
+        <source 
+          media="(min-width: 990px)" 
+          srcset="{{ section.settings.bg_image_desktop | image_url: width: 1920 }},
+                  {{ section.settings.bg_image_desktop | image_url: width: 3840 }} 2x"
+        >
+        <img 
+          src="{{ section.settings.bg_image_desktop | image_url: width: 1920 }}" 
+          alt=""
+          loading="lazy"
+          class="dw-faq__bg-img"
+        >
+      </picture>
+      <div class="dw-faq__bg-overlay"></div>
+    </div>
+  {%- endif -%}
+
+  {%- if section.settings.enable_background_glow -%}
+    <div class="dw-faq__bg-glow">
+      <div class="dw-faq__bg-orb dw-faq__bg-orb--1"></div>
+      <div class="dw-faq__bg-orb dw-faq__bg-orb--2"></div>
+    </div>
+  {%- endif -%}
+
+  <div class="dw-faq__container">
+    <!-- Image Side -->
+    <div class="dw-faq__media">
+      {%- if section.settings.image != blank -%}
+        <div class="dw-faq__image-wrapper">
+          {%- if section.settings.enable_image_glow -%}
+            <div class="dw-faq__image-glow"></div>
+          {%- endif -%}
+          {%- if section.settings.enable_image_border -%}
+            <div class="dw-faq__image-border"></div>
+          {%- endif -%}
+          <img 
+            src="{{ section.settings.image | image_url: width: 1200 }}"
+            alt="{{ section.settings.image.alt | default: 'FAQ image' | escape }}"
+            loading="lazy"
+            class="dw-faq__image"
+          >
+        </div>
+      {%- else -%}
+        <div class="dw-faq__image-placeholder">
+          <div class="dw-faq__placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+        </div>
+      {%- endif -%}
+    </div>
+
+    <!-- Content Side -->
+    <div class="dw-faq__content">
+      {%- if section.settings.eyebrow != blank -%}
+        <p class="dw-faq__eyebrow">{{ section.settings.eyebrow }}</p>
+      {%- endif -%}
+
+      {%- if section.settings.heading != blank -%}
+        <h2 class="dw-faq__heading{% if section.settings.heading_gradient %} dw-faq__heading--gradient{% endif %}">
+          {{ section.settings.heading }}
+        </h2>
+      {%- endif -%}
+
+      {%- if section.settings.subheading != blank -%}
+        <p class="dw-faq__subheading">{{ section.settings.subheading }}</p>
+      {%- endif -%}
+
+      <div class="dw-faq__list" data-faq-list>
+        {%- for block in section.blocks -%}
+          <div 
+            class="dw-faq__item{% if forloop.first and section.settings.first_open %} is-open{% endif %}"
+            data-faq-item
+            style="--item-index: {{ forloop.index }};"
+            {{ block.shopify_attributes }}
+          >
+            {%- if section.settings.show_numbers -%}
+              <div class="dw-faq__item-number">
+                <span class="dw-faq__item-number-text">{{ forloop.index | prepend: '0' | slice: -2, 2 }}</span>
+                <div class="dw-faq__item-number-glow"></div>
+              </div>
+            {%- endif -%}
+            
+            <div class="dw-faq__item-content">
+              <div class="dw-faq__item-border"></div>
+              
+              <button type="button" class="dw-faq__question" data-faq-trigger>
+                <span class="dw-faq__question-text">{{ block.settings.question }}</span>
+                <span class="dw-faq__icon">
+                  <span class="dw-faq__icon-bar dw-faq__icon-bar--h"></span>
+                  <span class="dw-faq__icon-bar dw-faq__icon-bar--v"></span>
+                </span>
+              </button>
+              
+              <div class="dw-faq__answer" data-faq-answer>
+                <div class="dw-faq__answer-inner">
+                  {{ block.settings.answer }}
+                </div>
+              </div>
+            </div>
+          </div>
+        {%- endfor -%}
+      </div>
+
+      {%- if section.settings.button_text != blank -%}
+        <div class="dw-faq__cta">
+          <a href="{{ section.settings.button_url }}" class="dw-faq__button dw-faq__button--{{ section.settings.button_style }}">
+            <span class="dw-faq__button-bg"></span>
+            <span class="dw-faq__button-text">{{ section.settings.button_text }}</span>
+            {%- if section.settings.button_icon -%}
+              <span class="dw-faq__button-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                  <polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </span>
+            {%- endif -%}
+          </a>
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+
+<style>
+  /* ==========================================
+     BASE
+     ========================================== */
+  
+  .dw-faq {
+    position: relative;
+    background: var(--faq-bg);
+    color: var(--faq-text);
+    font-family: 'Poppins', sans-serif;
+    overflow: hidden;
+  }
+
+  /* ==========================================
+     BACKGROUND IMAGE
+     ========================================== */
+
+  .dw-faq__bg-image-wrapper {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .dw-faq__bg-picture {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .dw-faq__bg-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: var(--faq-bg-position-mobile);
+  }
+
+  @media (min-width: 990px) {
+    .dw-faq__bg-img {
+      object-position: var(--faq-bg-position-desktop);
+    }
+  }
+
+  .dw-faq__bg-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--faq-bg);
+    opacity: var(--faq-bg-overlay-opacity, 0.85);
+  }
+
+  .dw-faq__container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    z-index: 3;
+  }
+
+  @media (min-width: 990px) {
+    .dw-faq__container {
+      flex-direction: row;
+      min-height: 700px;
+    }
+  }
+
+  /* ==========================================
+     BACKGROUND GLOW
+     ========================================== */
+
+  .dw-faq__bg-glow {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .dw-faq__bg-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.2;
+  }
+
+  .dw-faq__bg-orb--1 {
+    width: 500px;
+    height: 500px;
+    background: var(--faq-glow-1);
+    top: -150px;
+    right: -100px;
+    animation: faq-orb-drift 20s ease-in-out infinite;
+  }
+
+  .dw-faq__bg-orb--2 {
+    width: 400px;
+    height: 400px;
+    background: var(--faq-glow-2);
+    bottom: -100px;
+    left: 20%;
+    animation: faq-orb-drift 20s ease-in-out infinite reverse;
+  }
+
+  @keyframes faq-orb-drift {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(40px, 30px); }
+  }
+
+  /* ==========================================
+     IMAGE SIDE
+     ========================================== */
+
+  .dw-faq__media {
+    position: relative;
+    min-height: 350px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+
+  @media (min-width: 990px) {
+    .dw-faq__media {
+      flex: 0 0 calc(100% - var(--faq-split-ratio, 50%));
+      order: 2;
+      min-height: auto;
+      padding: 60px;
+    }
+  }
+
+  .dw-faq__image-wrapper {
+    position: relative;
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .dw-faq__image {
+    position: relative;
+    max-width: 100%;
+    max-height: 500px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 12px;
+    z-index: 2;
+  }
+
+  @media (min-width: 990px) {
+    .dw-faq__image {
+      max-height: 600px;
+    }
+  }
+
+  /* Image Glow */
+  .dw-faq__image-glow {
+    position: absolute;
+    inset: -20px;
+    background: radial-gradient(ellipse at center, var(--faq-accent) 0%, transparent 70%);
+    opacity: 0.3;
+    filter: blur(40px);
+    z-index: 1;
+    animation: faq-image-glow 4s ease-in-out infinite;
+  }
+
+  @keyframes faq-image-glow {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.05); }
+  }
+
+  /* Image Animated Border */
+  .dw-faq__image-border {
+    position: absolute;
+    inset: -4px;
+    border-radius: 16px;
+    background: linear-gradient(
+      135deg,
+      var(--faq-glow-1),
+      var(--faq-glow-2),
+      var(--faq-glow-1)
+    );
+    background-size: 200% 200%;
+    animation: faq-border-shift 4s linear infinite;
+    z-index: 1;
+    opacity: 0.8;
+  }
+
+  .dw-faq__image-border::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    background: var(--faq-bg);
+    border-radius: 13px;
+  }
+
+  @keyframes faq-border-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  /* Placeholder */
+  .dw-faq__image-placeholder {
+    width: 300px;
+    height: 400px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.08) 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed var(--faq-border);
+  }
+
+  .dw-faq__placeholder-icon {
+    width: 80px;
+    height: 80px;
+    color: var(--faq-accent);
+    opacity: 0.3;
+  }
+
+  .dw-faq__placeholder-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ==========================================
+     CONTENT SIDE
+     ========================================== */
+
+  .dw-faq__content {
+    position: relative;
+    padding: var(--faq-padding-mobile) 20px;
+    z-index: 3;
+  }
+
+  @media (min-width: 990px) {
+    .dw-faq__content {
+      flex: 0 0 var(--faq-split-ratio, 50%);
+      order: 1;
+      padding: var(--faq-padding-desktop) 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+  }
+
+  /* Eyebrow */
+  .dw-faq__eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--faq-accent);
+    margin: 0 0 16px 0;
+  }
+
+  @media (min-width: 750px) {
+    .dw-faq__eyebrow {
+      font-size: 12px;
+    }
+  }
+
+  /* Heading */
+  .dw-faq__heading {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--faq-heading-color);
+    margin: 0 0 16px 0;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .dw-faq__heading--gradient {
+    background: linear-gradient(135deg, var(--faq-heading-color), var(--faq-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  @media (min-width: 750px) {
+    .dw-faq__heading {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+  }
+
+  /* Subheading */
+  .dw-faq__subheading {
+    font-size: 15px;
+    color: var(--faq-text);
+    opacity: 0.7;
+    margin: 0 0 32px 0;
+    line-height: 1.6;
+    max-width: 500px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-faq__subheading {
+      font-size: 16px;
+      margin-bottom: 40px;
+    }
+  }
+
+  /* ==========================================
+     FAQ LIST
+     ========================================== */
+
+  .dw-faq__list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-faq__list {
+      gap: 16px;
+    }
+  }
+
+  /* ==========================================
+     FAQ ITEM
+     ========================================== */
+
+  .dw-faq__item {
+    display: flex;
+    gap: 16px;
+    opacity: 0;
+    transform: translateX(-20px);
+    animation: faq-item-enter 0.5s ease forwards;
+    animation-delay: calc(var(--item-index, 1) * 0.08s);
+  }
+
+  @keyframes faq-item-enter {
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Number Indicator */
+  .dw-faq__item-number {
+    position: relative;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dw-faq__item-number-text {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--faq-text);
+    opacity: 0.3;
+    transition: all 0.3s ease;
+    z-index: 2;
+    position: relative;
+  }
+
+  .dw-faq__item-number-glow {
+    position: absolute;
+    inset: 0;
+    background: var(--faq-accent);
+    border-radius: 50%;
+    opacity: 0;
+    filter: blur(10px);
+    transition: opacity 0.3s ease;
+  }
+
+  .dw-faq__item.is-open .dw-faq__item-number-text {
+    color: var(--faq-accent);
+    opacity: 1;
+  }
+
+  .dw-faq__item.is-open .dw-faq__item-number-glow {
+    opacity: 0.3;
+    animation: faq-number-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes faq-number-pulse {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.2); }
+  }
+
+  /* Item Content Container */
+  .dw-faq__item-content {
+    flex: 1;
+    position: relative;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .dw-faq__item:hover .dw-faq__item-content {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .dw-faq__item.is-open .dw-faq__item-content {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  /* Animated Border */
+  .dw-faq__item-border {
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    padding: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--faq-border) 50%,
+      transparent 100%
+    );
+    -webkit-mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+
+  .dw-faq__item.is-open .dw-faq__item-border {
+    background: linear-gradient(
+      90deg,
+      var(--faq-glow-1),
+      var(--faq-glow-2),
+      var(--faq-glow-1)
+    );
+    background-size: 200% 100%;
+    animation: faq-active-border 2s linear infinite;
+    opacity: 1;
+  }
+
+  @keyframes faq-active-border {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Question Button */
+  .dw-faq__question {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 20px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+  }
+
+  @media (min-width: 750px) {
+    .dw-faq__question {
+      padding: 20px 24px;
+    }
+  }
+
+  .dw-faq__question-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--faq-text);
+    line-height: 1.4;
+    transition: color 0.3s ease;
+  }
+
+  @media (min-width: 750px) {
+    .dw-faq__question-text {
+      font-size: 15px;
+    }
+  }
+
+  .dw-faq__item.is-open .dw-faq__question-text {
+    color: var(--faq-accent);
+  }
+
+  /* Icon */
+  .dw-faq__icon {
+    position: relative;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+  }
+
+  .dw-faq__icon-bar {
+    position: absolute;
+    background: var(--faq-accent);
+    border-radius: 2px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dw-faq__icon-bar--h {
+    width: 14px;
+    height: 2px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .dw-faq__icon-bar--v {
+    width: 2px;
+    height: 14px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .dw-faq__item.is-open .dw-faq__icon-bar--v {
+    transform: translate(-50%, -50%) rotate(90deg);
+    opacity: 0;
+  }
+
+  .dw-faq__item.is-open .dw-faq__icon-bar--h {
+    background: var(--faq-glow-1);
+    box-shadow: 0 0 10px var(--faq-glow-1);
+  }
+
+  /* Answer */
+  .dw-faq__answer {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dw-faq__item.is-open .dw-faq__answer {
+    grid-template-rows: 1fr;
+  }
+
+  .dw-faq__answer-inner {
+    overflow: hidden;
+    padding: 0 20px;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease 0.1s;
+  }
+
+  @media (min-width: 750px) {
+    .dw-faq__answer-inner {
+      padding: 0 24px;
+    }
+  }
+
+  .dw-faq__item.is-open .dw-faq__answer-inner {
+    padding-bottom: 20px;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (min-width: 750px) {
+    .dw-faq__item.is-open .dw-faq__answer-inner {
+      padding-bottom: 24px;
+    }
+  }
+
+  .dw-faq__answer-inner p {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--faq-text);
+    opacity: 0.8;
+    margin: 0 0 12px 0;
+  }
+
+  .dw-faq__answer-inner p:last-child {
+    margin-bottom: 0;
+  }
+
+  @media (min-width: 750px) {
+    .dw-faq__answer-inner p {
+      font-size: 15px;
+    }
+  }
+
+  /* ==========================================
+     CTA BUTTON
+     ========================================== */
+
+  .dw-faq__cta {
+    margin-top: 32px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-faq__cta {
+      margin-top: 40px;
+    }
+  }
+
+  .dw-faq__button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 32px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    border-radius: var(--faq-btn-radius, 30px);
+    cursor: pointer;
+    border: 2px solid transparent;
+    font-family: 'Poppins', sans-serif;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  @media (min-width: 750px) {
+    .dw-faq__button {
+      padding: 18px 40px;
+      font-size: 13px;
+    }
+  }
+
+  .dw-faq__button:hover {
+    transform: translateY(-2px);
+  }
+
+  .dw-faq__button-text {
+    position: relative;
+    z-index: 2;
+  }
+
+  .dw-faq__button-icon {
+    position: relative;
+    z-index: 2;
+    width: 18px;
+    height: 18px;
+    transition: transform 0.3s ease;
+  }
+
+  .dw-faq__button-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .dw-faq__button:hover .dw-faq__button-icon {
+    transform: translateX(4px);
+  }
+
+  /* Primary Style */
+  .dw-faq__button--primary {
+    background: var(--faq-btn-bg);
+    color: var(--faq-btn-text);
+    border-color: var(--faq-btn-border, var(--faq-btn-bg));
+  }
+
+  .dw-faq__button--primary:hover {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Secondary Style */
+  .dw-faq__button--secondary {
+    background: transparent;
+    color: var(--faq-btn-text);
+    border-color: var(--faq-btn-border, var(--faq-btn-text));
+  }
+
+  .dw-faq__button--secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Gradient Style */
+  .dw-faq__button--gradient {
+    background: transparent;
+    color: var(--faq-btn-text);
+    border: none;
+  }
+
+  .dw-faq__button--gradient .dw-faq__button-bg {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--faq-btn-radius, 30px);
+    padding: 2px;
+    background: linear-gradient(
+      90deg,
+      var(--faq-btn-gradient-1),
+      var(--faq-btn-gradient-2),
+      var(--faq-btn-gradient-1)
+    );
+    background-size: 200% 100%;
+    animation: faq-btn-gradient 3s linear infinite;
+    -webkit-mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  .dw-faq__button--gradient::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    background: var(--faq-bg);
+    border-radius: calc(var(--faq-btn-radius, 30px) - 2px);
+    z-index: 1;
+  }
+
+  @keyframes faq-btn-gradient {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+
+  .dw-faq__button--gradient:hover .dw-faq__button-bg {
+    animation-duration: 1.5s;
+  }
+
+  /* Glow Style */
+  .dw-faq__button--glow {
+    background: var(--faq-btn-bg);
+    color: var(--faq-btn-text);
+    border: none;
+    box-shadow: 0 0 20px var(--faq-btn-bg);
+    animation: faq-btn-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes faq-btn-glow {
+    0%, 100% { box-shadow: 0 0 20px var(--faq-btn-bg); }
+    50% { box-shadow: 0 0 40px var(--faq-btn-bg), 0 0 60px var(--faq-btn-bg); }
+  }
+
+  .dw-faq__button--glow:hover {
+    animation: none;
+    box-shadow: 0 0 50px var(--faq-btn-bg);
+  }
+
+  /* Gradient Glow Style */
+  .dw-faq__button--gradient-glow {
+    background: var(--faq-accent);
+    color: var(--faq-btn-text);
+    border: none;
+  }
+
+  .dw-faq__button--gradient-glow .dw-faq__button-bg {
+    position: absolute;
+    inset: -4px;
+    border-radius: calc(var(--faq-btn-radius, 30px) + 4px);
+    background: linear-gradient(
+      90deg,
+      var(--faq-btn-gradient-1),
+      var(--faq-btn-gradient-2),
+      var(--faq-btn-gradient-1)
+    );
+    background-size: 200% 100%;
+    animation: faq-btn-gradient 3s linear infinite;
+    filter: blur(12px);
+    opacity: 0.6;
+    z-index: -1;
+  }
+
+  .dw-faq__button--gradient-glow:hover .dw-faq__button-bg {
+    opacity: 1;
+    animation-duration: 1.5s;
+  }
+
+  /* ==========================================
+     REDUCED MOTION
+     ========================================== */
+
+  @media (prefers-reduced-motion: reduce) {
+    .dw-faq__bg-orb,
+    .dw-faq__image-glow,
+    .dw-faq__image-border,
+    .dw-faq__item-number-glow,
+    .dw-faq__item-border,
+    .dw-faq__button--glow,
+    .dw-faq__button--gradient .dw-faq__button-bg,
+    .dw-faq__button--gradient-glow .dw-faq__button-bg {
+      animation: none;
+    }
+
+    .dw-faq__item {
+      opacity: 1;
+      transform: none;
+    }
+
+    .dw-faq__answer {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const faqSection = document.querySelector('[data-faq-section]');
+    if (!faqSection) return;
+
+    const faqItems = faqSection.querySelectorAll('[data-faq-item]');
+    
+    faqItems.forEach(item => {
+      const trigger = item.querySelector('[data-faq-trigger]');
+      
+      trigger.addEventListener('click', function() {
+        const isOpen = item.classList.contains('is-open');
+        
+        // Close all other items
+        faqItems.forEach(otherItem => {
+          if (otherItem !== item) {
+            otherItem.classList.remove('is-open');
+          }
+        });
+        
+        // Toggle current item
+        item.classList.toggle('is-open', !isOpen);
+      });
+    });
+
+    // Intersection Observer for entrance animations
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.style.animationPlayState = 'running';
+          }
+        });
+      }, { threshold: 0.1 });
+
+      faqItems.forEach(item => {
+        item.style.animationPlayState = 'paused';
+        observer.observe(item);
+      });
+    }
+  });
+</script>
+
+{% schema %}
+{
+  "name": "DW FAQ v2",
+  "tag": "section",
+  "class": "dw-faq-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Image"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_image_glow",
+      "label": "Enable image glow",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_image_border",
+      "label": "Enable animated image border",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "content_width",
+      "label": "Content width (desktop)",
+      "min": 40,
+      "max": 65,
+      "step": 5,
+      "default": 55,
+      "unit": "%"
+    },
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow text",
+      "default": "GOT QUESTIONS?"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Frequently Asked Questions"
+    },
+    {
+      "type": "checkbox",
+      "id": "heading_gradient",
+      "label": "Gradient heading",
+      "default": false
+    },
+    {
+      "type": "textarea",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "Everything you need to know about our products and formulas."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_numbers",
+      "label": "Show FAQ numbers",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "first_open",
+      "label": "First FAQ open by default",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Call to Action"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button text",
+      "default": "VIEW ALL FAQS"
+    },
+    {
+      "type": "url",
+      "id": "button_url",
+      "label": "Button link"
+    },
+    {
+      "type": "checkbox",
+      "id": "button_icon",
+      "label": "Show arrow icon",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "button_style",
+      "label": "Button style",
+      "options": [
+        { "value": "primary", "label": "Primary (solid)" },
+        { "value": "secondary", "label": "Secondary (outline)" },
+        { "value": "gradient", "label": "Cyber Gradient ✨" },
+        { "value": "glow", "label": "Pulsing Glow ✨" },
+        { "value": "gradient-glow", "label": "Gradient Glow ✨" }
+      ],
+      "default": "primary"
+    },
+    {
+      "type": "range",
+      "id": "button_radius",
+      "label": "Button radius",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "default": 30,
+      "unit": "px"
+    },
+    {
+      "type": "color",
+      "id": "button_bg_color",
+      "label": "Button background",
+      "default": "#C4D600"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button text color",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "button_border_color",
+      "label": "Button border color",
+      "info": "For outline style"
+    },
+    {
+      "type": "color",
+      "id": "button_gradient_1",
+      "label": "Button gradient color 1",
+      "default": "#C4D600"
+    },
+    {
+      "type": "color",
+      "id": "button_gradient_2",
+      "label": "Button gradient color 2",
+      "default": "#00d4ff"
+    },
+    {
+      "type": "header",
+      "content": "Background Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "bg_image_desktop",
+      "label": "Background image (desktop)"
+    },
+    {
+      "type": "image_picker",
+      "id": "bg_image_mobile",
+      "label": "Background image (mobile)",
+      "info": "Optional. Uses desktop image if empty."
+    },
+    {
+      "type": "select",
+      "id": "bg_image_position_desktop",
+      "label": "Image position (desktop)",
+      "options": [
+        { "value": "center center", "label": "Center" },
+        { "value": "center top", "label": "Top" },
+        { "value": "center bottom", "label": "Bottom" },
+        { "value": "left center", "label": "Left" },
+        { "value": "right center", "label": "Right" },
+        { "value": "left top", "label": "Top Left" },
+        { "value": "right top", "label": "Top Right" },
+        { "value": "left bottom", "label": "Bottom Left" },
+        { "value": "right bottom", "label": "Bottom Right" }
+      ],
+      "default": "center center"
+    },
+    {
+      "type": "select",
+      "id": "bg_image_position_mobile",
+      "label": "Image position (mobile)",
+      "options": [
+        { "value": "center center", "label": "Center" },
+        { "value": "center top", "label": "Top" },
+        { "value": "center bottom", "label": "Bottom" },
+        { "value": "left center", "label": "Left" },
+        { "value": "right center", "label": "Right" },
+        { "value": "left top", "label": "Top Left" },
+        { "value": "right top", "label": "Top Right" },
+        { "value": "left bottom", "label": "Bottom Left" },
+        { "value": "right bottom", "label": "Bottom Right" }
+      ],
+      "default": "center center"
+    },
+    {
+      "type": "range",
+      "id": "bg_overlay_opacity",
+      "label": "Background overlay opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 85,
+      "unit": "%",
+      "info": "Darkens the image. 0 = no overlay, 100 = fully covered."
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "default": "#C4D600"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Border color",
+      "default": "rgba(255, 255, 255, 0.15)"
+    },
+    {
+      "type": "color",
+      "id": "glow_color_1",
+      "label": "Glow color 1",
+      "default": "#C4D600"
+    },
+    {
+      "type": "color",
+      "id": "glow_color_2",
+      "label": "Glow color 2",
+      "default": "#00d4ff"
+    },
+    {
+      "type": "header",
+      "content": "Effects"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_background_glow",
+      "label": "Enable background glow",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_desktop",
+      "label": "Padding desktop",
+      "min": 40,
+      "max": 150,
+      "step": 10,
+      "default": 100,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile",
+      "label": "Padding mobile",
+      "min": 30,
+      "max": 100,
+      "step": 10,
+      "default": 50,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "faq",
+      "name": "FAQ Item",
+      "settings": [
+        {
+          "type": "text",
+          "id": "question",
+          "label": "Question",
+          "default": "What makes doingwell different?"
+        },
+        {
+          "type": "richtext",
+          "id": "answer",
+          "label": "Answer",
+          "default": "<p>doingwell is built for athletes who actually train. Our formula features high sodium for heavy sweat, zero sugar, no artificial colors, and NSF Certified for Sport testing. We don't cut corners.</p>"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "DW FAQ v2",
+      "settings": {
+        "eyebrow": "GOT QUESTIONS?",
+        "heading": "Frequently Asked Questions",
+        "subheading": "Everything you need to know about doingwell electrolytes."
+      },
+      "blocks": [
+        {
+          "type": "faq",
+          "settings": {
+            "question": "When will my order ship?",
+            "answer": "<p>Orders placed during the secret preorder window (January 6–12) are scheduled to ship in late January. You'll receive an email when your order is getting ready to ship and again when it's on its way with tracking info.</p>"
+          }
+        },
+        {
+          "type": "faq",
+          "settings": {
+            "question": "Are preorders refundable?",
+            "answer": "<p>No. This is a limited, non-refundable preorder. The only exceptions are damaged products, lost shipments, or situations where the law requires a refund or replacement. We'll always take care of you if something goes wrong with delivery.</p>"
+          }
+        },
+        {
+          "type": "faq",
+          "settings": {
+            "question": "Can I change my shipping address?",
+            "answer": "<p>Yes, as long as your order hasn't been locked for fulfillment. Email help@doingwell.health with your order number and new address. Once the warehouse has started preparing your order, we may not be able to change it.</p>"
+          }
+        },
+        {
+          "type": "faq",
+          "settings": {
+            "question": "What is the Insider Club?",
+            "answer": "<p>The Insider Club is our founding group of customers from this secret preorder. You stay in the Insider Club as long as your doingwell subscription stays active. Members get early access to new flavors and products, special drops, giveaway entries, and insider-only updates before anyone else.</p>"
+          }
+        },
+        {
+          "type": "faq",
+          "settings": {
+            "question": "How does the subscription work?",
+            "answer": "<p>Your first box is $50 + $4.99 shipping. After that, you'll automatically be enrolled in a $55/month subscription with free shipping unless you cancel before your next charge. As long as you stay subscribed, you keep your Insider Club membership.</p>"
+          }
+        },
+        {
+          "type": "faq",
+          "settings": {
+            "question": "What makes doingwell different?",
+            "answer": "<p>doingwell is built for people who actually train. High sodium to match heavy sweat, zero sugar, no stevia, no sugar alcohols, no artificial colors—just clean ingredients. Every batch is NSF Certified for Sport, the same standard required by pro leagues.</p>"
+          }
+        },
+        {
+          "type": "faq",
+          "settings": {
+            "question": "What flavors are available?",
+            "answer": "<p>The first drop includes two flavors: Coconut Lime and Raspberry. Both are naturally flavored with no artificial colors or dyes. Insider Club members will get first access to test new flavors before public release.</p>"
+          }
+        },
+        {
+          "type": "faq",
+          "settings": {
+            "question": "Will this product be available later?",
+            "answer": "<p>After this preorder, doingwell electrolytes will be sold at $55 on subscription with free shipping. The secret preorder is the only way into the Insider Club, and once it's over, we may not run this exact offer again. No guaranteed restock timing.</p>"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

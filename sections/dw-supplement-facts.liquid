@@ -1,0 +1,1389 @@
+{% comment %}
+  DW Supplement Facts Section
+  - FDA-style supplement facts panel
+  - Ingredient highlights with icons
+  - Clean editorial aesthetic
+  - On-brand DoingWell styling
+{% endcomment %}
+
+<section 
+  class="dw-sf dw-sf--{{ section.settings.color_scheme }} dw-sf--accent-{{ section.settings.accent_color }}"
+  data-section-type="dw-supplement-facts"
+  data-section-id="{{ section.id }}"
+  style="
+    --sf-padding-top-desktop: {{ section.settings.padding_top_desktop }}px;
+    --sf-padding-bottom-desktop: {{ section.settings.padding_bottom_desktop }}px;
+    --sf-padding-top-mobile: {{ section.settings.padding_top_mobile }}px;
+    --sf-padding-bottom-mobile: {{ section.settings.padding_bottom_mobile }}px;
+  "
+>
+  <div class="dw-sf__container">
+    
+    {%- if section.settings.show_header -%}
+      <header class="dw-sf__header dw-sf__header--{{ section.settings.header_alignment }}">
+        {%- if section.settings.eyebrow != blank -%}
+          <p class="dw-sf__eyebrow">{{ section.settings.eyebrow }}</p>
+        {%- endif -%}
+        
+        {%- if section.settings.heading != blank -%}
+          <h2 class="dw-sf__heading">{{ section.settings.heading }}</h2>
+        {%- endif -%}
+        
+        {%- if section.settings.subheading != blank -%}
+          <p class="dw-sf__subheading">{{ section.settings.subheading }}</p>
+        {%- endif -%}
+      </header>
+    {%- endif -%}
+
+    <div class="dw-sf__grid dw-sf__grid--{{ section.settings.layout }}">
+      
+      <!-- Supplement Facts Panel -->
+      <div class="dw-sf__panel-wrapper">
+        <div class="dw-sf__panel">
+          <div class="dw-sf__panel-header">
+            <h3 class="dw-sf__panel-title">Supplement Facts</h3>
+            <div class="dw-sf__serving-info">
+              <p class="dw-sf__serving-row">
+                <span class="dw-sf__serving-label">Serving Size</span>
+                <span class="dw-sf__serving-value">{{ section.settings.serving_size }}</span>
+              </p>
+              <p class="dw-sf__serving-row">
+                <span class="dw-sf__serving-label">Servings Per Container</span>
+                <span class="dw-sf__serving-value">{{ section.settings.servings_per_container }}</span>
+              </p>
+            </div>
+          </div>
+
+          <div class="dw-sf__panel-body">
+            <div class="dw-sf__row dw-sf__row--header">
+              <span class="dw-sf__col-name"></span>
+              <span class="dw-sf__col-amount">Amount Per Serving</span>
+              <span class="dw-sf__col-dv">% DV*</span>
+            </div>
+
+            <div class="dw-sf__divider dw-sf__divider--thick"></div>
+
+            {%- if section.settings.show_calories -%}
+              <div class="dw-sf__row dw-sf__row--calories">
+                <span class="dw-sf__col-name"><strong>Calories</strong></span>
+                <span class="dw-sf__col-amount dw-sf__col-amount--bold">{{ section.settings.calories }}</span>
+                <span class="dw-sf__col-dv"></span>
+              </div>
+              <div class="dw-sf__divider dw-sf__divider--medium"></div>
+            {%- endif -%}
+
+            <!-- Sodium - Featured -->
+            <div class="dw-sf__row dw-sf__row--featured">
+              <span class="dw-sf__col-name">
+                <strong>Sodium</strong>
+                {%- if section.settings.sodium_source != blank -%}
+                  <span class="dw-sf__source">{{ section.settings.sodium_source }}</span>
+                {%- endif -%}
+              </span>
+              <span class="dw-sf__col-amount">{{ section.settings.sodium_mg }}mg</span>
+              <span class="dw-sf__col-dv">{{ section.settings.sodium_dv }}%</span>
+            </div>
+            <div class="dw-sf__divider"></div>
+
+            <!-- Potassium -->
+            <div class="dw-sf__row">
+              <span class="dw-sf__col-name">
+                <strong>Potassium</strong>
+                {%- if section.settings.potassium_source != blank -%}
+                  <span class="dw-sf__source">{{ section.settings.potassium_source }}</span>
+                {%- endif -%}
+              </span>
+              <span class="dw-sf__col-amount">{{ section.settings.potassium_mg }}mg</span>
+              <span class="dw-sf__col-dv">{{ section.settings.potassium_dv }}%</span>
+            </div>
+            <div class="dw-sf__divider"></div>
+
+            <!-- Magnesium -->
+            <div class="dw-sf__row">
+              <span class="dw-sf__col-name">
+                <strong>Magnesium</strong>
+                {%- if section.settings.magnesium_source != blank -%}
+                  <span class="dw-sf__source">{{ section.settings.magnesium_source }}</span>
+                {%- endif -%}
+              </span>
+              <span class="dw-sf__col-amount">{{ section.settings.magnesium_mg }}mg</span>
+              <span class="dw-sf__col-dv">{{ section.settings.magnesium_dv }}%</span>
+            </div>
+            <div class="dw-sf__divider"></div>
+
+            <!-- Additional nutrients from blocks -->
+            {%- for block in section.blocks -%}
+              {%- if block.type == 'nutrient' -%}
+                <div class="dw-sf__row{% if block.settings.featured %} dw-sf__row--featured{% endif %}" {{ block.shopify_attributes }}>
+                  <span class="dw-sf__col-name">
+                    <strong>{{ block.settings.name }}</strong>
+                    {%- if block.settings.source != blank -%}
+                      <span class="dw-sf__source">{{ block.settings.source }}</span>
+                    {%- endif -%}
+                  </span>
+                  <span class="dw-sf__col-amount">{{ block.settings.amount }}</span>
+                  <span class="dw-sf__col-dv">{{ block.settings.daily_value }}</span>
+                </div>
+                <div class="dw-sf__divider"></div>
+              {%- endif -%}
+            {%- endfor -%}
+
+            <div class="dw-sf__footnote">
+              <p>* Percent Daily Values are based on a 2,000 calorie diet.</p>
+              {%- if section.settings.footnote != blank -%}
+                <p>{{ section.settings.footnote }}</p>
+              {%- endif -%}
+            </div>
+          </div>
+
+          {%- if section.settings.other_ingredients != blank -%}
+            <div class="dw-sf__other-ingredients">
+              <p><strong>Other Ingredients:</strong> {{ section.settings.other_ingredients }}</p>
+            </div>
+          {%- endif -%}
+
+          {%- if section.settings.allergen_info != blank -%}
+            <div class="dw-sf__allergens">
+              <p><strong>Allergen Info:</strong> {{ section.settings.allergen_info }}</p>
+            </div>
+          {%- endif -%}
+        </div>
+
+        {%- if section.settings.show_certifications -%}
+          <div class="dw-sf__certifications">
+            {%- if section.settings.cert_nsf -%}
+              <div class="dw-sf__cert">
+                <span class="dw-sf__cert-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+                </span>
+                <span class="dw-sf__cert-text">NSF Certified for Sport</span>
+              </div>
+            {%- endif -%}
+            {%- if section.settings.cert_informed -%}
+              <div class="dw-sf__cert">
+                <span class="dw-sf__cert-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="9 12 11 14 15 10"></polyline></svg>
+                </span>
+                <span class="dw-sf__cert-text">Informed Sport</span>
+              </div>
+            {%- endif -%}
+            {%- if section.settings.cert_gmp -%}
+              <div class="dw-sf__cert">
+                <span class="dw-sf__cert-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                </span>
+                <span class="dw-sf__cert-text">GMP Certified</span>
+              </div>
+            {%- endif -%}
+            {%- if section.settings.cert_tested -%}
+              <div class="dw-sf__cert">
+                <span class="dw-sf__cert-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"></path><path d="M8.5 2h7"></path></svg>
+                </span>
+                <span class="dw-sf__cert-text">Third-Party Tested</span>
+              </div>
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+      </div>
+
+      <!-- Ingredient Highlights -->
+      <div class="dw-sf__highlights">
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'highlight' -%}
+            <article class="dw-sf__highlight{% if block.settings.featured %} dw-sf__highlight--featured{% endif %}" {{ block.shopify_attributes }}>
+              <div class="dw-sf__highlight-icon">
+                {%- case block.settings.icon -%}
+                  {%- when 'sodium' -%}
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v12M6 12h12"></path></svg>
+                  {%- when 'lightning' -%}
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                  {%- when 'leaf' -%}
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg>
+                  {%- when 'shield' -%}
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+                  {%- when 'droplet' -%}
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+                  {%- when 'ban' -%}
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                  {%- when 'sparkle' -%}
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
+                  {%- when 'flask' -%}
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"></path><path d="M8.5 2h7"></path></svg>
+                  {%- when 'heart' -%}
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg>
+                  {%- when 'mountain' -%}
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 3 4 8 5-5 5 15H2L8 3z"></path></svg>
+                  {%- when 'check' -%}
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  {%- when 'star' -%}
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                {%- endcase -%}
+              </div>
+              
+              <div class="dw-sf__highlight-content">
+                <h4 class="dw-sf__highlight-title">{{ block.settings.title }}</h4>
+                <p class="dw-sf__highlight-text">{{ block.settings.text }}</p>
+                {%- if block.settings.detail != blank -%}
+                  <span class="dw-sf__highlight-detail">{{ block.settings.detail }}</span>
+                {%- endif -%}
+              </div>
+            </article>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+
+    </div>
+
+    {%- if section.settings.show_disclaimer -%}
+      <footer class="dw-sf__disclaimer">
+        <p>{{ section.settings.disclaimer_text }}</p>
+      </footer>
+    {%- endif -%}
+
+  </div>
+</section>
+
+<style>
+  /* ==========================================
+     CSS VARIABLES - Brand Colors
+     ========================================== */
+  
+  .dw-sf {
+    /* Brand palette - DoingWell Brandbook */
+    --dw-black: #171717;
+    --dw-cream: #F8F0E3;
+    --dw-lime: #C6D76B;
+    --dw-raspberry: #E08FBC;
+    --dw-white: #ffffff;
+    --dw-gray-light: #E7E7E8;
+    --dw-gray-medium: #A0A0A0;
+    --dw-gray-dark: #3C3C3C;
+  }
+
+  /* ==========================================
+     COLOR SCHEMES
+     ========================================== */
+  
+  /* Dark (default) */
+  .dw-sf--dark {
+    --sf-bg: var(--dw-black);
+    --sf-text: var(--dw-white);
+    --sf-text-muted: var(--dw-gray-medium);
+    --sf-accent: var(--dw-lime);
+    --sf-border: rgba(255, 255, 255, 0.12);
+    --sf-card-bg: rgba(255, 255, 255, 0.04);
+    --sf-card-border: rgba(255, 255, 255, 0.1);
+    --sf-panel-bg: rgba(255, 255, 255, 0.02);
+    --sf-panel-border: rgba(255, 255, 255, 0.15);
+    --sf-featured-bg: rgba(198, 215, 107, 0.08);
+    --sf-featured-border: rgba(198, 215, 107, 0.3);
+  }
+
+  /* Light / Cream */
+  .dw-sf--light {
+    --sf-bg: var(--dw-cream);
+    --sf-text: var(--dw-black);
+    --sf-text-muted: var(--dw-gray-dark);
+    --sf-accent: var(--dw-lime);
+    --sf-border: rgba(0, 0, 0, 0.1);
+    --sf-card-bg: var(--dw-white);
+    --sf-card-border: var(--dw-gray-light);
+    --sf-panel-bg: var(--dw-white);
+    --sf-panel-border: var(--dw-gray-light);
+    --sf-featured-bg: rgba(198, 215, 107, 0.15);
+    --sf-featured-border: var(--dw-lime);
+  }
+
+  /* White */
+  .dw-sf--white {
+    --sf-bg: var(--dw-white);
+    --sf-text: var(--dw-black);
+    --sf-text-muted: var(--dw-gray-dark);
+    --sf-accent: var(--dw-lime);
+    --sf-border: var(--dw-gray-light);
+    --sf-card-bg: var(--dw-cream);
+    --sf-card-border: var(--dw-gray-light);
+    --sf-panel-bg: var(--dw-cream);
+    --sf-panel-border: rgba(0, 0, 0, 0.08);
+    --sf-featured-bg: rgba(198, 215, 107, 0.12);
+    --sf-featured-border: var(--dw-lime);
+  }
+
+  /* ==========================================
+     ACCENT COLORS
+     ========================================== */
+  
+  .dw-sf--accent-lime {
+    --sf-accent: var(--dw-lime);
+    --sf-featured-bg: rgba(198, 215, 107, 0.12);
+    --sf-featured-border: var(--dw-lime);
+  }
+
+  .dw-sf--accent-raspberry {
+    --sf-accent: var(--dw-raspberry);
+    --sf-featured-bg: rgba(224, 143, 188, 0.12);
+    --sf-featured-border: var(--dw-raspberry);
+  }
+
+  /* ==========================================
+     BASE STYLES
+     ========================================== */
+  
+  .dw-sf {
+    position: relative;
+    padding: var(--sf-padding-top-mobile) 20px var(--sf-padding-bottom-mobile);
+    background: var(--sf-bg);
+    color: var(--sf-text);
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  @media (min-width: 750px) {
+    .dw-sf {
+      padding: var(--sf-padding-top-desktop) 50px var(--sf-padding-bottom-desktop);
+    }
+  }
+
+  .dw-sf__container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ==========================================
+     HEADER
+     ========================================== */
+  
+  .dw-sf__header {
+    margin-bottom: 40px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-sf__header {
+      margin-bottom: 60px;
+    }
+  }
+
+  .dw-sf__header--left { text-align: left; }
+  .dw-sf__header--center { text-align: center; }
+
+  .dw-sf__eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--sf-accent);
+    margin: 0 0 14px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-sf__eyebrow {
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+  }
+
+  .dw-sf__heading {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 16px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--sf-text);
+  }
+
+  @media (min-width: 750px) {
+    .dw-sf__heading {
+      font-size: 40px;
+      margin-bottom: 18px;
+    }
+  }
+
+  .dw-sf__subheading {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--sf-text-muted);
+    margin: 0;
+    max-width: 600px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-sf__subheading {
+      font-size: 17px;
+    }
+  }
+
+  .dw-sf__header--center .dw-sf__subheading {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ==========================================
+     GRID LAYOUT
+     ========================================== */
+  
+  .dw-sf__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  @media (min-width: 900px) {
+    .dw-sf__grid {
+      gap: 50px;
+      align-items: start;
+    }
+
+    .dw-sf__grid--panel-left {
+      grid-template-columns: 360px 1fr;
+    }
+
+    .dw-sf__grid--panel-right {
+      grid-template-columns: 1fr 360px;
+    }
+
+    .dw-sf__grid--panel-right .dw-sf__panel-wrapper {
+      order: 2;
+    }
+
+    .dw-sf__grid--panel-right .dw-sf__highlights {
+      order: 1;
+    }
+  }
+
+  @media (min-width: 1100px) {
+    .dw-sf__grid--panel-left {
+      grid-template-columns: 400px 1fr;
+    }
+
+    .dw-sf__grid--panel-right {
+      grid-template-columns: 1fr 400px;
+    }
+  }
+
+  /* ==========================================
+     SUPPLEMENT FACTS PANEL
+     ========================================== */
+  
+  .dw-sf__panel-wrapper {
+    position: relative;
+  }
+
+  @media (min-width: 900px) {
+    .dw-sf__panel-wrapper {
+      position: sticky;
+      top: 100px;
+    }
+  }
+
+  .dw-sf__panel {
+    background: var(--sf-panel-bg);
+    border: 1px solid var(--sf-panel-border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .dw-sf__panel-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--sf-panel-border);
+  }
+
+  @media (min-width: 750px) {
+    .dw-sf__panel-header {
+      padding: 24px;
+    }
+  }
+
+  .dw-sf__panel-title {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0 0 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--sf-text);
+  }
+
+  @media (min-width: 750px) {
+    .dw-sf__panel-title {
+      font-size: 26px;
+    }
+  }
+
+  .dw-sf__serving-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .dw-sf__serving-row {
+    margin: 0;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .dw-sf__serving-label {
+    font-weight: 600;
+    color: var(--sf-text);
+  }
+
+  .dw-sf__serving-value {
+    color: var(--sf-text-muted);
+  }
+
+  .dw-sf__panel-body {
+    padding: 16px 20px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-sf__panel-body {
+      padding: 20px 24px;
+    }
+  }
+
+  /* Rows */
+  .dw-sf__row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    padding: 10px 0;
+    font-size: 14px;
+    align-items: baseline;
+  }
+
+  .dw-sf__row--header {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sf-text-muted);
+    padding-bottom: 6px;
+  }
+
+  .dw-sf__row--header .dw-sf__col-name {
+    visibility: hidden;
+  }
+
+  .dw-sf__row--calories {
+    font-size: 16px;
+  }
+
+  .dw-sf__row--featured {
+    background: var(--sf-featured-bg);
+    margin: 0 -20px;
+    padding: 12px 20px;
+    border-left: 3px solid var(--sf-accent);
+  }
+
+  @media (min-width: 750px) {
+    .dw-sf__row--featured {
+      margin: 0 -24px;
+      padding: 12px 24px;
+    }
+  }
+
+  .dw-sf__col-name {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    color: var(--sf-text);
+  }
+
+  .dw-sf__col-name strong {
+    font-weight: 600;
+  }
+
+  .dw-sf__source {
+    font-size: 11px;
+    color: var(--sf-text-muted);
+    font-weight: 400;
+  }
+
+  .dw-sf__col-amount {
+    text-align: right;
+    white-space: nowrap;
+    color: var(--sf-text);
+  }
+
+  .dw-sf__col-amount--bold {
+    font-weight: 700;
+    font-size: 18px;
+  }
+
+  .dw-sf__col-dv {
+    text-align: right;
+    min-width: 40px;
+    color: var(--sf-text-muted);
+  }
+
+  /* Dividers */
+  .dw-sf__divider {
+    height: 1px;
+    background: var(--sf-border);
+  }
+
+  .dw-sf__divider--thick {
+    height: 8px;
+    background: var(--sf-text);
+  }
+
+  .dw-sf__divider--medium {
+    height: 3px;
+    background: var(--sf-text);
+  }
+
+  /* Footnote */
+  .dw-sf__footnote {
+    padding-top: 16px;
+    font-size: 11px;
+    color: var(--sf-text-muted);
+    line-height: 1.5;
+  }
+
+  .dw-sf__footnote p {
+    margin: 0 0 4px;
+  }
+
+  .dw-sf__footnote p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Other Ingredients */
+  .dw-sf__other-ingredients,
+  .dw-sf__allergens {
+    padding: 16px 20px;
+    border-top: 1px solid var(--sf-border);
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--sf-text-muted);
+  }
+
+  @media (min-width: 750px) {
+    .dw-sf__other-ingredients,
+    .dw-sf__allergens {
+      padding: 16px 24px;
+    }
+  }
+
+  .dw-sf__other-ingredients p,
+  .dw-sf__allergens p {
+    margin: 0;
+  }
+
+  .dw-sf__other-ingredients strong,
+  .dw-sf__allergens strong {
+    color: var(--sf-text);
+  }
+
+  /* Certifications */
+  .dw-sf__certifications {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .dw-sf__cert {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--sf-card-bg);
+    border: 1px solid var(--sf-card-border);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--sf-text);
+    transition: border-color 0.2s ease;
+  }
+
+  .dw-sf__cert:hover {
+    border-color: var(--sf-accent);
+  }
+
+  .dw-sf__cert-icon {
+    color: var(--sf-accent);
+    display: flex;
+    align-items: center;
+  }
+
+  .dw-sf__cert-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* ==========================================
+     HIGHLIGHT CARDS
+     ========================================== */
+  
+  .dw-sf__highlights {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .dw-sf__highlight {
+    display: flex;
+    gap: 18px;
+    padding: 20px;
+    background: var(--sf-card-bg);
+    border: 1px solid var(--sf-card-border);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+  }
+
+  @media (min-width: 750px) {
+    .dw-sf__highlight {
+      padding: 24px;
+    }
+  }
+
+  .dw-sf__highlight:hover {
+    border-color: var(--sf-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .dw-sf--dark .dw-sf__highlight:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .dw-sf__highlight--featured {
+    background: var(--sf-featured-bg);
+    border-color: var(--sf-featured-border);
+  }
+
+  .dw-sf__highlight--featured:hover {
+    border-color: var(--sf-accent);
+  }
+
+  .dw-sf__highlight-icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--sf-card-bg);
+    border: 1px solid var(--sf-card-border);
+    border-radius: 10px;
+    color: var(--sf-accent);
+  }
+
+  .dw-sf__highlight--featured .dw-sf__highlight-icon {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .dw-sf--light .dw-sf__highlight-icon,
+  .dw-sf--white .dw-sf__highlight-icon {
+    background: var(--sf-bg);
+  }
+
+  .dw-sf__highlight-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .dw-sf__highlight-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    color: var(--sf-text);
+    line-height: 1.3;
+  }
+
+  @media (min-width: 750px) {
+    .dw-sf__highlight-title {
+      font-size: 17px;
+    }
+  }
+
+  .dw-sf__highlight-text {
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0;
+    color: var(--sf-text-muted);
+  }
+
+  .dw-sf__highlight-detail {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 6px 12px;
+    background: var(--sf-card-bg);
+    border: 1px solid var(--sf-card-border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--sf-accent);
+  }
+
+  .dw-sf__highlight--featured .dw-sf__highlight-detail {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  /* ==========================================
+     DISCLAIMER
+     ========================================== */
+  
+  .dw-sf__disclaimer {
+    margin-top: 50px;
+    padding-top: 24px;
+    border-top: 1px solid var(--sf-border);
+    text-align: center;
+  }
+
+  @media (min-width: 750px) {
+    .dw-sf__disclaimer {
+      margin-top: 60px;
+    }
+  }
+
+  .dw-sf__disclaimer p {
+    font-size: 11px;
+    color: var(--sf-text-muted);
+    margin: 0;
+    line-height: 1.6;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ==========================================
+     SCROLL ANIMATIONS (optional)
+     ========================================== */
+  
+  @media (prefers-reduced-motion: no-preference) {
+    .dw-sf__highlight {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: sf-fade-in 0.5s ease forwards;
+    }
+
+    .dw-sf__highlight:nth-child(1) { animation-delay: 0.1s; }
+    .dw-sf__highlight:nth-child(2) { animation-delay: 0.2s; }
+    .dw-sf__highlight:nth-child(3) { animation-delay: 0.3s; }
+    .dw-sf__highlight:nth-child(4) { animation-delay: 0.4s; }
+    .dw-sf__highlight:nth-child(5) { animation-delay: 0.5s; }
+    .dw-sf__highlight:nth-child(6) { animation-delay: 0.6s; }
+  }
+
+  @keyframes sf-fade-in {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dw-sf__highlight {
+      opacity: 1;
+      transform: none;
+      animation: none;
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "DW Supplement Facts",
+  "tag": "section",
+  "class": "dw-sf-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Color Scheme"
+    },
+    {
+      "type": "select",
+      "id": "color_scheme",
+      "label": "Color scheme",
+      "options": [
+        { "value": "dark", "label": "Dark (Black)" },
+        { "value": "light", "label": "Light (Cream)" },
+        { "value": "white", "label": "White" }
+      ],
+      "default": "dark"
+    },
+    {
+      "type": "select",
+      "id": "accent_color",
+      "label": "Accent color",
+      "options": [
+        { "value": "lime", "label": "Coconut Lime" },
+        { "value": "raspberry", "label": "Raspberry" }
+      ],
+      "default": "lime"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Panel position",
+      "options": [
+        { "value": "panel-left", "label": "Panel on left" },
+        { "value": "panel-right", "label": "Panel on right" }
+      ],
+      "default": "panel-left"
+    },
+    {
+      "type": "header",
+      "content": "Header"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_header",
+      "label": "Show header",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow",
+      "default": "THE FORMULA"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "What's Inside Every Stick"
+    },
+    {
+      "type": "textarea",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "Every mg disclosed. No proprietary blends. Third-party tested for quality and purity."
+    },
+    {
+      "type": "select",
+      "id": "header_alignment",
+      "label": "Header alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Serving Info"
+    },
+    {
+      "type": "text",
+      "id": "serving_size",
+      "label": "Serving size",
+      "default": "1 Stick Pack (8g)"
+    },
+    {
+      "type": "text",
+      "id": "servings_per_container",
+      "label": "Servings per container",
+      "default": "30"
+    },
+    {
+      "type": "header",
+      "content": "Calories"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_calories",
+      "label": "Show calories",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "calories",
+      "label": "Calories",
+      "default": "10"
+    },
+    {
+      "type": "header",
+      "content": "Sodium"
+    },
+    {
+      "type": "text",
+      "id": "sodium_mg",
+      "label": "Sodium (mg)",
+      "default": "1000"
+    },
+    {
+      "type": "text",
+      "id": "sodium_dv",
+      "label": "Sodium % DV",
+      "default": "43"
+    },
+    {
+      "type": "text",
+      "id": "sodium_source",
+      "label": "Sodium source",
+      "default": "from Himalayan Pink Salt"
+    },
+    {
+      "type": "header",
+      "content": "Potassium"
+    },
+    {
+      "type": "text",
+      "id": "potassium_mg",
+      "label": "Potassium (mg)",
+      "default": "220"
+    },
+    {
+      "type": "text",
+      "id": "potassium_dv",
+      "label": "Potassium % DV",
+      "default": "5"
+    },
+    {
+      "type": "text",
+      "id": "potassium_source",
+      "label": "Potassium source",
+      "info": "Leave blank to hide"
+    },
+    {
+      "type": "header",
+      "content": "Magnesium"
+    },
+    {
+      "type": "text",
+      "id": "magnesium_mg",
+      "label": "Magnesium (mg)",
+      "default": "150"
+    },
+    {
+      "type": "text",
+      "id": "magnesium_dv",
+      "label": "Magnesium % DV",
+      "default": "36"
+    },
+    {
+      "type": "text",
+      "id": "magnesium_source",
+      "label": "Magnesium source",
+      "default": "as Dimagnesium Malate",
+      "info": "Leave blank to hide"
+    },
+    {
+      "type": "header",
+      "content": "Other Info"
+    },
+    {
+      "type": "textarea",
+      "id": "other_ingredients",
+      "label": "Other ingredients",
+      "default": "Organic Coconut Water Powder, Citric Acid, Organic Monk Fruit Extract, Maltodextrin-Free Organic Natural Flavors, Organic Bamboo Extract, Silicon Dioxide."
+    },
+    {
+      "type": "text",
+      "id": "allergen_info",
+      "label": "Allergen info",
+      "info": "Leave blank to hide"
+    },
+    {
+      "type": "textarea",
+      "id": "footnote",
+      "label": "Additional footnote",
+      "info": "Leave blank for default footnote only"
+    },
+    {
+      "type": "header",
+      "content": "Certifications"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_certifications",
+      "label": "Show certifications",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "cert_nsf",
+      "label": "NSF Certified for Sport",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "cert_informed",
+      "label": "Informed Sport Certified",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "cert_gmp",
+      "label": "GMP Certified Facility",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "cert_tested",
+      "label": "Third-Party Tested",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Disclaimer"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_disclaimer",
+      "label": "Show disclaimer",
+      "default": true
+    },
+    {
+      "type": "textarea",
+      "id": "disclaimer_text",
+      "label": "Disclaimer text",
+      "default": "* These statements have not been evaluated by the Food and Drug Administration. This product is not intended to diagnose, treat, cure, or prevent any disease."
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top_desktop",
+      "label": "Padding top (desktop)",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom_desktop",
+      "label": "Padding bottom (desktop)",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_top_mobile",
+      "label": "Padding top (mobile)",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "default": 50,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom_mobile",
+      "label": "Padding bottom (mobile)",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "default": 50,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "nutrient",
+      "name": "Additional Nutrient",
+      "settings": [
+        {
+          "type": "text",
+          "id": "name",
+          "label": "Nutrient name",
+          "default": "Vitamin B12"
+        },
+        {
+          "type": "text",
+          "id": "amount",
+          "label": "Amount",
+          "default": "500mcg"
+        },
+        {
+          "type": "text",
+          "id": "daily_value",
+          "label": "% Daily Value",
+          "default": "20833%",
+          "info": "Use † for no DV established"
+        },
+        {
+          "type": "text",
+          "id": "source",
+          "label": "Source",
+          "info": "Leave blank to hide"
+        },
+        {
+          "type": "checkbox",
+          "id": "featured",
+          "label": "Highlight this nutrient",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "highlight",
+      "name": "Ingredient Highlight",
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icon",
+          "options": [
+            { "value": "sodium", "label": "Sodium/Salt" },
+            { "value": "lightning", "label": "Lightning/Energy" },
+            { "value": "leaf", "label": "Leaf/Organic" },
+            { "value": "shield", "label": "Shield/Certified" },
+            { "value": "droplet", "label": "Droplet/Hydration" },
+            { "value": "ban", "label": "Ban/Zero" },
+            { "value": "sparkle", "label": "Sparkle/Clean" },
+            { "value": "flask", "label": "Flask/Formula" },
+            { "value": "heart", "label": "Heart/Health" },
+            { "value": "mountain", "label": "Mountain/Himalayan" },
+            { "value": "check", "label": "Checkmark" },
+            { "value": "star", "label": "Star" }
+          ],
+          "default": "lightning"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "High-Sodium Formula"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "Description",
+          "default": "1000mg sodium per stick, designed for high-output training and heavy sweat loss."
+        },
+        {
+          "type": "text",
+          "id": "detail",
+          "label": "Detail tag",
+          "info": "Optional highlighted detail (e.g., 'Himalayan Pink Salt')"
+        },
+        {
+          "type": "checkbox",
+          "id": "featured",
+          "label": "Featured card",
+          "default": false,
+          "info": "Adds accent background"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "DW Supplement Facts",
+      "settings": {
+        "color_scheme": "dark",
+        "eyebrow": "THE FORMULA",
+        "heading": "What's Inside Every Stick",
+        "subheading": "Every mg disclosed. No proprietary blends. Third-party tested for quality and purity.",
+        "serving_size": "1 Stick Pack (8g)",
+        "servings_per_container": "30",
+        "calories": "10",
+        "sodium_mg": "1000",
+        "sodium_dv": "43",
+        "sodium_source": "from Himalayan Pink Salt",
+        "potassium_mg": "220",
+        "potassium_dv": "5",
+        "magnesium_mg": "150",
+        "magnesium_dv": "36",
+        "magnesium_source": "as Dimagnesium Malate",
+        "other_ingredients": "Organic Coconut Water Powder, Citric Acid, Organic Monk Fruit Extract, Maltodextrin-Free Organic Natural Flavors, Organic Bamboo Extract, Silicon Dioxide."
+      },
+      "blocks": [
+        {
+          "type": "highlight",
+          "settings": {
+            "icon": "sodium",
+            "title": "High-Sodium, Performance-First",
+            "text": "1000mg sodium per stick, formulated for real sweat loss. Significantly more than the 200-500mg in mainstream products.",
+            "detail": "Himalayan Pink Salt",
+            "featured": true
+          }
+        },
+        {
+          "type": "highlight",
+          "settings": {
+            "icon": "ban",
+            "title": "Zero Sugar, Never Stevia",
+            "text": "Sweetened with organic monk fruit only. No sugar, no stevia, no sugar alcohols, no artificial sweeteners."
+          }
+        },
+        {
+          "type": "highlight",
+          "settings": {
+            "icon": "leaf",
+            "title": "Organic Ingredients",
+            "text": "Organic ingredients whenever possible. Maltodextrin-free organic natural flavors. No artificial dyes or colors."
+          }
+        },
+        {
+          "type": "highlight",
+          "settings": {
+            "icon": "shield",
+            "title": "Third-Party Tested",
+            "text": "Every batch tested for heavy metals, banned substances, and stability. Built for athletes who can't afford mistakes.",
+            "detail": "NSF Certified for Sport"
+          }
+        },
+        {
+          "type": "highlight",
+          "settings": {
+            "icon": "sparkle",
+            "title": "Full Transparency",
+            "text": "Every mg disclosed on the label. No proprietary blends. You know exactly what you're putting in your body."
+          }
+        },
+        {
+          "type": "highlight",
+          "settings": {
+            "icon": "droplet",
+            "title": "Optimized Absorption",
+            "text": "Balanced osmolality for fast absorption. Dissolves fully with no chalky aftertaste or sludge."
+          }
+        }
+      ]
+    },
+    {
+      "name": "DW Supplement Facts - Light",
+      "settings": {
+        "color_scheme": "light",
+        "layout": "panel-right",
+        "header_alignment": "left",
+        "eyebrow": "TRANSPARENCY",
+        "heading": "The Full Formula",
+        "subheading": "What you see is what you get. Every ingredient listed, every mg disclosed."
+      },
+      "blocks": [
+        {
+          "type": "highlight",
+          "settings": {
+            "icon": "sodium",
+            "title": "Performance-Level Sodium",
+            "text": "1000mg sodium matches real sweat loss from intense training sessions.",
+            "featured": true
+          }
+        },
+        {
+          "type": "highlight",
+          "settings": {
+            "icon": "leaf",
+            "title": "Clean Ingredients",
+            "text": "Organic whenever possible. No artificial colors, flavors, or sweeteners."
+          }
+        },
+        {
+          "type": "highlight",
+          "settings": {
+            "icon": "shield",
+            "title": "Athlete Safe",
+            "text": "NSF Certified for Sport. Every batch third-party tested."
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

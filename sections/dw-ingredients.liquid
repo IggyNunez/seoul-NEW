@@ -1,0 +1,1453 @@
+{% comment %}
+  DoingWell Ingredients Showcase Section
+  - Heading with italic accent
+  - Product image
+  - Subheading + description
+  - Compact flip cards grid (4 cols desktop, 2 cols mobile)
+  - Option to hide card images
+  - CTA button
+  - DoingWell brand colors and electrolyte-focused content
+{% endcomment %}
+
+<section 
+  class="dw-ingredients"
+  style="
+    --ing-bg: {{ section.settings.background_color }};
+    --ing-text: {{ section.settings.text_color }};
+    --ing-heading-color: {{ section.settings.heading_color }};
+    --ing-accent: {{ section.settings.accent_color }};
+    --ing-card-bg: {{ section.settings.card_bg_color }};
+    --ing-card-text: {{ section.settings.card_text_color }};
+    --ing-card-title: {{ section.settings.card_title_color }};
+    --ing-card-back-bg: {{ section.settings.card_back_bg_color }};
+    --ing-card-back-text: {{ section.settings.card_back_text_color }};
+    --ing-btn-bg: {{ section.settings.button_bg_color }};
+    --ing-btn-text: {{ section.settings.button_text_color }};
+    --ing-btn-gradient-1: {{ section.settings.button_gradient_1 }};
+    --ing-btn-gradient-2: {{ section.settings.button_gradient_2 }};
+    --ing-padding-desktop: {{ section.settings.padding_desktop }}px;
+    --ing-padding-mobile: {{ section.settings.padding_mobile }}px;
+    --ing-glow-color-1: {{ section.settings.glow_color_1 }};
+    --ing-glow-color-2: {{ section.settings.glow_color_2 }};
+    --ing-glow-color-3: {{ section.settings.glow_color_3 }};
+    --ing-glow-opacity: {{ section.settings.glow_opacity | divided_by: 100.0 }};
+  "
+>
+  {%- if section.settings.enable_glow -%}
+    <div class="dw-ingredients__glow dw-ingredients__glow--{{ section.settings.glow_style }}">
+      <div class="dw-ingredients__glow-orb dw-ingredients__glow-orb--1"></div>
+      <div class="dw-ingredients__glow-orb dw-ingredients__glow-orb--2"></div>
+      <div class="dw-ingredients__glow-orb dw-ingredients__glow-orb--3"></div>
+    </div>
+  {%- endif -%}
+
+  <div class="dw-ingredients__container">
+    <!-- Heading -->
+    {%- if section.settings.heading != blank -%}
+      <h2 class="dw-ingredients__heading">
+        {{ section.settings.heading }}
+        {%- if section.settings.heading_accent != blank -%}
+          <em>{{ section.settings.heading_accent }}</em>
+        {%- endif -%}
+      </h2>
+    {%- endif -%}
+
+    <!-- Product Image -->
+    {%- if section.settings.product_image != blank -%}
+      <div class="dw-ingredients__product">
+        <img 
+          src="{{ section.settings.product_image | image_url: width: 800 }}"
+          alt="{{ section.settings.product_image.alt | default: 'DoingWell Electrolytes' | escape }}"
+          loading="lazy"
+          width="400"
+          height="300"
+        >
+      </div>
+    {%- endif -%}
+
+    <!-- Subheading & Description -->
+    {%- if section.settings.subheading != blank or section.settings.description != blank -%}
+      <div class="dw-ingredients__intro">
+        {%- if section.settings.subheading != blank -%}
+          <h3 class="dw-ingredients__subheading">{{ section.settings.subheading }}</h3>
+        {%- endif -%}
+        {%- if section.settings.description != blank -%}
+          <p class="dw-ingredients__description">{{ section.settings.description }}</p>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    <!-- Flip Cards Grid -->
+    {%- if section.blocks.size > 0 -%}
+      <div class="dw-ingredients__grid dw-ingredients__grid--{{ section.blocks.size }}-cards{% if section.settings.hide_card_images %} dw-ingredients__grid--no-images{% endif %}">
+        {%- for block in section.blocks -%}
+          <div class="dw-ingredients__card{% if section.settings.hide_card_images %} dw-ingredients__card--no-image{% endif %}" data-flip-card {{ block.shopify_attributes }}>
+            <div class="dw-ingredients__card-inner">
+              <!-- Front -->
+              <div class="dw-ingredients__card-front">
+                {%- unless section.settings.hide_card_images -%}
+                  <div class="dw-ingredients__card-image">
+                    {%- if block.settings.image != blank -%}
+                      <img 
+                        src="{{ block.settings.image | image_url: width: 400 }}"
+                        alt="{{ block.settings.title | escape }}"
+                        loading="lazy"
+                      >
+                    {%- else -%}
+                      <div class="dw-ingredients__card-placeholder">
+                        {%- if block.settings.icon != 'none' -%}
+                          <span class="dw-ingredients__card-icon">
+                            {%- case block.settings.icon -%}
+                              {%- when 'salt' -%}
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                              {%- when 'leaf' -%}
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 8c-4 0-8 4-8 8 0 .5 0 1 .1 1.5C6.5 16.5 5 14 5 11c0-5 5-9 12-9 0 4-2 6-2 6h2s0-4 1-6c0 0 3 3 3 8 0 4-2 7-4 7z"/></svg>
+                              {%- when 'drop' -%}
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+                              {%- when 'lightning' -%}
+                                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                              {%- when 'shield' -%}
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                              {%- when 'heart' -%}
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                              {%- when 'check' -%}
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                            {%- endcase -%}
+                          </span>
+                        {%- endif -%}
+                      </div>
+                    {%- endif -%}
+                    <div class="dw-ingredients__card-toggle" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                      </svg>
+                    </div>
+                  </div>
+                {%- endunless -%}
+                <div class="dw-ingredients__card-content">
+                  {%- if section.settings.hide_card_images -%}
+                    <div class="dw-ingredients__card-toggle dw-ingredients__card-toggle--inline" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                      </svg>
+                    </div>
+                  {%- endif -%}
+                  {%- if block.settings.stat != blank -%}
+                    <span class="dw-ingredients__card-stat">{{ block.settings.stat }}</span>
+                  {%- endif -%}
+                  <h4 class="dw-ingredients__card-title">{{ block.settings.title }}</h4>
+                  <p class="dw-ingredients__card-subtitle">{{ block.settings.subtitle }}</p>
+                </div>
+              </div>
+              <!-- Back -->
+              <div class="dw-ingredients__card-back">
+                <h4 class="dw-ingredients__card-title">{{ block.settings.title }}</h4>
+                <p class="dw-ingredients__card-detail">{{ block.settings.detail }}</p>
+                <div class="dw-ingredients__card-close" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+
+    <!-- CTA Button -->
+    {%- if section.settings.button_text != blank -%}
+      <div class="dw-ingredients__cta">
+        <a 
+          href="{{ section.settings.button_url }}" 
+          class="dw-ingredients__button dw-ingredients__button--{{ section.settings.button_style }}{% if section.settings.button_style == 'gradient' or section.settings.button_style == 'gradient-glow' %} dw-ingredients__button--gradient-animate{% endif %}"
+        >
+          <span>{{ section.settings.button_text }}</span>
+        </a>
+      </div>
+    {%- endif -%}
+  </div>
+</section>
+
+<style>
+  .dw-ingredients {
+    background: var(--ing-bg);
+    color: var(--ing-text);
+    padding: var(--ing-padding-mobile) 20px;
+    font-family: 'Poppins', sans-serif;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients {
+      padding: var(--ing-padding-desktop) 40px;
+    }
+  }
+
+  .dw-ingredients__container {
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Heading */
+  .dw-ingredients__heading {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ing-heading-color);
+    text-align: center;
+    margin: 0 auto 30px;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .dw-ingredients__heading em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--ing-accent);
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients__heading {
+      font-size: 36px;
+      margin-bottom: 40px;
+    }
+  }
+
+  /* Product Image */
+  .dw-ingredients__product {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 30px;
+  }
+
+  .dw-ingredients__product img {
+    max-width: 350px;
+    width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients__product {
+      margin-bottom: 40px;
+    }
+
+    .dw-ingredients__product img {
+      max-width: 450px;
+    }
+  }
+
+  /* Intro */
+  .dw-ingredients__intro {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto 30px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients__intro {
+      margin-bottom: 50px;
+    }
+  }
+
+  .dw-ingredients__subheading {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ing-accent);
+    margin: 0 0 12px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients__subheading {
+      font-size: 18px;
+      margin-bottom: 16px;
+    }
+  }
+
+  .dw-ingredients__description {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--ing-text);
+    margin: 0;
+    opacity: 0.9;
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients__description {
+      font-size: 16px;
+    }
+  }
+
+  /* Grid */
+  .dw-ingredients__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin: 0 auto 40px;
+    max-width: 1000px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients__grid {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 50px;
+    }
+
+    /* For 6 cards: 3x2 grid on desktop */
+    .dw-ingredients__grid--6-cards {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  /* Flip Card */
+  .dw-ingredients__card {
+    perspective: 1000px;
+    height: 220px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients__card {
+      height: 240px;
+    }
+  }
+
+  /* No-image card variant - shorter height */
+  .dw-ingredients__card--no-image {
+    height: 160px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients__card--no-image {
+      height: 180px;
+    }
+  }
+
+  .dw-ingredients__card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+  }
+
+  .dw-ingredients__card.is-flipped .dw-ingredients__card-inner {
+    transform: rotateY(180deg);
+  }
+
+  .dw-ingredients__card-front,
+  .dw-ingredients__card-back {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  /* Front */
+  .dw-ingredients__card-front {
+    background: var(--ing-card-bg);
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    z-index: 2;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .dw-ingredients__card-front:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+  }
+
+  /* When flipped, front goes behind */
+  .dw-ingredients__card.is-flipped .dw-ingredients__card-front {
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .dw-ingredients__card.is-flipped .dw-ingredients__card-back {
+    z-index: 2;
+  }
+
+  .dw-ingredients__card-image {
+    position: relative;
+    height: 100px;
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba(198, 215, 107, 0.1) 0%, rgba(224, 143, 188, 0.1) 100%);
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients__card-image {
+      height: 110px;
+    }
+  }
+
+  .dw-ingredients__card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .dw-ingredients__card-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(198, 215, 107, 0.15) 0%, rgba(198, 215, 107, 0.05) 100%);
+  }
+
+  .dw-ingredients__card-icon {
+    width: 48px;
+    height: 48px;
+    color: var(--ing-accent);
+    opacity: 0.8;
+  }
+
+  .dw-ingredients__card-icon svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .dw-ingredients__card-toggle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
+    background: var(--ing-accent);
+    color: #171717;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    pointer-events: none;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+
+  .dw-ingredients__card-toggle svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .dw-ingredients__card-front:hover .dw-ingredients__card-toggle {
+    transform: scale(1.1);
+    background: #d4e55a;
+  }
+
+  /* Inline toggle for no-image variant */
+  .dw-ingredients__card-toggle--inline {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 22px;
+    height: 22px;
+    margin-bottom: 8px;
+  }
+
+  .dw-ingredients__card-toggle--inline svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .dw-ingredients__card-content {
+    padding: 14px 12px;
+    text-align: center;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients__card-content {
+      padding: 16px 14px;
+    }
+  }
+
+  /* No-image card content adjustments */
+  .dw-ingredients__card--no-image .dw-ingredients__card-content {
+    justify-content: center;
+    padding: 20px 14px;
+  }
+
+  .dw-ingredients__card-stat {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ing-accent);
+    background: rgba(198, 215, 107, 0.15);
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients__card-stat {
+      font-size: 12px;
+    }
+  }
+
+  .dw-ingredients__card-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ing-card-title);
+    margin: 0 0 6px 0;
+    line-height: 1.3;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients__card-title {
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+  }
+
+  .dw-ingredients__card-subtitle {
+    font-size: 10px;
+    color: var(--ing-card-text);
+    margin: 0;
+    line-height: 1.5;
+    opacity: 0.85;
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients__card-subtitle {
+      font-size: 11px;
+    }
+  }
+
+  /* Back */
+  .dw-ingredients__card-back {
+    background: var(--ing-card-back-bg);
+    color: var(--ing-card-back-text);
+    transform: rotateY(180deg);
+    padding: 20px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    z-index: 1;
+    pointer-events: none;
+    cursor: pointer;
+  }
+
+  .dw-ingredients__card.is-flipped .dw-ingredients__card-back {
+    pointer-events: auto;
+  }
+
+  .dw-ingredients__card-back .dw-ingredients__card-title {
+    color: var(--ing-card-back-text);
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients__card-back .dw-ingredients__card-title {
+      font-size: 14px;
+      margin-bottom: 14px;
+    }
+  }
+
+  .dw-ingredients__card-detail {
+    font-size: 11px;
+    line-height: 1.6;
+    margin: 0;
+    opacity: 0.95;
+    color: var(--ing-card-back-text);
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients__card-detail {
+      font-size: 12px;
+    }
+  }
+
+  .dw-ingredients__card-close {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 24px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--ing-card-back-text);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+    padding: 0;
+    pointer-events: none;
+  }
+
+  .dw-ingredients__card-close svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .dw-ingredients__card-back:hover .dw-ingredients__card-close {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  /* CTA */
+  .dw-ingredients__cta {
+    text-align: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  .dw-ingredients__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 50px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    border-radius: 40px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+    font-family: 'Poppins', sans-serif;
+    position: relative;
+  }
+
+  @media (min-width: 750px) {
+    .dw-ingredients__button {
+      padding: 16px 60px;
+      font-size: 13px;
+    }
+  }
+
+  /* Primary Button */
+  .dw-ingredients__button--primary {
+    background: var(--ing-btn-bg);
+    color: var(--ing-btn-text);
+    border-color: var(--ing-btn-bg);
+  }
+
+  .dw-ingredients__button--primary:hover {
+    filter: brightness(0.9);
+    transform: translateY(-1px);
+  }
+
+  /* Secondary Button */
+  .dw-ingredients__button--secondary {
+    background: transparent;
+    color: var(--ing-btn-bg);
+    border-color: var(--ing-btn-bg);
+  }
+
+  .dw-ingredients__button--secondary:hover {
+    background: var(--ing-btn-bg);
+    color: var(--ing-btn-text);
+    transform: translateY(-1px);
+  }
+
+  /* Gradient Button */
+  .dw-ingredients__button--gradient {
+    background: transparent;
+    color: var(--ing-btn-text, #fff);
+    border: none;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  .dw-ingredients__button--gradient::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 40px;
+    padding: 2px;
+    background: linear-gradient(
+      90deg,
+      var(--ing-btn-gradient-1),
+      var(--ing-btn-gradient-2),
+      var(--ing-btn-gradient-1),
+      var(--ing-btn-gradient-2)
+    );
+    background-size: 300% 100%;
+    -webkit-mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    z-index: -1;
+  }
+
+  .dw-ingredients__button--gradient-animate::before {
+    animation: ing-gradient-shift 3s linear infinite;
+  }
+
+  .dw-ingredients__button--gradient:hover::before {
+    animation: ing-gradient-shift 1.5s linear infinite;
+  }
+
+  .dw-ingredients__button--gradient span {
+    position: relative;
+    z-index: 2;
+  }
+
+  .dw-ingredients__button--gradient::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border-radius: 38px;
+    background: var(--ing-bg);
+    z-index: -1;
+    transition: background 0.3s ease;
+  }
+
+  .dw-ingredients__button--gradient:hover {
+    transform: translateY(-1px);
+  }
+
+  /* Gradient Glow Button */
+  .dw-ingredients__button--gradient-glow {
+    background: transparent;
+    color: var(--ing-btn-text, #fff);
+    border: none;
+    position: relative;
+    z-index: 1;
+    overflow: visible;
+  }
+
+  .dw-ingredients__button--gradient-glow::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 43px;
+    background: linear-gradient(
+      90deg,
+      var(--ing-btn-gradient-1),
+      var(--ing-btn-gradient-2),
+      var(--ing-btn-gradient-1),
+      var(--ing-btn-gradient-2)
+    );
+    background-size: 300% 100%;
+    z-index: -2;
+    animation: ing-gradient-shift 3s linear infinite;
+    filter: blur(8px);
+    opacity: 0.7;
+  }
+
+  .dw-ingredients__button--gradient-glow::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 40px;
+    background: var(--ing-bg);
+    z-index: -1;
+  }
+
+  .dw-ingredients__button--gradient-glow:hover::before {
+    filter: blur(12px);
+    opacity: 1;
+    animation: ing-gradient-shift 1.5s linear infinite;
+  }
+
+  .dw-ingredients__button--gradient-glow:hover {
+    transform: translateY(-1px);
+  }
+
+  .dw-ingredients__button--gradient-glow span {
+    position: relative;
+    z-index: 2;
+  }
+
+  @keyframes ing-gradient-shift {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
+  }
+
+  /* Animated Glow Background */
+  .dw-ingredients__glow {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    z-index: 0;
+    opacity: var(--ing-glow-opacity, 0.6);
+  }
+
+  .dw-ingredients__glow-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.6;
+    animation: ing-glow-float 8s ease-in-out infinite;
+  }
+
+  .dw-ingredients__glow-orb--1 {
+    width: 50%;
+    height: 50%;
+    background: var(--ing-glow-color-1);
+    top: -15%;
+    left: -10%;
+    animation-delay: 0s;
+  }
+
+  .dw-ingredients__glow-orb--2 {
+    width: 40%;
+    height: 40%;
+    background: var(--ing-glow-color-2);
+    bottom: -10%;
+    right: -5%;
+    animation-delay: -3s;
+  }
+
+  .dw-ingredients__glow-orb--3 {
+    width: 35%;
+    height: 35%;
+    background: var(--ing-glow-color-3);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation-delay: -5s;
+  }
+
+  @keyframes ing-glow-float {
+    0%, 100% {
+      transform: translate(0, 0) scale(1);
+      opacity: 0.6;
+    }
+    25% {
+      transform: translate(10%, 10%) scale(1.1);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translate(-5%, 15%) scale(0.9);
+      opacity: 0.7;
+    }
+    75% {
+      transform: translate(-10%, -5%) scale(1.05);
+      opacity: 0.55;
+    }
+  }
+
+  /* Glow Style: Pulse */
+  .dw-ingredients__glow--pulse .dw-ingredients__glow-orb {
+    animation: ing-glow-pulse 4s ease-in-out infinite;
+  }
+
+  @keyframes ing-glow-pulse {
+    0%, 100% {
+      opacity: 0.4;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.2);
+    }
+  }
+
+  /* Glow Style: Wave */
+  .dw-ingredients__glow--wave .dw-ingredients__glow-orb {
+    animation: ing-glow-wave 6s ease-in-out infinite;
+  }
+
+  @keyframes ing-glow-wave {
+    0%, 100% {
+      transform: translateY(0) scale(1);
+    }
+    50% {
+      transform: translateY(-20%) scale(1.1);
+    }
+  }
+
+  /* Glow Style: Spin */
+  .dw-ingredients__glow--spin .dw-ingredients__glow-orb {
+    animation: ing-glow-spin 15s linear infinite;
+  }
+
+  .dw-ingredients__glow--spin .dw-ingredients__glow-orb--1 {
+    top: 50%;
+    left: 50%;
+    transform-origin: -50% -50%;
+  }
+
+  .dw-ingredients__glow--spin .dw-ingredients__glow-orb--2 {
+    top: 50%;
+    left: 50%;
+    transform-origin: 100% 100%;
+    animation-direction: reverse;
+  }
+
+  .dw-ingredients__glow--spin .dw-ingredients__glow-orb--3 {
+    animation-duration: 20s;
+  }
+
+  @keyframes ing-glow-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* Glow Style: Soft */
+  .dw-ingredients__glow--soft .dw-ingredients__glow-orb {
+    filter: blur(120px);
+    opacity: 0.4;
+    animation: ing-glow-soft 10s ease-in-out infinite;
+  }
+
+  @keyframes ing-glow-soft {
+    0%, 100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce) {
+    .dw-ingredients__card-inner {
+      transition: none;
+    }
+    
+    .dw-ingredients__glow-orb,
+    .dw-ingredients__button--gradient-animate::before,
+    .dw-ingredients__button--gradient-glow::before {
+      animation: none;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('[data-flip-card]');
+    
+    cards.forEach(card => {
+      const front = card.querySelector('.dw-ingredients__card-front');
+      const back = card.querySelector('.dw-ingredients__card-back');
+
+      // Click anywhere on front to flip
+      if (front) {
+        front.addEventListener('click', function() {
+          card.classList.add('is-flipped');
+        });
+      }
+
+      // Click anywhere on back to flip back
+      if (back) {
+        back.addEventListener('click', function() {
+          card.classList.remove('is-flipped');
+        });
+      }
+    });
+  });
+</script>
+
+{% schema %}
+{
+  "name": "DW Ingredients",
+  "tag": "section",
+  "class": "dw-ingredients-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Heading"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading text",
+      "default": "WHAT'S INSIDE"
+    },
+    {
+      "type": "text",
+      "id": "heading_accent",
+      "label": "Heading accent (italic)",
+      "default": "EVERY STICK"
+    },
+    {
+      "type": "header",
+      "content": "Product Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "product_image",
+      "label": "Product image"
+    },
+    {
+      "type": "header",
+      "content": "Introduction"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "Clean, Transparent, Performance-Focused"
+    },
+    {
+      "type": "textarea",
+      "id": "description",
+      "label": "Description",
+      "default": "Every ingredient is listed in plain English. No proprietary blends, no mystery fillers—just performance-level electrolytes from organic, bioavailable sources you can trust."
+    },
+    {
+      "type": "header",
+      "content": "Card Display"
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_card_images",
+      "label": "Hide card images/icons",
+      "default": false,
+      "info": "Show compact cards with text only"
+    },
+    {
+      "type": "header",
+      "content": "Call to Action"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button text",
+      "default": "VIEW FULL INGREDIENTS"
+    },
+    {
+      "type": "url",
+      "id": "button_url",
+      "label": "Button link"
+    },
+    {
+      "type": "select",
+      "id": "button_style",
+      "label": "Button style",
+      "options": [
+        { "value": "primary", "label": "Primary (solid)" },
+        { "value": "secondary", "label": "Secondary (outline)" },
+        { "value": "gradient", "label": "Cyber Gradient ✨" },
+        { "value": "gradient-glow", "label": "Cyber Glow ✨" }
+      ],
+      "default": "primary"
+    },
+    {
+      "type": "color",
+      "id": "button_bg_color",
+      "label": "Button background",
+      "default": "#C6D76B"
+    },
+    {
+      "type": "color",
+      "id": "button_text_color",
+      "label": "Button text color",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "button_gradient_1",
+      "label": "Gradient color 1",
+      "default": "#C6D76B",
+      "info": "For gradient styles"
+    },
+    {
+      "type": "color",
+      "id": "button_gradient_2",
+      "label": "Gradient color 2",
+      "default": "#E08FBC",
+      "info": "For gradient styles"
+    },
+    {
+      "type": "header",
+      "content": "Background Glow"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_glow",
+      "label": "Enable animated glow",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "glow_style",
+      "label": "Glow animation style",
+      "options": [
+        { "value": "float", "label": "Floating" },
+        { "value": "pulse", "label": "Pulse" },
+        { "value": "wave", "label": "Wave" },
+        { "value": "spin", "label": "Spin" },
+        { "value": "soft", "label": "Soft/Subtle" }
+      ],
+      "default": "soft"
+    },
+    {
+      "type": "range",
+      "id": "glow_opacity",
+      "label": "Glow opacity",
+      "min": 20,
+      "max": 100,
+      "step": 10,
+      "default": 40,
+      "unit": "%"
+    },
+    {
+      "type": "color",
+      "id": "glow_color_1",
+      "label": "Glow color 1",
+      "default": "#C6D76B"
+    },
+    {
+      "type": "color",
+      "id": "glow_color_2",
+      "label": "Glow color 2",
+      "default": "#E08FBC"
+    },
+    {
+      "type": "color",
+      "id": "glow_color_3",
+      "label": "Glow color 3",
+      "default": "#C6D76B"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#171717"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "default": "#C6D76B"
+    },
+    {
+      "type": "color",
+      "id": "card_bg_color",
+      "label": "Card background",
+      "default": "#242424"
+    },
+    {
+      "type": "color",
+      "id": "card_text_color",
+      "label": "Card text color",
+      "default": "#A0A0A0"
+    },
+    {
+      "type": "color",
+      "id": "card_title_color",
+      "label": "Card title color",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "card_back_bg_color",
+      "label": "Card back background",
+      "default": "#C6D76B"
+    },
+    {
+      "type": "color",
+      "id": "card_back_text_color",
+      "label": "Card back text color",
+      "default": "#171717"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_desktop",
+      "label": "Padding desktop",
+      "min": 40,
+      "max": 120,
+      "step": 10,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile",
+      "label": "Padding mobile",
+      "min": 30,
+      "max": 80,
+      "step": 10,
+      "default": 50,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "ingredient",
+      "name": "Ingredient Card",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Placeholder icon (if no image)",
+          "options": [
+            { "value": "none", "label": "None" },
+            { "value": "salt", "label": "Salt/Mineral" },
+            { "value": "leaf", "label": "Leaf/Organic" },
+            { "value": "drop", "label": "Water Drop" },
+            { "value": "lightning", "label": "Lightning/Energy" },
+            { "value": "shield", "label": "Shield/Protection" },
+            { "value": "heart", "label": "Heart/Health" },
+            { "value": "check", "label": "Checkmark" }
+          ],
+          "default": "salt"
+        },
+        {
+          "type": "text",
+          "id": "stat",
+          "label": "Stat badge (optional)",
+          "info": "e.g. '1,000 MG' or '220 MG'"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Himalayan Pink Salt"
+        },
+        {
+          "type": "text",
+          "id": "subtitle",
+          "label": "Subtitle (front)",
+          "default": "High-sodium for real sweat replacement"
+        },
+        {
+          "type": "textarea",
+          "id": "detail",
+          "label": "Detail (back)",
+          "default": "Highly bioavailable sodium source for serious hydration and nerve function. Intentionally high to match what athletes actually lose during hard training."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "DW Ingredients",
+      "blocks": [
+        {
+          "type": "ingredient",
+          "settings": {
+            "icon": "salt",
+            "stat": "1,000 MG",
+            "title": "Himalayan Pink Salt",
+            "subtitle": "High-sodium for real sweat replacement",
+            "detail": "Highly bioavailable sodium source for serious hydration and nerve function. Intentionally high to match what athletes actually lose during hard training."
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "icon": "lightning",
+            "stat": "220 MG",
+            "title": "Potassium",
+            "subtitle": "Muscle function & cramp resistance",
+            "detail": "Essential electrolyte for muscle contractions and nerve signaling. Works alongside sodium to maintain proper fluid balance during intense sessions."
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "icon": "shield",
+            "stat": "150 MG",
+            "title": "Dimagnesium Malate",
+            "subtitle": "Premium, easier-to-absorb magnesium",
+            "detail": "A premium magnesium form that supports muscle function, energy production, and recovery. More bioavailable than standard magnesium oxide."
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "icon": "leaf",
+            "stat": "ORGANIC",
+            "title": "Coconut Water Powder",
+            "subtitle": "Natural electrolytes & minerals",
+            "detail": "Organic coconut water provides natural electrolytes and minerals for a real-food backbone. No synthetic fillers—just clean hydration support."
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "icon": "check",
+            "stat": "0G SUGAR",
+            "title": "Organic Monk Fruit",
+            "subtitle": "Natural sweetness, zero sugar",
+            "detail": "Natural sweetness with zero sugar, no stevia, and no sugar alcohols. Clean taste without the aftertaste or GI issues of artificial sweeteners."
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "icon": "drop",
+            "stat": "ORGANIC",
+            "title": "Bamboo Extract",
+            "subtitle": "Supports mixability & connective tissue",
+            "detail": "Organic bamboo extract supports mixability and adds natural silica to support connective tissues. Helps the formula dissolve cleanly without clumps."
+          }
+        }
+      ]
+    },
+    {
+      "name": "DW Ingredients - Light",
+      "settings": {
+        "background_color": "#F8F0E3",
+        "text_color": "#171717",
+        "heading_color": "#171717",
+        "card_bg_color": "#FFFFFF",
+        "card_text_color": "#3C3C3C",
+        "card_title_color": "#171717",
+        "card_back_bg_color": "#171717",
+        "card_back_text_color": "#FFFFFF",
+        "enable_glow": false
+      },
+      "blocks": [
+        {
+          "type": "ingredient",
+          "settings": {
+            "icon": "salt",
+            "stat": "1,000 MG",
+            "title": "Himalayan Pink Salt",
+            "subtitle": "High-sodium for real sweat replacement",
+            "detail": "Highly bioavailable sodium source for serious hydration and nerve function. Intentionally high to match what athletes actually lose during hard training."
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "icon": "lightning",
+            "stat": "220 MG",
+            "title": "Potassium",
+            "subtitle": "Muscle function & cramp resistance",
+            "detail": "Essential electrolyte for muscle contractions and nerve signaling. Works alongside sodium to maintain proper fluid balance during intense sessions."
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "icon": "shield",
+            "stat": "150 MG",
+            "title": "Dimagnesium Malate",
+            "subtitle": "Premium, easier-to-absorb magnesium",
+            "detail": "A premium magnesium form that supports muscle function, energy production, and recovery. More bioavailable than standard magnesium oxide."
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "icon": "leaf",
+            "stat": "ORGANIC",
+            "title": "Coconut Water Powder",
+            "subtitle": "Natural electrolytes & minerals",
+            "detail": "Organic coconut water provides natural electrolytes and minerals for a real-food backbone. No synthetic fillers—just clean hydration support."
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "icon": "check",
+            "stat": "0G SUGAR",
+            "title": "Organic Monk Fruit",
+            "subtitle": "Natural sweetness, zero sugar",
+            "detail": "Natural sweetness with zero sugar, no stevia, and no sugar alcohols. Clean taste without the aftertaste or GI issues of artificial sweeteners."
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "icon": "drop",
+            "stat": "ORGANIC",
+            "title": "Bamboo Extract",
+            "subtitle": "Supports mixability & connective tissue",
+            "detail": "Organic bamboo extract supports mixability and adds natural silica to support connective tissues. Helps the formula dissolve cleanly without clumps."
+          }
+        }
+      ]
+    },
+    {
+      "name": "DW Ingredients - Compact",
+      "settings": {
+        "hide_card_images": true
+      },
+      "blocks": [
+        {
+          "type": "ingredient",
+          "settings": {
+            "stat": "1,000 MG",
+            "title": "Himalayan Pink Salt",
+            "subtitle": "High-sodium for real sweat replacement",
+            "detail": "Highly bioavailable sodium source for serious hydration and nerve function."
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "stat": "220 MG",
+            "title": "Potassium",
+            "subtitle": "Muscle function & cramp resistance",
+            "detail": "Essential electrolyte for muscle contractions and nerve signaling."
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "stat": "150 MG",
+            "title": "Dimagnesium Malate",
+            "subtitle": "Premium magnesium form",
+            "detail": "Supports muscle function, energy production, and recovery."
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "stat": "ORGANIC",
+            "title": "Coconut Water Powder",
+            "subtitle": "Natural electrolytes & minerals",
+            "detail": "Real-food backbone with no synthetic fillers."
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

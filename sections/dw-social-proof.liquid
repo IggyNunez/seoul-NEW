@@ -1,0 +1,1267 @@
+{% comment %}
+  DoingWell Social Proof Section v2
+  - Cyber-themed with animated effects
+  - Animated stat counter with glow
+  - Glowing image carousel with hover effects
+  - Dramatic quote transitions with typing effect
+  - Press logos with reveal animation
+  - Gradient accents throughout
+{% endcomment %}
+
+{%- liquid
+  assign image_blocks = section.blocks | where: "type", "image"
+  assign quote_blocks = section.blocks | where: "type", "quote"
+  assign logo_blocks = section.blocks | where: "type", "logo"
+-%}
+
+<section 
+  class="dw-proof"
+  data-proof-section
+  style="
+    --proof-bg: {{ section.settings.background_color }};
+    --proof-text: {{ section.settings.text_color }};
+    --proof-accent: {{ section.settings.accent_color }};
+    --proof-glow-1: {{ section.settings.glow_color_1 }};
+    --proof-glow-2: {{ section.settings.glow_color_2 }};
+    --proof-padding-desktop: {{ section.settings.padding_desktop }}px;
+    --proof-padding-mobile: {{ section.settings.padding_mobile }}px;
+    --proof-scroll-speed: {{ section.settings.scroll_speed }}s;
+    --proof-quote-speed: {{ section.settings.quote_speed }}s;
+    --proof-image-height-desktop: {{ section.settings.image_height_desktop }}px;
+    --proof-image-height-mobile: {{ section.settings.image_height_mobile }}px;
+    --proof-image-gap: {{ section.settings.image_gap }}px;
+  "
+>
+  {%- if section.settings.enable_background_glow -%}
+    <div class="dw-proof__bg-glow">
+      <div class="dw-proof__bg-orb dw-proof__bg-orb--1"></div>
+      <div class="dw-proof__bg-orb dw-proof__bg-orb--2"></div>
+    </div>
+  {%- endif -%}
+
+  <div class="dw-proof__inner">
+    <!-- Animated Stats Header -->
+    {%- if section.settings.stat_number != blank -%}
+      <div class="dw-proof__stats">
+        <div class="dw-proof__stat">
+          <div class="dw-proof__stat-glow"></div>
+          <span class="dw-proof__stat-number" data-count-to="{{ section.settings.stat_number | remove: ',' | remove: '+' | remove: 'M' | remove: 'K' }}">
+            {%- if section.settings.enable_counter_animation -%}
+              0
+            {%- else -%}
+              {{ section.settings.stat_number }}
+            {%- endif -%}
+          </span>
+          <span class="dw-proof__stat-suffix">{{ section.settings.stat_suffix }}</span>
+        </div>
+        {%- if section.settings.stat_label != blank -%}
+          <p class="dw-proof__stat-label">{{ section.settings.stat_label }}</p>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    <!-- Scrolling Images with Glow Frames -->
+    {%- if image_blocks.size > 0 -%}
+      <div class="dw-proof__carousel" data-proof-carousel>
+        <div class="dw-proof__carousel-fade dw-proof__carousel-fade--left"></div>
+        <div class="dw-proof__carousel-fade dw-proof__carousel-fade--right"></div>
+        
+        <div class="dw-proof__track" data-proof-track>
+          {%- for block in image_blocks -%}
+            <div class="dw-proof__image{% if section.settings.enable_image_glow %} dw-proof__image--glow{% endif %}" {{ block.shopify_attributes }}>
+              <div class="dw-proof__image-border"></div>
+              {%- if block.settings.image != blank -%}
+                <img 
+                  src="{{ block.settings.image | image_url: width: 600 }}"
+                  alt="{{ block.settings.image.alt | default: 'Customer photo' | escape }}"
+                  loading="lazy"
+                >
+              {%- else -%}
+                <div class="dw-proof__image-placeholder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <path d="M21 15l-5-5L5 21"/>
+                  </svg>
+                </div>
+              {%- endif -%}
+            </div>
+          {%- endfor -%}
+          <!-- Duplicate for seamless loop -->
+          {%- for block in image_blocks -%}
+            <div class="dw-proof__image{% if section.settings.enable_image_glow %} dw-proof__image--glow{% endif %}" aria-hidden="true">
+              <div class="dw-proof__image-border"></div>
+              {%- if block.settings.image != blank -%}
+                <img 
+                  src="{{ block.settings.image | image_url: width: 600 }}"
+                  alt=""
+                  loading="lazy"
+                >
+              {%- else -%}
+                <div class="dw-proof__image-placeholder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <path d="M21 15l-5-5L5 21"/>
+                  </svg>
+                </div>
+              {%- endif -%}
+            </div>
+          {%- endfor -%}
+        </div>
+      </div>
+    {%- endif -%}
+
+    <!-- Rotating Quotes with Dramatic Transitions -->
+    {%- if quote_blocks.size > 0 -%}
+      <div class="dw-proof__quotes" data-proof-quotes>
+        <div class="dw-proof__quotes-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11.192 15.757c0-.88-.23-1.618-.69-2.217-.326-.412-.768-.683-1.327-.812-.55-.128-1.07-.137-1.54-.028-.16-.95.1-1.956.76-3.022.66-1.065 1.515-1.867 2.558-2.403L9.373 5c-.8.396-1.56.898-2.26 1.505-.71.607-1.34 1.305-1.9 2.094s-.98 1.68-1.25 2.69-.346 2.04-.217 3.1c.168 1.4.62 2.52 1.356 3.35.735.84 1.652 1.26 2.748 1.26.965 0 1.766-.29 2.4-.878.628-.576.94-1.365.94-2.368l.002.003zm9.124 0c0-.88-.23-1.618-.69-2.217-.326-.42-.77-.692-1.327-.817-.56-.124-1.074-.13-1.54-.022-.16-.94.09-1.95.75-3.02.66-1.06 1.514-1.86 2.557-2.4L18.49 5c-.8.396-1.555.898-2.26 1.505-.708.607-1.34 1.305-1.894 2.094-.556.79-.97 1.68-1.24 2.69-.273 1-.345 2.04-.217 3.1.168 1.4.62 2.52 1.356 3.35.735.84 1.652 1.26 2.748 1.26.965 0 1.766-.29 2.4-.878.628-.576.94-1.365.94-2.368h-.007z"/>
+          </svg>
+        </div>
+        
+        <div class="dw-proof__quotes-wrapper">
+          {%- for block in quote_blocks -%}
+            <div 
+              class="dw-proof__quote{% if forloop.first %} is-active{% endif %}" 
+              data-quote-index="{{ forloop.index0 }}"
+              {{ block.shopify_attributes }}
+            >
+              <blockquote class="dw-proof__quote-text">
+                {{ block.settings.quote }}
+              </blockquote>
+              {%- if block.settings.author != blank -%}
+                <cite class="dw-proof__quote-author">
+                  <span class="dw-proof__quote-dash">—</span>
+                  {{ block.settings.author }}
+                </cite>
+              {%- endif -%}
+            </div>
+          {%- endfor -%}
+        </div>
+
+        {%- if quote_blocks.size > 1 -%}
+          <div class="dw-proof__quote-dots" data-quote-dots>
+            {%- for block in quote_blocks -%}
+              <button 
+                type="button" 
+                class="dw-proof__quote-dot{% if forloop.first %} is-active{% endif %}"
+                data-quote-dot="{{ forloop.index0 }}"
+                aria-label="Go to quote {{ forloop.index }}"
+              >
+                <span class="dw-proof__quote-dot-fill"></span>
+              </button>
+            {%- endfor -%}
+          </div>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    <!-- Press Logos with Staggered Reveal -->
+    {%- if logo_blocks.size > 0 -%}
+      <div class="dw-proof__press" data-proof-press>
+        {%- if section.settings.press_label != blank -%}
+          <p class="dw-proof__press-label">
+            <span class="dw-proof__press-line"></span>
+            <span class="dw-proof__press-text">{{ section.settings.press_label }}</span>
+            <span class="dw-proof__press-line"></span>
+          </p>
+        {%- endif -%}
+        <div class="dw-proof__logos">
+          {%- for block in logo_blocks -%}
+            <div 
+              class="dw-proof__logo" 
+              style="--logo-index: {{ forloop.index }};"
+              {{ block.shopify_attributes }}
+            >
+              {%- if block.settings.url != blank -%}
+                <a href="{{ block.settings.url }}" target="_blank" rel="noopener" class="dw-proof__logo-link">
+              {%- endif -%}
+              
+              {%- if block.settings.logo != blank -%}
+                <img 
+                  src="{{ block.settings.logo | image_url: width: 300 }}"
+                  alt="{{ block.settings.logo.alt | default: block.settings.name | escape }}"
+                  loading="lazy"
+                >
+              {%- elsif block.settings.name != blank -%}
+                <span class="dw-proof__logo-text">{{ block.settings.name }}</span>
+              {%- endif -%}
+              
+              {%- if block.settings.url != blank -%}
+                </a>
+              {%- endif -%}
+            </div>
+          {%- endfor -%}
+        </div>
+      </div>
+    {%- endif -%}
+  </div>
+</section>
+
+<style>
+  /* ==========================================
+     BASE
+     ========================================== */
+  
+  .dw-proof {
+    position: relative;
+    background: var(--proof-bg);
+    color: var(--proof-text);
+    padding: var(--proof-padding-mobile) 0;
+    font-family: 'Poppins', sans-serif;
+    overflow: hidden;
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof {
+      padding: var(--proof-padding-desktop) 0;
+    }
+  }
+
+  .dw-proof__inner {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ==========================================
+     BACKGROUND GLOW
+     ========================================== */
+
+  .dw-proof__bg-glow {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .dw-proof__bg-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.15;
+  }
+
+  .dw-proof__bg-orb--1 {
+    width: 600px;
+    height: 600px;
+    background: var(--proof-glow-1);
+    top: -200px;
+    left: -200px;
+    animation: proof-orb-float 20s ease-in-out infinite;
+  }
+
+  .dw-proof__bg-orb--2 {
+    width: 500px;
+    height: 500px;
+    background: var(--proof-glow-2);
+    bottom: -150px;
+    right: -150px;
+    animation: proof-orb-float 20s ease-in-out infinite reverse;
+  }
+
+  @keyframes proof-orb-float {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(50px, 30px); }
+  }
+
+  /* ==========================================
+     STATS HEADER
+     ========================================== */
+
+  .dw-proof__stats {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 0 20px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__stats {
+      margin-bottom: 60px;
+    }
+  }
+
+  .dw-proof__stat {
+    position: relative;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .dw-proof__stat-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, var(--proof-accent) 0%, transparent 70%);
+    opacity: 0.2;
+    filter: blur(40px);
+    animation: proof-stat-pulse 3s ease-in-out infinite;
+  }
+
+  @keyframes proof-stat-pulse {
+    0%, 100% { opacity: 0.15; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 0.25; transform: translate(-50%, -50%) scale(1.1); }
+  }
+
+  .dw-proof__stat-number {
+    position: relative;
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--proof-accent);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    z-index: 2;
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__stat-number {
+      font-size: 72px;
+    }
+  }
+
+  .dw-proof__stat-suffix {
+    position: relative;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--proof-accent);
+    z-index: 2;
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__stat-suffix {
+      font-size: 48px;
+    }
+  }
+
+  .dw-proof__stat-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--proof-text);
+    opacity: 0.7;
+    margin: 12px 0 0;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.5;
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__stat-label {
+      font-size: 14px;
+      margin-top: 16px;
+      max-width: none;
+    }
+  }
+
+  /* ==========================================
+     IMAGE CAROUSEL
+     ========================================== */
+
+  .dw-proof__carousel {
+    position: relative;
+    width: 100%;
+    margin-bottom: 50px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__carousel {
+      margin-bottom: 70px;
+    }
+  }
+
+  /* Edge Fades */
+  .dw-proof__carousel-fade {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 80px;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .dw-proof__carousel-fade--left {
+    left: 0;
+    background: linear-gradient(to right, var(--proof-bg) 0%, transparent 100%);
+  }
+
+  .dw-proof__carousel-fade--right {
+    right: 0;
+    background: linear-gradient(to left, var(--proof-bg) 0%, transparent 100%);
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__carousel-fade {
+      width: 150px;
+    }
+  }
+
+  .dw-proof__track {
+    display: flex;
+    gap: var(--proof-image-gap);
+    animation: proof-scroll var(--proof-scroll-speed) linear infinite;
+    width: max-content;
+  }
+
+  .dw-proof__carousel:hover .dw-proof__track {
+    animation-play-state: paused;
+  }
+
+  @keyframes proof-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .dw-proof__image {
+    position: relative;
+    flex-shrink: 0;
+    height: var(--proof-image-height-mobile);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: transform 0.4s ease;
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__image {
+      height: var(--proof-image-height-desktop);
+      border-radius: 12px;
+    }
+  }
+
+  .dw-proof__image:hover {
+    transform: scale(1.03);
+    z-index: 5;
+  }
+
+  /* Animated Border */
+  .dw-proof__image-border {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 2px;
+    background: linear-gradient(
+      135deg,
+      transparent 0%,
+      transparent 40%,
+      var(--proof-glow-1) 50%,
+      transparent 60%,
+      transparent 100%
+    );
+    background-size: 400% 400%;
+    -webkit-mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 3;
+  }
+
+  .dw-proof__image:hover .dw-proof__image-border {
+    opacity: 1;
+    animation: proof-border-shine 1.5s ease infinite;
+  }
+
+  @keyframes proof-border-shine {
+    0% { background-position: 200% 0%; }
+    100% { background-position: -200% 0%; }
+  }
+
+  /* Glow Effect */
+  .dw-proof__image--glow::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(135deg, var(--proof-glow-1), var(--proof-glow-2));
+    border-radius: inherit;
+    opacity: 0;
+    filter: blur(15px);
+    transition: opacity 0.4s ease;
+    z-index: -1;
+  }
+
+  .dw-proof__image--glow:hover::before {
+    opacity: 0.6;
+  }
+
+  .dw-proof__image img {
+    height: 100%;
+    width: auto;
+    object-fit: cover;
+    display: block;
+  }
+
+  .dw-proof__image-placeholder {
+    width: 180px;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.1) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dw-proof__image-placeholder svg {
+    width: 40px;
+    height: 40px;
+    opacity: 0.3;
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__image-placeholder {
+      width: 220px;
+    }
+  }
+
+  /* ==========================================
+     QUOTES
+     ========================================== */
+
+  .dw-proof__quotes {
+    position: relative;
+    padding: 0 20px;
+    margin-bottom: 50px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__quotes {
+      padding: 0 60px;
+      margin-bottom: 70px;
+    }
+  }
+
+  .dw-proof__quotes-icon {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .dw-proof__quotes-icon svg {
+    width: 32px;
+    height: 32px;
+    color: var(--proof-accent);
+    opacity: 0.5;
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__quotes-icon svg {
+      width: 40px;
+      height: 40px;
+    }
+  }
+
+  .dw-proof__quotes-wrapper {
+    position: relative;
+    min-height: 140px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__quotes-wrapper {
+      min-height: 120px;
+    }
+  }
+
+  .dw-proof__quote {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px);
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dw-proof__quote.is-active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .dw-proof__quote.is-exiting {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  .dw-proof__quote-text {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--proof-text);
+    line-height: 1.6;
+    margin: 0 auto 16px;
+    max-width: 800px;
+    font-style: normal;
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__quote-text {
+      font-size: 26px;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+  }
+
+  .dw-proof__quote-author {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--proof-accent);
+    font-style: normal;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__quote-author {
+      font-size: 14px;
+    }
+  }
+
+  .dw-proof__quote-dash {
+    opacity: 0.5;
+  }
+
+  /* Quote Dots */
+  .dw-proof__quote-dots {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .dw-proof__quote-dot {
+    position: relative;
+    width: 32px;
+    height: 4px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    overflow: hidden;
+    border-radius: 2px;
+  }
+
+  .dw-proof__quote-dot::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--proof-text);
+    opacity: 0.2;
+    border-radius: inherit;
+  }
+
+  .dw-proof__quote-dot-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    background: var(--proof-accent);
+    border-radius: inherit;
+    transition: width 0.3s ease;
+  }
+
+  .dw-proof__quote-dot.is-active .dw-proof__quote-dot-fill {
+    width: 100%;
+    animation: proof-dot-progress var(--proof-quote-speed) linear;
+  }
+
+  @keyframes proof-dot-progress {
+    from { width: 0; }
+    to { width: 100%; }
+  }
+
+  .dw-proof__quote-dot:hover::before {
+    opacity: 0.4;
+  }
+
+  /* ==========================================
+     PRESS LOGOS
+     ========================================== */
+
+  .dw-proof__press {
+    text-align: center;
+    padding: 0 20px;
+  }
+
+  .dw-proof__press-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--proof-text);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin: 0 0 28px 0;
+    opacity: 0.5;
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__press-label {
+      font-size: 11px;
+      gap: 24px;
+      margin-bottom: 36px;
+    }
+  }
+
+  .dw-proof__press-line {
+    display: block;
+    width: 40px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--proof-text), transparent);
+    opacity: 0.3;
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__press-line {
+      width: 60px;
+    }
+  }
+
+  .dw-proof__logos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 20px 28px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__logos {
+      gap: 28px 48px;
+    }
+  }
+
+  .dw-proof__logo {
+    opacity: 0;
+    transform: translateY(10px);
+    animation: proof-logo-enter 0.5s ease forwards;
+    animation-delay: calc(var(--logo-index, 1) * 0.08s);
+  }
+
+  @keyframes proof-logo-enter {
+    to {
+      opacity: 0.5;
+      transform: translateY(0);
+    }
+  }
+
+  .dw-proof__logo:hover {
+    opacity: 1 !important;
+  }
+
+  .dw-proof__logo-link {
+    display: block;
+    text-decoration: none;
+  }
+
+  .dw-proof__logo img {
+    height: 18px;
+    width: auto;
+    object-fit: contain;
+    filter: grayscale(100%) brightness(0.7);
+    transition: all 0.3s ease;
+  }
+
+  .dw-proof__logo:hover img {
+    filter: grayscale(0%) brightness(1);
+    transform: scale(1.05);
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__logo img {
+      height: 24px;
+    }
+  }
+
+  .dw-proof__logo-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--proof-text);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: color 0.3s ease;
+  }
+
+  .dw-proof__logo:hover .dw-proof__logo-text {
+    color: var(--proof-accent);
+  }
+
+  @media (min-width: 750px) {
+    .dw-proof__logo-text {
+      font-size: 16px;
+    }
+  }
+
+  /* ==========================================
+     REDUCED MOTION
+     ========================================== */
+
+  @media (prefers-reduced-motion: reduce) {
+    .dw-proof__track,
+    .dw-proof__bg-orb,
+    .dw-proof__stat-glow,
+    .dw-proof__image-border {
+      animation: none;
+    }
+
+    .dw-proof__quote,
+    .dw-proof__logo {
+      transition: none;
+      opacity: 1;
+      transform: none;
+    }
+
+    .dw-proof__quote-dot.is-active .dw-proof__quote-dot-fill {
+      animation: none;
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const section = document.querySelector('[data-proof-section]');
+    if (!section) return;
+
+    // Counter Animation
+    const statNumber = section.querySelector('[data-count-to]');
+    if (statNumber) {
+      const target = parseInt(statNumber.dataset.countTo);
+      const suffix = section.querySelector('.dw-proof__stat-suffix');
+      const suffixText = suffix ? suffix.textContent : '';
+      
+      const observerOptions = { threshold: 0.5 };
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            animateCounter(statNumber, target, suffixText);
+            observer.unobserve(entry.target);
+          }
+        });
+      }, observerOptions);
+
+      observer.observe(statNumber);
+    }
+
+    function animateCounter(element, target, suffix) {
+      const duration = 2000;
+      const startTime = performance.now();
+      const startValue = 0;
+
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const current = Math.floor(startValue + (target - startValue) * easeOut);
+        
+        // Format with commas
+        element.textContent = current.toLocaleString();
+        
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        } else {
+          // Final value with any suffix formatting
+          element.textContent = target.toLocaleString();
+        }
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    // Quote Rotation
+    const quotesContainer = section.querySelector('[data-proof-quotes]');
+    if (quotesContainer) {
+      const quotes = quotesContainer.querySelectorAll('.dw-proof__quote');
+      const dots = quotesContainer.querySelectorAll('.dw-proof__quote-dot');
+      
+      if (quotes.length > 1) {
+        let currentIndex = 0;
+        let autoplayInterval;
+        const speed = parseFloat(getComputedStyle(section).getPropertyValue('--proof-quote-speed')) * 1000 || 5000;
+
+        function goToQuote(index) {
+          // Exit current
+          quotes[currentIndex].classList.add('is-exiting');
+          quotes[currentIndex].classList.remove('is-active');
+          dots[currentIndex]?.classList.remove('is-active');
+
+          // Enter new
+          currentIndex = index;
+          setTimeout(() => {
+            document.querySelectorAll('.dw-proof__quote.is-exiting').forEach(q => q.classList.remove('is-exiting'));
+            quotes[currentIndex].classList.add('is-active');
+            dots[currentIndex]?.classList.add('is-active');
+          }, 100);
+        }
+
+        function nextQuote() {
+          goToQuote((currentIndex + 1) % quotes.length);
+        }
+
+        function startAutoplay() {
+          autoplayInterval = setInterval(nextQuote, speed);
+        }
+
+        function stopAutoplay() {
+          clearInterval(autoplayInterval);
+        }
+
+        // Dot click handlers
+        dots.forEach((dot, index) => {
+          dot.addEventListener('click', () => {
+            stopAutoplay();
+            goToQuote(index);
+            startAutoplay();
+          });
+        });
+
+        // Start autoplay
+        startAutoplay();
+
+        // Pause on hover
+        quotesContainer.addEventListener('mouseenter', stopAutoplay);
+        quotesContainer.addEventListener('mouseleave', startAutoplay);
+      }
+    }
+
+    // Adjust scroll animation based on content
+    const track = section.querySelector('[data-proof-track]');
+    if (track) {
+      const images = track.querySelectorAll('.dw-proof__image');
+      const imageCount = images.length / 2;
+      
+      if (imageCount > 0) {
+        const baseSpeed = parseFloat(getComputedStyle(section).getPropertyValue('--proof-scroll-speed')) || 30;
+        const adjustedSpeed = baseSpeed * (imageCount / 6);
+        track.style.animationDuration = Math.max(15, Math.min(60, adjustedSpeed)) + 's';
+      }
+    }
+
+    // Press logos intersection observer
+    const pressSection = section.querySelector('[data-proof-press]');
+    if (pressSection) {
+      const observerOptions = { threshold: 0.2 };
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+          }
+        });
+      }, observerOptions);
+
+      observer.observe(pressSection);
+    }
+  });
+</script>
+
+{% schema %}
+{
+  "name": "DW Social Proof v2",
+  "tag": "section",
+  "class": "dw-proof-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Big Stat"
+    },
+    {
+      "type": "text",
+      "id": "stat_number",
+      "label": "Stat number",
+      "default": "540000",
+      "info": "Just the number (e.g., 540000)"
+    },
+    {
+      "type": "text",
+      "id": "stat_suffix",
+      "label": "Stat suffix",
+      "default": "+",
+      "info": "e.g., +, M, K"
+    },
+    {
+      "type": "text",
+      "id": "stat_label",
+      "label": "Stat label",
+      "default": "CUSTOMER PURCHASES — FUELING MILLIONS OF SERVINGS"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_counter_animation",
+      "label": "Animate counter on scroll",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Image Carousel"
+    },
+    {
+      "type": "range",
+      "id": "image_height_desktop",
+      "label": "Image height (desktop)",
+      "min": 200,
+      "max": 500,
+      "step": 20,
+      "default": 320,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "image_height_mobile",
+      "label": "Image height (mobile)",
+      "min": 150,
+      "max": 350,
+      "step": 10,
+      "default": 240,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "image_gap",
+      "label": "Gap between images",
+      "min": 4,
+      "max": 24,
+      "step": 2,
+      "default": 8,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "scroll_speed",
+      "label": "Scroll speed",
+      "min": 15,
+      "max": 60,
+      "step": 5,
+      "default": 30,
+      "unit": "s",
+      "info": "Lower = faster"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_image_glow",
+      "label": "Enable glow effect on hover",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Quotes"
+    },
+    {
+      "type": "range",
+      "id": "quote_speed",
+      "label": "Quote rotation speed",
+      "min": 3,
+      "max": 10,
+      "step": 1,
+      "default": 5,
+      "unit": "s"
+    },
+    {
+      "type": "header",
+      "content": "Press Section"
+    },
+    {
+      "type": "text",
+      "id": "press_label",
+      "label": "Press label",
+      "default": "AS FEATURED IN"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background color",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "default": "#C4D600"
+    },
+    {
+      "type": "color",
+      "id": "glow_color_1",
+      "label": "Glow color 1",
+      "default": "#C4D600"
+    },
+    {
+      "type": "color",
+      "id": "glow_color_2",
+      "label": "Glow color 2",
+      "default": "#00d4ff"
+    },
+    {
+      "type": "header",
+      "content": "Effects"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_background_glow",
+      "label": "Enable background glow",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_desktop",
+      "label": "Padding desktop",
+      "min": 40,
+      "max": 150,
+      "step": 10,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile",
+      "label": "Padding mobile",
+      "min": 30,
+      "max": 100,
+      "step": 10,
+      "default": 50,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "image",
+      "name": "Customer Image",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        }
+      ]
+    },
+    {
+      "type": "quote",
+      "name": "Quote",
+      "settings": [
+        {
+          "type": "textarea",
+          "id": "quote",
+          "label": "Quote text",
+          "default": "The cleanest hydration formula I've ever used. Zero sugar, zero compromises."
+        },
+        {
+          "type": "text",
+          "id": "author",
+          "label": "Author / Source",
+          "default": "Pro Athlete"
+        }
+      ]
+    },
+    {
+      "type": "logo",
+      "name": "Press Logo",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "logo",
+          "label": "Logo image",
+          "info": "Use transparent PNG for best results"
+        },
+        {
+          "type": "text",
+          "id": "name",
+          "label": "Publication name",
+          "info": "Shown as text if no logo uploaded"
+        },
+        {
+          "type": "url",
+          "id": "url",
+          "label": "Link URL",
+          "info": "Optional link to article"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "DW Social Proof v2",
+      "settings": {
+        "stat_number": "540000",
+        "stat_suffix": "+",
+        "stat_label": "CUSTOMER PURCHASES — FUELING MILLIONS OF SERVINGS"
+      },
+      "blocks": [
+        { "type": "image" },
+        { "type": "image" },
+        { "type": "image" },
+        { "type": "image" },
+        { "type": "image" },
+        { "type": "image" },
+        {
+          "type": "quote",
+          "settings": {
+            "quote": "The cleanest hydration formula I've ever used. Zero sugar, zero compromises.",
+            "author": "UFC Fighter"
+          }
+        },
+        {
+          "type": "quote",
+          "settings": {
+            "quote": "Finally, an electrolyte that matches my training intensity without the junk.",
+            "author": "Pro Athlete"
+          }
+        },
+        {
+          "type": "quote",
+          "settings": {
+            "quote": "NSF Certified and actually tastes good. This is what I've been looking for.",
+            "author": "Marathon Runner"
+          }
+        },
+        {
+          "type": "logo",
+          "settings": { "name": "ESPN" }
+        },
+        {
+          "type": "logo",
+          "settings": { "name": "Men's Health" }
+        },
+        {
+          "type": "logo",
+          "settings": { "name": "Forbes" }
+        },
+        {
+          "type": "logo",
+          "settings": { "name": "GQ" }
+        },
+        {
+          "type": "logo",
+          "settings": { "name": "Outside" }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

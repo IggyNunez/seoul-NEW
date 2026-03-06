@@ -1,0 +1,767 @@
+{% comment %}
+  DoingWell FAQ Accordion Section
+  - Collapsible Q&A items
+  - Smooth open/close animations
+  - Multiple style options
+  - Full responsive controls
+{% endcomment %}
+
+<section 
+  class="dw-faq{% if section.settings.enable_animations %} dw-faq--animate{% endif %}"
+  style="
+    --faq-padding-top-desktop: {{ section.settings.padding_top_desktop }}px;
+    --faq-padding-bottom-desktop: {{ section.settings.padding_bottom_desktop }}px;
+    --faq-padding-top-mobile: {{ section.settings.padding_top_mobile }}px;
+    --faq-padding-bottom-mobile: {{ section.settings.padding_bottom_mobile }}px;
+    --faq-bg: {{ section.settings.bg_color }};
+    --faq-text: {{ section.settings.text_color }};
+    --faq-accent: {{ section.settings.accent_color }};
+    --faq-item-bg: {{ section.settings.item_bg_color }};
+    --faq-item-border: {{ section.settings.item_border_color }};
+    --faq-max-width: {{ section.settings.max_width }}px;
+    --faq-animation-duration: {{ section.settings.animation_duration }}ms;
+  "
+>
+  <div class="dw-faq__container">
+    <!-- Header -->
+    {%- if section.settings.heading != blank or section.settings.subheading != blank -%}
+      <div class="dw-faq__header dw-faq__header--{{ section.settings.header_alignment }}">
+        {%- if section.settings.eyebrow != blank -%}
+          <span class="dw-faq__eyebrow">{{ section.settings.eyebrow }}</span>
+        {%- endif -%}
+        
+        {%- if section.settings.heading != blank -%}
+          <h2 class="dw-faq__heading">{{ section.settings.heading }}</h2>
+        {%- endif -%}
+        
+        {%- if section.settings.subheading != blank -%}
+          <p class="dw-faq__subheading">{{ section.settings.subheading }}</p>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    <!-- FAQ Items -->
+    <div class="dw-faq__list dw-faq__list--{{ section.settings.style }}">
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'question' -%}
+          <details 
+            class="dw-faq__item"
+            {{ block.shopify_attributes }}
+            {% if block.settings.open_by_default %}open{% endif %}
+          >
+            <summary class="dw-faq__question">
+              <span class="dw-faq__question-text">{{ block.settings.question }}</span>
+              <span class="dw-faq__icon">
+                {%- if section.settings.icon_style == 'plus' -%}
+                  <svg class="dw-faq__icon-plus" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line class="dw-faq__icon-h" x1="5" y1="12" x2="19" y2="12"></line>
+                    <line class="dw-faq__icon-v" x1="12" y1="5" x2="12" y2="19"></line>
+                  </svg>
+                {%- else -%}
+                  <svg class="dw-faq__icon-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                {%- endif -%}
+              </span>
+            </summary>
+            <div class="dw-faq__answer">
+              <div class="dw-faq__answer-inner">
+                {{ block.settings.answer }}
+              </div>
+            </div>
+          </details>
+        {%- elsif block.type == 'divider' -%}
+          <div class="dw-faq__divider" {{ block.shopify_attributes }}></div>
+        {%- elsif block.type == 'heading' -%}
+          <h3 class="dw-faq__section-heading" {{ block.shopify_attributes }}>
+            {{ block.settings.text }}
+          </h3>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+
+    <!-- Footer -->
+    {%- if section.settings.footer_text != blank -%}
+      <div class="dw-faq__footer">
+        {{ section.settings.footer_text }}
+      </div>
+    {%- endif -%}
+  </div>
+</section>
+
+<style>
+  /* ==========================================
+     FAQ BASE
+     ========================================== */
+  
+  .dw-faq {
+    padding: var(--faq-padding-top-mobile) 20px var(--faq-padding-bottom-mobile);
+    background: var(--faq-bg, #0a0a0a);
+    color: var(--faq-text, #ffffff);
+  }
+
+  @media (min-width: 750px) {
+    .dw-faq {
+      padding: var(--faq-padding-top-desktop) 50px var(--faq-padding-bottom-desktop);
+    }
+  }
+
+  /* ==========================================
+     CONTAINER
+     ========================================== */
+  
+  .dw-faq__container {
+    max-width: var(--faq-max-width, 800px);
+    margin: 0 auto;
+  }
+
+  /* ==========================================
+     HEADER
+     ========================================== */
+  
+  .dw-faq__header {
+    margin-bottom: 32px;
+  }
+
+  @media (min-width: 750px) {
+    .dw-faq__header {
+      margin-bottom: 40px;
+    }
+  }
+
+  .dw-faq__header--left { text-align: left; }
+  .dw-faq__header--center { text-align: center; }
+  .dw-faq__header--right { text-align: right; }
+
+  .dw-faq__eyebrow {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--faq-accent, #C4D600);
+    margin-bottom: 12px;
+  }
+
+  .dw-faq__heading {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0 0 12px;
+    letter-spacing: -0.02em;
+  }
+
+  @media (min-width: 750px) {
+    .dw-faq__heading {
+      font-size: 36px;
+    }
+  }
+
+  .dw-faq__subheading {
+    font-size: 16px;
+    line-height: 1.6;
+    opacity: 0.75;
+    margin: 0;
+  }
+
+  /* ==========================================
+     FAQ LIST
+     ========================================== */
+  
+  .dw-faq__list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Style: Bordered */
+  .dw-faq__list--bordered .dw-faq__item {
+    border: 1px solid var(--faq-item-border, rgba(255,255,255,0.1));
+    border-radius: 8px;
+    margin-bottom: 12px;
+    background: var(--faq-item-bg, transparent);
+  }
+
+  .dw-faq__list--bordered .dw-faq__item[open] {
+    border-color: var(--faq-accent, #C4D600);
+  }
+
+  /* Style: Minimal */
+  .dw-faq__list--minimal .dw-faq__item {
+    border-bottom: 1px solid var(--faq-item-border, rgba(255,255,255,0.1));
+  }
+
+  .dw-faq__list--minimal .dw-faq__item:last-child {
+    border-bottom: none;
+  }
+
+  /* Style: Cards */
+  .dw-faq__list--cards .dw-faq__item {
+    background: var(--faq-item-bg, rgba(255,255,255,0.05));
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .dw-faq__list--cards .dw-faq__item[open] {
+    background: rgba(255,255,255,0.08);
+  }
+
+  /* ==========================================
+     FAQ ITEM
+     ========================================== */
+  
+  .dw-faq__item {
+    overflow: hidden;
+  }
+
+  .dw-faq__question {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+    transition: color 0.2s ease;
+  }
+
+  .dw-faq__question::-webkit-details-marker {
+    display: none;
+  }
+
+  .dw-faq__question:hover {
+    color: var(--faq-accent, #C4D600);
+  }
+
+  @media (min-width: 750px) {
+    .dw-faq__question {
+      padding: 20px 24px;
+      font-size: 16px;
+    }
+  }
+
+  .dw-faq__question-text {
+    flex: 1;
+  }
+
+  /* Icon */
+  .dw-faq__icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--faq-accent, #C4D600);
+    transition: transform 0.3s ease;
+  }
+
+  /* Chevron rotation */
+  .dw-faq__item[open] .dw-faq__icon-chevron {
+    transform: rotate(180deg);
+  }
+
+  /* Plus to minus */
+  .dw-faq__icon-v {
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+
+  .dw-faq__item[open] .dw-faq__icon-v {
+    transform: rotate(90deg);
+    opacity: 0;
+  }
+
+  /* ==========================================
+     ANSWER
+     ========================================== */
+  
+  .dw-faq__answer {
+    overflow: hidden;
+  }
+
+  .dw-faq__answer-inner {
+    padding: 0 20px 20px;
+    font-size: 14px;
+    line-height: 1.7;
+    opacity: 0.85;
+  }
+
+  @media (min-width: 750px) {
+    .dw-faq__answer-inner {
+      padding: 0 24px 24px;
+      font-size: 15px;
+    }
+  }
+
+  .dw-faq__answer-inner p {
+    margin: 0 0 12px;
+  }
+
+  .dw-faq__answer-inner p:last-child {
+    margin-bottom: 0;
+  }
+
+  .dw-faq__answer-inner a {
+    color: var(--faq-accent, #C4D600);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .dw-faq__answer-inner strong {
+    font-weight: 600;
+    color: var(--faq-text);
+  }
+
+  .dw-faq__answer-inner ul,
+  .dw-faq__answer-inner ol {
+    margin: 12px 0;
+    padding-left: 24px;
+  }
+
+  .dw-faq__answer-inner li {
+    margin-bottom: 6px;
+  }
+
+  /* ==========================================
+     DIVIDER & SECTION HEADING
+     ========================================== */
+  
+  .dw-faq__divider {
+    height: 1px;
+    background: var(--faq-item-border, rgba(255,255,255,0.1));
+    margin: 24px 0;
+  }
+
+  .dw-faq__section-heading {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--faq-accent, #C4D600);
+    margin: 32px 0 16px;
+    padding: 0 20px;
+  }
+
+  .dw-faq__section-heading:first-child {
+    margin-top: 0;
+  }
+
+  /* ==========================================
+     FOOTER
+     ========================================== */
+  
+  .dw-faq__footer {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--faq-item-border, rgba(255,255,255,0.1));
+    font-size: 14px;
+    text-align: center;
+    opacity: 0.7;
+  }
+
+  .dw-faq__footer a {
+    color: var(--faq-accent, #C4D600);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* ==========================================
+     ANIMATIONS
+     ========================================== */
+  
+  .dw-faq--animate .dw-faq__header,
+  .dw-faq--animate .dw-faq__list,
+  .dw-faq--animate .dw-faq__footer {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: faq-fade-up var(--faq-animation-duration, 700ms) ease forwards;
+  }
+
+  .dw-faq--animate .dw-faq__list {
+    animation-delay: 100ms;
+  }
+
+  .dw-faq--animate .dw-faq__footer {
+    animation-delay: 200ms;
+  }
+
+  @keyframes faq-fade-up {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Reduce motion */
+  @media (prefers-reduced-motion: reduce) {
+    .dw-faq--animate .dw-faq__header,
+    .dw-faq--animate .dw-faq__list,
+    .dw-faq--animate .dw-faq__footer {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+    
+    .dw-faq__icon,
+    .dw-faq__icon-v {
+      transition: none;
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "DW FAQ",
+  "tag": "section",
+  "class": "dw-faq-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Header"
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow text",
+      "default": "FAQ"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Frequently asked questions"
+    },
+    {
+      "type": "textarea",
+      "id": "subheading",
+      "label": "Subheading"
+    },
+    {
+      "type": "select",
+      "id": "header_alignment",
+      "label": "Header alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Style"
+    },
+    {
+      "type": "select",
+      "id": "style",
+      "label": "FAQ style",
+      "options": [
+        { "value": "bordered", "label": "Bordered" },
+        { "value": "minimal", "label": "Minimal (lines)" },
+        { "value": "cards", "label": "Cards" }
+      ],
+      "default": "bordered"
+    },
+    {
+      "type": "select",
+      "id": "icon_style",
+      "label": "Icon style",
+      "options": [
+        { "value": "chevron", "label": "Chevron (arrow)" },
+        { "value": "plus", "label": "Plus/Minus" }
+      ],
+      "default": "plus"
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Max width",
+      "min": 600,
+      "max": 1000,
+      "step": 50,
+      "default": 800,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "default": "#C4D600"
+    },
+    {
+      "type": "color",
+      "id": "item_bg_color",
+      "label": "Item background",
+      "default": "rgba(255,255,255,0.05)"
+    },
+    {
+      "type": "color",
+      "id": "item_border_color",
+      "label": "Item border",
+      "default": "rgba(255,255,255,0.1)"
+    },
+    {
+      "type": "header",
+      "content": "Desktop Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top_desktop",
+      "label": "Padding top",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom_desktop",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Mobile Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top_mobile",
+      "label": "Padding top",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "default": 50,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom_mobile",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "default": 50,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Footer"
+    },
+    {
+      "type": "richtext",
+      "id": "footer_text",
+      "label": "Footer text",
+      "default": "<p>Still have questions? Email <a href=\"mailto:help@doingwell.health\">help@doingwell.health</a></p>"
+    },
+    {
+      "type": "header",
+      "content": "Animations"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_animations",
+      "label": "Enable entrance animations",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "animation_duration",
+      "label": "Animation duration",
+      "min": 300,
+      "max": 1000,
+      "step": 100,
+      "default": 700,
+      "unit": "ms"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "question",
+      "name": "Question",
+      "settings": [
+        {
+          "type": "text",
+          "id": "question",
+          "label": "Question",
+          "default": "When will my order ship?"
+        },
+        {
+          "type": "richtext",
+          "id": "answer",
+          "label": "Answer",
+          "default": "<p>Orders placed during the <strong>January 6–12</strong> secret preorder are scheduled to ship in <strong>late January</strong>. You will get an email update when your order is getting ready to ship and again with tracking.</p>"
+        },
+        {
+          "type": "checkbox",
+          "id": "open_by_default",
+          "label": "Open by default",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "divider",
+      "name": "Divider",
+      "settings": []
+    },
+    {
+      "type": "heading",
+      "name": "Section Heading",
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Heading text",
+          "default": "Shipping & Returns"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "DW FAQ",
+      "settings": {
+        "heading": "Frequently asked questions",
+        "style": "bordered"
+      },
+      "blocks": [
+        {
+          "type": "question",
+          "settings": {
+            "question": "When will my order ship?",
+            "answer": "<p>Orders placed during the <strong>January 6–12</strong> secret preorder are scheduled to ship in <strong>late January</strong>. You will get an email update when your order is getting ready to ship and again with tracking.</p>"
+          }
+        },
+        {
+          "type": "question",
+          "settings": {
+            "question": "Are orders refundable?",
+            "answer": "<p>No. This is a limited, <strong>non-refundable preorder</strong>. The only exceptions are damaged products, lost shipments, or situations where the law requires a refund or replacement.</p>"
+          }
+        },
+        {
+          "type": "question",
+          "settings": {
+            "question": "Can I change my shipping address?",
+            "answer": "<p>Yes, as long as your order has not been locked for fulfillment. Email <a href=\"mailto:help@doingwell.health\">help@doingwell.health</a> with your order number and new address. Once the warehouse has started preparing your order, we may not be able to change it.</p>"
+          }
+        },
+        {
+          "type": "question",
+          "settings": {
+            "question": "What is the Insider Club?",
+            "answer": "<p>The <strong>Insider Club</strong> is our founding group from this secret preorder. You stay in the Insider Club as long as your doingwell subscription stays active. Members get early access to new products, special drops, and insider-only updates.</p>"
+          }
+        },
+        {
+          "type": "question",
+          "settings": {
+            "question": "How do the giveaways work?",
+            "answer": "<p>There will be <strong>10 × $100 doingwell gift cards</strong> and <strong>two great seats to UFC 234 (over $3,000 total value)</strong> given away. Travel and hotels are <strong>not included</strong>. You must be <strong>18+</strong> and meet any location-based rules. We will publish full giveaway rules, including \"no purchase necessary\" entry details.</p>"
+          }
+        }
+      ]
+    },
+    {
+      "name": "DW FAQ - Preorder",
+      "settings": {
+        "heading": "Preorder FAQ",
+        "subheading": "Everything you need to know about the secret preorder",
+        "style": "cards"
+      },
+      "blocks": [
+        {
+          "type": "heading",
+          "settings": {
+            "text": "Ordering"
+          }
+        },
+        {
+          "type": "question",
+          "settings": {
+            "question": "When will my order ship?",
+            "answer": "<p>Orders placed during the <strong>January 6–12</strong> secret preorder are scheduled to ship in <strong>late January</strong>. You will get an email update when your order is getting ready to ship and again with tracking.</p>"
+          }
+        },
+        {
+          "type": "question",
+          "settings": {
+            "question": "Are orders refundable?",
+            "answer": "<p>No. This is a limited, <strong>non-refundable preorder</strong>. The only exceptions are damaged products, lost shipments, or situations where the law requires a refund or replacement.</p>"
+          }
+        },
+        {
+          "type": "question",
+          "settings": {
+            "question": "Can I change my shipping address?",
+            "answer": "<p>Yes, as long as your order has not been locked for fulfillment. Email <a href=\"mailto:help@doingwell.health\">help@doingwell.health</a> with your order number and new address.</p>"
+          }
+        },
+        {
+          "type": "heading",
+          "settings": {
+            "text": "Insider Club"
+          }
+        },
+        {
+          "type": "question",
+          "settings": {
+            "question": "What is the Insider Club?",
+            "answer": "<p>The <strong>Insider Club</strong> is our founding group from this secret preorder. You stay in the Insider Club as long as your doingwell subscription stays active. Members get early access to new products, special drops, and insider-only updates.</p>"
+          }
+        },
+        {
+          "type": "question",
+          "settings": {
+            "question": "How do I keep my Insider Club status?",
+            "answer": "<p>Stay on your doingwell subscription. After your first preorder box, you'll be billed <strong>$55/month with free shipping</strong> unless you cancel. If you cancel your subscription, your Insider Club membership ends and your spot can go to someone else.</p>"
+          }
+        },
+        {
+          "type": "heading",
+          "settings": {
+            "text": "Giveaways"
+          }
+        },
+        {
+          "type": "question",
+          "settings": {
+            "question": "How do the gift card giveaways work?",
+            "answer": "<p>We're giving away <strong>10 doingwell gift cards, $100 each</strong>. Everyone in the Insider Club from this preorder is automatically entered. Full details will be in our giveaway rules.</p>"
+          }
+        },
+        {
+          "type": "question",
+          "settings": {
+            "question": "How does the UFC 234 ticket giveaway work?",
+            "answer": "<p>We're giving away <strong>2 great seats to UFC 234</strong> with a total value of <strong>over $3,000</strong>. Travel and hotels are <strong>not included</strong>. You must be <strong>18+</strong>. The winner will be notified by <strong>January 10</strong> so there's time to plan for the fight on January 24.</p>"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
