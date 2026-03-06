@@ -13,6 +13,8 @@
   assign heading = section.settings.heading
   assign subheading = section.settings.subheading
   assign layout = section.settings.layout | default: 'asymmetric'
+  assign tile_radius = section.settings.tile_radius | default: 0
+  assign button_radius = section.settings.button_radius | default: 48
 -%}
 
 <section
@@ -24,6 +26,8 @@
     --bento-gap: {{ grid_gap }}px;
     --bento-padding-top: {{ section_padding_top }}px;
     --bento-padding-bottom: {{ section_padding_bottom }}px;
+    --bento-radius: {{ tile_radius }}px;
+    --bento-btn-radius: {{ button_radius }}px;
   "
 >
   {%- comment -%} Optional section header {%- endcomment -%}
@@ -221,6 +225,7 @@
     color: inherit;
     min-height: 300px;
     cursor: default;
+    border-radius: var(--bento-radius, 0px);
   }
 
   a.sgl-bento__item {
@@ -241,6 +246,8 @@
   .sgl-bento__image-wrap {
     position: absolute;
     inset: 0;
+    border-radius: var(--bento-radius, 0px);
+    overflow: hidden;
   }
 
   .sgl-bento__image {
@@ -258,6 +265,7 @@
     background: rgba(0, 0, 0, var(--overlay-opacity, 0.3));
     pointer-events: none;
     transition: background 0.4s ease;
+    border-radius: var(--bento-radius, 0px);
   }
 
   a.sgl-bento__item:hover .sgl-bento__overlay {
@@ -274,6 +282,7 @@
     background: var(--color-background);
     border: 1px solid var(--color-foreground);
     opacity: 0.1;
+    border-radius: var(--bento-radius, 0px);
   }
 
   .sgl-bento__placeholder-icon {
@@ -376,7 +385,7 @@
     text-transform: uppercase;
     text-decoration: none;
     border: 1.5px solid currentColor;
-    border-radius: 0;
+    border-radius: var(--bento-btn-radius, 48px);
     background: transparent;
     color: inherit;
     transition: all 0.3s ease;
@@ -589,6 +598,26 @@
       "id": "color_scheme",
       "label": "Color scheme",
       "default": "scheme-1"
+    },
+    {
+      "type": "range",
+      "id": "tile_radius",
+      "label": "Tile corner radius",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "default": 0,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "button_radius",
+      "label": "Button corner radius",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "default": 48,
+      "unit": "px"
     },
     {
       "type": "header",
