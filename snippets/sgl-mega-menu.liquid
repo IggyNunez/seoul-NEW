@@ -1,0 +1,2756 @@
+{%- comment -%}
+  Seoul Glow Lab - Desktop Mega Menu (3 Variants + 6 Themes, Fully Customizable)
+
+  VARIANT = content layout (glow/lifestyle/support)
+  THEME = visual styling (dark-glow/white/gold/midnight/emerald/rose)
+
+  All text, URLs, video, product limits, and quick links are controlled via
+  the SGL Header section schema. Quick links are pre-rendered block HTML.
+{%- endcomment -%}
+
+{%- liquid
+  comment
+    ═══════════════════════════════════════════════════════
+    STEP 1: Detect VARIANT (content layout)
+    ═══════════════════════════════════════════════════════
+  endcomment
+  assign menu_variant = 'glow'
+  assign _title_handle = link.title | downcase | handle
+
+  case _title_handle
+    when 'shop', 'shop-all', 'cleansers', 'serums', 'moisturizers', 'best-sellers', 'skincare'
+      assign menu_variant = 'glow'
+    when 'new-arrivals', 'collections', 'toners', 'essences', 'treatments', 'sunscreens', 'routines'
+      assign menu_variant = 'lifestyle'
+    when 'about', 'contact', 'customer-care', 'support', 'help', 'faq', 'our-story'
+      assign menu_variant = 'support'
+  endcase
+
+  assign _collection = collections[link.handle]
+  if _collection and _collection.metafields.sgl.menu_style != blank
+    assign menu_variant = _collection.metafields.sgl.menu_style
+  endif
+
+  comment
+    ═══════════════════════════════════════════════════════
+    STEP 2: Detect THEME (visual styling)
+    Themes: periwinkle (default), cream, mindaro, deep, forest, peach
+    ═══════════════════════════════════════════════════════
+  endcomment
+  assign menu_theme = 'periwinkle'
+
+  comment
+    Check for custom_menu_theme passed from header (block override)
+  endcomment
+  if custom_menu_theme != blank and custom_menu_theme != nil
+    assign menu_theme = custom_menu_theme
+  else
+    comment
+      Auto-detect theme by menu handle
+    endcomment
+    case _title_handle
+      when 'shop', 'shop-all', 'skincare', 'cleansers', 'serums', 'moisturizers'
+        assign menu_theme = 'periwinkle'
+      when 'essences', 'toners', 'exfoliators', 'eye-cream'
+        assign menu_theme = 'cream'
+      when 'new-arrivals', 'new', 'trending', 'featured'
+        assign menu_theme = 'mindaro'
+      when 'treatments', 'sunscreens', 'masks', 'sets', 'routines'
+        assign menu_theme = 'deep'
+      when 'treatments', 'sunscreens', 'masks', 'sets'
+        assign menu_theme = 'forest'
+      when 'sale', 'clearance', 'deals', 'offers'
+        assign menu_theme = 'peach'
+      when 'customer-care', 'support', 'help', 'faq', 'contact', 'about'
+        assign menu_theme = 'periwinkle'
+    endcase
+
+    comment
+      Check collection metafield override
+    endcomment
+    if _collection and _collection.metafields.sgl.menu_theme != blank
+      assign menu_theme = _collection.metafields.sgl.menu_theme
+    endif
+  endif
+
+  assign has_custom_colors = false
+  if custom_accent_primary != blank and custom_accent_primary != nil
+    assign has_custom_colors = true
+  endif
+-%}
+
+{%- comment -%} Generate inline style for custom colors if provided {%- endcomment -%}
+{%- capture custom_color_style -%}
+  {%- if has_custom_colors -%}
+    --mega-accent-1: {{ custom_accent_primary }};
+    --mega-accent-2: {{ custom_accent_secondary | default: custom_accent_primary }};
+    --mega-accent-3: {{ custom_accent_tertiary | default: custom_accent_secondary | default: custom_accent_primary }};
+    --mega-accent-1-rgb: {{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }};
+    --mega-accent-2-rgb: {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'blue' }};
+    --mega-glow-1: rgba({{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }}, 0.15);
+    --mega-glow-2: rgba({{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'blue' }}, 0.1);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba({{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }}, 0.15), rgba({{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'blue' }}, 0.1));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba({{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }}, 0.2), rgba({{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'blue' }}, 0.15));
+    --mega-cat-icon-hover: linear-gradient(135deg, {{ custom_accent_primary }}, {{ custom_accent_secondary | default: custom_accent_primary }});
+    --mega-featured-bg: linear-gradient(135deg, rgba({{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }}, 0.15), rgba({{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'blue' }}, 0.1));
+    --mega-featured-label-color: {{ custom_accent_secondary | default: custom_accent_primary }};
+    --mega-featured-top-bar: linear-gradient(90deg, {{ custom_accent_primary }}, {{ custom_accent_secondary | default: custom_accent_primary }}, {{ custom_accent_tertiary | default: custom_accent_secondary | default: custom_accent_primary }});
+    --mega-card-hover-border: rgba({{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }}, 0.3);
+    --mega-link-color: {{ custom_accent_primary }};
+  {%- endif -%}
+{%- endcapture -%}
+
+<div class="sgl-mega-menu sgl-mega-menu--{{ menu_variant }} sgl-mega-theme--{{ menu_theme }}"{% if has_custom_colors %} style="{{ custom_color_style | strip_newlines }}"{% endif %}>
+  <div class="sgl-mega-inner">
+
+    {%- comment -%} ── Left Column: Categories ── {%- endcomment -%}
+    <div class="sgl-mega-categories">
+      <div class="sgl-mega-section-title">
+        {%- if menu_variant == 'support' -%}{{ categories_title_support | default: 'Help Topics' }}
+        {%- elsif menu_variant == 'lifestyle' -%}{{ categories_title_lifestyle | default: 'Collections' }}
+        {%- else -%}{{ categories_title_glow | default: 'Categories' }}
+        {%- endif -%}
+      </div>
+      <div class="sgl-mega-cat-list">
+        {%- for child_link in link.links -%}
+          {%- comment -%} Extract real handle from URL (more reliable than link.handle which derives from title) {%- endcomment -%}
+          {%- assign _child_url_parts = child_link.url | split: '/' -%}
+          {%- assign _child_url_handle = _child_url_parts | last -%}
+          {%- assign child_collection = collections[_child_url_handle] -%}
+          {%- assign child_page = pages[_child_url_handle] -%}
+          {%- assign child_cat_image = nil -%}
+          {%- if child_collection != blank and child_collection.image != blank -%}
+            {%- assign child_cat_image = child_collection.image -%}
+          {%- endif -%}
+          {%- if child_cat_image == blank and child_page != blank and child_page.metafields.custom.page_image != blank -%}
+            {%- assign child_cat_image = child_page.metafields.custom.page_image.value -%}
+          {%- endif -%}
+          {%- assign child_icon = 'hexagon' -%}
+          {%- assign badge_text = '' -%}
+          {%- if child_collection.metafields.sgl.badge != blank -%}
+            {%- assign badge_text = child_collection.metafields.sgl.badge -%}
+          {%- endif -%}
+          {%- if child_collection.metafields.sgl.icon != blank -%}
+            {%- assign child_icon = child_collection.metafields.sgl.icon -%}
+          {%- endif -%}
+
+          {%- comment -%} Auto-assign glow/lifestyle icons based on handle {%- endcomment -%}
+          {%- if menu_variant != 'support' and child_collection.metafields.sgl.icon == blank -%}
+            {%- case _child_url_handle -%}
+              {%- when 'all-lighting', 'all', 'lighting', 'shop-all' -%}{%- assign child_icon = 'sun' -%}
+              {%- when 'infinity-mirrors', 'mirrors', 'infinity' -%}{%- assign child_icon = 'hexagon' -%}
+              {%- when 'floor-lamps', 'floor-lamp' -%}{%- assign child_icon = 'lamp' -%}
+              {%- when 'table-lamps', 'table-lamp', 'desk-lamps' -%}{%- assign child_icon = 'lamp' -%}
+              {%- when 'wall-lamps', 'wall-lamp', 'wall-lights', 'sconces' -%}{%- assign child_icon = 'sun' -%}
+              {%- when 'led-neon-signs', 'neon-signs', 'neon', 'led-signs' -%}{%- assign child_icon = 'zap' -%}
+              {%- when 'bubble-girl-lamps', 'bubble-girls', 'bubble-lamps' -%}{%- assign child_icon = 'sparkles' -%}
+              {%- when 'mushroom-lamps', 'mushroom' -%}{%- assign child_icon = 'moon' -%}
+              {%- when 'new-arrivals', 'new' -%}{%- assign child_icon = 'sparkles' -%}
+              {%- when 'best-sellers', 'bestsellers', 'popular' -%}{%- assign child_icon = 'star' -%}
+              {%- when 'sale', 'on-sale', 'clearance' -%}{%- assign child_icon = 'tag' -%}
+              {%- when 'home-decor', 'decor', 'decoration' -%}{%- assign child_icon = 'home' -%}
+              {%- when 'furniture', 'tables', 'chairs' -%}{%- assign child_icon = 'box' -%}
+              {%- when 'accessories', 'accents' -%}{%- assign child_icon = 'grid' -%}
+            {%- endcase -%}
+          {%- endif -%}
+
+          {%- comment -%} Auto-assign support icons based on handle {%- endcomment -%}
+          {%- if menu_variant == 'support' -%}
+            {%- case _child_url_handle -%}
+              {%- when 'contact', 'contact-us' -%}{%- assign child_icon = 'headphones' -%}
+              {%- when 'shipping', 'shipping-policy' -%}{%- assign child_icon = 'truck' -%}
+              {%- when 'returns', 'refund-policy', 'refunds-returns' -%}{%- assign child_icon = 'refresh' -%}
+              {%- when 'warranty' -%}{%- assign child_icon = 'shield-check' -%}
+              {%- when 'faq' -%}{%- assign child_icon = 'search' -%}
+              {%- when 'our-story', 'about', 'about-us' -%}{%- assign child_icon = 'users' -%}
+              {%- when 'track-order', 'order-status' -%}{%- assign child_icon = 'package' -%}
+              {%- when 'customer-reviews', 'reviews' -%}{%- assign child_icon = 'star' -%}
+              {%- when 'installation', 'apollo-installation' -%}{%- assign child_icon = 'zap' -%}
+            {%- endcase -%}
+          {%- endif -%}
+
+          <a href="{{ child_link.url }}" class="sgl-mega-cat-item">
+            {%- assign child_cat_image_url = child_cat_image | image_url: width: 88, height: 88, crop: 'center' -%}
+            <div class="sgl-mega-cat-icon{% if child_cat_image_url != blank %} sgl-mega-cat-icon--has-image{% endif %}">
+              {%- if child_cat_image_url != blank -%}
+                <img
+                  src="{{ child_cat_image_url }}"
+                  alt="{{ child_link.title | escape }}"
+                  width="44"
+                  height="44"
+                  loading="lazy"
+                  class="sgl-mega-cat-img"
+                >
+              {%- else -%}
+                {%- render 'sgl-icon', icon: child_icon, size: 22 -%}
+              {%- endif -%}
+            </div>
+            <div class="sgl-mega-cat-content">
+              <div class="sgl-mega-cat-name">{{ child_link.title }}</div>
+              {%- if menu_variant == 'support' -%}
+                <div class="sgl-mega-cat-count">
+                  {%- if child_collection.metafields.sgl.description != blank -%}
+                    {{ child_collection.metafields.sgl.description }}
+                  {%- else -%}
+                    {{ support_fallback_description | default: 'Learn more' }}
+                  {%- endif -%}
+                </div>
+              {%- elsif child_collection -%}
+                <div class="sgl-mega-cat-count">{{ child_collection.products_count }} products</div>
+              {%- endif -%}
+            </div>
+            {%- if badge_text != blank -%}
+              <span class="sgl-mega-cat-badge sgl-mega-cat-badge--{{ badge_text | downcase }}">{{ badge_text }}</span>
+            {%- endif -%}
+            <div class="sgl-mega-cat-arrow">
+              {%- render 'sgl-icon', icon: 'chevron-right', size: 20 -%}
+            </div>
+          </a>
+        {%- endfor -%}
+      </div>
+    </div>
+
+    {%- comment -%} ── Center Column ── {%- endcomment -%}
+    <div class="sgl-mega-products">
+      {%- if menu_variant == 'support' -%}
+        {%- comment -%} ── Support: FAQ / Help Cards ── {%- endcomment -%}
+        <div class="sgl-mega-products-header">
+          <span class="sgl-mega-section-title" style="margin-bottom:0;">{{ quick_help_title | default: 'Quick Help' }}</span>
+        </div>
+        <div class="sgl-mega-faq-grid">
+          {%- for child_link in link.links limit: 4 -%}
+            {%- assign faq_icon = 'search' -%}
+            {%- assign faq_collection = collections[child_link.handle] -%}
+            {%- case _child_url_handle -%}
+              {%- when 'contact', 'contact-us' -%}{%- assign faq_icon = 'headphones' -%}
+              {%- when 'shipping', 'shipping-policy' -%}{%- assign faq_icon = 'truck' -%}
+              {%- when 'returns', 'refund-policy', 'refunds-returns' -%}{%- assign faq_icon = 'refresh' -%}
+              {%- when 'warranty' -%}{%- assign faq_icon = 'shield-check' -%}
+              {%- when 'faq' -%}{%- assign faq_icon = 'search' -%}
+              {%- when 'our-story', 'about' -%}{%- assign faq_icon = 'users' -%}
+              {%- when 'customer-reviews', 'reviews' -%}{%- assign faq_icon = 'star' -%}
+              {%- when 'installation', 'apollo-installation' -%}{%- assign faq_icon = 'zap' -%}
+            {%- endcase -%}
+            <a href="{{ child_link.url }}" class="sgl-mega-faq-card">
+              <div class="sgl-mega-faq-icon">
+                {%- render 'sgl-icon', icon: faq_icon, size: 20 -%}
+              </div>
+              <div class="sgl-mega-faq-title">{{ child_link.title }}</div>
+              <div class="sgl-mega-faq-desc">
+                {%- if faq_collection.metafields.sgl.description != blank -%}
+                  {{ faq_collection.metafields.sgl.description }}
+                {%- else -%}
+                  {{ support_fallback_description | default: 'Quick help & resources' }}
+                {%- endif -%}
+              </div>
+              <span class="sgl-mega-faq-arrow">
+                {%- render 'sgl-icon', icon: 'arrow-right', size: 14 -%}
+              </span>
+            </a>
+          {%- endfor -%}
+        </div>
+
+      {%- else -%}
+        {%- comment -%} ── Glow & Lifestyle: Products Grid ── {%- endcomment -%}
+        {%- comment -%} Select collection: custom per-menu override > variant default {%- endcomment -%}
+        {%- liquid
+          if custom_collection != blank
+            assign _active_collection = collections[custom_collection]
+          elsif menu_variant == 'lifestyle'
+            assign _active_collection = collections[collection_lifestyle]
+          else
+            assign _active_collection = collections[collection_glow]
+          endif
+        -%}
+        <div class="sgl-mega-products-header">
+          <span class="sgl-mega-section-title" style="margin-bottom:0;">
+            {%- if custom_products_title != blank -%}
+              {{ custom_products_title }}
+            {%- elsif menu_variant == 'lifestyle' -%}
+              {{ products_title_lifestyle | default: 'Curated Picks' }}
+            {%- else -%}
+              {{ products_title_glow | default: 'Trending Now' }}
+            {%- endif -%}
+          </span>
+          {%- if _active_collection != blank -%}
+            <a href="{{ _active_collection.url }}" class="sgl-mega-products-link">
+              View All {%- render 'sgl-icon', icon: 'arrow-right', size: 14 -%}
+            </a>
+          {%- endif -%}
+        </div>
+        <div class="sgl-mega-products-grid" data-columns="{{ products_per_row | default: 'auto' }}">
+          {%- assign mega_collection = _active_collection -%}
+          {%- if mega_collection -%}
+            {%- assign _product_limit = custom_product_limit | default: nil -%}
+            {%- if _product_limit == nil -%}
+              {%- if menu_variant == 'lifestyle' -%}{%- assign _product_limit = product_limit_lifestyle | default: 4 -%}
+              {%- else -%}{%- assign _product_limit = product_limit_glow | default: 6 -%}{%- endif -%}
+            {%- endif -%}
+            {%- for product in mega_collection.products limit: _product_limit -%}
+              <a href="{{ product.url }}" class="sgl-mega-product-card">
+                <div class="sgl-mega-product-img">
+                  {%- if product.featured_image != blank -%}
+                    {{ product.featured_image | image_url: width: 300 | image_tag: loading: 'lazy', class: 'sgl-mega-product-photo' }}
+                  {%- else -%}
+                    <div class="sgl-octagon" style="width:60%;height:60%;background:conic-gradient(from var(--angle),var(--mega-accent-1),var(--mega-accent-2),var(--mega-accent-3),var(--mega-accent-1));animation:sgl-rotate 8s linear infinite;"></div>
+                  {%- endif -%}
+
+                  {%- if product.tags contains 'bestseller' -%}
+                    <span class="sgl-mega-product-badge sgl-mega-product-badge--bestseller">Bestseller</span>
+                  {%- elsif product.tags contains 'new' -%}
+                    <span class="sgl-mega-product-badge sgl-mega-product-badge--new">New</span>
+                  {%- elsif product.compare_at_price > product.price -%}
+                    {%- assign discount = product.compare_at_price | minus: product.price | times: 100 | divided_by: product.compare_at_price -%}
+                    <span class="sgl-mega-product-badge sgl-mega-product-badge--sale">-{{ discount }}%</span>
+                  {%- endif -%}
+                </div>
+                <div class="sgl-mega-product-name">{{ product.title }}</div>
+                <div class="sgl-mega-product-price">
+                  <span class="sgl-mega-product-price-current">{{ product.price | money }}</span>
+                  {%- if product.compare_at_price > product.price -%}
+                    <span class="sgl-mega-product-price-original">{{ product.compare_at_price | money }}</span>
+                  {%- endif -%}
+                </div>
+              </a>
+            {%- endfor -%}
+          {%- else -%}
+            {%- assign _placeholder_limit = product_limit_glow | default: 6 -%}
+            {%- if menu_variant == 'lifestyle' -%}{%- assign _placeholder_limit = product_limit_lifestyle | default: 4 -%}{%- endif -%}
+            {%- for i in (1.._placeholder_limit) -%}
+              <div class="sgl-mega-product-card sgl-mega-product-card--placeholder">
+                <div class="sgl-mega-product-img">
+                  <div class="sgl-octagon" style="width:60%;height:60%;background:conic-gradient(from var(--angle),var(--mega-accent-1),var(--mega-accent-2),var(--mega-accent-3),var(--mega-accent-1));animation:sgl-rotate 8s linear infinite;"></div>
+                </div>
+                <div class="sgl-mega-product-name">Product {{ i }}</div>
+                <div class="sgl-mega-product-price">
+                  <span class="sgl-mega-product-price-current">$0.00</span>
+                </div>
+              </div>
+            {%- endfor -%}
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} ── Right Column: Featured Area ── {%- endcomment -%}
+    <div class="sgl-mega-featured">
+      {%- if menu_variant == 'support' -%}
+        {%- comment -%} ── Support: Contact Us Card ── {%- endcomment -%}
+        <div class="sgl-mega-featured-card">
+          {%- if featured_label_support != blank -%}
+            <span class="sgl-mega-featured-label">
+              {%- render 'sgl-icon', icon: 'headphones', size: 14 -%}
+              {{ featured_label_support }}
+            </span>
+          {%- endif -%}
+          {%- if support_title != blank -%}
+            <h3 class="sgl-mega-featured-title">{{ support_title }}</h3>
+          {%- endif -%}
+          {%- if support_description != blank -%}
+            <p class="sgl-mega-featured-desc">{{ support_description }}</p>
+          {%- endif -%}
+          <div class="sgl-mega-contact-methods">
+            {%- if support_email != blank -%}
+              <a href="mailto:{{ support_email }}" class="sgl-mega-contact-item">
+                {%- render 'sgl-icon', icon: 'mail', size: 18 -%}
+                <span>{{ support_email }}</span>
+              </a>
+            {%- endif -%}
+            {%- if support_phone != blank -%}
+              <a href="tel:{{ support_phone | remove: ' ' | remove: '(' | remove: ')' | remove: '-' }}" class="sgl-mega-contact-item">
+                {%- render 'sgl-icon', icon: 'smartphone', size: 18 -%}
+                <span>{{ support_phone }}</span>
+              </a>
+            {%- endif -%}
+            {%- if support_chat_label != blank -%}
+              <a href="{{ support_chat_link | default: '/pages/contact' }}" class="sgl-mega-contact-item">
+                {%- render 'sgl-icon', icon: 'message-circle', size: 18 -%}
+                <span>{{ support_chat_label }}</span>
+              </a>
+            {%- endif -%}
+          </div>
+          {%- if support_btn_text != blank -%}
+          <div class="sgl-mega-featured-cta">
+            <a href="{{ support_btn_link | default: '/pages/contact' }}" class="sgl-mega-featured-btn sgl-mega-featured-btn--primary">
+              {{ support_btn_text }} {%- render 'sgl-icon', icon: 'arrow-right', size: 16 -%}
+            </a>
+          </div>
+          {%- endif -%}
+        </div>
+
+      {%- elsif menu_variant == 'lifestyle' -%}
+        {%- comment -%} ── Lifestyle: Style Inspiration Card ── {%- endcomment -%}
+        <div class="sgl-mega-featured-card">
+          {%- if featured_label_lifestyle != blank -%}
+            <span class="sgl-mega-featured-label">
+              {%- render 'sgl-icon', icon: 'eye', size: 14 -%}
+              {{ featured_label_lifestyle }}
+            </span>
+          {%- endif -%}
+          {%- if lifestyle_title != blank -%}
+            <h3 class="sgl-mega-featured-title">{{ lifestyle_title }}</h3>
+          {%- endif -%}
+          {%- if lifestyle_subtitle != blank -%}
+            <p class="sgl-mega-featured-desc">{{ lifestyle_subtitle }}</p>
+          {%- endif -%}
+          <div class="sgl-mega-featured-visual">
+            {%- if lifestyle_image -%}
+              {{ lifestyle_image | image_url: width: 600 | image_tag: loading: 'lazy' }}
+            {%- elsif lifestyle_video_url != blank -%}
+              <video class="sgl-mega-featured-video" autoplay loop muted playsinline>
+                <source src="{{ lifestyle_video_url }}" type="video/mp4">
+              </video>
+            {%- else -%}
+              <div class="sgl-mega-featured-lifestyle-placeholder">
+                {%- render 'sgl-icon', icon: 'sun', size: 40 -%}
+              </div>
+            {%- endif -%}
+          </div>
+          <div class="sgl-mega-featured-cta">
+            {%- if lifestyle_btn_primary != blank -%}
+              <a href="{{ lifestyle_link | default: '/pages/inspiration' }}" class="sgl-mega-featured-btn sgl-mega-featured-btn--primary">
+                {{ lifestyle_btn_primary }} {%- render 'sgl-icon', icon: 'arrow-right', size: 16 -%}
+              </a>
+            {%- endif -%}
+            {%- if lifestyle_btn_secondary != blank -%}
+              <a href="{{ lifestyle_btn_secondary_link | default: '/collections' }}" class="sgl-mega-featured-btn sgl-mega-featured-btn--secondary">
+                {{ lifestyle_btn_secondary }}
+              </a>
+            {%- endif -%}
+          </div>
+        </div>
+
+      {%- else -%}
+        {%- comment -%} ── Glow: Featured Collection Promo (default) ── {%- endcomment -%}
+        <div class="sgl-mega-featured-card">
+          {%- if featured_label_glow != blank -%}
+            <span class="sgl-mega-featured-label">
+              {%- render 'sgl-icon', icon: 'sparkles', size: 14 -%}
+              {{ featured_label_glow }}
+            </span>
+          {%- endif -%}
+          {%- if promo_title != blank -%}
+            <h3 class="sgl-mega-featured-title">{{ promo_title }}</h3>
+          {%- endif -%}
+          {%- if promo_subtitle != blank -%}
+            <p class="sgl-mega-featured-desc">{{ promo_subtitle }}</p>
+          {%- endif -%}
+          <div class="sgl-mega-featured-visual">
+            {%- if promo_image -%}
+              {{ promo_image | image_url: width: 600 | image_tag: loading: 'lazy' }}
+            {%- elsif video_url != blank -%}
+              <video class="sgl-mega-featured-video" autoplay loop muted playsinline>
+                <source src="{{ video_url }}" type="video/mp4">
+              </video>
+            {%- else -%}
+              <div class="sgl-mega-featured-lifestyle-placeholder">
+                {%- render 'sgl-icon', icon: 'sparkles', size: 40 -%}
+              </div>
+            {%- endif -%}
+          </div>
+          <div class="sgl-mega-featured-cta">
+            {%- if promo_btn_primary != blank -%}
+              <a href="{{ promo_link | default: '/collections/all' }}" class="sgl-mega-featured-btn sgl-mega-featured-btn--primary">
+                {{ promo_btn_primary }} {%- render 'sgl-icon', icon: 'arrow-right', size: 16 -%}
+              </a>
+            {%- endif -%}
+            {%- if promo_btn_secondary != blank -%}
+              <a href="{{ promo_btn_secondary_link | default: '/collections' }}" class="sgl-mega-featured-btn sgl-mega-featured-btn--secondary">
+                {{ promo_btn_secondary }}
+              </a>
+            {%- endif -%}
+          </div>
+        </div>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} ── Bottom: Quick Links (pre-rendered from blocks) ── {%- endcomment -%}
+    {%- assign _support_links = support_quick_links_html | strip -%}
+    {%- assign _lifestyle_links = lifestyle_quick_links_html | strip -%}
+    {%- assign _glow_links = glow_quick_links_html | strip -%}
+    {%- if menu_variant == 'support' and _support_links != blank -%}
+      <div class="sgl-mega-quick">{{ support_quick_links_html }}</div>
+    {%- elsif menu_variant == 'lifestyle' and _lifestyle_links != blank -%}
+      <div class="sgl-mega-quick">{{ lifestyle_quick_links_html }}</div>
+    {%- elsif _glow_links != blank -%}
+      <div class="sgl-mega-quick">{{ glow_quick_links_html }}</div>
+    {%- endif -%}
+
+  </div>
+</div>
+
+{% stylesheet %}
+  /* ═══════════════════════════════════════════════════════
+     VARIANT COLOR SYSTEM
+     Colors are inherited from parent .sgl-header-section CSS vars
+     ═══════════════════════════════════════════════════════ */
+
+  /* ── Glow (default): Purple + Pink ── */
+  .sgl-mega-menu--glow {
+    --mega-accent-1: var(--sgl-glow-primary, #B0C3FA);
+    --mega-accent-2: var(--sgl-glow-secondary, #EA7940);
+    --mega-accent-3: var(--sgl-support-primary, #FFBF9F);
+    --mega-accent-1-rgb: var(--sgl-glow-primary-rgb, 147, 51, 234);
+    --mega-accent-2-rgb: var(--sgl-glow-secondary-rgb, 236, 72, 153);
+    --mega-glow-1: rgba(var(--sgl-glow-primary-rgb, 147, 51, 234), 0.15);
+    --mega-glow-2: rgba(var(--sgl-glow-secondary-rgb, 236, 72, 153), 0.1);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(var(--sgl-glow-primary-rgb, 147, 51, 234), 0.15), rgba(var(--sgl-glow-secondary-rgb, 236, 72, 153), 0.1));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(var(--sgl-glow-primary-rgb, 147, 51, 234), 0.2), rgba(var(--sgl-glow-secondary-rgb, 236, 72, 153), 0.15));
+    --mega-cat-icon-hover: linear-gradient(135deg, var(--sgl-glow-primary, #B0C3FA), var(--sgl-glow-secondary, #EA7940));
+    --mega-featured-bg: linear-gradient(135deg, rgba(var(--sgl-glow-primary-rgb, 147, 51, 234), 0.15), rgba(var(--sgl-glow-secondary-rgb, 236, 72, 153), 0.1));
+    --mega-featured-label-color: var(--sgl-glow-secondary, #EA7940);
+    --mega-featured-top-bar: linear-gradient(90deg, var(--sgl-glow-primary, #B0C3FA), var(--sgl-glow-secondary, #EA7940), var(--sgl-support-primary, #FFBF9F));
+    --mega-card-hover-border: rgba(var(--sgl-glow-primary-rgb, 147, 51, 234), 0.3);
+    --mega-link-color: var(--sgl-glow-primary, #B0C3FA);
+  }
+
+  /* ── Lifestyle: Gold + Amber ── */
+  .sgl-mega-menu--lifestyle {
+    --mega-accent-1: var(--sgl-lifestyle-primary, #F2FFA0);
+    --mega-accent-2: var(--sgl-lifestyle-secondary, #d97706);
+    --mega-accent-3: #fbbf24;
+    --mega-accent-1-rgb: var(--sgl-lifestyle-primary-rgb, 245, 158, 11);
+    --mega-accent-2-rgb: var(--sgl-lifestyle-secondary-rgb, 217, 119, 6);
+    --mega-glow-1: rgba(var(--sgl-lifestyle-primary-rgb, 245, 158, 11), 0.12);
+    --mega-glow-2: rgba(var(--sgl-lifestyle-secondary-rgb, 217, 119, 6), 0.08);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(var(--sgl-lifestyle-primary-rgb, 245, 158, 11), 0.12), rgba(var(--sgl-lifestyle-secondary-rgb, 217, 119, 6), 0.08));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(var(--sgl-lifestyle-primary-rgb, 245, 158, 11), 0.15), rgba(var(--sgl-lifestyle-secondary-rgb, 217, 119, 6), 0.1));
+    --mega-cat-icon-hover: linear-gradient(135deg, var(--sgl-lifestyle-primary, #F2FFA0), var(--sgl-lifestyle-secondary, #d97706));
+    --mega-featured-bg: linear-gradient(135deg, rgba(var(--sgl-lifestyle-primary-rgb, 245, 158, 11), 0.12), rgba(var(--sgl-lifestyle-secondary-rgb, 217, 119, 6), 0.08));
+    --mega-featured-label-color: var(--sgl-lifestyle-primary, #F2FFA0);
+    --mega-featured-top-bar: linear-gradient(90deg, var(--sgl-lifestyle-primary, #F2FFA0), var(--sgl-lifestyle-secondary, #d97706), #fbbf24);
+    --mega-card-hover-border: rgba(var(--sgl-lifestyle-primary-rgb, 245, 158, 11), 0.3);
+    --mega-link-color: var(--sgl-lifestyle-primary, #F2FFA0);
+  }
+
+  /* ── Support: Teal + Cyan ── */
+  .sgl-mega-menu--support {
+    --mega-accent-1: var(--sgl-support-primary, #FFBF9F);
+    --mega-accent-2: var(--sgl-support-secondary, #0891b2);
+    --mega-accent-3: #67e8f9;
+    --mega-accent-1-rgb: var(--sgl-support-primary-rgb, 6, 182, 212);
+    --mega-accent-2-rgb: var(--sgl-support-secondary-rgb, 8, 145, 178);
+    --mega-glow-1: rgba(var(--sgl-support-primary-rgb, 6, 182, 212), 0.1);
+    --mega-glow-2: rgba(var(--sgl-support-secondary-rgb, 8, 145, 178), 0.06);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(var(--sgl-support-primary-rgb, 6, 182, 212), 0.1), rgba(var(--sgl-support-secondary-rgb, 8, 145, 178), 0.06));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(var(--sgl-support-primary-rgb, 6, 182, 212), 0.15), rgba(var(--sgl-support-secondary-rgb, 8, 145, 178), 0.1));
+    --mega-cat-icon-hover: linear-gradient(135deg, var(--sgl-support-primary, #FFBF9F), var(--sgl-support-secondary, #0891b2));
+    --mega-featured-bg: linear-gradient(135deg, rgba(var(--sgl-support-primary-rgb, 6, 182, 212), 0.1), rgba(var(--sgl-support-secondary-rgb, 8, 145, 178), 0.06));
+    --mega-featured-label-color: #ffffff;
+    --mega-featured-top-bar: linear-gradient(90deg, var(--sgl-support-primary, #FFBF9F), var(--sgl-support-secondary, #0891b2), #67e8f9);
+    --mega-card-hover-border: rgba(var(--sgl-support-primary-rgb, 6, 182, 212), 0.3);
+    --mega-link-color: var(--sgl-support-primary, #FFBF9F);
+  }
+
+  /* Support variant: wider card column + taller menu to fit contact info */
+  .sgl-mega-menu--support {
+    max-height: clamp(600px, 85vh, 820px);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .sgl-mega-menu--support::-webkit-scrollbar {
+    display: none;
+  }
+  .sgl-mega-menu--support .sgl-mega-inner {
+    grid-template-columns: minmax(0, 18%) minmax(0, 1fr) minmax(0, 38%);
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* Support featured area: remove clipping so all content shows */
+  .sgl-mega-menu--support .sgl-mega-featured {
+    overflow: visible;
+  }
+  .sgl-mega-menu--support .sgl-mega-featured-card {
+    overflow: visible;
+  }
+
+  /* Support featured card: white text and icons */
+  .sgl-mega-menu--support .sgl-mega-featured-card .sgl-mega-featured-label {
+    color: #ffffff;
+  }
+  .sgl-mega-menu--support .sgl-mega-featured-card .sgl-mega-featured-label svg {
+    color: #ffffff;
+  }
+  .sgl-mega-menu--support .sgl-mega-contact-item svg {
+    color: #ffffff;
+  }
+  .sgl-mega-menu--support .sgl-mega-contact-item {
+    color: #ffffff;
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     THEME SYSTEM (Visual Styling)
+     Themes control background, borders, text colors
+     Works independently from variant (content layout)
+     ═══════════════════════════════════════════════════════ */
+
+  /* ── Theme 1: Periwinkle (default) - Warm light with periwinkle accents ── */
+  .sgl-mega-theme--periwinkle {
+    --theme-bg: linear-gradient(180deg, rgba(248, 235, 218, 0.98) 0%, rgba(255, 255, 255, 0.99) 100%);
+    --theme-border: rgba(94, 10, 2, 0.08);
+    --theme-text: #5E0A02;
+    --theme-text-muted: rgba(94, 10, 2, 0.5);
+    --theme-card-bg: rgba(176, 195, 250, 0.08);
+    --theme-card-border: rgba(176, 195, 250, 0.2);
+    --theme-card-hover-bg: rgba(176, 195, 250, 0.15);
+    --theme-divider: rgba(94, 10, 2, 0.08);
+    --theme-btn-primary-bg: #B0C3FA;
+    --theme-btn-primary-text: #5E0A02;
+    --theme-btn-secondary-bg: rgba(94, 10, 2, 0.05);
+    --theme-btn-secondary-text: #5E0A02;
+    --theme-btn-secondary-border: rgba(94, 10, 2, 0.15);
+    --theme-scrollbar-track: rgba(176, 195, 250, 0.15);
+  }
+
+  /* ── Theme 2: Cream - Warm antique white background ── */
+  .sgl-mega-theme--cream {
+    --theme-bg: linear-gradient(180deg, rgba(248, 235, 218, 0.99) 0%, rgba(255, 248, 240, 0.99) 100%);
+    --theme-border: rgba(94, 10, 2, 0.08);
+    --theme-text: #5E0A02;
+    --theme-text-muted: rgba(94, 10, 2, 0.45);
+    --theme-card-bg: rgba(255, 255, 255, 0.6);
+    --theme-card-border: rgba(94, 10, 2, 0.06);
+    --theme-card-hover-bg: rgba(255, 255, 255, 0.8);
+    --theme-divider: rgba(94, 10, 2, 0.06);
+    --theme-btn-primary-bg: #5E0A02;
+    --theme-btn-primary-text: #F8EBDA;
+    --theme-btn-secondary-bg: rgba(94, 10, 2, 0.05);
+    --theme-btn-secondary-text: #5E0A02;
+    --theme-btn-secondary-border: rgba(94, 10, 2, 0.15);
+    --theme-scrollbar-track: rgba(94, 10, 2, 0.05);
+    --mega-accent-1: #EA7940;
+    --mega-accent-2: #FFBF9F;
+    --mega-accent-3: #F8EBDA;
+    --mega-accent-1-rgb: 234, 121, 64;
+    --mega-accent-2-rgb: 255, 191, 159;
+    --mega-glow-1: rgba(234, 121, 64, 0.08);
+    --mega-glow-2: rgba(255, 191, 159, 0.05);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(234, 121, 64, 0.08), rgba(255, 191, 159, 0.05));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(234, 121, 64, 0.12), rgba(255, 191, 159, 0.08));
+    --mega-cat-icon-hover: linear-gradient(135deg, #EA7940, #FFBF9F);
+    --mega-featured-bg: linear-gradient(135deg, rgba(234, 121, 64, 0.06), rgba(255, 191, 159, 0.04));
+    --mega-featured-label-color: #EA7940;
+    --mega-featured-top-bar: linear-gradient(90deg, #EA7940, #FFBF9F, #F8EBDA);
+    --mega-card-hover-border: rgba(234, 121, 64, 0.2);
+    --mega-link-color: #EA7940;
+  }
+
+  /* ── Theme 3: Mindaro - Fresh lime green for new arrivals & promos ── */
+  .sgl-mega-theme--mindaro {
+    --theme-bg: linear-gradient(180deg, rgba(242, 255, 160, 0.15) 0%, rgba(255, 255, 255, 0.98) 100%);
+    --theme-border: rgba(27, 73, 0, 0.1);
+    --theme-text: #1B4900;
+    --theme-text-muted: rgba(27, 73, 0, 0.5);
+    --theme-card-bg: rgba(242, 255, 160, 0.12);
+    --theme-card-border: rgba(27, 73, 0, 0.08);
+    --theme-card-hover-bg: rgba(242, 255, 160, 0.25);
+    --theme-divider: rgba(27, 73, 0, 0.08);
+    --theme-btn-primary-bg: #1B4900;
+    --theme-btn-primary-text: #F2FFA0;
+    --theme-btn-secondary-bg: rgba(27, 73, 0, 0.08);
+    --theme-btn-secondary-text: #1B4900;
+    --theme-btn-secondary-border: rgba(27, 73, 0, 0.2);
+    --theme-scrollbar-track: rgba(27, 73, 0, 0.05);
+    --mega-accent-1: #1B4900;
+    --mega-accent-2: #2d7a00;
+    --mega-accent-3: #F2FFA0;
+    --mega-accent-1-rgb: 27, 73, 0;
+    --mega-accent-2-rgb: 45, 122, 0;
+    --mega-glow-1: rgba(242, 255, 160, 0.15);
+    --mega-glow-2: rgba(27, 73, 0, 0.05);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(242, 255, 160, 0.2), rgba(27, 73, 0, 0.05));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(242, 255, 160, 0.3), rgba(27, 73, 0, 0.1));
+    --mega-cat-icon-hover: linear-gradient(135deg, #1B4900, #2d7a00);
+    --mega-featured-bg: linear-gradient(135deg, rgba(242, 255, 160, 0.15), rgba(27, 73, 0, 0.05));
+    --mega-featured-label-color: #1B4900;
+    --mega-featured-top-bar: linear-gradient(90deg, #1B4900, #F2FFA0, #1B4900);
+    --mega-card-hover-border: rgba(27, 73, 0, 0.2);
+    --mega-link-color: #1B4900;
+  }
+
+  /* ── Theme 4: Deep - Blood red dramatic for best sellers ── */
+  .sgl-mega-theme--deep {
+    --theme-bg: linear-gradient(180deg, rgba(94, 10, 2, 0.98) 0%, rgba(58, 6, 1, 0.99) 100%);
+    --theme-border: rgba(248, 235, 218, 0.12);
+    --theme-text: #F8EBDA;
+    --theme-text-muted: rgba(248, 235, 218, 0.55);
+    --theme-card-bg: rgba(248, 235, 218, 0.05);
+    --theme-card-border: rgba(248, 235, 218, 0.1);
+    --theme-card-hover-bg: rgba(248, 235, 218, 0.1);
+    --theme-divider: rgba(248, 235, 218, 0.1);
+    --theme-btn-primary-bg: #F2FFA0;
+    --theme-btn-primary-text: #1B4900;
+    --theme-btn-secondary-bg: rgba(248, 235, 218, 0.1);
+    --theme-btn-secondary-text: #F8EBDA;
+    --theme-btn-secondary-border: rgba(248, 235, 218, 0.25);
+    --theme-scrollbar-track: rgba(248, 235, 218, 0.06);
+    --mega-accent-1: #B0C3FA;
+    --mega-accent-2: #F2FFA0;
+    --mega-accent-3: #FFBF9F;
+    --mega-accent-1-rgb: 176, 195, 250;
+    --mega-accent-2-rgb: 242, 255, 160;
+    --mega-glow-1: rgba(176, 195, 250, 0.12);
+    --mega-glow-2: rgba(242, 255, 160, 0.08);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(176, 195, 250, 0.12), rgba(242, 255, 160, 0.06));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(176, 195, 250, 0.2), rgba(242, 255, 160, 0.1));
+    --mega-cat-icon-hover: linear-gradient(135deg, #B0C3FA, #F2FFA0);
+    --mega-featured-bg: linear-gradient(135deg, rgba(176, 195, 250, 0.12), rgba(242, 255, 160, 0.06));
+    --mega-featured-label-color: #B0C3FA;
+    --mega-featured-top-bar: linear-gradient(90deg, #B0C3FA, #F2FFA0, #FFBF9F);
+    --mega-card-hover-border: rgba(176, 195, 250, 0.3);
+    --mega-link-color: #B0C3FA;
+  }
+
+  /* ── Theme 5: Forest - Deep green for treatments & wellness ── */
+  .sgl-mega-theme--forest {
+    --theme-bg: linear-gradient(180deg, rgba(27, 73, 0, 0.98) 0%, rgba(15, 45, 0, 0.99) 100%);
+    --theme-border: rgba(242, 255, 160, 0.12);
+    --theme-text: #F2FFA0;
+    --theme-text-muted: rgba(242, 255, 160, 0.55);
+    --theme-card-bg: rgba(242, 255, 160, 0.05);
+    --theme-card-border: rgba(242, 255, 160, 0.1);
+    --theme-card-hover-bg: rgba(242, 255, 160, 0.1);
+    --theme-divider: rgba(242, 255, 160, 0.1);
+    --theme-btn-primary-bg: #B0C3FA;
+    --theme-btn-primary-text: #5E0A02;
+    --theme-btn-secondary-bg: rgba(242, 255, 160, 0.12);
+    --theme-btn-secondary-text: #F2FFA0;
+    --theme-btn-secondary-border: rgba(242, 255, 160, 0.25);
+    --theme-scrollbar-track: rgba(242, 255, 160, 0.06);
+    --mega-accent-1: #B0C3FA;
+    --mega-accent-2: #F2FFA0;
+    --mega-accent-3: #F8EBDA;
+    --mega-accent-1-rgb: 176, 195, 250;
+    --mega-accent-2-rgb: 242, 255, 160;
+    --mega-glow-1: rgba(176, 195, 250, 0.12);
+    --mega-glow-2: rgba(242, 255, 160, 0.08);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(176, 195, 250, 0.1), rgba(242, 255, 160, 0.06));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(176, 195, 250, 0.18), rgba(242, 255, 160, 0.12));
+    --mega-cat-icon-hover: linear-gradient(135deg, #B0C3FA, #F2FFA0);
+    --mega-featured-bg: linear-gradient(135deg, rgba(176, 195, 250, 0.1), rgba(242, 255, 160, 0.06));
+    --mega-featured-label-color: #F2FFA0;
+    --mega-featured-top-bar: linear-gradient(90deg, #B0C3FA, #F2FFA0, #F8EBDA);
+    --mega-card-hover-border: rgba(176, 195, 250, 0.3);
+    --mega-link-color: #F2FFA0;
+  }
+
+  /* ── Theme 6: Peach - Soft coral warmth for sales & offers ── */
+  .sgl-mega-theme--peach {
+    --theme-bg: linear-gradient(180deg, rgba(255, 191, 159, 0.15) 0%, rgba(255, 255, 255, 0.98) 100%);
+    --theme-border: rgba(94, 10, 2, 0.08);
+    --theme-text: #5E0A02;
+    --theme-text-muted: rgba(94, 10, 2, 0.45);
+    --theme-card-bg: rgba(255, 191, 159, 0.1);
+    --theme-card-border: rgba(234, 121, 64, 0.12);
+    --theme-card-hover-bg: rgba(255, 191, 159, 0.2);
+    --theme-divider: rgba(234, 121, 64, 0.1);
+    --theme-btn-primary-bg: #EA7940;
+    --theme-btn-primary-text: #ffffff;
+    --theme-btn-secondary-bg: rgba(234, 121, 64, 0.1);
+    --theme-btn-secondary-text: #5E0A02;
+    --theme-btn-secondary-border: rgba(234, 121, 64, 0.2);
+    --theme-scrollbar-track: rgba(234, 121, 64, 0.06);
+    --mega-accent-1: #EA7940;
+    --mega-accent-2: #FFBF9F;
+    --mega-accent-3: #F8EBDA;
+    --mega-accent-1-rgb: 234, 121, 64;
+    --mega-accent-2-rgb: 255, 191, 159;
+    --mega-glow-1: rgba(234, 121, 64, 0.1);
+    --mega-glow-2: rgba(255, 191, 159, 0.06);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(234, 121, 64, 0.1), rgba(255, 191, 159, 0.06));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(234, 121, 64, 0.15), rgba(255, 191, 159, 0.1));
+    --mega-cat-icon-hover: linear-gradient(135deg, #EA7940, #FFBF9F);
+    --mega-featured-bg: linear-gradient(135deg, rgba(234, 121, 64, 0.08), rgba(255, 191, 159, 0.05));
+    --mega-featured-label-color: #EA7940;
+    --mega-featured-top-bar: linear-gradient(90deg, #5E0A02, #EA7940, #FFBF9F);
+    --mega-card-hover-border: rgba(234, 121, 64, 0.25);
+    --mega-link-color: #EA7940;
+  }
+
+  /* ── Theme 7: Glassmorphic - Apple-style frosted glass ── */
+  .sgl-mega-theme--glass {
+    --theme-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.35) 100%);
+    --theme-border: rgba(255, 255, 255, 0.5);
+    --theme-text: rgba(0, 0, 0, 0.85);
+    --theme-text-muted: rgba(0, 0, 0, 0.45);
+    --theme-card-bg: rgba(255, 255, 255, 0.35);
+    --theme-card-border: rgba(255, 255, 255, 0.45);
+    --theme-card-hover-bg: rgba(255, 255, 255, 0.55);
+    --theme-divider: rgba(0, 0, 0, 0.08);
+    --theme-btn-primary-bg: rgba(0, 0, 0, 0.8);
+    --theme-btn-primary-text: #ffffff;
+    --theme-btn-secondary-bg: rgba(255, 255, 255, 0.5);
+    --theme-btn-secondary-text: rgba(0, 0, 0, 0.8);
+    --theme-btn-secondary-border: rgba(0, 0, 0, 0.12);
+    --theme-scrollbar-track: rgba(0, 0, 0, 0.04);
+    /* Neutral / subtle accent for glass */
+    --mega-accent-1: rgba(0, 0, 0, 0.7);
+    --mega-accent-2: rgba(0, 0, 0, 0.5);
+    --mega-accent-3: rgba(0, 0, 0, 0.3);
+    --mega-accent-1-rgb: 60, 60, 67;
+    --mega-accent-2-rgb: 120, 120, 128;
+    --mega-glow-1: rgba(0, 0, 0, 0.04);
+    --mega-glow-2: rgba(0, 0, 0, 0.02);
+    --mega-cat-hover-bg: rgba(255, 255, 255, 0.5);
+    --mega-cat-icon-bg: rgba(255, 255, 255, 0.5);
+    --mega-cat-icon-hover: linear-gradient(135deg, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.6));
+    --mega-featured-bg: rgba(255, 255, 255, 0.35);
+    --mega-featured-label-color: rgba(0, 0, 0, 0.6);
+    --mega-featured-top-bar: linear-gradient(90deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04));
+    --mega-card-hover-border: rgba(0, 0, 0, 0.12);
+    --mega-link-color: rgba(0, 0, 0, 0.7);
+  }
+
+  /* Glassmorphic theme: stronger blur + no ambient glows */
+  .sgl-mega-theme--glass.sgl-mega-menu {
+    backdrop-filter: blur(60px) saturate(180%);
+    -webkit-backdrop-filter: blur(60px) saturate(180%);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), inset 0 0 0 0.5px rgba(255, 255, 255, 0.4);
+  }
+  .sgl-mega-theme--glass .sgl-mega-glow { display: none; }
+  .sgl-mega-theme--glass .sgl-mega-cat-badge { color: #ffffff; }
+  .sgl-mega-theme--glass .sgl-mega-cat-badge--hot { background: rgba(245, 158, 11, 0.85); }
+  .sgl-mega-theme--glass .sgl-mega-cat-badge--new { background: rgba(34, 197, 94, 0.85); }
+  .sgl-mega-theme--glass .sgl-mega-cat-badge--sale { background: rgba(239, 68, 68, 0.85); }
+
+  /* ═══════════════════════════════════════════════════════
+     MEGA MENU CONTAINER & POSITIONING
+     ═══════════════════════════════════════════════════════ */
+
+  .sgl-mega-menu {
+    position: fixed;
+    /* Use JS-calculated height (includes announcement bar), fallback to CSS header height */
+    top: var(--header-group-height, var(--sgl-header-height, 80px));
+    left: 50%;
+    transform: translateX(-50%) translateY(-10px);
+    width: calc(100vw - clamp(20px, 3vw, 40px));
+    max-width: 1400px;
+    /* Responsive max-height based on viewport */
+    max-height: clamp(520px, 80vh, 720px);
+    overflow: hidden;
+    background: var(--theme-bg, linear-gradient(180deg, rgba(15, 15, 24, 0.98) 0%, rgba(10, 10, 15, 0.99) 100%));
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid var(--theme-border, rgba(255, 255, 255, 0.08));
+    border-top: none;
+    border-radius: 0 0 clamp(16px, 1.8vw, 24px) clamp(16px, 1.8vw, 24px);
+    color: var(--theme-text, #ffffff);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition-delay: 0s;
+    pointer-events: none;
+    z-index: 999;
+    box-sizing: border-box;
+  }
+
+  /* Show when parent is active (click-toggled) */
+  .sgl-nav-item.is-open .sgl-mega-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+    transition-delay: 0s;
+  }
+
+  /* Ambient glow — uses variant variables */
+  .sgl-mega-menu::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 400px;
+    background: radial-gradient(ellipse, var(--mega-glow-1, rgba(147, 51, 234, 0.15)) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .sgl-mega-menu::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 400px;
+    height: 300px;
+    background: radial-gradient(ellipse, var(--mega-glow-2, rgba(236, 72, 153, 0.1)) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Inner grid - use percentages for truly flexible columns */
+  .sgl-mega-inner {
+    position: relative;
+    padding: clamp(16px, 3vw, 40px);
+    padding-bottom: clamp(12px, 2vw, 24px);
+    display: grid;
+    grid-template-columns: minmax(0, 22%) minmax(0, 1fr) minmax(0, 26%);
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-items: stretch;
+    gap: clamp(16px, 2.5vw, 32px);
+    width: 100%;
+    height: 100%;
+    max-height: calc(clamp(520px, 80vh, 720px) - clamp(32px, 6vw, 80px));
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* When quick links are present, add back some bottom space */
+  /* Quick links add their own bottom padding when present */
+
+  /* ═══════════════════════════════════════════════════════
+     SECTION TITLE
+     ═══════════════════════════════════════════════════════ */
+
+  .sgl-mega-section-title {
+    font-size: clamp(8px, 0.8vw, 10px);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: clamp(1px, 0.15vw, 2px);
+    color: var(--theme-text-muted, rgba(255, 255, 255, 0.4));
+    margin-bottom: clamp(10px, 2vw, 20px);
+    padding-left: clamp(8px, 1.2vw, 16px);
+    flex-shrink: 0;
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     LEFT COLUMN: CATEGORIES
+     ═══════════════════════════════════════════════════════ */
+
+  .sgl-mega-categories {
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
+    height: 100%;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+    box-sizing: border-box;
+  }
+
+  /* Custom scrollbar for categories - premium glassmorphism style */
+  .sgl-mega-categories::-webkit-scrollbar {
+    width: 6px;
+  }
+  .sgl-mega-categories::-webkit-scrollbar-track {
+    background: var(--theme-scrollbar-track, rgba(255, 255, 255, 0.03));
+    border-radius: 10px;
+    margin: 8px 0;
+  }
+  .sgl-mega-categories::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--mega-accent-1, #B0C3FA), var(--mega-accent-2, #EA7940));
+    border-radius: 10px;
+    border: 1px solid var(--theme-card-border, rgba(255, 255, 255, 0.1));
+    box-shadow: 0 0 8px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.3);
+  }
+  .sgl-mega-categories::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--mega-accent-2, #EA7940), var(--mega-accent-1, #B0C3FA));
+    box-shadow: 0 0 12px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.5);
+  }
+  /* Firefox scrollbar */
+  .sgl-mega-categories {
+    scrollbar-width: thin;
+    scrollbar-color: var(--mega-accent-1, #B0C3FA) var(--theme-scrollbar-track, rgba(255, 255, 255, 0.03));
+  }
+
+  .sgl-mega-cat-list {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2px, 0.3vw, 4px);
+    min-width: 0;
+  }
+
+  .sgl-mega-cat-item {
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1vw, 14px);
+    padding: clamp(8px, 1vw, 14px) clamp(10px, 1.2vw, 16px);
+    border-radius: clamp(10px, 1vw, 14px);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: var(--theme-text, white);
+    min-width: 0;
+  }
+
+  .sgl-mega-cat-item:hover {
+    background: var(--mega-cat-hover-bg);
+  }
+
+  .sgl-mega-cat-icon {
+    width: clamp(32px, 3.2vw, 44px);
+    height: clamp(32px, 3.2vw, 44px);
+    border-radius: clamp(8px, 0.9vw, 12px);
+    background: var(--mega-cat-icon-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    flex-shrink: 0;
+    flex-shrink: 0;
+  }
+
+  .sgl-mega-cat-icon--has-image {
+    overflow: hidden;
+    padding: 0;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .sgl-mega-cat-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+    transition: transform 0.3s, filter 0.3s;
+  }
+
+  .sgl-mega-cat-item:hover .sgl-mega-cat-img {
+    transform: scale(1.1);
+    filter: brightness(1.1);
+  }
+
+  .sgl-mega-cat-item:hover .sgl-mega-cat-icon {
+    background: var(--mega-cat-icon-hover);
+    box-shadow: 0 8px 24px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.4);
+  }
+
+  .sgl-mega-cat-item:hover .sgl-mega-cat-icon--has-image {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 8px 24px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.4);
+  }
+
+  .sgl-mega-cat-content { flex: 1; min-width: 0; overflow: hidden; }
+  .sgl-mega-cat-name { font-size: clamp(11px, 1vw, 14px); font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--theme-text, white); }
+  .sgl-mega-cat-count { font-size: clamp(9px, 0.9vw, 12px); color: var(--theme-text-muted, rgba(255, 255, 255, 0.4)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .sgl-mega-cat-arrow {
+    width: 20px;
+    height: 20px;
+    opacity: 0;
+    transform: translateX(-8px);
+    transition: all 0.2s;
+    color: var(--mega-accent-1, #B0C3FA);
+  }
+  .sgl-mega-cat-item:hover .sgl-mega-cat-arrow {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .sgl-mega-cat-badge {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #5E0A02;
+  }
+  .sgl-mega-cat-badge--new { background: var(--sgl-green, #1B4900); }
+  .sgl-mega-cat-badge--sale { background: var(--sgl-red, #5E0A02); }
+  .sgl-mega-cat-badge--hot { background: var(--sgl-gold, #F2FFA0); color: #000; }
+
+  /* ═══════════════════════════════════════════════════════
+     CENTER COLUMN: PRODUCTS (Glow & Lifestyle)
+     ═══════════════════════════════════════════════════════ */
+
+  .sgl-mega-products {
+    border-left: 1px solid var(--theme-divider, rgba(255, 255, 255, 0.08));
+    border-right: 1px solid var(--theme-divider, rgba(255, 255, 255, 0.08));
+    padding: 0 clamp(12px, 1.8vw, 24px);
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
+    height: 100%;
+    flex: 1 1 auto;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sgl-mega-products-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: clamp(12px, 1.8vw, 24px);
+    min-width: 0;
+    flex-shrink: 0;
+  }
+
+  .sgl-mega-products-link {
+    font-size: clamp(10px, 0.9vw, 12px);
+    color: var(--mega-link-color, #B0C3FA);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: gap 0.2s;
+    white-space: nowrap;
+  }
+  .sgl-mega-products-link:hover { gap: 8px; }
+
+  .sgl-mega-products-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(8px, 1.5vw, 16px);
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+    padding-bottom: 8px;
+  }
+
+  /* Column control via data attribute */
+  .sgl-mega-products-grid[data-columns="2"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .sgl-mega-products-grid[data-columns="3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  /* Auto: 2 columns default, 3 on large screens handled in media query */
+
+  /* Custom scrollbar for products - premium glassmorphism style */
+  .sgl-mega-products-grid::-webkit-scrollbar {
+    width: 6px;
+  }
+  .sgl-mega-products-grid::-webkit-scrollbar-track {
+    background: var(--theme-scrollbar-track, rgba(255, 255, 255, 0.03));
+    border-radius: 10px;
+    margin: 8px 0;
+  }
+  .sgl-mega-products-grid::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--mega-accent-1, #B0C3FA), var(--mega-accent-2, #EA7940));
+    border-radius: 10px;
+    border: 1px solid var(--theme-card-border, rgba(255, 255, 255, 0.1));
+    box-shadow: 0 0 8px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.3);
+  }
+  .sgl-mega-products-grid::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--mega-accent-2, #EA7940), var(--mega-accent-1, #B0C3FA));
+    box-shadow: 0 0 12px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.5);
+  }
+  /* Firefox scrollbar */
+  .sgl-mega-products-grid {
+    scrollbar-width: thin;
+    scrollbar-color: var(--mega-accent-1, #B0C3FA) var(--theme-scrollbar-track, rgba(255, 255, 255, 0.03));
+  }
+
+  /* Lifestyle variant: 2-column product grid */
+  .sgl-mega-menu--lifestyle .sgl-mega-products-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .sgl-mega-menu--lifestyle .sgl-mega-products-grid[data-columns="3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sgl-mega-product-card {
+    background: var(--theme-card-bg, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--theme-card-border, rgba(255, 255, 255, 0.06));
+    border-radius: clamp(10px, 1.2vw, 16px);
+    padding: clamp(8px, 1.2vw, 16px);
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    color: var(--theme-text, white);
+    min-width: 0;
+    box-sizing: border-box;
+    display: block;
+  }
+
+  .sgl-mega-product-card:hover {
+    background: var(--theme-card-hover-bg, rgba(255, 255, 255, 0.06));
+    border-color: var(--mega-card-hover-border, rgba(147, 51, 234, 0.3));
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .sgl-mega-product-img {
+    aspect-ratio: 1;
+    border-radius: clamp(8px, 1vw, 12px);
+    margin-bottom: clamp(6px, 1vw, 12px);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .sgl-mega-product-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+  }
+
+  .sgl-mega-product-badge {
+    position: absolute;
+    top: clamp(4px, 0.6vw, 8px);
+    left: clamp(4px, 0.6vw, 8px);
+    font-size: clamp(7px, 0.7vw, 9px);
+    font-weight: 600;
+    padding: clamp(2px, 0.4vw, 4px) clamp(6px, 0.8vw, 10px);
+    border-radius: 20px;
+    text-transform: uppercase;
+    color: #5E0A02;
+  }
+  .sgl-mega-product-badge--bestseller { background: var(--mega-accent-1, #B0C3FA); }
+  .sgl-mega-product-badge--new { background: var(--sgl-green, #1B4900); }
+  .sgl-mega-product-badge--sale { background: var(--sgl-red, #5E0A02); }
+
+  .sgl-mega-product-name {
+    font-size: clamp(10px, 1vw, 13px);
+    font-weight: 500;
+    margin-bottom: clamp(3px, 0.5vw, 6px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  .sgl-mega-product-price {
+    display: flex;
+    align-items: center;
+    gap: clamp(4px, 0.5vw, 8px);
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+  .sgl-mega-product-price-current { font-size: clamp(11px, 1vw, 14px); font-weight: 600; color: var(--theme-text, white); }
+  .sgl-mega-product-price-original { font-size: clamp(9px, 0.8vw, 12px); color: var(--theme-text-muted, rgba(255, 255, 255, 0.4)); text-decoration: line-through; }
+
+  /* ═══════════════════════════════════════════════════════
+     CENTER COLUMN: FAQ CARDS (Support variant)
+     ═══════════════════════════════════════════════════════ */
+
+  .sgl-mega-faq-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .sgl-mega-faq-card {
+    background: var(--theme-card-bg, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--theme-card-border, rgba(255, 255, 255, 0.06));
+    border-radius: 16px;
+    padding: 20px;
+    text-decoration: none;
+    color: var(--theme-text, white);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: all 0.3s;
+  }
+
+  .sgl-mega-faq-card:hover {
+    background: var(--theme-card-hover-bg, rgba(255, 255, 255, 0.06));
+    border-color: var(--mega-card-hover-border, rgba(6, 182, 212, 0.3));
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .sgl-mega-faq-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--mega-cat-icon-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+    transition: all 0.3s;
+  }
+
+  .sgl-mega-faq-card:hover .sgl-mega-faq-icon {
+    background: var(--mega-cat-icon-hover);
+    box-shadow: 0 8px 24px rgba(var(--mega-accent-1-rgb, 6, 182, 212), 0.3);
+  }
+
+  .sgl-mega-faq-title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .sgl-mega-faq-desc {
+    font-size: 12px;
+    color: var(--theme-text-muted, rgba(255, 255, 255, 0.4));
+    line-height: 1.5;
+  }
+
+  .sgl-mega-faq-arrow {
+    color: var(--mega-link-color, #FFBF9F);
+    margin-top: auto;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: all 0.2s;
+  }
+  .sgl-mega-faq-card:hover .sgl-mega-faq-arrow {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RIGHT COLUMN: FEATURED CARD (all variants)
+     ═══════════════════════════════════════════════════════ */
+
+  /* Right column container */
+  .sgl-mega-featured {
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    width: 100%;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    scrollbar-width: none;
+  }
+  .sgl-mega-featured::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sgl-mega-featured-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    background: var(--mega-featured-bg);
+    border: 1px solid var(--theme-card-border, rgba(255, 255, 255, 0.1));
+    border-radius: clamp(14px, 1.5vw, 20px);
+    padding: clamp(12px, 1.5vw, 20px);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Fix backdrop-filter text ghosting */
+    isolation: isolate;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  .sgl-mega-featured-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--mega-featured-top-bar);
+  }
+
+  .sgl-mega-featured-label {
+    display: inline-flex;
+    align-items: center;
+    gap: clamp(4px, 0.5vw, 6px);
+    font-size: clamp(8px, 0.8vw, 10px);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: clamp(1px, 0.12vw, 1.5px);
+    color: var(--mega-featured-label-color, #EA7940);
+    margin-bottom: clamp(6px, 1vw, 16px);
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .sgl-mega-featured-title {
+    font-size: clamp(14px, 1.4vw, 22px);
+    font-weight: 600;
+    margin-bottom: clamp(4px, 0.6vw, 8px);
+    line-height: 1.3;
+    color: var(--theme-text, white);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    /* Fix backdrop-filter text ghosting */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    position: relative;
+    z-index: 1;
+  }
+
+  .sgl-mega-featured-desc {
+    font-size: clamp(10px, 0.9vw, 13px);
+    color: var(--theme-text-muted, rgba(255, 255, 255, 0.5));
+    line-height: 1.5;
+    margin-bottom: clamp(8px, 1.2vw, 16px);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    /* Fix backdrop-filter text ghosting */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    position: relative;
+    z-index: 1;
+  }
+
+  .sgl-mega-featured-visual {
+    flex: 1 1 auto;
+    min-height: 100px;
+    border-radius: clamp(10px, 1.2vw, 16px);
+    background: linear-gradient(135deg, #1a1a2e, #F8EBDA);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin-bottom: clamp(10px, 1.5vw, 20px);
+    overflow: hidden;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .sgl-mega-featured-visual::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.3), transparent 70%);
+  }
+  .sgl-mega-featured-visual img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .sgl-mega-featured-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Lifestyle placeholder */
+  .sgl-mega-featured-lifestyle-placeholder {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.1));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.3);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Contact Methods (Support variant) ── */
+  .sgl-mega-contact-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex: 1;
+  }
+
+  .sgl-mega-contact-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--theme-card-bg, rgba(255, 255, 255, 0.04));
+    border: 1px solid var(--theme-card-border, rgba(255, 255, 255, 0.08));
+    border-radius: 12px;
+    color: var(--theme-text, white);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+
+  .sgl-mega-contact-item:hover {
+    background: rgba(var(--mega-accent-1-rgb, 6, 182, 212), 0.1);
+    border-color: rgba(var(--mega-accent-1-rgb, 6, 182, 212), 0.3);
+  }
+
+  .sgl-mega-contact-item svg {
+    color: var(--mega-accent-1, #FFBF9F);
+    flex-shrink: 0;
+  }
+
+  /* ── CTA Buttons ── */
+  .sgl-mega-featured-cta {
+    display: flex;
+    gap: clamp(6px, 0.6vw, 8px);
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
+    margin-top: auto;
+    box-sizing: border-box;
+  }
+
+  .sgl-mega-featured-btn {
+    flex: 1 1 45%;
+    min-width: 0;
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(4px, 0.5vw, 6px);
+    padding: clamp(8px, 0.9vw, 12px) clamp(10px, 1.2vw, 16px);
+    border-radius: clamp(8px, 0.9vw, 12px);
+    font-size: clamp(10px, 0.9vw, 13px);
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+  }
+  .sgl-mega-featured-btn--primary {
+    background: var(--theme-btn-primary-bg, white);
+    color: var(--theme-btn-primary-text, #F8EBDA);
+  }
+  .sgl-mega-featured-btn--primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(var(--mega-accent-1-rgb, 255, 255, 255), 0.2);
+  }
+  .sgl-mega-featured-btn--secondary {
+    background: var(--theme-btn-secondary-bg, rgba(255, 255, 255, 0.1));
+    color: var(--theme-btn-secondary-text, white);
+    border: 1px solid var(--theme-btn-secondary-border, rgba(255, 255, 255, 0.2));
+  }
+  .sgl-mega-featured-btn--secondary:hover {
+    background: var(--theme-card-hover-bg, rgba(255, 255, 255, 0.15));
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     BOTTOM: QUICK LINKS
+     ═══════════════════════════════════════════════════════ */
+
+  .sgl-mega-quick {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(6px, 0.9vw, 12px);
+    padding-top: clamp(10px, 1.5vw, 20px);
+    padding-bottom: clamp(8px, 1.5vw, 20px);
+    border-top: 1px solid var(--theme-divider, rgba(255, 255, 255, 0.08));
+    margin-top: clamp(4px, 0.8vw, 12px);
+    min-width: 0;
+  }
+
+  /* Hide quick links section if empty (whitespace-only content) */
+  .sgl-mega-quick:empty {
+    display: none;
+  }
+
+  .sgl-mega-quick-link {
+    display: flex;
+    align-items: center;
+    gap: clamp(4px, 0.6vw, 8px);
+    padding: clamp(6px, 0.8vw, 10px) clamp(10px, 1.4vw, 18px);
+    background: var(--theme-card-bg, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--theme-card-border, rgba(255, 255, 255, 0.08));
+    border-radius: 100px;
+    color: var(--theme-text-muted, rgba(255, 255, 255, 0.6));
+    text-decoration: none;
+    font-size: clamp(10px, 1vw, 13px);
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .sgl-mega-quick-link:hover {
+    background: var(--theme-card-hover-bg, rgba(255, 255, 255, 0.08));
+    color: var(--theme-text, white);
+    border-color: var(--mega-card-hover-border, rgba(147, 51, 234, 0.3));
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: SUPPORT VARIANT (smaller screens)
+     Hide center column, go 2-column layout
+     ═══════════════════════════════════════════════════════ */
+
+  @media (max-width: 1200px) {
+    /* Support variant: hide center column, 2-column layout */
+    .sgl-mega-menu--support .sgl-mega-inner {
+      grid-template-columns: 280px 1fr;
+    }
+    .sgl-mega-menu--support .sgl-mega-products {
+      display: none;
+    }
+
+    /* Contact card adjustments */
+    .sgl-mega-menu--support .sgl-mega-contact-item span {
+      font-size: 13px;
+    }
+  }
+
+  /* Note: Below 1100px, mobile drawer shows instead of mega menu */
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: MEDIUM DESKTOP (1200px - 1400px)
+     Slightly compacted layout for mid-sized screens
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 1200px) and (max-width: 1400px) {
+    .sgl-mega-menu {
+      width: calc(100vw - 40px);
+      max-height: min(78vh, 650px);
+    }
+
+    .sgl-mega-inner {
+      padding: 28px;
+      grid-template-columns: minmax(0, 20%) minmax(0, 1fr) minmax(0, 24%);
+      gap: 24px;
+      max-height: calc(min(78vh, 650px) - 56px);
+    }
+
+    .sgl-mega-cat-item {
+      padding: 10px 12px;
+    }
+
+    .sgl-mega-cat-icon {
+      width: 36px;
+      height: 36px;
+    }
+
+    .sgl-mega-cat-name {
+      font-size: 13px;
+    }
+
+    /* Products: 2x3 grid */
+    .sgl-mega-products-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .sgl-mega-product-img {
+      aspect-ratio: 1;
+      height: auto;
+    }
+
+    .sgl-mega-product-name {
+      font-size: 12px;
+    }
+
+    /* Featured card */
+    .sgl-mega-featured-card {
+      padding: 20px;
+    }
+
+    .sgl-mega-featured-title {
+      font-size: 18px;
+    }
+
+    .sgl-mega-featured-desc {
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+
+    .sgl-mega-featured-visual {
+      min-height: 90px;
+    }
+
+    .sgl-mega-featured-btn {
+      padding: 10px 16px;
+      font-size: 12px;
+    }
+
+    /* Quick links */
+    .sgl-mega-quick {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .sgl-mega-quick-link {
+      padding: 8px 14px;
+      font-size: 12px;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: COMPACT DESKTOP (1100px - 1200px)
+     Below 1100px, mobile header takes over
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 1100px) and (max-width: 1200px) {
+    .sgl-mega-menu {
+      width: calc(100vw - 20px);
+      max-width: 100%;
+      max-height: min(75vh, 580px);
+    }
+
+    .sgl-mega-inner {
+      padding: 20px;
+      grid-template-columns: minmax(0, 18%) minmax(0, 1fr) minmax(0, 22%);
+      gap: 16px;
+      max-height: calc(min(75vh, 580px) - 40px);
+    }
+
+    .sgl-mega-section-title {
+      font-size: 9px;
+      margin-bottom: 14px;
+      padding-left: 10px;
+    }
+
+    .sgl-mega-cat-item {
+      padding: 10px 12px;
+      gap: 10px;
+    }
+
+    .sgl-mega-cat-icon {
+      width: 34px;
+      height: 34px;
+    }
+
+    .sgl-mega-cat-name {
+      font-size: 12px;
+    }
+
+    .sgl-mega-cat-count {
+      font-size: 10px;
+    }
+
+    .sgl-mega-cat-arrow {
+      display: none;
+    }
+
+    /* Products: keep center column padding */
+    .sgl-mega-products {
+      padding: 0 20px;
+    }
+
+    /* Products grid: 2 columns */
+    .sgl-mega-products-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .sgl-mega-product-card {
+      padding: 10px;
+    }
+
+    .sgl-mega-product-img {
+      aspect-ratio: 1;
+      height: auto;
+    }
+
+    .sgl-mega-product-name {
+      font-size: 11px;
+    }
+
+    .sgl-mega-product-price-current {
+      font-size: 12px;
+    }
+
+    .sgl-mega-product-badge {
+      font-size: 8px;
+      padding: 3px 6px;
+    }
+
+    /* Featured card */
+    .sgl-mega-featured-card {
+      padding: 18px;
+    }
+
+    .sgl-mega-featured-label {
+      font-size: 9px;
+      margin-bottom: 12px;
+    }
+
+    .sgl-mega-featured-title {
+      font-size: 17px;
+      margin-bottom: 6px;
+    }
+
+    .sgl-mega-featured-desc {
+      font-size: 11px;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    .sgl-mega-featured-visual {
+      flex: 1 1 auto;
+      min-height: 80px;
+      margin-bottom: 14px;
+    }
+
+    .sgl-mega-featured-cta {
+      gap: 8px;
+    }
+
+    .sgl-mega-featured-btn {
+      padding: 10px 14px;
+      font-size: 11px;
+    }
+
+    /* Contact methods */
+    .sgl-mega-contact-methods {
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .sgl-mega-contact-item {
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+
+    /* Quick links: wrap */
+    .sgl-mega-quick {
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: 16px;
+    }
+
+    .sgl-mega-quick-link {
+      padding: 7px 12px;
+      font-size: 11px;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: SMALL DESKTOP (900px - 1100px)
+     Very compact layout for small desktop screens
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 900px) and (max-width: 1100px) {
+    .sgl-mega-menu {
+      width: calc(100vw - 16px);
+      max-width: 100%;
+      max-height: min(72vh, 520px);
+      border-radius: 0 0 12px 12px;
+    }
+
+    .sgl-mega-inner {
+      padding: 16px;
+      grid-template-columns: minmax(0, 22%) minmax(0, 1fr) minmax(0, 28%);
+      gap: 12px;
+      max-height: calc(min(72vh, 520px) - 32px);
+    }
+
+    .sgl-mega-section-title {
+      font-size: 8px;
+      margin-bottom: 10px;
+      padding-left: 8px;
+      letter-spacing: 1.5px;
+    }
+
+    .sgl-mega-cat-item {
+      padding: 8px 10px;
+      gap: 8px;
+      border-radius: 8px;
+    }
+
+    .sgl-mega-cat-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+    }
+
+    .sgl-mega-cat-icon svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .sgl-mega-cat-name {
+      font-size: 11px;
+    }
+
+    .sgl-mega-cat-count {
+      font-size: 9px;
+    }
+
+    .sgl-mega-cat-arrow,
+    .sgl-mega-cat-badge {
+      display: none;
+    }
+
+    /* Products */
+    .sgl-mega-products {
+      padding: 0 12px;
+    }
+
+    .sgl-mega-products-header {
+      margin-bottom: 10px;
+    }
+
+    .sgl-mega-products-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .sgl-mega-product-card {
+      padding: 8px;
+      border-radius: 10px;
+    }
+
+    .sgl-mega-product-img {
+      border-radius: 8px;
+      margin-bottom: 6px;
+    }
+
+    .sgl-mega-product-name {
+      font-size: 10px;
+      margin-bottom: 3px;
+    }
+
+    .sgl-mega-product-price-current {
+      font-size: 11px;
+    }
+
+    .sgl-mega-product-price-original {
+      font-size: 9px;
+    }
+
+    .sgl-mega-product-badge {
+      font-size: 7px;
+      padding: 2px 5px;
+      top: 3px;
+      left: 3px;
+    }
+
+    /* Featured card */
+    .sgl-mega-featured-card {
+      padding: 14px;
+      border-radius: 12px;
+    }
+
+    .sgl-mega-featured-label {
+      font-size: 8px;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+
+    .sgl-mega-featured-title {
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .sgl-mega-featured-desc {
+      font-size: 10px;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .sgl-mega-featured-visual {
+      min-height: 70px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+    }
+
+    .sgl-mega-featured-cta {
+      gap: 6px;
+    }
+
+    .sgl-mega-featured-btn {
+      padding: 8px 10px;
+      font-size: 10px;
+      border-radius: 6px;
+    }
+
+    /* Contact methods */
+    .sgl-mega-contact-methods {
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .sgl-mega-contact-item {
+      padding: 8px 10px;
+      font-size: 11px;
+      border-radius: 8px;
+      gap: 8px;
+    }
+
+    .sgl-mega-contact-item svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* FAQ cards */
+    .sgl-mega-faq-grid {
+      gap: 8px;
+    }
+
+    .sgl-mega-faq-card {
+      padding: 12px;
+      border-radius: 10px;
+      gap: 6px;
+    }
+
+    .sgl-mega-faq-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+    }
+
+    .sgl-mega-faq-icon svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .sgl-mega-faq-title {
+      font-size: 11px;
+    }
+
+    .sgl-mega-faq-desc {
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    /* Quick links */
+    .sgl-mega-quick {
+      gap: 6px;
+      padding-top: 12px;
+      padding-bottom: 4px;
+      margin-top: 8px;
+    }
+
+    .sgl-mega-quick-link {
+      padding: 6px 10px;
+      font-size: 10px;
+    }
+
+    /* Ambient glow - reduce on smaller screens */
+    .sgl-mega-menu::before {
+      width: 300px;
+      height: 200px;
+      opacity: 0.7;
+    }
+
+    .sgl-mega-menu::after {
+      width: 200px;
+      height: 150px;
+      opacity: 0.7;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: TABLET LANDSCAPE (750px - 900px)
+     Super compact, hide less essential elements
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 750px) and (max-width: 900px) {
+    .sgl-mega-menu {
+      width: calc(100vw - 12px);
+      max-width: 100%;
+      max-height: min(68vh, 460px);
+      border-radius: 0 0 10px 10px;
+    }
+
+    .sgl-mega-inner {
+      padding: 12px;
+      grid-template-columns: minmax(0, 25%) minmax(0, 1fr) minmax(0, 30%);
+      gap: 10px;
+      max-height: calc(min(68vh, 460px) - 24px);
+    }
+
+    .sgl-mega-section-title {
+      font-size: 7px;
+      margin-bottom: 8px;
+      padding-left: 6px;
+      letter-spacing: 1px;
+    }
+
+    .sgl-mega-cat-item {
+      padding: 6px 8px;
+      gap: 6px;
+      border-radius: 6px;
+    }
+
+    .sgl-mega-cat-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 5px;
+    }
+
+    .sgl-mega-cat-icon svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .sgl-mega-cat-name {
+      font-size: 10px;
+    }
+
+    .sgl-mega-cat-count,
+    .sgl-mega-cat-arrow,
+    .sgl-mega-cat-badge {
+      display: none;
+    }
+
+    /* Products */
+    .sgl-mega-products {
+      padding: 0 8px;
+    }
+
+    .sgl-mega-products-header {
+      margin-bottom: 8px;
+    }
+
+    .sgl-mega-products-link {
+      font-size: 9px;
+    }
+
+    .sgl-mega-products-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .sgl-mega-product-card {
+      padding: 6px;
+      border-radius: 8px;
+    }
+
+    .sgl-mega-product-img {
+      border-radius: 6px;
+      margin-bottom: 4px;
+    }
+
+    .sgl-mega-product-name {
+      font-size: 9px;
+      margin-bottom: 2px;
+    }
+
+    .sgl-mega-product-price-current {
+      font-size: 10px;
+    }
+
+    .sgl-mega-product-price-original {
+      display: none;
+    }
+
+    .sgl-mega-product-badge {
+      font-size: 6px;
+      padding: 2px 4px;
+      top: 2px;
+      left: 2px;
+    }
+
+    /* Featured card */
+    .sgl-mega-featured-card {
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    .sgl-mega-featured-label {
+      font-size: 7px;
+      margin-bottom: 6px;
+    }
+
+    .sgl-mega-featured-title {
+      font-size: 12px;
+      margin-bottom: 3px;
+    }
+
+    .sgl-mega-featured-desc {
+      font-size: 9px;
+      margin-bottom: 8px;
+      line-height: 1.3;
+      /* Limit to 2 lines */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .sgl-mega-featured-visual {
+      min-height: 60px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+    }
+
+    .sgl-mega-featured-cta {
+      gap: 4px;
+      flex-direction: column;
+    }
+
+    .sgl-mega-featured-btn {
+      padding: 6px 8px;
+      font-size: 9px;
+      border-radius: 5px;
+    }
+
+    /* Contact methods */
+    .sgl-mega-contact-methods {
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .sgl-mega-contact-item {
+      padding: 6px 8px;
+      font-size: 9px;
+      border-radius: 6px;
+      gap: 6px;
+    }
+
+    .sgl-mega-contact-item svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* FAQ cards */
+    .sgl-mega-faq-grid {
+      gap: 6px;
+    }
+
+    .sgl-mega-faq-card {
+      padding: 8px;
+      border-radius: 8px;
+      gap: 4px;
+    }
+
+    .sgl-mega-faq-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+    }
+
+    .sgl-mega-faq-icon svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .sgl-mega-faq-title {
+      font-size: 10px;
+    }
+
+    .sgl-mega-faq-desc {
+      font-size: 9px;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .sgl-mega-faq-arrow {
+      display: none;
+    }
+
+    /* Quick links - hide on very small screens */
+    .sgl-mega-quick {
+      display: none;
+    }
+
+    /* Ambient glow - minimal on smaller screens */
+    .sgl-mega-menu::before,
+    .sgl-mega-menu::after {
+      opacity: 0.5;
+    }
+  }
+
+  /* Note: Below 750px, the mobile drawer takes over - no need for
+     more responsive styles. The mega menu is only shown on desktop. */
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: LARGE DESKTOP (1440px+)
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 1440px) {
+    .sgl-mega-inner {
+      padding: 40px;
+      grid-template-columns: minmax(0, 20%) minmax(0, 1fr) minmax(0, 26%);
+      gap: 40px;
+    }
+
+    .sgl-mega-products-grid {
+      gap: 20px;
+    }
+
+    .sgl-mega-product-img {
+      aspect-ratio: 1;
+      height: auto;
+    }
+
+    .sgl-mega-featured-visual {
+      min-height: 140px;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: EXTRA LARGE DESKTOP (1600px+)
+     Only show 3 product columns on very wide screens (auto mode)
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 1600px) {
+    .sgl-mega-inner {
+      grid-template-columns: minmax(0, 18%) minmax(0, 1fr) minmax(0, 24%);
+    }
+
+    /* Auto mode: switch to 3 columns on extra-large screens */
+    .sgl-mega-products-grid[data-columns="auto"] {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    /* Explicit 2 or 3 columns override auto behavior */
+    .sgl-mega-products-grid[data-columns="2"] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .sgl-mega-products-grid[data-columns="3"] {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: EXTRA LARGE DESKTOP (1920px+)
+     Expanded layout for larger monitors
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 1920px) {
+    .sgl-mega-menu {
+      max-width: 1600px;
+      max-height: min(85vh, 800px);
+    }
+
+    .sgl-mega-inner {
+      padding: 48px;
+      gap: 48px;
+      max-height: calc(min(85vh, 800px) - 96px);
+    }
+
+    .sgl-mega-section-title {
+      font-size: 11px;
+      margin-bottom: 24px;
+    }
+
+    .sgl-mega-cat-item {
+      padding: 16px 18px;
+    }
+
+    .sgl-mega-cat-icon {
+      width: 48px;
+      height: 48px;
+    }
+
+    .sgl-mega-cat-name {
+      font-size: 15px;
+    }
+
+    .sgl-mega-cat-count {
+      font-size: 13px;
+    }
+
+    .sgl-mega-products-grid {
+      gap: 24px;
+    }
+
+    .sgl-mega-product-card {
+      padding: 18px;
+    }
+
+    .sgl-mega-product-name {
+      font-size: 14px;
+    }
+
+    .sgl-mega-product-price-current {
+      font-size: 15px;
+    }
+
+    .sgl-mega-featured-card {
+      padding: 28px;
+    }
+
+    .sgl-mega-featured-title {
+      font-size: 24px;
+    }
+
+    .sgl-mega-featured-desc {
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .sgl-mega-featured-visual {
+      min-height: 160px;
+    }
+
+    .sgl-mega-featured-btn {
+      padding: 14px 20px;
+      font-size: 14px;
+    }
+
+    .sgl-mega-quick-link {
+      padding: 12px 20px;
+      font-size: 14px;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: ULTRAWIDE (2560px+ / QHD & 4K)
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 2560px) {
+    .sgl-mega-menu {
+      max-width: 2000px;
+      max-height: min(80vh, 900px);
+      border-radius: 0 0 28px 28px;
+    }
+
+    .sgl-mega-inner {
+      padding: 56px;
+      gap: 56px;
+      grid-template-columns: minmax(0, 16%) minmax(0, 1fr) minmax(0, 22%);
+      max-height: calc(min(80vh, 900px) - 112px);
+    }
+
+    .sgl-mega-section-title {
+      font-size: 12px;
+      letter-spacing: 2px;
+      margin-bottom: 28px;
+    }
+
+    .sgl-mega-cat-item {
+      padding: 18px 20px;
+      border-radius: 16px;
+    }
+
+    .sgl-mega-cat-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+    }
+
+    .sgl-mega-cat-icon svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    .sgl-mega-cat-name {
+      font-size: 16px;
+    }
+
+    .sgl-mega-cat-count {
+      font-size: 14px;
+    }
+
+    /* 4 columns for products on ultrawide */
+    .sgl-mega-products-grid,
+    .sgl-mega-products-grid[data-columns="auto"] {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 28px;
+    }
+
+    .sgl-mega-products-grid[data-columns="2"] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .sgl-mega-products-grid[data-columns="3"] {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .sgl-mega-product-card {
+      padding: 20px;
+      border-radius: 18px;
+    }
+
+    .sgl-mega-product-img {
+      border-radius: 14px;
+      margin-bottom: 14px;
+    }
+
+    .sgl-mega-product-name {
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .sgl-mega-product-price-current {
+      font-size: 16px;
+    }
+
+    .sgl-mega-product-badge {
+      font-size: 10px;
+      padding: 5px 12px;
+    }
+
+    .sgl-mega-featured-card {
+      padding: 32px;
+      border-radius: 24px;
+    }
+
+    .sgl-mega-featured-label {
+      font-size: 11px;
+      margin-bottom: 20px;
+    }
+
+    .sgl-mega-featured-title {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .sgl-mega-featured-desc {
+      font-size: 15px;
+      margin-bottom: 24px;
+    }
+
+    .sgl-mega-featured-visual {
+      min-height: 180px;
+      border-radius: 18px;
+      margin-bottom: 24px;
+    }
+
+    .sgl-mega-featured-cta {
+      gap: 12px;
+    }
+
+    .sgl-mega-featured-btn {
+      padding: 16px 24px;
+      font-size: 15px;
+      border-radius: 14px;
+    }
+
+    .sgl-mega-quick {
+      padding-top: 28px;
+      gap: 16px;
+    }
+
+    .sgl-mega-quick-link {
+      padding: 14px 24px;
+      font-size: 15px;
+    }
+
+    /* Contact methods */
+    .sgl-mega-contact-item {
+      padding: 18px 20px;
+      font-size: 15px;
+      border-radius: 14px;
+    }
+
+    .sgl-mega-contact-item svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    /* FAQ cards */
+    .sgl-mega-faq-grid {
+      gap: 20px;
+    }
+
+    .sgl-mega-faq-card {
+      padding: 24px;
+      border-radius: 18px;
+    }
+
+    .sgl-mega-faq-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+    }
+
+    .sgl-mega-faq-title {
+      font-size: 16px;
+    }
+
+    .sgl-mega-faq-desc {
+      font-size: 14px;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: SUPER ULTRAWIDE (3440px+ / 34" Ultrawide)
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 3440px) {
+    .sgl-mega-menu {
+      max-width: 2600px;
+      max-height: min(75vh, 1000px);
+      border-radius: 0 0 32px 32px;
+    }
+
+    .sgl-mega-inner {
+      padding: 64px;
+      gap: 64px;
+      grid-template-columns: minmax(0, 14%) minmax(0, 1fr) minmax(0, 20%);
+      max-height: calc(min(75vh, 1000px) - 128px);
+    }
+
+    .sgl-mega-section-title {
+      font-size: 13px;
+      letter-spacing: 2.5px;
+      margin-bottom: 32px;
+    }
+
+    .sgl-mega-cat-item {
+      padding: 20px 24px;
+      border-radius: 18px;
+      gap: 18px;
+    }
+
+    .sgl-mega-cat-icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+    }
+
+    .sgl-mega-cat-icon svg {
+      width: 30px;
+      height: 30px;
+    }
+
+    .sgl-mega-cat-name {
+      font-size: 18px;
+    }
+
+    .sgl-mega-cat-count {
+      font-size: 15px;
+    }
+
+    .sgl-mega-cat-arrow svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    /* 5 columns for products on super ultrawide */
+    .sgl-mega-products-grid,
+    .sgl-mega-products-grid[data-columns="auto"] {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 32px;
+    }
+
+    .sgl-mega-products-grid[data-columns="2"] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .sgl-mega-products-grid[data-columns="3"] {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .sgl-mega-product-card {
+      padding: 24px;
+      border-radius: 20px;
+    }
+
+    .sgl-mega-product-img {
+      border-radius: 16px;
+      margin-bottom: 16px;
+    }
+
+    .sgl-mega-product-name {
+      font-size: 17px;
+      margin-bottom: 10px;
+    }
+
+    .sgl-mega-product-price-current {
+      font-size: 18px;
+    }
+
+    .sgl-mega-product-price-original {
+      font-size: 14px;
+    }
+
+    .sgl-mega-product-badge {
+      font-size: 11px;
+      padding: 6px 14px;
+    }
+
+    .sgl-mega-featured-card {
+      padding: 40px;
+      border-radius: 28px;
+    }
+
+    .sgl-mega-featured-label {
+      font-size: 12px;
+      margin-bottom: 24px;
+    }
+
+    .sgl-mega-featured-title {
+      font-size: 32px;
+      margin-bottom: 16px;
+    }
+
+    .sgl-mega-featured-desc {
+      font-size: 17px;
+      margin-bottom: 28px;
+    }
+
+    .sgl-mega-featured-visual {
+      min-height: 220px;
+      border-radius: 20px;
+      margin-bottom: 28px;
+    }
+
+    .sgl-mega-featured-cta {
+      gap: 14px;
+    }
+
+    .sgl-mega-featured-btn {
+      padding: 18px 28px;
+      font-size: 16px;
+      border-radius: 16px;
+    }
+
+    .sgl-mega-quick {
+      padding-top: 32px;
+      gap: 18px;
+    }
+
+    .sgl-mega-quick-link {
+      padding: 16px 28px;
+      font-size: 16px;
+    }
+
+    /* Contact methods */
+    .sgl-mega-contact-item {
+      padding: 20px 24px;
+      font-size: 16px;
+      border-radius: 16px;
+    }
+
+    .sgl-mega-contact-item svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    /* FAQ cards */
+    .sgl-mega-faq-grid {
+      gap: 24px;
+    }
+
+    .sgl-mega-faq-card {
+      padding: 28px;
+      border-radius: 20px;
+    }
+
+    .sgl-mega-faq-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+    }
+
+    .sgl-mega-faq-icon svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    .sgl-mega-faq-title {
+      font-size: 18px;
+    }
+
+    .sgl-mega-faq-desc {
+      font-size: 15px;
+    }
+
+    /* Ambient glow - larger on big screens */
+    .sgl-mega-menu::before {
+      width: 800px;
+      height: 500px;
+    }
+
+    .sgl-mega-menu::after {
+      width: 600px;
+      height: 400px;
+    }
+  }
+{% endstylesheet %}
