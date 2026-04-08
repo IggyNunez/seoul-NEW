@@ -171,22 +171,24 @@
             {%- endcase -%}
           {%- endif -%}
 
-          <a href="{{ child_link.url }}" class="casa-mega-cat-item">
-            {%- assign child_cat_image_url = child_cat_image | image_url: width: 88, height: 88, crop: 'center' -%}
-            <div class="casa-mega-cat-icon{% if child_cat_image_url != blank %} casa-mega-cat-icon--has-image{% endif %}">
-              {%- if child_cat_image_url != blank -%}
-                <img
-                  src="{{ child_cat_image_url }}"
-                  alt="{{ child_link.title | escape }}"
-                  width="44"
-                  height="44"
-                  loading="lazy"
-                  class="casa-mega-cat-img"
-                >
-              {%- else -%}
-                {%- render 'casa-icon', icon: child_icon, size: 22 -%}
-              {%- endif -%}
-            </div>
+          <a href="{{ child_link.url }}" class="casa-mega-cat-item{% unless show_category_icons %} casa-mega-cat-item--no-icon{% endunless %}">
+            {%- if show_category_icons -%}
+              {%- assign child_cat_image_url = child_cat_image | image_url: width: 88, height: 88, crop: 'center' -%}
+              <div class="casa-mega-cat-icon{% if child_cat_image_url != blank %} casa-mega-cat-icon--has-image{% endif %}">
+                {%- if child_cat_image_url != blank -%}
+                  <img
+                    src="{{ child_cat_image_url }}"
+                    alt="{{ child_link.title | escape }}"
+                    width="44"
+                    height="44"
+                    loading="lazy"
+                    class="casa-mega-cat-img"
+                  >
+                {%- else -%}
+                  {%- render 'casa-icon', icon: child_icon, size: 22 -%}
+                {%- endif -%}
+              </div>
+            {%- endif -%}
             <div class="casa-mega-cat-content">
               <div class="casa-mega-cat-name">{{ child_link.title }}</div>
               {%- if menu_variant == 'support' -%}
@@ -1038,7 +1040,9 @@
   }
 
   .casa-mega-cat-content { flex: 1; min-width: 0; overflow: hidden; }
-  .casa-mega-cat-name { font-size: clamp(11px, 1vw, 14px); font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--theme-text, white); }
+  .casa-mega-cat-name { font-size: clamp(12px, 1.1vw, 15px); font-weight: 500; margin-bottom: 2px; white-space: normal; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.3; color: var(--theme-text, white); }
+  .casa-mega-cat-item--no-icon { padding-left: 12px; }
+  .casa-mega-cat-item--no-icon .casa-mega-cat-content { flex: 1; }
   .casa-mega-cat-count { font-size: clamp(9px, 0.9vw, 12px); color: var(--theme-text-muted, rgba(255, 255, 255, 0.4)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .casa-mega-cat-arrow {
