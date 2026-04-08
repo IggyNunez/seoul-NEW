@@ -1,0 +1,1604 @@
+{%- comment -%}
+  Seoul Glow Lab - Video Testimonials Section
+  Full-width section version of the video testimonials block.
+  Horizontal scroll row of portrait video thumbnail cards with play buttons.
+  Clicking opens a sticky modal with the video (YouTube, Vimeo, or direct URL).
+  Modal stays fixed on scroll until X / backdrop / Escape closes it.
+  Optional product link per card shown in modal.
+  Video sources (priority): Shopify-hosted video > video_url picker > manual URL text.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+
+  assign tag_text = s.tag_text
+  assign title = s.title
+  assign subtitle = s.subtitle
+  assign accent_word = s.accent_word
+  assign accent_style = s.accent_style | default: 'gradient'
+  assign accent_color = s.accent_color | default: '#9333ea'
+  assign accent_color_2 = s.accent_color_2 | default: '#ec4899'
+
+  assign padding_top = s.padding_top | default: 100
+  assign padding_bottom = s.padding_bottom | default: 100
+  assign padding_mobile_top = s.padding_mobile_top | default: 60
+  assign padding_mobile_bottom = s.padding_mobile_bottom | default: 60
+
+  assign bg_color = s.bg_color | default: '#0a0a0f'
+  assign text_color = s.text_color | default: '#ffffff'
+
+  assign layout_width = s.layout_width | default: 'page'
+  assign card_width = s.card_width | default: 220
+
+  assign video_ids = "1,2,3,4,5,6,7,8" | split: ","
+
+  # Build title with accent word
+  assign display_title = title
+  if accent_word != blank and title != blank
+    assign accent_html = '<span class="casa-vtm-section__accent casa-vtm-section__accent--' | append: accent_style | append: '">' | append: accent_word | append: '</span>'
+    assign display_title = title | replace: accent_word, accent_html
+  endif
+-%}
+
+<section
+  class="casa-vtm-section"
+  id="casa-vtm-section-{{ section.id }}"
+  style="
+    --cvts-bg: {{ bg_color }};
+    --cvts-text: {{ text_color }};
+    --cvts-padding-top: {{ padding_top }}px;
+    --cvts-padding-bottom: {{ padding_bottom }}px;
+    --cvts-padding-mobile-top: {{ padding_mobile_top }}px;
+    --cvts-padding-mobile-bottom: {{ padding_mobile_bottom }}px;
+    --cvts-card-width: {{ card_width }}px;
+    --cvts-accent-1: {{ accent_color }};
+    --cvts-accent-2: {{ accent_color_2 }};
+  "
+>
+  <div class="casa-vtm-section__container{% if layout_width == 'full' %} casa-vtm-section__container--full{% endif %}">
+    {%- comment -%} Header — hidden when all fields empty {%- endcomment -%}
+    {%- if tag_text != blank or title != blank or subtitle != blank -%}
+    <div class="casa-vtm-section__header" style="text-align: {{ s.content_align | default: 'center' }}; align-items: {% if s.content_align == 'left' %}flex-start{% elsif s.content_align == 'right' %}flex-end{% else %}center{% endif %};">
+      {%- if tag_text != blank -%}
+        {%- if s.tag_link != blank -%}
+          <a href="{{ s.tag_link }}" class="casa-vtm-section__tag casa-vtm-section__tag--link">{{ tag_text }}</a>
+        {%- else -%}
+          <span class="casa-vtm-section__tag">{{ tag_text }}</span>
+        {%- endif -%}
+      {%- endif -%}
+
+      {%- if title != blank -%}
+        {%- if s.title_link != blank -%}
+          <a href="{{ s.title_link }}" class="casa-vtm-section__title-link"><h2 class="casa-vtm-section__title">{{ display_title }}</h2></a>
+        {%- else -%}
+          <h2 class="casa-vtm-section__title">{{ display_title }}</h2>
+        {%- endif -%}
+      {%- endif -%}
+
+      {%- if subtitle != blank -%}
+        <p class="casa-vtm-section__subtitle">{{ subtitle }}</p>
+      {%- endif -%}
+    </div>
+    {%- endif -%}
+
+    {%- comment -%} Video cards carousel {%- endcomment -%}
+    <div class="casa-vtm-section__carousel">
+      <button type="button" class="casa-vtm-section__arrow casa-vtm-section__arrow--prev" aria-label="Scroll left" style="display:none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <div class="casa-vtm-section__row">
+      {%- for vid in video_ids -%}
+        {%- assign thumb_key   = "thumbnail_"   | append: vid -%}
+        {%- assign hosted_key  = "video_hosted_" | append: vid -%}
+        {%- assign picker_key  = "video_picker_" | append: vid -%}
+        {%- assign url_key     = "video_url_"    | append: vid -%}
+        {%- assign name_key    = "author_"       | append: vid -%}
+        {%- assign prod_url_key   = "product_url_"   | append: vid -%}
+        {%- assign prod_title_key = "product_title_" | append: vid -%}
+        {%- assign caption_key    = "caption_"       | append: vid -%}
+
+        {%- assign thumb  = s[thumb_key] -%}
+        {%- assign hosted = s[hosted_key] -%}
+        {%- assign picker = s[picker_key] -%}
+        {%- assign vurl   = s[url_key] -%}
+        {%- assign name   = s[name_key] -%}
+        {%- assign prod_url   = s[prod_url_key] -%}
+        {%- assign prod_title = s[prod_title_key] -%}
+        {%- assign caption    = s[caption_key] -%}
+
+        {%- comment -%} Resolve the best video source {%- endcomment -%}
+        {%- assign resolved_url = "" -%}
+        {%- assign resolved_type = "" -%}
+
+        {%- if hosted != blank and hosted.sources.size > 0 -%}
+          {%- assign resolved_url = "" -%}
+          {%- for src in hosted.sources -%}
+            {%- if src.mime_type == "video/mp4" and resolved_url == "" -%}
+              {%- assign resolved_url = src.url -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {%- if resolved_url == "" -%}
+            {%- assign resolved_url = hosted.sources[0].url -%}
+          {%- endif -%}
+          {%- assign resolved_type = "hosted" -%}
+        {%- elsif picker != blank -%}
+          {%- assign resolved_url = picker | external_video_url -%}
+          {%- assign resolved_type = "external" -%}
+        {%- elsif vurl != blank -%}
+          {%- assign resolved_url = vurl -%}
+          {%- assign resolved_type = "manual" -%}
+        {%- endif -%}
+
+        {%- comment -%} Auto-thumbnail from YouTube if no image uploaded {%- endcomment -%}
+        {%- assign auto_thumb = "" -%}
+        {%- if thumb == blank and resolved_url != blank -%}
+          {%- if resolved_url contains "youtube.com" or resolved_url contains "youtu.be" -%}
+            {%- assign yt_parts = resolved_url | split: "v=" -%}
+            {%- if yt_parts.size > 1 -%}
+              {%- assign yt_id = yt_parts[1] | split: "&" | first -%}
+            {%- else -%}
+              {%- assign yt_id = resolved_url | split: "youtu.be/" | last | split: "?" | first -%}
+            {%- endif -%}
+            {%- if yt_id != blank -%}
+              {%- assign auto_thumb = "https://img.youtube.com/vi/" | append: yt_id | append: "/hqdefault.jpg" -%}
+            {%- endif -%}
+          {%- endif -%}
+        {%- endif -%}
+
+        {%- if thumb != blank or resolved_url != blank -%}
+          <button
+            type="button"
+            class="casa-vtm-section__card"
+            data-vtms-url="{{ resolved_url }}"
+            data-vtms-type="{{ resolved_type }}"
+            {%- if hosted != blank and hosted.sources.size > 0 -%}
+              data-vtms-hosted-sources="[{%- for source in hosted.sources -%}{&quot;url&quot;:&quot;{{ source.url }}&quot;,&quot;mime&quot;:&quot;{{ source.mime_type }}&quot;}{%- unless forloop.last -%},{%- endunless -%}{%- endfor -%}]"
+            {%- endif -%}
+            {%- if prod_url != blank and prod_title != blank -%}
+              data-vtms-product-url="{{ prod_url | escape }}"
+              data-vtms-product-title="{{ prod_title | escape }}"
+            {%- endif -%}
+            aria-label="Play video{% if name != blank %} from {{ name | escape }}{% endif %}"
+          >
+            {%- if thumb != blank -%}
+              <img
+                src="{{ thumb | image_url: width: 400 }}"
+                alt="{{ name | default: 'Video testimonial' | escape }}"
+                class="casa-vtm-section__thumb"
+                loading="lazy"
+                width="180"
+                height="320"
+              >
+            {%- elsif auto_thumb != blank -%}
+              <img
+                src="{{ auto_thumb }}"
+                alt="{{ name | default: 'Video testimonial' | escape }}"
+                class="casa-vtm-section__thumb"
+                loading="lazy"
+                width="180"
+                height="320"
+              >
+            {%- elsif hosted != blank and hosted.preview_image -%}
+              <img
+                src="{{ hosted.preview_image | image_url: width: 400 }}"
+                alt="{{ name | default: 'Video testimonial' | escape }}"
+                class="casa-vtm-section__thumb"
+                loading="lazy"
+                width="180"
+                height="320"
+              >
+            {%- else -%}
+              <div class="casa-vtm-section__thumb casa-vtm-section__thumb--placeholder"></div>
+            {%- endif -%}
+
+            <span class="casa-vtm-section__play" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5.14v14l11-7-11-7z"/>
+              </svg>
+            </span>
+
+            {%- if name != blank -%}
+              <span class="casa-vtm-section__name">{{ name }}</span>
+            {%- endif -%}
+
+            {%- if caption != blank -%}
+              <span class="casa-vtm-section__caption">{{ caption }}</span>
+            {%- endif -%}
+
+            {%- if prod_url != blank and prod_title != blank -%}
+              <span class="casa-vtm-section__product-badge" aria-hidden="true">
+                {{ prod_title | truncate: 20 }}
+              </span>
+            {%- endif -%}
+          </button>
+        {%- endif -%}
+      {%- endfor -%}
+      </div>
+      <button type="button" class="casa-vtm-section__arrow casa-vtm-section__arrow--next" aria-label="Scroll right" style="display:none;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  {%- comment -%} App / custom-liquid blocks {%- endcomment -%}
+  {%- for block in section.blocks -%}
+    {%- case block.type -%}
+      {%- when '@app' -%}
+        <div {{ block.shopify_attributes }}>
+          {%- render block -%}
+        </div>
+      {%- when 'custom-liquid' -%}
+        <div {{ block.shopify_attributes }}>
+          {{ block.settings.custom_liquid }}
+        </div>
+    {%- endcase -%}
+  {%- endfor -%}
+</section>
+
+{%- comment -%} Modal — rendered once, populated by JS {%- endcomment -%}
+<div class="casa-vtm-section__modal" id="casa-vtm-section-modal-{{ section.id }}" aria-hidden="true">
+  <div class="casa-vtm-section__backdrop"></div>
+  <div class="casa-vtm-section__player">
+    <button type="button" class="casa-vtm-section__close" aria-label="Close video">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+    <button type="button" class="casa-vtm-section__modal-prev" aria-label="Previous video">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <button type="button" class="casa-vtm-section__modal-next" aria-label="Next video">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    <div class="casa-vtm-section__video-wrap"></div>
+    <button type="button" class="casa-vtm-section__mute" aria-label="Toggle mute" style="display:none;">
+      <svg class="casa-vtm-section__mute-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+      </svg>
+      <svg class="casa-vtm-section__mute-off" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+      </svg>
+    </button>
+    <a class="casa-vtm-section__modal-product" href="#" style="display:none;">
+      <span class="casa-vtm-section__modal-product-title"></span>
+      <span class="casa-vtm-section__modal-product-cta">Shop &rarr;</span>
+    </a>
+  </div>
+</div>
+
+<script>
+(function() {
+  var root = document.getElementById('casa-vtm-section-{{ section.id }}');
+  var modal = document.getElementById('casa-vtm-section-modal-{{ section.id }}');
+  if (!root || !modal) return;
+
+  /* ── Carousel arrows ── */
+  var row = root.querySelector('.casa-vtm-section__row');
+  var prevBtn = root.querySelector('.casa-vtm-section__arrow--prev');
+  var nextBtn = root.querySelector('.casa-vtm-section__arrow--next');
+
+  function updateArrows() {
+    if (!row || !prevBtn || !nextBtn) return;
+    var scrollable = row.scrollWidth > row.clientWidth + 4;
+    if (!scrollable) {
+      prevBtn.style.display = 'none';
+      nextBtn.style.display = 'none';
+      return;
+    }
+    prevBtn.style.display = row.scrollLeft > 10 ? 'flex' : 'none';
+    nextBtn.style.display = row.scrollLeft < row.scrollWidth - row.clientWidth - 10 ? 'flex' : 'none';
+  }
+
+  if (row && prevBtn && nextBtn) {
+    row.addEventListener('scroll', updateArrows, { passive: true });
+    window.addEventListener('resize', updateArrows);
+    updateArrows();
+
+    prevBtn.addEventListener('click', function() {
+      row.scrollBy({ left: -row.clientWidth * 0.6, behavior: 'smooth' });
+    });
+    nextBtn.addEventListener('click', function() {
+      row.scrollBy({ left: row.clientWidth * 0.6, behavior: 'smooth' });
+    });
+  }
+
+  var backdrop = modal.querySelector('.casa-vtm-section__backdrop');
+  var closeBtn = modal.querySelector('.casa-vtm-section__close');
+  var wrap = modal.querySelector('.casa-vtm-section__video-wrap');
+  var muteBtn = modal.querySelector('.casa-vtm-section__mute');
+  var muteOn = muteBtn.querySelector('.casa-vtm-section__mute-on');
+  var muteOff = muteBtn.querySelector('.casa-vtm-section__mute-off');
+  var productBar = modal.querySelector('.casa-vtm-section__modal-product');
+  var productTitle = modal.querySelector('.casa-vtm-section__modal-product-title');
+  var modalPrev = modal.querySelector('.casa-vtm-section__modal-prev');
+  var modalNext = modal.querySelector('.casa-vtm-section__modal-next');
+  var allCards = root.querySelectorAll('.casa-vtm-section__card');
+  var currentVideo = null;
+  var currentCardIndex = 0;
+
+  function updateModalNav() {
+    if (modalPrev) modalPrev.disabled = currentCardIndex <= 0;
+    if (modalNext) modalNext.disabled = currentCardIndex >= allCards.length - 1;
+  }
+
+  function openCardByIndex(idx) {
+    if (idx < 0 || idx >= allCards.length) return;
+    currentCardIndex = idx;
+    var card = allCards[idx];
+    if (card) card.click();
+  }
+
+  if (modalPrev) {
+    modalPrev.addEventListener('click', function(e) {
+      e.stopPropagation();
+      openCardByIndex(currentCardIndex - 1);
+    });
+  }
+  if (modalNext) {
+    modalNext.addEventListener('click', function(e) {
+      e.stopPropagation();
+      openCardByIndex(currentCardIndex + 1);
+    });
+  }
+
+  /* ── Detect URL type ── */
+  function parseUrl(url) {
+    var yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+    if (yt) return { type: 'youtube', id: yt[1] };
+    var vm = url.match(/vimeo\.com\/(\d+)/);
+    if (vm) return { type: 'vimeo', id: vm[1] };
+    return { type: 'direct', id: url };
+  }
+
+  /* ── Open modal ── */
+  function open(url) {
+    var info = parseUrl(url);
+    wrap.innerHTML = '';
+    muteBtn.style.display = 'none';
+
+    if (info.type === 'youtube') {
+      var iframe = document.createElement('iframe');
+      iframe.src = 'https://www.youtube.com/embed/' + info.id + '?autoplay=1&rel=0&modestbranding=1&playsinline=1';
+      iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
+      iframe.allowFullscreen = true;
+      iframe.className = 'casa-vtm-section__video';
+      wrap.appendChild(iframe);
+    } else if (info.type === 'vimeo') {
+      var iframe2 = document.createElement('iframe');
+      iframe2.src = 'https://player.vimeo.com/video/' + info.id + '?autoplay=1&title=0&byline=0&portrait=0';
+      iframe2.allow = 'autoplay; fullscreen; picture-in-picture';
+      iframe2.allowFullscreen = true;
+      iframe2.className = 'casa-vtm-section__video';
+      wrap.appendChild(iframe2);
+    } else {
+      var vid = document.createElement('video');
+      vid.src = info.id;
+      vid.autoplay = true;
+      vid.playsInline = true;
+      vid.loop = true;
+      vid.muted = true;
+      vid.className = 'casa-vtm-section__video';
+      wrap.appendChild(vid);
+      currentVideo = vid;
+      muteBtn.style.display = 'flex';
+      updateMuteIcon(true);
+    }
+
+    modal.classList.add('casa-vtm-section__modal--open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  /* ── Open modal with Shopify-hosted video ── */
+  function openHosted(sourcesJson) {
+    wrap.innerHTML = '';
+    muteBtn.style.display = 'flex';
+    var vid = document.createElement('video');
+    vid.autoplay = true;
+    vid.playsInline = true;
+    vid.loop = true;
+    vid.muted = true;
+    vid.className = 'casa-vtm-section__video';
+    try {
+      var sources = JSON.parse(sourcesJson);
+      /* Prefer MP4 sources over HLS (.m3u8) for cross-browser compat */
+      var mp4Sources = sources.filter(function(s) { return s.mime === 'video/mp4'; });
+      var otherSources = sources.filter(function(s) { return s.mime !== 'video/mp4'; });
+      var ordered = mp4Sources.concat(otherSources);
+      ordered.forEach(function(src) {
+        /* Skip HLS streams — not supported by <video> in most browsers */
+        if (src.url.indexOf('.m3u8') !== -1) return;
+        var el = document.createElement('source');
+        el.src = src.url;
+        el.type = src.mime;
+        vid.appendChild(el);
+      });
+      /* If no sources added (all were HLS), use the direct URL fallback */
+      if (!vid.querySelectorAll('source').length && mp4Sources.length === 0) {
+        var fallbackUrl = sources[0] ? sources[0].url : '';
+        if (fallbackUrl) vid.src = fallbackUrl;
+      }
+    } catch(e) { /* fallback: won't play */ }
+    wrap.appendChild(vid);
+    currentVideo = vid;
+    updateMuteIcon(true);
+    modal.classList.add('casa-vtm-section__modal--open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  /* ── Close modal ── */
+  function close() {
+    modal.classList.remove('casa-vtm-section__modal--open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    wrap.innerHTML = '';
+    currentVideo = null;
+    muteBtn.style.display = 'none';
+    productBar.style.display = 'none';
+  }
+
+  /* ── Mute toggle ── */
+  function updateMuteIcon(muted) {
+    muteOn.style.display = muted ? 'block' : 'none';
+    muteOff.style.display = muted ? 'none' : 'block';
+  }
+
+  muteBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (!currentVideo) return;
+    currentVideo.muted = !currentVideo.muted;
+    updateMuteIcon(currentVideo.muted);
+  });
+
+  /* ── Show/hide product link in modal ── */
+  function showProductBar(card) {
+    var pUrl = card.getAttribute('data-vtms-product-url');
+    var pTitle = card.getAttribute('data-vtms-product-title');
+    if (pUrl && pTitle) {
+      productBar.href = pUrl;
+      productTitle.textContent = pTitle;
+      productBar.style.display = 'flex';
+    } else {
+      productBar.style.display = 'none';
+    }
+  }
+
+  /* ── Event listeners ── */
+  root.querySelectorAll('.casa-vtm-section__card').forEach(function(card, idx) {
+    card.addEventListener('click', function() {
+      currentCardIndex = idx;
+      var url = card.getAttribute('data-vtms-url');
+      var type = card.getAttribute('data-vtms-type');
+      var hostedSrc = card.getAttribute('data-vtms-hosted-sources');
+      if (type === 'hosted' && hostedSrc) {
+        openHosted(hostedSrc);
+      } else if (url) {
+        open(url);
+      }
+      showProductBar(card);
+      updateModalNav();
+    });
+  });
+
+  backdrop.addEventListener('click', close);
+  closeBtn.addEventListener('click', close);
+
+  document.addEventListener('keydown', function(e) {
+    if (!modal.classList.contains('casa-vtm-section__modal--open')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowLeft') openCardByIndex(currentCardIndex - 1);
+    if (e.key === 'ArrowRight') openCardByIndex(currentCardIndex + 1);
+  });
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Casa Video Testimonials",
+  "tag": "section",
+  "class": "casa-vtm-section-wrapper",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "tag_text",
+      "label": "Tag text"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title"
+    },
+    {
+      "type": "url",
+      "id": "title_link",
+      "label": "Title link",
+      "info": "Makes the title clickable"
+    },
+    {
+      "type": "text",
+      "id": "accent_word",
+      "label": "Accent word in title",
+      "info": "This word will be highlighted with the chosen accent style"
+    },
+    {
+      "type": "select",
+      "id": "accent_style",
+      "label": "Accent style",
+      "options": [
+        { "value": "gradient", "label": "Gradient text" },
+        { "value": "solid", "label": "Solid color" },
+        { "value": "underline", "label": "Underline" },
+        { "value": "glow", "label": "Neon glow" },
+        { "value": "shimmer", "label": "Shimmer animation" }
+      ],
+      "default": "gradient"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color 1",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "accent_color_2",
+      "label": "Accent color 2",
+      "info": "Used for gradient/shimmer end color",
+      "default": "#ec4899"
+    },
+    {
+      "type": "textarea",
+      "id": "subtitle",
+      "label": "Subtitle"
+    },
+    {
+      "type": "select",
+      "id": "content_align",
+      "label": "Content alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "url",
+      "id": "tag_link",
+      "label": "Tag link",
+      "info": "Makes the tag text clickable"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#0a0a0f"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "layout_width",
+      "label": "Section width",
+      "options": [
+        { "value": "page", "label": "Page width" },
+        { "value": "full", "label": "Full width" }
+      ],
+      "default": "page"
+    },
+    {
+      "type": "range",
+      "id": "card_width",
+      "label": "Card width (desktop)",
+      "min": 140,
+      "max": 320,
+      "step": 10,
+      "default": 220,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Video 1"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_1",
+      "label": "Thumbnail",
+      "info": "Optional — auto-generates from YouTube if empty"
+    },
+    {
+      "type": "video",
+      "id": "video_hosted_1",
+      "label": "Shopify-hosted video",
+      "info": "Upload a video to Files and select it here"
+    },
+    {
+      "type": "video_url",
+      "id": "video_picker_1",
+      "label": "YouTube / Vimeo URL",
+      "info": "Use the picker or paste a link",
+      "accept": ["youtube", "vimeo"]
+    },
+    {
+      "type": "text",
+      "id": "video_url_1",
+      "label": "Direct video URL (fallback)",
+      "info": "Only needed if not using the pickers above"
+    },
+    {
+      "type": "text",
+      "id": "author_1",
+      "label": "Author name"
+    },
+    {
+      "type": "text",
+      "id": "caption_1",
+      "label": "Caption",
+      "info": "Short text shown below the author name on the card"
+    },
+    {
+      "type": "url",
+      "id": "product_url_1",
+      "label": "Product link"
+    },
+    {
+      "type": "text",
+      "id": "product_title_1",
+      "label": "Product name"
+    },
+    {
+      "type": "header",
+      "content": "Video 2"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_2",
+      "label": "Thumbnail"
+    },
+    {
+      "type": "video",
+      "id": "video_hosted_2",
+      "label": "Shopify-hosted video"
+    },
+    {
+      "type": "video_url",
+      "id": "video_picker_2",
+      "label": "YouTube / Vimeo URL",
+      "accept": ["youtube", "vimeo"]
+    },
+    {
+      "type": "text",
+      "id": "video_url_2",
+      "label": "Direct video URL (fallback)"
+    },
+    {
+      "type": "text",
+      "id": "author_2",
+      "label": "Author name"
+    },
+    {
+      "type": "text",
+      "id": "caption_2",
+      "label": "Caption",
+      "info": "Short text shown below the author name on the card"
+    },
+    {
+      "type": "url",
+      "id": "product_url_2",
+      "label": "Product link"
+    },
+    {
+      "type": "text",
+      "id": "product_title_2",
+      "label": "Product name"
+    },
+    {
+      "type": "header",
+      "content": "Video 3"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_3",
+      "label": "Thumbnail"
+    },
+    {
+      "type": "video",
+      "id": "video_hosted_3",
+      "label": "Shopify-hosted video"
+    },
+    {
+      "type": "video_url",
+      "id": "video_picker_3",
+      "label": "YouTube / Vimeo URL",
+      "accept": ["youtube", "vimeo"]
+    },
+    {
+      "type": "text",
+      "id": "video_url_3",
+      "label": "Direct video URL (fallback)"
+    },
+    {
+      "type": "text",
+      "id": "author_3",
+      "label": "Author name"
+    },
+    {
+      "type": "text",
+      "id": "caption_3",
+      "label": "Caption",
+      "info": "Short text shown below the author name on the card"
+    },
+    {
+      "type": "url",
+      "id": "product_url_3",
+      "label": "Product link"
+    },
+    {
+      "type": "text",
+      "id": "product_title_3",
+      "label": "Product name"
+    },
+    {
+      "type": "header",
+      "content": "Video 4"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_4",
+      "label": "Thumbnail"
+    },
+    {
+      "type": "video",
+      "id": "video_hosted_4",
+      "label": "Shopify-hosted video"
+    },
+    {
+      "type": "video_url",
+      "id": "video_picker_4",
+      "label": "YouTube / Vimeo URL",
+      "accept": ["youtube", "vimeo"]
+    },
+    {
+      "type": "text",
+      "id": "video_url_4",
+      "label": "Direct video URL (fallback)"
+    },
+    {
+      "type": "text",
+      "id": "author_4",
+      "label": "Author name"
+    },
+    {
+      "type": "text",
+      "id": "caption_4",
+      "label": "Caption",
+      "info": "Short text shown below the author name on the card"
+    },
+    {
+      "type": "url",
+      "id": "product_url_4",
+      "label": "Product link"
+    },
+    {
+      "type": "text",
+      "id": "product_title_4",
+      "label": "Product name"
+    },
+    {
+      "type": "header",
+      "content": "Video 5"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_5",
+      "label": "Thumbnail"
+    },
+    {
+      "type": "video",
+      "id": "video_hosted_5",
+      "label": "Shopify-hosted video"
+    },
+    {
+      "type": "video_url",
+      "id": "video_picker_5",
+      "label": "YouTube / Vimeo URL",
+      "accept": ["youtube", "vimeo"]
+    },
+    {
+      "type": "text",
+      "id": "video_url_5",
+      "label": "Direct video URL (fallback)"
+    },
+    {
+      "type": "text",
+      "id": "author_5",
+      "label": "Author name"
+    },
+    {
+      "type": "text",
+      "id": "caption_5",
+      "label": "Caption",
+      "info": "Short text shown below the author name on the card"
+    },
+    {
+      "type": "url",
+      "id": "product_url_5",
+      "label": "Product link"
+    },
+    {
+      "type": "text",
+      "id": "product_title_5",
+      "label": "Product name"
+    },
+    {
+      "type": "header",
+      "content": "Video 6"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_6",
+      "label": "Thumbnail"
+    },
+    {
+      "type": "video",
+      "id": "video_hosted_6",
+      "label": "Shopify-hosted video"
+    },
+    {
+      "type": "video_url",
+      "id": "video_picker_6",
+      "label": "YouTube / Vimeo URL",
+      "accept": ["youtube", "vimeo"]
+    },
+    {
+      "type": "text",
+      "id": "video_url_6",
+      "label": "Direct video URL (fallback)"
+    },
+    {
+      "type": "text",
+      "id": "author_6",
+      "label": "Author name"
+    },
+    {
+      "type": "text",
+      "id": "caption_6",
+      "label": "Caption",
+      "info": "Short text shown below the author name on the card"
+    },
+    {
+      "type": "url",
+      "id": "product_url_6",
+      "label": "Product link"
+    },
+    {
+      "type": "text",
+      "id": "product_title_6",
+      "label": "Product name"
+    },
+    {
+      "type": "header",
+      "content": "Video 7"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_7",
+      "label": "Thumbnail"
+    },
+    {
+      "type": "video",
+      "id": "video_hosted_7",
+      "label": "Shopify-hosted video"
+    },
+    {
+      "type": "video_url",
+      "id": "video_picker_7",
+      "label": "YouTube / Vimeo URL",
+      "accept": ["youtube", "vimeo"]
+    },
+    {
+      "type": "text",
+      "id": "video_url_7",
+      "label": "Direct video URL (fallback)"
+    },
+    {
+      "type": "text",
+      "id": "author_7",
+      "label": "Author name"
+    },
+    {
+      "type": "text",
+      "id": "caption_7",
+      "label": "Caption",
+      "info": "Short text shown below the author name on the card"
+    },
+    {
+      "type": "url",
+      "id": "product_url_7",
+      "label": "Product link"
+    },
+    {
+      "type": "text",
+      "id": "product_title_7",
+      "label": "Product name"
+    },
+    {
+      "type": "header",
+      "content": "Video 8"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_8",
+      "label": "Thumbnail"
+    },
+    {
+      "type": "video",
+      "id": "video_hosted_8",
+      "label": "Shopify-hosted video"
+    },
+    {
+      "type": "video_url",
+      "id": "video_picker_8",
+      "label": "YouTube / Vimeo URL",
+      "accept": ["youtube", "vimeo"]
+    },
+    {
+      "type": "text",
+      "id": "video_url_8",
+      "label": "Direct video URL (fallback)"
+    },
+    {
+      "type": "text",
+      "id": "author_8",
+      "label": "Author name"
+    },
+    {
+      "type": "text",
+      "id": "caption_8",
+      "label": "Caption",
+      "info": "Short text shown below the author name on the card"
+    },
+    {
+      "type": "url",
+      "id": "product_url_8",
+      "label": "Product link"
+    },
+    {
+      "type": "text",
+      "id": "product_title_8",
+      "label": "Product name"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 100,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 100,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile_top",
+      "label": "Padding top (mobile)",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "default": 60,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile_bottom",
+      "label": "Padding bottom (mobile)",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "default": 60,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "@app"
+    },
+    {
+      "type": "custom-liquid",
+      "name": "Custom Liquid",
+      "settings": [
+        {
+          "type": "liquid",
+          "id": "custom_liquid",
+          "label": "Custom Liquid"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Video Testimonials"
+    }
+  ]
+}
+{% endschema %}
+
+{% stylesheet %}
+/* ══════════════════════════════════════════════════════════════════════════
+   CASA VIDEO TESTIMONIALS SECTION
+   Horizontal scroll row of portrait video cards + sticky modal
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.casa-vtm-section {
+  background: var(--cvts-bg, #0a0a0f);
+  color: var(--cvts-text, #ffffff);
+  padding: var(--cvts-padding-top) 0 var(--cvts-padding-bottom);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Container ── */
+.casa-vtm-section__container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+.casa-vtm-section__container--full {
+  max-width: none;
+  padding: 0 40px;
+}
+
+/* ── Header ── */
+.casa-vtm-section__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.casa-vtm-section__tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9333ea;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+}
+
+.casa-vtm-section__title {
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 300;
+  color: var(--cvts-text, #ffffff);
+  margin: 0 0 16px 0;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+/* Accent word styles */
+.casa-vtm-section__accent--gradient {
+  background: linear-gradient(135deg, var(--cvts-accent-1, #9333ea), var(--cvts-accent-2, #ec4899));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.casa-vtm-section__accent--solid {
+  color: var(--cvts-accent-1, #9333ea);
+}
+.casa-vtm-section__accent--underline {
+  text-decoration: underline;
+  text-decoration-color: var(--cvts-accent-1, #9333ea);
+  text-underline-offset: 6px;
+  text-decoration-thickness: 3px;
+}
+.casa-vtm-section__accent--glow {
+  color: var(--cvts-accent-1, #9333ea);
+  text-shadow: 0 0 20px var(--cvts-accent-1, #9333ea), 0 0 40px rgba(147, 51, 234, 0.3);
+}
+.casa-vtm-section__accent--shimmer {
+  background: linear-gradient(90deg, var(--cvts-accent-1, #9333ea) 0%, var(--cvts-accent-2, #ec4899) 50%, var(--cvts-accent-1, #9333ea) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: vtm-shimmer 3s ease-in-out infinite;
+}
+@keyframes vtm-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.casa-vtm-section__subtitle {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 auto;
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   VIDEO CARDS ROW
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.casa-vtm-section__carousel {
+  position: relative;
+}
+
+.casa-vtm-section__row {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.casa-vtm-section__row::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Carousel arrows ── */
+.casa-vtm-section__arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+.casa-vtm-section__arrow:hover {
+  background: rgba(255,255,255,0.25);
+}
+.casa-vtm-section__arrow--prev {
+  left: -8px;
+}
+.casa-vtm-section__arrow--next {
+  right: -8px;
+}
+
+/* Full-width mode — arrows further out */
+.casa-vtm-section__container--full .casa-vtm-section__arrow--prev {
+  left: 4px;
+}
+.casa-vtm-section__container--full .casa-vtm-section__arrow--next {
+  right: 4px;
+}
+
+/* ── Card ── */
+.casa-vtm-section__card {
+  position: relative;
+  flex-shrink: 0;
+  width: var(--cvts-card-width, 220px);
+  aspect-ratio: 9 / 16;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  background: #1a1a2e;
+  scroll-snap-align: start;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.casa-vtm-section__card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+}
+
+/* ── Thumbnail ── */
+.casa-vtm-section__thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.casa-vtm-section__thumb--placeholder {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+/* ── Play button ── */
+.casa-vtm-section__play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0a0a0a;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: transform 0.2s ease, background 0.2s ease;
+  pointer-events: none;
+}
+.casa-vtm-section__play svg {
+  margin-left: 2px; /* optical center for play triangle */
+}
+.casa-vtm-section__card:hover .casa-vtm-section__play {
+  transform: translate(-50%, -50%) scale(1.1);
+  background: #fff;
+}
+
+/* ── Author name ── */
+.casa-vtm-section__name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 28px 10px 10px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.65));
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  pointer-events: none;
+  line-height: 1.3;
+}
+.casa-vtm-section__caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 4px 10px 8px;
+  color: rgba(255,255,255,0.7);
+  font-size: 10px;
+  font-weight: 400;
+  text-align: left;
+  pointer-events: none;
+  line-height: 1.3;
+}
+.casa-vtm-section__card:has(.casa-vtm-section__caption) .casa-vtm-section__name {
+  padding-bottom: 22px;
+}
+.casa-vtm-section__title-link {
+  text-decoration: none;
+  color: inherit;
+}
+.casa-vtm-section__title-link:hover .casa-vtm-section__title {
+  opacity: 0.8;
+}
+.casa-vtm-section__tag--link {
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+.casa-vtm-section__tag--link:hover {
+  opacity: 0.7;
+}
+
+/* ── Product badge on card ── */
+.casa-vtm-section__product-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 3px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  line-height: 1.3;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.casa-vtm-section__card:hover .casa-vtm-section__product-badge {
+  opacity: 1;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MODAL
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.casa-vtm-section__modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.casa-vtm-section__modal--open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Backdrop ── */
+.casa-vtm-section__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ── Player card ── */
+.casa-vtm-section__player {
+  position: relative;
+  width: 90vw;
+  max-width: 400px;
+  aspect-ratio: 9 / 16;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+  z-index: 1;
+  transform: scale(0.92);
+  transition: transform 0.3s ease;
+}
+.casa-vtm-section__modal--open .casa-vtm-section__player {
+  transform: scale(1);
+}
+
+/* ── Video element ── */
+.casa-vtm-section__video-wrap {
+  width: 100%;
+  height: 100%;
+}
+.casa-vtm-section__video {
+  width: 100%;
+  height: 100%;
+  border: none;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Close button ── */
+.casa-vtm-section__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+/* Modal nav arrows */
+.casa-vtm-section__modal-prev,
+.casa-vtm-section__modal-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.casa-vtm-section__modal-prev { left: 12px; }
+.casa-vtm-section__modal-next { right: 12px; }
+.casa-vtm-section__modal-prev:hover,
+.casa-vtm-section__modal-next:hover {
+  background: rgba(255,255,255,0.25);
+}
+.casa-vtm-section__modal-prev:disabled,
+.casa-vtm-section__modal-next:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+@media (max-width: 749px) {
+  .casa-vtm-section__modal-prev,
+  .casa-vtm-section__modal-next {
+    width: 36px;
+    height: 36px;
+  }
+  .casa-vtm-section__modal-prev { left: 8px; }
+  .casa-vtm-section__modal-next { right: 8px; }
+}
+.casa-vtm-section__close:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+/* ── Mute button ── */
+.casa-vtm-section__mute {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 4;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.casa-vtm-section__mute:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+/* ── Product link in modal ── */
+.casa-vtm-section__modal-product {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 56px 12px 16px; /* right padding clears the mute button */
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  color: #fff;
+  text-decoration: none;
+  font-size: 13px;
+  transition: opacity 0.2s ease;
+}
+.casa-vtm-section__modal-product:hover {
+  opacity: 0.85;
+}
+.casa-vtm-section__modal-product-title {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+.casa-vtm-section__modal-product-cta {
+  font-weight: 500;
+  flex-shrink: 0;
+  margin-left: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .casa-vtm-section {
+    padding: var(--cvts-padding-mobile-top) 0 var(--cvts-padding-mobile-bottom);
+  }
+
+  .casa-vtm-section__container,
+  .casa-vtm-section__container--full {
+    padding: 0 16px;
+  }
+
+  .casa-vtm-section__header {
+    margin-bottom: 32px;
+  }
+
+  .casa-vtm-section__tag {
+    font-size: 11px;
+    margin-bottom: 12px;
+  }
+
+  .casa-vtm-section__subtitle {
+    font-size: 14px;
+  }
+
+  .casa-vtm-section__row {
+    gap: 12px;
+  }
+
+  .casa-vtm-section__card {
+    width: 140px;
+    border-radius: 12px;
+  }
+
+  /* Hide carousel arrows on tablet and below — use swipe */
+  .casa-vtm-section__arrow {
+    display: none !important;
+  }
+
+  .casa-vtm-section__play {
+    width: 38px;
+    height: 38px;
+  }
+  .casa-vtm-section__play svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .casa-vtm-section__player {
+    width: 92vw;
+    max-width: 360px;
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .casa-vtm-section__card {
+    width: 125px;
+    border-radius: 10px;
+  }
+
+  .casa-vtm-section__name {
+    font-size: 10px;
+    padding: 20px 8px 8px;
+  }
+
+  .casa-vtm-section__player {
+    width: 95vw;
+    border-radius: 14px;
+  }
+}
+{% endstylesheet %}

@@ -1,0 +1,224 @@
+{% doc %}
+  Casa Cart Progress Bar
+
+  Renders a free shipping progress bar with shimmer animation.
+  Reads settings.free_shipping_threshold to determine the threshold.
+  Hidden when threshold is 0 or not set.
+
+  @param {number} cart_total - The cart total price in cents
+{% enddoc %}
+
+{%- liquid
+  assign always_free = settings.cart_always_free_shipping
+  assign threshold = settings.free_shipping_threshold | default: 0
+  assign threshold_cents = threshold | times: 100
+  assign cart_total_cents = cart.total_price
+  assign remaining_cents = threshold_cents | minus: cart_total_cents
+  assign is_complete = false
+
+  if always_free
+    assign is_complete = true
+    assign progress_pct = 100
+  elsif remaining_cents <= 0
+    assign is_complete = true
+    assign progress_pct = 100
+  else
+    assign progress_pct = cart_total_cents | times: 100 | divided_by: threshold_cents
+    if progress_pct > 100
+      assign progress_pct = 100
+    endif
+  endif
+
+  assign show_bar = false
+  if always_free
+    assign show_bar = true
+  elsif threshold > 0
+    assign show_bar = true
+  endif
+-%}
+
+{%- if show_bar -%}
+  <div class="casa-cart-progress" aria-label="{{ 'content.free_shipping_progress' | t | default: 'Free shipping progress' }}">
+    <div class="casa-cart-progress__text">
+      {%- if is_complete -%}
+        <span class="casa-cart-progress__icon casa-cart-progress__icon--complete">
+          {%- render 'casa-icon', icon: 'check', size: 16 -%}
+        </span>
+        <span class="casa-cart-progress__message casa-cart-progress__message--complete">
+          {%- if always_free -%}
+            <strong>FREE shipping</strong> on all orders
+          {%- else -%}
+            You've unlocked <strong>FREE shipping!</strong>
+          {%- endif -%}
+        </span>
+      {%- else -%}
+        <span class="casa-cart-progress__icon">
+          {%- render 'casa-icon', icon: 'truck', size: 16 -%}
+        </span>
+        <span class="casa-cart-progress__message">
+          You're <strong>{{ remaining_cents | money }}</strong> away from <strong>FREE shipping!</strong>
+        </span>
+      {%- endif -%}
+    </div>
+    <div class="casa-cart-progress__track">
+      <div
+        class="casa-cart-progress__fill{% if is_complete %} casa-cart-progress__fill--complete{% endif %}"
+        style="width: {{ progress_pct }}%;"
+        role="progressbar"
+        aria-valuenow="{{ progress_pct }}"
+        aria-valuemin="0"
+        aria-valuemax="100"
+      ></div>
+    </div>
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .casa-cart-progress {
+    background: linear-gradient(135deg, var(--cart-bg-secondary, rgba(17, 17, 17, 0.9)), var(--cart-bg, rgba(30, 30, 30, 0.8)));
+    border: 1px solid rgba(147, 51, 234, 0.2);
+    border-radius: var(--casa-radius-xl);
+    padding: var(--casa-space-5) var(--casa-space-6);
+    margin-bottom: var(--casa-space-8);
+    position: relative;
+    overflow: hidden;
+    animation: casa-progress-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .casa-cart-progress::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at top left, rgba(147, 51, 234, 0.1), transparent 50%);
+    pointer-events: none;
+  }
+
+  @keyframes casa-progress-enter {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .casa-cart-progress__text {
+    display: flex;
+    align-items: center;
+    gap: var(--casa-space-3);
+    margin-bottom: var(--casa-space-4);
+    font-size: 14px;
+    color: var(--cart-text-muted, var(--casa-text-secondary));
+    position: relative;
+  }
+
+  .casa-cart-progress__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--cart-accent-1, var(--casa-purple)), var(--cart-accent-2, var(--casa-pink)));
+    border-radius: 50%;
+    color: #fff;
+    animation: casa-icon-pulse 2s ease-in-out infinite;
+  }
+
+  .casa-cart-progress__icon--complete {
+    background: linear-gradient(135deg, var(--casa-green), #34d399);
+    animation: casa-icon-celebrate 0.6s ease both;
+  }
+
+  @keyframes casa-icon-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(147, 51, 234, 0); }
+  }
+
+  @keyframes casa-icon-celebrate {
+    0% { transform: scale(0.8); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+
+  .casa-cart-progress__message {
+    flex: 1;
+  }
+
+  .casa-cart-progress__message strong {
+    color: var(--cart-text, var(--casa-text-primary));
+    font-weight: 600;
+  }
+
+  .casa-cart-progress__message--complete strong {
+    color: var(--casa-green);
+  }
+
+  .casa-cart-progress__track {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--casa-radius-full);
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .casa-cart-progress__fill {
+    height: 100%;
+    border-radius: var(--casa-radius-full);
+    background: linear-gradient(90deg, var(--cart-accent-1, var(--casa-purple)), var(--cart-accent-2, var(--casa-pink)), var(--cart-accent-1, var(--casa-cyan)));
+    background-size: 200% 100%;
+    animation: casa-progress-gradient 3s ease infinite;
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 15px rgba(147, 51, 234, 0.5);
+  }
+
+  @keyframes casa-progress-gradient {
+    0% { background-position: 0% center; }
+    50% { background-position: 100% center; }
+    100% { background-position: 0% center; }
+  }
+
+  .casa-cart-progress__fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.4) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: casa-progress-shimmer 1.5s linear infinite;
+  }
+
+  .casa-cart-progress__fill--complete {
+    background: linear-gradient(90deg, #10b981, #34d399, #6ee7b7);
+    background-size: 200% 100%;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+  }
+
+  @keyframes casa-progress-shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .casa-cart-progress__fill {
+      transition: none;
+      animation: none;
+    }
+    .casa-cart-progress__fill::after {
+      animation: none;
+    }
+    .casa-cart-progress__icon {
+      animation: none;
+    }
+  }
+{% endstylesheet %}

@@ -1,0 +1,98 @@
+{%- doc -%}
+  Breadcrumbs Block
+  Auto-generates breadcrumb navigation from Home > Collection > Product.
+{%- enddoc -%}
+
+{%- liquid
+  assign product_resource = closest.product
+  assign block_settings = block.settings
+-%}
+
+<nav
+  class="casa-breadcrumbs spacing-style"
+  aria-label="Breadcrumb"
+  style="{% render 'spacing-style', settings: block_settings %}"
+  {{ block.shopify_attributes }}
+>
+  <ol class="casa-breadcrumbs__list">
+    <li class="casa-breadcrumbs__item">
+      <a href="/" class="casa-breadcrumbs__link">Home</a>
+    </li>
+    {%- if product_resource.collections.size > 0 -%}
+      {%- assign collection = product_resource.collections.first -%}
+      <li class="casa-breadcrumbs__item">
+        <span class="casa-breadcrumbs__separator" aria-hidden="true">&rsaquo;</span>
+        <a href="{{ collection.url }}" class="casa-breadcrumbs__link">{{ collection.title }}</a>
+      </li>
+    {%- endif -%}
+    <li class="casa-breadcrumbs__item casa-breadcrumbs__item--current" aria-current="page">
+      <span class="casa-breadcrumbs__separator" aria-hidden="true">&rsaquo;</span>
+      <span class="casa-breadcrumbs__current">{{ product_resource.title }}</span>
+    </li>
+  </ol>
+</nav>
+
+{% schema %}
+{
+  "name": "Breadcrumbs",
+  "tag": null,
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_breadcrumbs",
+      "label": "Show breadcrumbs",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:content.padding"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "t:settings.top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "t:settings.bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "padding-inline-start",
+      "label": "t:settings.left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-inline-end",
+      "label": "t:settings.right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "Breadcrumbs",
+      "category": "t:categories.product"
+    }
+  ]
+}
+{% endschema %}

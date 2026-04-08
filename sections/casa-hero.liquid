@@ -1,0 +1,2470 @@
+{%- comment -%}
+  Seoul Glow Lab Hero Section - Premium Edition
+  Full-bleed hero with video/image support, multiple animation presets,
+  customizable colors, badges, promos, and conversion-focused design
+{%- endcomment -%}
+
+{%- liquid
+  assign hero_height = section.settings.hero_height | default: '90vh'
+  assign layout = section.settings.layout | default: 'split'
+  assign animation_style = section.settings.animation_style | default: 'particles'
+  assign color_theme = section.settings.color_theme | default: 'purple-glow'
+
+  # Padding settings
+  assign padding_top = section.settings.padding_top | default: 0
+  assign padding_bottom = section.settings.padding_bottom | default: 0
+  assign mobile_padding_top = section.settings.mobile_padding_top | default: 100
+  assign mobile_padding_bottom = section.settings.mobile_padding_bottom | default: 80
+
+  # Mobile settings
+  assign mobile_height = section.settings.mobile_height | default: 'auto'
+  assign mobile_order = section.settings.mobile_order | default: 'text-first'
+  assign mobile_hide_visual = section.settings.mobile_hide_visual
+  assign mobile_visual_size = section.settings.mobile_visual_size | default: 280
+
+  # Color theme presets
+  case color_theme
+    when 'purple-glow'
+      assign color_1 = section.settings.custom_color_1 | default: '#9333ea'
+      assign color_2 = section.settings.custom_color_2 | default: '#ec4899'
+      assign color_3 = section.settings.custom_color_3 | default: '#06b6d4'
+    when 'sunset-gold'
+      assign color_1 = '#f59e0b'
+      assign color_2 = '#ef4444'
+      assign color_3 = '#fbbf24'
+    when 'ocean-teal'
+      assign color_1 = '#06b6d4'
+      assign color_2 = '#0891b2'
+      assign color_3 = '#22d3ee'
+    when 'midnight-rose'
+      assign color_1 = '#ec4899'
+      assign color_2 = '#be185d'
+      assign color_3 = '#f472b6'
+    when 'emerald-glow'
+      assign color_1 = '#10b981'
+      assign color_2 = '#059669'
+      assign color_3 = '#34d399'
+    when 'custom'
+      assign color_1 = section.settings.custom_color_1 | default: '#9333ea'
+      assign color_2 = section.settings.custom_color_2 | default: '#ec4899'
+      assign color_3 = section.settings.custom_color_3 | default: '#06b6d4'
+  endcase
+
+  assign overlay_opacity = section.settings.overlay_opacity | default: 70
+  assign text_alignment = section.settings.text_alignment | default: 'left'
+
+  # Typography color overrides
+  assign title_color = section.settings.title_color
+  assign accent_word_color_1 = section.settings.accent_word_color_1
+  assign accent_word_color_2 = section.settings.accent_word_color_2
+  assign subtitle_color = section.settings.subtitle_color
+  assign badge_bg_color = section.settings.badge_bg_color
+  assign badge_text_color = section.settings.badge_text_color
+  assign stats_color = section.settings.stats_color
+  assign promo_bg_color = section.settings.promo_bg_color
+  assign promo_text_color = section.settings.promo_text_color
+  assign hero_bg_color = section.settings.hero_bg_color
+-%}
+
+<section
+  class="casa-hero casa-hero--{{ layout }} casa-hero--{{ animation_style }} casa-hero--mobile-{{ mobile_order }}{% if mobile_hide_visual %} casa-hero--mobile-no-visual{% endif %}"
+  id="casa-hero-{{ section.id }}"
+  style="
+    --hero-height: {{ hero_height }};
+    --hero-color-1: {{ color_1 }};
+    --hero-color-2: {{ color_2 }};
+    --hero-color-3: {{ color_3 }};
+    --hero-overlay-opacity: {{ overlay_opacity | divided_by: 100.0 }};
+    --hero-text-align: {{ text_alignment }};
+    --hero-flex-align: {% if text_alignment == "center" %}center{% elsif text_alignment == "right" %}flex-end{% else %}flex-start{% endif %};
+    --hero-padding-top: {{ padding_top }}px;
+    --hero-padding-bottom: {{ padding_bottom }}px;
+    --hero-mobile-height: {{ mobile_height }};
+    --hero-mobile-padding-top: {{ mobile_padding_top }}px;
+    --hero-mobile-padding-bottom: {{ mobile_padding_bottom }}px;
+    --hero-mobile-visual-size: {{ mobile_visual_size }}px;
+    {%- if title_color != blank %}--hero-title-color: {{ title_color }};{% endif -%}
+    {%- if accent_word_color_1 != blank %}--hero-accent-word-1: {{ accent_word_color_1 }};{% endif -%}
+    {%- if accent_word_color_2 != blank %}--hero-accent-word-2: {{ accent_word_color_2 }};{% endif -%}
+    {%- if subtitle_color != blank %}--hero-subtitle-color: {{ subtitle_color }};{% endif -%}
+    {%- if badge_bg_color != blank %}--hero-badge-bg: {{ badge_bg_color }};{% endif -%}
+    {%- if badge_text_color != blank %}--hero-badge-text: {{ badge_text_color }};{% endif -%}
+    {%- if stats_color != blank %}--hero-stats-color: {{ stats_color }};{% endif -%}
+    {%- if promo_bg_color != blank %}--hero-promo-bg: {{ promo_bg_color }};{% endif -%}
+    {%- if promo_text_color != blank %}--hero-promo-text: {{ promo_text_color }};{% endif -%}
+    {%- if hero_bg_color != blank %}--hero-bg-color: {{ hero_bg_color }};{% endif -%}
+    --hero-glow-intensity: {{ section.settings.glow_intensity | default: 50 | divided_by: 100.0 }};
+    --hero-glow-size: {{ section.settings.glow_size | default: 30 }}px;
+  "
+>
+  {%- comment -%} ═══ Background Media ═══ {%- endcomment -%}
+  <div class="casa-hero__bg">
+    {%- if section.settings.background_video != blank -%}
+      <video
+        class="casa-hero__video"
+        autoplay
+        muted
+        loop
+        playsinline
+        poster="{{ section.settings.background_image | image_url: width: 1920 }}"
+      >
+        <source src="{{ section.settings.background_video }}" type="video/mp4">
+      </video>
+    {%- elsif section.settings.background_image != blank -%}
+      <img
+        class="casa-hero__bg-image"
+        src="{{ section.settings.background_image | image_url: width: 1920 }}"
+        srcset="
+          {{ section.settings.background_image | image_url: width: 1200 }} 1200w,
+          {{ section.settings.background_image | image_url: width: 1920 }} 1920w,
+          {{ section.settings.background_image | image_url: width: 2560 }} 2560w
+        "
+        sizes="100vw"
+        alt="{{ section.settings.background_image.alt | default: 'Hero background' | escape }}"
+        loading="eager"
+        fetchpriority="high"
+      >
+    {%- endif -%}
+    <div class="casa-hero__overlay"></div>
+  </div>
+
+  {%- comment -%} ═══ Animation Layer ═══ {%- endcomment -%}
+  {%- if animation_style != 'none' -%}
+    <div class="casa-hero__animations" aria-hidden="true">
+      {%- case animation_style -%}
+        {%- when 'particles' -%}
+          {%- for i in (1..15) -%}
+            <div class="casa-hero__particle"></div>
+          {%- endfor -%}
+        {%- when 'aurora' -%}
+          <div class="casa-hero__aurora">
+            <div class="casa-hero__aurora-layer"></div>
+            <div class="casa-hero__aurora-layer"></div>
+            <div class="casa-hero__aurora-layer"></div>
+          </div>
+        {%- when 'orbs' -%}
+          <div class="casa-hero__orb casa-hero__orb--1"></div>
+          <div class="casa-hero__orb casa-hero__orb--2"></div>
+          <div class="casa-hero__orb casa-hero__orb--3"></div>
+        {%- when 'gradient-flow' -%}
+          <div class="casa-hero__gradient-flow"></div>
+        {%- when 'starfield' -%}
+          {%- for i in (1..50) -%}
+            <div class="casa-hero__star"></div>
+          {%- endfor -%}
+        {%- when 'waves' -%}
+          <div class="casa-hero__waves">
+            <div class="casa-hero__wave"></div>
+            <div class="casa-hero__wave"></div>
+            <div class="casa-hero__wave"></div>
+          </div>
+      {%- endcase -%}
+    </div>
+  {%- endif -%}
+
+  {%- comment -%} ═══ Promo Banner ═══ {%- endcomment -%}
+  {%- if section.settings.show_promo_banner and section.settings.promo_text != blank -%}
+    <div class="casa-hero__promo">
+      <div class="casa-hero__promo-inner">
+        {%- if section.settings.promo_icon != 'none' -%}
+          {%- render 'casa-icon', icon: section.settings.promo_icon, size: 16 -%}
+        {%- endif -%}
+        <span>{{ section.settings.promo_text }}</span>
+        {%- if section.settings.promo_code != blank -%}
+          <code class="casa-hero__promo-code">{{ section.settings.promo_code }}</code>
+        {%- endif -%}
+        {%- if section.settings.promo_countdown != blank -%}
+          <span class="casa-hero__countdown" data-countdown="{{ section.settings.promo_countdown }}"></span>
+        {%- endif -%}
+      </div>
+    </div>
+  {%- endif -%}
+
+  {%- comment -%} ═══ Main Content ═══ {%- endcomment -%}
+  <div class="casa-hero__container">
+    <div class="casa-hero__content">
+      {%- comment -%} Text Column {%- endcomment -%}
+      <div class="casa-hero__text">
+        {%- comment -%} Badges Row {%- endcomment -%}
+        <div class="casa-hero__badges">
+          {%- if section.settings.badge_new -%}
+            <span class="casa-hero__badge casa-hero__badge--new" style="{% if badge_bg_color != blank %}background: {{ badge_bg_color }};{% endif %}{% if badge_text_color != blank %}color: {{ badge_text_color }};{% endif %}">
+              {%- render 'casa-icon', icon: 'sparkles', size: 12 -%}
+              New
+            </span>
+          {%- endif -%}
+          {%- if section.settings.badge_sale and section.settings.badge_sale_text != blank -%}
+            <span class="casa-hero__badge casa-hero__badge--sale" style="{% if badge_bg_color != blank %}background: {{ badge_bg_color }};{% endif %}{% if badge_text_color != blank %}color: {{ badge_text_color }};{% endif %}">
+              {%- render 'casa-icon', icon: 'tag', size: 12 -%}
+              {{ section.settings.badge_sale_text }}
+            </span>
+          {%- endif -%}
+          {%- if section.settings.badge_limited -%}
+            <span class="casa-hero__badge casa-hero__badge--limited" style="{% if badge_bg_color != blank %}background: {{ badge_bg_color }};{% endif %}{% if badge_text_color != blank %}color: {{ badge_text_color }};{% endif %}">
+              {%- render 'casa-icon', icon: 'zap', size: 12 -%}
+              Limited Edition
+            </span>
+          {%- endif -%}
+          {%- if section.settings.tag_text != blank -%}
+            <span class="casa-hero__badge casa-hero__badge--tag" style="{% if badge_bg_color != blank %}background: {{ badge_bg_color }};{% endif %}{% if badge_text_color != blank %}color: {{ badge_text_color }};{% endif %}">
+              {%- if section.settings.tag_icon != 'none' -%}
+                {%- render 'casa-icon', icon: section.settings.tag_icon, size: 14 -%}
+              {%- endif -%}
+              {{ section.settings.tag_text }}
+            </span>
+          {%- endif -%}
+        </div>
+
+        {%- comment -%} Title {%- endcomment -%}
+        {%- if section.settings.title_line_1 != blank or section.settings.title_gradient != blank or section.settings.title_line_2 != blank -%}
+          <h1 class="casa-hero__title">
+            {%- if section.settings.title_line_1 != blank -%}
+              <span class="casa-hero__title-line">{{ section.settings.title_line_1 }}</span>
+            {%- endif -%}
+            {%- if section.settings.title_gradient != blank -%}
+              <span class="casa-hero__title-gradient">{{ section.settings.title_gradient }}</span>
+            {%- endif -%}
+            {%- if section.settings.title_line_2 != blank -%}
+              <span class="casa-hero__title-line">{{ section.settings.title_line_2 }}</span>
+            {%- endif -%}
+          </h1>
+        {%- endif -%}
+
+        {%- comment -%} Subtitle {%- endcomment -%}
+        {%- if section.settings.subtitle != blank -%}
+          <p class="casa-hero__subtitle">{{ section.settings.subtitle }}</p>
+        {%- endif -%}
+
+        {%- comment -%} Features List {%- endcomment -%}
+        {%- if section.settings.show_features -%}
+          <ul class="casa-hero__features">
+            {%- if section.settings.feature_1 != blank -%}
+              <li>
+                {%- render 'casa-icon', icon: 'check', size: 16 -%}
+                {{ section.settings.feature_1 }}
+              </li>
+            {%- endif -%}
+            {%- if section.settings.feature_2 != blank -%}
+              <li>
+                {%- render 'casa-icon', icon: 'check', size: 16 -%}
+                {{ section.settings.feature_2 }}
+              </li>
+            {%- endif -%}
+            {%- if section.settings.feature_3 != blank -%}
+              <li>
+                {%- render 'casa-icon', icon: 'check', size: 16 -%}
+                {{ section.settings.feature_3 }}
+              </li>
+            {%- endif -%}
+          </ul>
+        {%- endif -%}
+
+        {%- comment -%} Price Display {%- endcomment -%}
+        {%- if section.settings.show_price and section.settings.price != blank -%}
+          <div class="casa-hero__price-wrapper">
+            {%- if section.settings.compare_price != blank -%}
+              <span class="casa-hero__compare-price">{{ section.settings.compare_price }}</span>
+            {%- endif -%}
+            <span class="casa-hero__price">{{ section.settings.price }}</span>
+            {%- if section.settings.price_suffix != blank -%}
+              <span class="casa-hero__price-suffix">{{ section.settings.price_suffix }}</span>
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+
+        {%- comment -%} Buttons {%- endcomment -%}
+        <div class="casa-hero__buttons">
+          {%- if section.settings.button_primary_text != blank -%}
+            <a
+              href="{{ section.settings.button_primary_link }}"
+              class="casa-hero__btn casa-hero__btn--primary casa-hero__btn--{{ section.settings.button_primary_size | default: 'medium' }}"
+              style="{% if section.settings.button_primary_bg != blank %}background: {{ section.settings.button_primary_bg }};{% endif %}{% if section.settings.button_primary_text_color != blank %}color: {{ section.settings.button_primary_text_color }};{% endif %}border-radius: {{ section.settings.button_primary_radius | default: 12 }}px;"
+              {%- if section.settings.button_primary_style == 'pulse' %} data-pulse{%- endif -%}
+            >
+              {%- if section.settings.button_primary_icon != 'none' -%}
+                {%- render 'casa-icon', icon: section.settings.button_primary_icon, size: 18 -%}
+              {%- endif -%}
+              {{ section.settings.button_primary_text }}
+            </a>
+          {%- endif -%}
+          {%- if section.settings.button_secondary_text != blank -%}
+            <a href="{{ section.settings.button_secondary_link }}" class="casa-hero__btn casa-hero__btn--secondary casa-hero__btn--{{ section.settings.button_secondary_size | default: "medium" }}" style="{% if section.settings.button_secondary_bg != blank %}background: {{ section.settings.button_secondary_bg }};{% endif %}{% if section.settings.button_secondary_text_color != blank %}color: {{ section.settings.button_secondary_text_color }};{% endif %}border-radius: {{ section.settings.button_secondary_radius | default: 12 }}px;">
+              {%- if section.settings.button_secondary_icon != 'none' -%}
+                {%- render 'casa-icon', icon: section.settings.button_secondary_icon, size: 18 -%}
+              {%- endif -%}
+              {{ section.settings.button_secondary_text }}
+            </a>
+          {%- endif -%}
+          {%- if section.settings.button_tertiary_text != blank -%}
+            <a href="{{ section.settings.button_tertiary_link }}" class="casa-hero__btn casa-hero__btn--tertiary">
+              {{ section.settings.button_tertiary_text }}
+              {%- render 'casa-icon', icon: 'chevron-right', size: 16 -%}
+            </a>
+          {%- endif -%}
+        </div>
+
+        {%- comment -%} Social Proof {%- endcomment -%}
+        {%- if section.settings.show_social_proof -%}
+          <div class="casa-hero__social-proof">
+            {%- if section.settings.show_rating -%}
+              <div class="casa-hero__rating">
+                <div class="casa-hero__stars">
+                  {%- for i in (1..5) -%}
+                    {%- render 'casa-icon', icon: 'star', size: 16 -%}
+                  {%- endfor -%}
+                </div>
+                <span class="casa-hero__rating-text">
+                  {{ section.settings.rating_score | default: '4.9' }}
+                  {%- if section.settings.rating_count != blank -%}
+                    <span class="casa-hero__rating-count">({{ section.settings.rating_count }} reviews)</span>
+                  {%- endif -%}
+                </span>
+              </div>
+            {%- endif -%}
+            {%- if section.settings.social_proof_text != blank -%}
+              <p class="casa-hero__proof-text">{{ section.settings.social_proof_text }}</p>
+            {%- endif -%}
+            {%- if section.settings.show_avatars -%}
+              <div class="casa-hero__avatars">
+                <div class="casa-hero__avatar-stack">
+                  {%- for i in (1..5) -%}
+                    <div class="casa-hero__avatar">{{ i }}</div>
+                  {%- endfor -%}
+                </div>
+                <span>+{{ section.settings.customer_count | default: '50K' }} happy customers</span>
+              </div>
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+
+        {%- comment -%} Trust Badges {%- endcomment -%}
+        {%- if section.settings.show_trust_row -%}
+          <div class="casa-hero__trust-row">
+            {%- if section.settings.trust_1_text != blank -%}
+              <div class="casa-hero__trust-item">
+                {%- render 'casa-icon', icon: section.settings.trust_1_icon | default: 'truck', size: 18 -%}
+                <span>{{ section.settings.trust_1_text }}</span>
+              </div>
+            {%- endif -%}
+            {%- if section.settings.trust_2_text != blank -%}
+              <div class="casa-hero__trust-item">
+                {%- render 'casa-icon', icon: section.settings.trust_2_icon | default: 'shield-check', size: 18 -%}
+                <span>{{ section.settings.trust_2_text }}</span>
+              </div>
+            {%- endif -%}
+            {%- if section.settings.trust_3_text != blank -%}
+              <div class="casa-hero__trust-item">
+                {%- render 'casa-icon', icon: section.settings.trust_3_icon | default: 'refresh', size: 18 -%}
+                <span>{{ section.settings.trust_3_text }}</span>
+              </div>
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+      </div>
+
+      {%- comment -%} Visual Column {%- endcomment -%}
+      {%- if layout == 'split' or layout == 'split-reverse' -%}
+        <div class="casa-hero__visual">
+          <div class="casa-hero__visual-wrapper">
+            {%- comment -%} Animated Glow Frame {%- endcomment -%}
+            {%- if section.settings.show_glow_frame -%}
+              <div class="casa-hero__glow-frame">
+                <div class="casa-hero__glow-ring"></div>
+                <div class="casa-hero__glow-ring"></div>
+              </div>
+            {%- endif -%}
+
+            {%- comment -%} Product/Feature Image or Video {%- endcomment -%}
+            {%- if section.settings.visual_video != blank -%}
+              <div class="casa-hero__visual-media casa-hero__visual-media--video">
+                <video autoplay muted loop playsinline>
+                  <source src="{{ section.settings.visual_video }}" type="video/mp4">
+                </video>
+              </div>
+            {%- elsif section.settings.visual_image != blank -%}
+              <div class="casa-hero__visual-media">
+                <img
+                  src="{{ section.settings.visual_image | image_url: width: 800 }}"
+                  srcset="
+                    {{ section.settings.visual_image | image_url: width: 400 }} 400w,
+                    {{ section.settings.visual_image | image_url: width: 600 }} 600w,
+                    {{ section.settings.visual_image | image_url: width: 800 }} 800w
+                  "
+                  sizes="(max-width: 900px) 300px, 500px"
+                  alt="{{ section.settings.visual_image.alt | default: section.settings.title_gradient | escape }}"
+                  loading="eager"
+                  class="casa-hero__product-image"
+                >
+              </div>
+            {%- else -%}
+              {%- comment -%} Animated Infinity Mirror Fallback {%- endcomment -%}
+              <div class="casa-hero__mirror {{ section.settings.mirror_shape | default: 'octagon' }}">
+                <div class="casa-hero__mirror-frame {{ section.settings.mirror_shape | default: 'octagon' }}">
+                  <div class="casa-hero__mirror-glow {{ section.settings.mirror_shape | default: 'octagon' }}">
+                    <div class="casa-hero__mirror-inner {{ section.settings.mirror_shape | default: 'octagon' }}">
+                      <div class="casa-hero__mirror-depth {{ section.settings.mirror_shape | default: 'octagon' }}">
+                        <div class="casa-hero__mirror-center {{ section.settings.mirror_shape | default: 'octagon' }}"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {%- endif -%}
+
+            {%- comment -%} Floating Badges on Visual {%- endcomment -%}
+            {%- if section.settings.visual_badge_1 != blank -%}
+              <div class="casa-hero__float-badge casa-hero__float-badge--1">
+                {%- render 'casa-icon', icon: section.settings.visual_badge_1_icon | default: 'zap', size: 16 -%}
+                {{ section.settings.visual_badge_1 }}
+              </div>
+            {%- endif -%}
+            {%- if section.settings.visual_badge_2 != blank -%}
+              <div class="casa-hero__float-badge casa-hero__float-badge--2">
+                {%- render 'casa-icon', icon: section.settings.visual_badge_2_icon | default: 'palette', size: 16 -%}
+                {{ section.settings.visual_badge_2 }}
+              </div>
+            {%- endif -%}
+            {%- if section.settings.visual_badge_3 != blank -%}
+              <div class="casa-hero__float-badge casa-hero__float-badge--3">
+                {%- render 'casa-icon', icon: section.settings.visual_badge_3_icon | default: 'smartphone', size: 16 -%}
+                {{ section.settings.visual_badge_3 }}
+              </div>
+            {%- endif -%}
+          </div>
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+
+  {%- comment -%} Scroll Indicator {%- endcomment -%}
+  {%- if section.settings.show_scroll_indicator -%}
+    <div class="casa-hero__scroll-indicator">
+      <div class="casa-hero__scroll-mouse">
+        <div class="casa-hero__scroll-wheel"></div>
+      </div>
+      <span>Scroll to explore</span>
+    </div>
+  {%- endif -%}
+</section>
+
+{% schema %}
+{
+  "name": "Casa Hero",
+  "tag": "section",
+  "class": "casa-hero-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout & Size"
+    },
+    {
+      "type": "select",
+      "id": "hero_height",
+      "label": "Hero height",
+      "options": [
+        { "value": "100vh", "label": "Full viewport" },
+        { "value": "90vh", "label": "90% viewport" },
+        { "value": "80vh", "label": "80% viewport" },
+        { "value": "70vh", "label": "70% viewport" },
+        { "value": "600px", "label": "Fixed: 600px" },
+        { "value": "700px", "label": "Fixed: 700px" },
+        { "value": "800px", "label": "Fixed: 800px" }
+      ],
+      "default": "90vh"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 0,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 0,
+      "unit": "px"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Layout",
+      "options": [
+        { "value": "split", "label": "Split (Text left, Visual right)" },
+        { "value": "split-reverse", "label": "Split reverse (Visual left, Text right)" },
+        { "value": "centered", "label": "Centered (Text only)" },
+        { "value": "full-visual", "label": "Full visual with overlay text" }
+      ],
+      "default": "split"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "Text alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "header",
+      "content": "Mobile Layout"
+    },
+    {
+      "type": "select",
+      "id": "mobile_height",
+      "label": "Mobile height",
+      "options": [
+        { "value": "auto", "label": "Auto (fit content)" },
+        { "value": "100vh", "label": "Full screen" },
+        { "value": "90vh", "label": "90% screen" },
+        { "value": "80vh", "label": "80% screen" },
+        { "value": "70vh", "label": "70% screen" },
+        { "value": "500px", "label": "Fixed: 500px" },
+        { "value": "600px", "label": "Fixed: 600px" }
+      ],
+      "default": "auto",
+      "info": "Height on mobile devices"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "label": "Padding top (mobile)",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "default": 100,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "label": "Padding bottom (mobile)",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "select",
+      "id": "mobile_order",
+      "label": "Mobile block order",
+      "options": [
+        { "value": "text-first", "label": "Text first, then visual" },
+        { "value": "visual-first", "label": "Visual first, then text" }
+      ],
+      "default": "text-first",
+      "info": "Which block appears first on mobile"
+    },
+    {
+      "type": "checkbox",
+      "id": "mobile_hide_visual",
+      "label": "Hide visual on mobile",
+      "default": false,
+      "info": "Hide the product image/mirror on smaller screens"
+    },
+    {
+      "type": "range",
+      "id": "mobile_visual_size",
+      "label": "Mobile visual size",
+      "min": 150,
+      "max": 400,
+      "step": 25,
+      "default": 275,
+      "unit": "px",
+      "info": "Max size of the visual element on mobile"
+    },
+    {
+      "type": "header",
+      "content": "Background"
+    },
+    {
+      "type": "image_picker",
+      "id": "background_image",
+      "label": "Background image",
+      "info": "Recommended: 1920x1080 or larger"
+    },
+    {
+      "type": "text",
+      "id": "background_video",
+      "label": "Background video URL",
+      "info": "MP4 video URL. Overrides background image."
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "label": "Overlay darkness",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 70,
+      "unit": "%"
+    },
+    {
+      "type": "header",
+      "content": "Animation Style"
+    },
+    {
+      "type": "select",
+      "id": "animation_style",
+      "label": "Animation effect",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "particles", "label": "Floating Particles" },
+        { "value": "aurora", "label": "Aurora / Northern Lights" },
+        { "value": "orbs", "label": "Glowing Orbs" },
+        { "value": "gradient-flow", "label": "Flowing Gradient" },
+        { "value": "starfield", "label": "Starfield" },
+        { "value": "waves", "label": "Waves" }
+      ],
+      "default": "particles"
+    },
+    {
+      "type": "header",
+      "content": "Color Theme"
+    },
+    {
+      "type": "select",
+      "id": "color_theme",
+      "label": "Color preset",
+      "options": [
+        { "value": "purple-glow", "label": "Purple Glow (Default)" },
+        { "value": "sunset-gold", "label": "Sunset Gold" },
+        { "value": "ocean-teal", "label": "Ocean Teal" },
+        { "value": "midnight-rose", "label": "Midnight Rose" },
+        { "value": "emerald-glow", "label": "Emerald Glow" },
+        { "value": "custom", "label": "Custom Colors" }
+      ],
+      "default": "purple-glow"
+    },
+    {
+      "type": "color",
+      "id": "custom_color_1",
+      "label": "Primary accent",
+      "default": "#9333ea",
+      "info": "Used when 'Custom Colors' selected"
+    },
+    {
+      "type": "color",
+      "id": "custom_color_2",
+      "label": "Secondary accent",
+      "default": "#ec4899"
+    },
+    {
+      "type": "color",
+      "id": "custom_color_3",
+      "label": "Tertiary accent",
+      "default": "#06b6d4"
+    },
+    {
+      "type": "header",
+      "content": "Typography Colors"
+    },
+    {
+      "type": "paragraph",
+      "content": "Override individual text colors. Leave blank to use defaults."
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Title color"
+    },
+    {
+      "type": "color",
+      "id": "accent_word_color_1",
+      "label": "Accent word color (start)",
+      "info": "Gradient start for the accent word. Leave blank for accent preset."
+    },
+    {
+      "type": "color",
+      "id": "accent_word_color_2",
+      "label": "Accent word color (end)",
+      "info": "Gradient end for the accent word."
+    },
+    {
+      "type": "color",
+      "id": "subtitle_color",
+      "label": "Subtitle / description color"
+    },
+    {
+      "type": "color",
+      "id": "badge_bg_color",
+      "label": "Badge background"
+    },
+    {
+      "type": "color",
+      "id": "badge_text_color",
+      "label": "Badge text color"
+    },
+    {
+      "type": "color",
+      "id": "stats_color",
+      "label": "Stats / features text color"
+    },
+    {
+      "type": "color",
+      "id": "promo_bg_color",
+      "label": "Promo banner background"
+    },
+    {
+      "type": "color",
+      "id": "promo_text_color",
+      "label": "Promo banner text color"
+    },
+    {
+      "type": "color",
+      "id": "hero_bg_color",
+      "label": "Section background color",
+      "default": "#0a0a0f"
+    },
+    {
+      "type": "header",
+      "content": "Promo Banner"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_promo_banner",
+      "label": "Show promo banner",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "promo_icon",
+      "label": "Promo icon",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "sparkles", "label": "Sparkles" },
+        { "value": "zap", "label": "Lightning" },
+        { "value": "tag", "label": "Tag" },
+        { "value": "gift", "label": "Gift" },
+        { "value": "star", "label": "Star" }
+      ],
+      "default": "sparkles"
+    },
+    {
+      "type": "text",
+      "id": "promo_text",
+      "label": "Promo text",
+      "default": "Free shipping on all orders over $100"
+    },
+    {
+      "type": "text",
+      "id": "promo_code",
+      "label": "Promo code",
+      "info": "Optional discount code to display"
+    },
+    {
+      "type": "text",
+      "id": "promo_countdown",
+      "label": "Countdown end date",
+      "info": "Format: YYYY-MM-DD HH:MM (e.g., 2026-03-01 23:59)"
+    },
+    {
+      "type": "header",
+      "content": "Badges"
+    },
+    {
+      "type": "checkbox",
+      "id": "badge_new",
+      "label": "Show 'New' badge",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "badge_sale",
+      "label": "Show sale badge",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "badge_sale_text",
+      "label": "Sale badge text",
+      "default": "20% OFF"
+    },
+    {
+      "type": "checkbox",
+      "id": "badge_limited",
+      "label": "Show 'Limited Edition' badge",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "tag_text",
+      "label": "Tag text",
+      "default": "Bestseller Collection"
+    },
+    {
+      "type": "select",
+      "id": "tag_icon",
+      "label": "Tag icon",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "star", "label": "Star" },
+        { "value": "sparkles", "label": "Sparkles" },
+        { "value": "zap", "label": "Lightning" },
+        { "value": "hexagon", "label": "Hexagon" }
+      ],
+      "default": "star"
+    },
+    {
+      "type": "header",
+      "content": "Title"
+    },
+    {
+      "type": "text",
+      "id": "title_line_1",
+      "label": "Title line 1",
+      "default": "Where Light Meets"
+    },
+    {
+      "type": "text",
+      "id": "title_gradient",
+      "label": "Gradient word",
+      "default": "Infinite"
+    },
+    {
+      "type": "text",
+      "id": "title_line_2",
+      "label": "Title line 2",
+      "default": "Dimension"
+    },
+    {
+      "type": "textarea",
+      "id": "subtitle",
+      "label": "Subtitle",
+      "default": "Transform your space with mesmerizing infinity mirrors. 16+ million colors, smart-controlled, and designed to captivate."
+    },
+    {
+      "type": "header",
+      "content": "Features List"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_features",
+      "label": "Show features list",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "feature_1",
+      "label": "Feature 1",
+      "default": "16+ Million Colors"
+    },
+    {
+      "type": "text",
+      "id": "feature_2",
+      "label": "Feature 2",
+      "default": "App & Remote Control"
+    },
+    {
+      "type": "text",
+      "id": "feature_3",
+      "label": "Feature 3",
+      "default": "Music Reactive Mode"
+    },
+    {
+      "type": "header",
+      "content": "Price Display"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_price",
+      "label": "Show price",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "price",
+      "label": "Price",
+      "default": "$299"
+    },
+    {
+      "type": "text",
+      "id": "compare_price",
+      "label": "Compare at price",
+      "info": "Shows as strikethrough"
+    },
+    {
+      "type": "text",
+      "id": "price_suffix",
+      "label": "Price suffix",
+      "info": "e.g., 'starting from'"
+    },
+    {
+      "type": "header",
+      "content": "Primary Button"
+    },
+    {
+      "type": "text",
+      "id": "button_primary_text",
+      "label": "Button text",
+      "default": "Shop Infinity Mirrors"
+    },
+    {
+      "type": "url",
+      "id": "button_primary_link",
+      "label": "Button link"
+    },
+    {
+      "type": "select",
+      "id": "button_primary_icon",
+      "label": "Button icon",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "cart", "label": "Cart" },
+        { "value": "sparkles", "label": "Sparkles" },
+        { "value": "zap", "label": "Lightning" },
+        { "value": "chevron-right", "label": "Arrow" }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "select",
+      "id": "button_primary_style",
+      "label": "Button style",
+      "options": [
+        { "value": "solid", "label": "Solid gradient" },
+        { "value": "pulse", "label": "Pulsing glow" }
+      ],
+      "default": "solid"
+    },
+    {
+      "type": "color",
+      "id": "button_primary_bg",
+      "label": "Button background",
+      "info": "Overrides style preset. Leave blank for default."
+    },
+    {
+      "type": "color",
+      "id": "button_primary_text_color",
+      "label": "Button text color"
+    },
+    {
+      "type": "range",
+      "id": "button_primary_radius",
+      "label": "Button corner radius",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "default": 12,
+      "unit": "px"
+    },
+    {
+      "type": "select",
+      "id": "button_primary_size",
+      "label": "Button size",
+      "options": [
+        { "value": "small", "label": "Small" },
+        { "value": "medium", "label": "Medium" },
+        { "value": "large", "label": "Large" }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "header",
+      "content": "Secondary Button"
+    },
+    {
+      "type": "text",
+      "id": "button_secondary_text",
+      "label": "Button text",
+      "default": "Watch Demo"
+    },
+    {
+      "type": "url",
+      "id": "button_secondary_link",
+      "label": "Button link"
+    },
+    {
+      "type": "select",
+      "id": "button_secondary_icon",
+      "label": "Button icon",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "play", "label": "Play" },
+        { "value": "eye", "label": "Eye" },
+        { "value": "chevron-right", "label": "Arrow" }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "select",
+      "id": "button_secondary_style",
+      "label": "Button style",
+      "options": [
+        { "value": "outline", "label": "Outline" },
+        { "value": "gradient", "label": "Gradient" },
+        { "value": "solid", "label": "Solid" }
+      ],
+      "default": "outline"
+    },
+    {
+      "type": "color",
+      "id": "button_secondary_bg",
+      "label": "Button background",
+      "info": "Overrides style preset. Leave blank for default."
+    },
+    {
+      "type": "color",
+      "id": "button_secondary_text_color",
+      "label": "Button text color"
+    },
+    {
+      "type": "range",
+      "id": "button_secondary_radius",
+      "label": "Button corner radius",
+      "min": 0,
+      "max": 50,
+      "step": 2,
+      "default": 12,
+      "unit": "px"
+    },
+    {
+      "type": "select",
+      "id": "button_secondary_size",
+      "label": "Button size",
+      "options": [
+        { "value": "small", "label": "Small" },
+        { "value": "medium", "label": "Medium" },
+        { "value": "large", "label": "Large" }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "header",
+      "content": "Tertiary Button (Text Link)"
+    },
+    {
+      "type": "text",
+      "id": "button_tertiary_text",
+      "label": "Link text"
+    },
+    {
+      "type": "url",
+      "id": "button_tertiary_link",
+      "label": "Link URL"
+    },
+    {
+      "type": "header",
+      "content": "Social Proof"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_social_proof",
+      "label": "Show social proof section",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_rating",
+      "label": "Show star rating",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "rating_score",
+      "label": "Rating score",
+      "default": "4.9"
+    },
+    {
+      "type": "text",
+      "id": "rating_count",
+      "label": "Number of reviews",
+      "default": "2,847"
+    },
+    {
+      "type": "text",
+      "id": "social_proof_text",
+      "label": "Social proof text",
+      "info": "e.g., 'Trusted by 50,000+ customers worldwide'"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_avatars",
+      "label": "Show customer avatars",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "customer_count",
+      "label": "Customer count",
+      "default": "50K"
+    },
+    {
+      "type": "header",
+      "content": "Trust Row"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_trust_row",
+      "label": "Show trust badges row",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "trust_1_text",
+      "label": "Trust badge 1",
+      "default": "Free Shipping"
+    },
+    {
+      "type": "select",
+      "id": "trust_1_icon",
+      "label": "Trust badge 1 icon",
+      "options": [
+        { "value": "truck", "label": "Truck" },
+        { "value": "shield-check", "label": "Shield" },
+        { "value": "refresh", "label": "Refresh" },
+        { "value": "lock", "label": "Lock" },
+        { "value": "star", "label": "Star" }
+      ],
+      "default": "truck"
+    },
+    {
+      "type": "text",
+      "id": "trust_2_text",
+      "label": "Trust badge 2",
+      "default": "2-Year Warranty"
+    },
+    {
+      "type": "select",
+      "id": "trust_2_icon",
+      "label": "Trust badge 2 icon",
+      "options": [
+        { "value": "truck", "label": "Truck" },
+        { "value": "shield-check", "label": "Shield" },
+        { "value": "refresh", "label": "Refresh" },
+        { "value": "lock", "label": "Lock" },
+        { "value": "star", "label": "Star" }
+      ],
+      "default": "shield-check"
+    },
+    {
+      "type": "text",
+      "id": "trust_3_text",
+      "label": "Trust badge 3",
+      "default": "30-Day Returns"
+    },
+    {
+      "type": "select",
+      "id": "trust_3_icon",
+      "label": "Trust badge 3 icon",
+      "options": [
+        { "value": "truck", "label": "Truck" },
+        { "value": "shield-check", "label": "Shield" },
+        { "value": "refresh", "label": "Refresh" },
+        { "value": "lock", "label": "Lock" },
+        { "value": "star", "label": "Star" }
+      ],
+      "default": "refresh"
+    },
+    {
+      "type": "header",
+      "content": "Visual Column"
+    },
+    {
+      "type": "image_picker",
+      "id": "visual_image",
+      "label": "Product/Feature image",
+      "info": "Main visual. Leave empty for animated infinity mirror."
+    },
+    {
+      "type": "text",
+      "id": "visual_video",
+      "label": "Product video URL",
+      "info": "MP4 video. Overrides image."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_glow_frame",
+      "label": "Show animated glow frame",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "glow_intensity",
+      "label": "Glow intensity",
+      "info": "Controls opacity and blur of the glow frame. 0 = off.",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 50,
+      "unit": "%"
+    },
+    {
+      "type": "range",
+      "id": "glow_size",
+      "label": "Glow spread",
+      "info": "How far the glow extends beyond the image",
+      "min": 0,
+      "max": 80,
+      "step": 5,
+      "default": 30,
+      "unit": "px"
+    },
+    {
+      "type": "select",
+      "id": "mirror_shape",
+      "label": "Mirror shape (if no image)",
+      "options": [
+        { "value": "octagon", "label": "Octagon" },
+        { "value": "hexagon", "label": "Hexagon" },
+        { "value": "circle", "label": "Circle" }
+      ],
+      "default": "octagon"
+    },
+    {
+      "type": "header",
+      "content": "Floating Badges"
+    },
+    {
+      "type": "text",
+      "id": "visual_badge_1",
+      "label": "Floating badge 1",
+      "default": "Music Reactive"
+    },
+    {
+      "type": "select",
+      "id": "visual_badge_1_icon",
+      "label": "Badge 1 icon",
+      "options": [
+        { "value": "zap", "label": "Lightning" },
+        { "value": "palette", "label": "Palette" },
+        { "value": "smartphone", "label": "Phone" },
+        { "value": "sparkles", "label": "Sparkles" }
+      ],
+      "default": "zap"
+    },
+    {
+      "type": "text",
+      "id": "visual_badge_2",
+      "label": "Floating badge 2",
+      "default": "16M+ Colors"
+    },
+    {
+      "type": "select",
+      "id": "visual_badge_2_icon",
+      "label": "Badge 2 icon",
+      "options": [
+        { "value": "zap", "label": "Lightning" },
+        { "value": "palette", "label": "Palette" },
+        { "value": "smartphone", "label": "Phone" },
+        { "value": "sparkles", "label": "Sparkles" }
+      ],
+      "default": "palette"
+    },
+    {
+      "type": "text",
+      "id": "visual_badge_3",
+      "label": "Floating badge 3",
+      "default": "App Control"
+    },
+    {
+      "type": "select",
+      "id": "visual_badge_3_icon",
+      "label": "Badge 3 icon",
+      "options": [
+        { "value": "zap", "label": "Lightning" },
+        { "value": "palette", "label": "Palette" },
+        { "value": "smartphone", "label": "Phone" },
+        { "value": "sparkles", "label": "Sparkles" }
+      ],
+      "default": "smartphone"
+    },
+    {
+      "type": "header",
+      "content": "Extras"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_scroll_indicator",
+      "label": "Show scroll indicator",
+      "default": false
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Hero"
+    }
+  ]
+}
+{% endschema %}
+
+{% stylesheet %}
+/* ══════════════════════════════════════════════════════════════════════════
+   CASA HERO - PREMIUM EDITION
+   Full-featured hero section with animations, themes, and conversion elements
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── CSS Custom Properties ── */
+.casa-hero {
+  --hero-height: 90vh;
+  --hero-color-1: #9333ea;
+  --hero-color-2: #ec4899;
+  --hero-color-3: #06b6d4;
+  --hero-overlay-opacity: 0.7;
+  --hero-text-align: left;
+}
+
+/* ── Base Container ── */
+.casa-hero {
+  position: relative;
+  height: var(--hero-height);
+  min-height: 600px;
+  max-height: 1200px;
+  overflow: hidden;
+  max-width: 100vw;
+  display: flex;
+  align-items: center;
+  background: var(--hero-bg-color, #0a0a0f);
+  padding-top: var(--hero-padding-top, 0);
+  padding-bottom: var(--hero-padding-bottom, 0);
+}
+
+/* ── Background Layer ── */
+.casa-hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.casa-hero__bg-image,
+.casa-hero__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.casa-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(10, 10, 15, var(--hero-overlay-opacity)) 0%,
+    rgba(26, 26, 46, calc(var(--hero-overlay-opacity) * 0.9)) 50%,
+    rgba(22, 33, 62, calc(var(--hero-overlay-opacity) * 0.8)) 100%
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ANIMATION STYLES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.casa-hero__animations {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* ── Particles ── */
+.casa-hero__particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--hero-color-1);
+  opacity: 0.6;
+  bottom: -10px;
+  animation: hero-particle 10s linear infinite;
+}
+
+.casa-hero__particle:nth-child(1) { left: 5%; animation-delay: 0s; }
+.casa-hero__particle:nth-child(2) { left: 12%; animation-delay: 0.8s; background: var(--hero-color-2); }
+.casa-hero__particle:nth-child(3) { left: 20%; animation-delay: 1.6s; background: var(--hero-color-3); }
+.casa-hero__particle:nth-child(4) { left: 28%; animation-delay: 2.4s; }
+.casa-hero__particle:nth-child(5) { left: 36%; animation-delay: 3.2s; background: var(--hero-color-2); }
+.casa-hero__particle:nth-child(6) { left: 44%; animation-delay: 4s; background: var(--hero-color-3); }
+.casa-hero__particle:nth-child(7) { left: 52%; animation-delay: 4.8s; }
+.casa-hero__particle:nth-child(8) { left: 60%; animation-delay: 5.6s; background: var(--hero-color-2); }
+.casa-hero__particle:nth-child(9) { left: 68%; animation-delay: 6.4s; background: var(--hero-color-3); }
+.casa-hero__particle:nth-child(10) { left: 76%; animation-delay: 7.2s; }
+.casa-hero__particle:nth-child(11) { left: 84%; animation-delay: 8s; background: var(--hero-color-2); }
+.casa-hero__particle:nth-child(12) { left: 92%; animation-delay: 8.8s; background: var(--hero-color-3); }
+.casa-hero__particle:nth-child(13) { left: 8%; animation-delay: 1.2s; width: 6px; height: 6px; }
+.casa-hero__particle:nth-child(14) { left: 48%; animation-delay: 3.8s; width: 6px; height: 6px; background: var(--hero-color-2); }
+.casa-hero__particle:nth-child(15) { left: 88%; animation-delay: 6.2s; width: 6px; height: 6px; background: var(--hero-color-3); }
+
+@keyframes hero-particle {
+  0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+  5% { opacity: 0.8; }
+  50% { opacity: 0.6; }
+  95% { opacity: 0.4; }
+  100% { transform: translateY(-100vh) translateX(30px) scale(0.5); opacity: 0; }
+}
+
+/* ── Aurora ── */
+.casa-hero__aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.casa-hero__aurora-layer {
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: -50%;
+  left: -50%;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg,
+    var(--hero-color-1) 60deg,
+    transparent 120deg,
+    var(--hero-color-2) 180deg,
+    transparent 240deg,
+    var(--hero-color-3) 300deg,
+    transparent 360deg
+  );
+  opacity: 0.15;
+  animation: aurora-rotate 20s linear infinite;
+  filter: blur(80px);
+}
+
+.casa-hero__aurora-layer:nth-child(2) {
+  animation-delay: -6s;
+  animation-duration: 25s;
+  opacity: 0.1;
+}
+
+.casa-hero__aurora-layer:nth-child(3) {
+  animation-delay: -12s;
+  animation-duration: 30s;
+  opacity: 0.12;
+}
+
+@keyframes aurora-rotate {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Orbs ── */
+.casa-hero__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  animation: orb-float 8s ease-in-out infinite;
+}
+
+.casa-hero__orb--1 {
+  width: 400px;
+  height: 400px;
+  background: var(--hero-color-1);
+  opacity: 0.3;
+  top: 10%;
+  left: 10%;
+}
+
+.casa-hero__orb--2 {
+  width: 300px;
+  height: 300px;
+  background: var(--hero-color-2);
+  opacity: 0.25;
+  top: 40%;
+  right: 15%;
+  animation-delay: -2s;
+}
+
+.casa-hero__orb--3 {
+  width: 350px;
+  height: 350px;
+  background: var(--hero-color-3);
+  opacity: 0.2;
+  bottom: 10%;
+  left: 30%;
+  animation-delay: -4s;
+}
+
+@keyframes orb-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -20px) scale(1.05); }
+  50% { transform: translate(-20px, 30px) scale(0.95); }
+  75% { transform: translate(20px, 20px) scale(1.02); }
+}
+
+/* ── Gradient Flow ── */
+.casa-hero__gradient-flow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    45deg,
+    var(--hero-color-1),
+    var(--hero-color-2),
+    var(--hero-color-3),
+    var(--hero-color-1)
+  );
+  background-size: 400% 400%;
+  opacity: 0.15;
+  animation: gradient-flow 15s ease infinite;
+}
+
+@keyframes gradient-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── Starfield ── */
+.casa-hero__star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #fff;
+  border-radius: 50%;
+  animation: star-twinkle 3s ease-in-out infinite;
+}
+
+.casa-hero__star:nth-child(odd) { animation-delay: -1.5s; }
+.casa-hero__star:nth-child(3n) { width: 3px; height: 3px; }
+.casa-hero__star:nth-child(5n) { animation-duration: 4s; }
+.casa-hero__star:nth-child(7n) { animation-duration: 2.5s; }
+
+/* Position stars randomly using nth-child */
+.casa-hero__star:nth-child(1) { top: 10%; left: 5%; }
+.casa-hero__star:nth-child(2) { top: 5%; left: 15%; }
+.casa-hero__star:nth-child(3) { top: 15%; left: 25%; }
+.casa-hero__star:nth-child(4) { top: 8%; left: 35%; }
+.casa-hero__star:nth-child(5) { top: 20%; left: 45%; }
+.casa-hero__star:nth-child(6) { top: 3%; left: 55%; }
+.casa-hero__star:nth-child(7) { top: 12%; left: 65%; }
+.casa-hero__star:nth-child(8) { top: 18%; left: 75%; }
+.casa-hero__star:nth-child(9) { top: 7%; left: 85%; }
+.casa-hero__star:nth-child(10) { top: 22%; left: 95%; }
+.casa-hero__star:nth-child(11) { top: 30%; left: 8%; }
+.casa-hero__star:nth-child(12) { top: 35%; left: 18%; }
+.casa-hero__star:nth-child(13) { top: 28%; left: 28%; }
+.casa-hero__star:nth-child(14) { top: 40%; left: 38%; }
+.casa-hero__star:nth-child(15) { top: 32%; left: 48%; }
+.casa-hero__star:nth-child(16) { top: 38%; left: 58%; }
+.casa-hero__star:nth-child(17) { top: 25%; left: 68%; }
+.casa-hero__star:nth-child(18) { top: 42%; left: 78%; }
+.casa-hero__star:nth-child(19) { top: 33%; left: 88%; }
+.casa-hero__star:nth-child(20) { top: 45%; left: 92%; }
+.casa-hero__star:nth-child(21) { top: 50%; left: 3%; }
+.casa-hero__star:nth-child(22) { top: 55%; left: 12%; }
+.casa-hero__star:nth-child(23) { top: 48%; left: 22%; }
+.casa-hero__star:nth-child(24) { top: 60%; left: 32%; }
+.casa-hero__star:nth-child(25) { top: 52%; left: 42%; }
+.casa-hero__star:nth-child(26) { top: 58%; left: 52%; }
+.casa-hero__star:nth-child(27) { top: 65%; left: 62%; }
+.casa-hero__star:nth-child(28) { top: 53%; left: 72%; }
+.casa-hero__star:nth-child(29) { top: 62%; left: 82%; }
+.casa-hero__star:nth-child(30) { top: 68%; left: 90%; }
+.casa-hero__star:nth-child(31) { top: 70%; left: 6%; }
+.casa-hero__star:nth-child(32) { top: 75%; left: 16%; }
+.casa-hero__star:nth-child(33) { top: 72%; left: 26%; }
+.casa-hero__star:nth-child(34) { top: 78%; left: 36%; }
+.casa-hero__star:nth-child(35) { top: 82%; left: 46%; }
+.casa-hero__star:nth-child(36) { top: 76%; left: 56%; }
+.casa-hero__star:nth-child(37) { top: 80%; left: 66%; }
+.casa-hero__star:nth-child(38) { top: 85%; left: 76%; }
+.casa-hero__star:nth-child(39) { top: 88%; left: 86%; }
+.casa-hero__star:nth-child(40) { top: 90%; left: 94%; }
+.casa-hero__star:nth-child(n+41) { top: 92%; left: calc((40 - var(--n, 41)) * 2%); }
+
+@keyframes star-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ── Waves ── */
+.casa-hero__waves {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  overflow: hidden;
+}
+
+.casa-hero__wave {
+  position: absolute;
+  bottom: 0;
+  left: -50%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(to top, var(--hero-color-1), transparent);
+  opacity: 0.1;
+  border-radius: 100% 100% 0 0;
+  animation: wave-motion 8s ease-in-out infinite;
+}
+
+.casa-hero__wave:nth-child(2) {
+  animation-delay: -2s;
+  opacity: 0.08;
+  background: linear-gradient(to top, var(--hero-color-2), transparent);
+}
+
+.casa-hero__wave:nth-child(3) {
+  animation-delay: -4s;
+  opacity: 0.06;
+  background: linear-gradient(to top, var(--hero-color-3), transparent);
+}
+
+@keyframes wave-motion {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  50% { transform: translateX(2%) translateY(-10px); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PROMO BANNER
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.casa-hero__promo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: linear-gradient(
+    90deg,
+    var(--hero-color-1),
+    var(--hero-color-2),
+    var(--hero-color-3),
+    var(--hero-color-2),
+    var(--hero-color-1)
+  );
+  background-size: 300% 100%;
+  animation: promo-shimmer 4s linear infinite;
+  padding: 10px 20px;
+}
+
+.casa-hero__promo-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--hero-promo-text, #fff);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.casa-hero__promo-inner svg {
+  width: 16px;
+  height: 16px;
+  stroke: #fff;
+}
+
+.casa-hero__promo-code {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-family: inherit;
+}
+
+@keyframes promo-shimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CONTENT CONTAINER
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.casa-hero__container {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  max-width: min(1600px, 100vw);
+  margin: 0 auto;
+  padding: 0 80px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.casa-hero__content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+/* ── Layout Variants ── */
+.casa-hero--split-reverse .casa-hero__content {
+  direction: rtl;
+}
+
+.casa-hero--split-reverse .casa-hero__content > * {
+  direction: ltr;
+}
+
+.casa-hero--centered .casa-hero__content {
+  grid-template-columns: 1fr;
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.casa-hero--centered .casa-hero__text {
+  align-items: center;
+}
+
+.casa-hero--full-visual .casa-hero__content {
+  grid-template-columns: 1fr;
+  max-width: 800px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TEXT CONTENT
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.casa-hero__text {
+  display: flex;
+  flex-direction: column;
+  align-items: var(--hero-flex-align, flex-start);
+  text-align: var(--hero-text-align);
+  animation: hero-fadeInUp 1s ease-out;
+}
+
+@keyframes hero-fadeInUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ── Badges ── */
+.casa-hero__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.casa-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Badge color overrides from settings */
+.casa-hero__badge[style] {
+  /* Inline styles from settings take priority */
+}
+
+.casa-hero__badge svg {
+  width: 12px;
+  height: 12px;
+}
+
+.casa-hero__badge--new {
+  background: linear-gradient(135deg, var(--hero-color-1), var(--hero-color-2));
+  color: #fff;
+}
+
+.casa-hero__badge--sale {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  color: #fff;
+}
+
+.casa-hero__badge--limited {
+  background: linear-gradient(135deg, #f59e0b, #eab308);
+  color: #000;
+}
+
+.casa-hero__badge--tag {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--hero-color-1);
+}
+
+.casa-hero__badge--tag svg {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* ── Title ── */
+.casa-hero__title {
+  font-size: clamp(36px, 6vw, 80px);
+  font-weight: 300;
+  color: var(--hero-title-color, #fff);
+  line-height: 1.05;
+  margin: 0 0 24px 0;
+  letter-spacing: -3px;
+}
+
+.casa-hero__title-line {
+  display: block;
+}
+
+.casa-hero__title-gradient {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    var(--hero-accent-word-1, var(--hero-color-1)),
+    var(--hero-accent-word-2, var(--hero-color-2)),
+    var(--hero-accent-word-2, var(--hero-color-3))
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 400;
+}
+
+/* ── Subtitle ── */
+.casa-hero__subtitle {
+  font-size: clamp(16px, 1.5vw, 22px);
+  color: var(--hero-subtitle-color, rgba(255, 255, 255, 0.65));
+  line-height: 1.7;
+  margin: 0 0 32px 0;
+  max-width: 550px;
+}
+
+/* ── Features List ── */
+.casa-hero__features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 32px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+}
+
+.casa-hero__features li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--hero-stats-color, rgba(255, 255, 255, 0.8));
+  font-size: 14px;
+}
+
+.casa-hero__features svg {
+  color: var(--hero-color-1);
+  stroke: currentColor;
+}
+
+/* ── Price ── */
+.casa-hero__price-wrapper {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.casa-hero__compare-price {
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.4);
+  text-decoration: line-through;
+}
+
+.casa-hero__price {
+  font-size: 48px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.casa-hero__price-suffix {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ── Buttons ── */
+.casa-hero__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.casa-hero__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 36px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border: none;
+}
+
+.casa-hero__btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.casa-hero__btn--primary {
+  background: linear-gradient(135deg, var(--hero-color-1), var(--hero-color-2));
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(147, 51, 234, 0.3);
+}
+
+.casa-hero__btn--primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(147, 51, 234, 0.5);
+}
+
+.casa-hero__btn--primary[data-pulse] {
+  animation: btn-pulse 2s ease-in-out infinite;
+}
+
+@keyframes btn-pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(147, 51, 234, 0.3); }
+  50% { box-shadow: 0 8px 40px rgba(147, 51, 234, 0.6); }
+}
+
+.casa-hero__btn--secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+}
+
+.casa-hero__btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.casa-hero__btn--tertiary {
+  background: transparent;
+  color: var(--hero-color-1);
+  padding: 12px 0;
+}
+
+.casa-hero__btn--tertiary:hover {
+  gap: 14px;
+}
+
+/* Button sizes */
+.casa-hero__btn--small { padding: 10px 20px; font-size: 13px; }
+.casa-hero__btn--medium { padding: 16px 32px; font-size: 15px; }
+.casa-hero__btn--large { padding: 20px 40px; font-size: 17px; }
+
+/* ── Social Proof ── */
+.casa-hero__social-proof {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.casa-hero__rating {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.casa-hero__stars {
+  display: flex;
+  gap: 2px;
+}
+
+.casa-hero__stars svg {
+  width: 16px;
+  height: 16px;
+  fill: #fbbf24;
+  stroke: none;
+}
+
+.casa-hero__rating-text {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.casa-hero__rating-count {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.casa-hero__proof-text {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+.casa-hero__avatars {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.casa-hero__avatar-stack {
+  display: flex;
+}
+
+.casa-hero__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--hero-color-1), var(--hero-color-2));
+  border: 2px solid #0a0a0f;
+  margin-left: -10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.casa-hero__avatar:first-child {
+  margin-left: 0;
+}
+
+.casa-hero__avatars > span {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ── Trust Row ── */
+.casa-hero__trust-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.casa-hero__trust-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.casa-hero__trust-item svg {
+  width: 18px;
+  height: 18px;
+  stroke: var(--hero-color-1);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   VISUAL COLUMN
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.casa-hero__visual {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: hero-scaleIn 1s ease-out 0.3s both;
+}
+
+@keyframes hero-scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.casa-hero__visual-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 550px;
+  aspect-ratio: 1;
+  animation: hero-float 6s ease-in-out infinite;
+}
+
+/* ── Glow Frame ── */
+.casa-hero__glow-frame {
+  position: absolute;
+  inset: -30px;
+  pointer-events: none;
+}
+
+.casa-hero__glow-frame {
+  inset: calc(var(--hero-glow-size, 30px) * -1);
+}
+.casa-hero__glow-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from var(--hero-angle, 0deg),
+    var(--hero-color-1),
+    var(--hero-color-2),
+    var(--hero-color-3),
+    var(--hero-color-1)
+  );
+  filter: blur(calc(20px + var(--hero-glow-size, 30px)));
+  opacity: var(--hero-glow-intensity, 0.5);
+  animation: glow-rotate 8s linear infinite;
+}
+
+.casa-hero__glow-ring:nth-child(2) {
+  filter: blur(80px);
+  opacity: 0.3;
+  animation-direction: reverse;
+  animation-duration: 12s;
+}
+
+@property --hero-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes glow-rotate {
+  to { --hero-angle: 360deg; }
+}
+
+/* ── Visual Media ── */
+.casa-hero__visual-media {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.casa-hero__visual-media img,
+.casa-hero__visual-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Product image inherits float animation from wrapper */
+.casa-hero__product-image {
+  /* Animation moved to .casa-hero__visual-wrapper to prevent clipping */
+}
+
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+/* ── Infinity Mirror (fallback) ── */
+.casa-hero__mirror {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  animation: hero-float 8s ease-in-out infinite;
+  z-index: 2;
+}
+
+.octagon { clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%); }
+.hexagon { clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); }
+.circle { clip-path: circle(50%); }
+
+.casa-hero__mirror-frame {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.5);
+}
+
+.casa-hero__mirror-glow {
+  width: 94%;
+  height: 94%;
+  background: conic-gradient(
+    from var(--hero-angle, 0deg),
+    var(--hero-color-1),
+    var(--hero-color-2),
+    var(--hero-color-3),
+    var(--hero-color-1)
+  );
+  animation: glow-rotate 4s linear infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.casa-hero__mirror-inner {
+  width: 92%;
+  height: 92%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.casa-hero__mirror-depth {
+  width: 85%;
+  height: 85%;
+  background: conic-gradient(
+    from var(--hero-angle, 0deg),
+    rgba(147, 51, 234, 0.5),
+    rgba(236, 72, 153, 0.5),
+    rgba(6, 182, 212, 0.5),
+    rgba(147, 51, 234, 0.5)
+  );
+  animation: glow-rotate 6s linear infinite reverse;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.casa-hero__mirror-center {
+  width: 80%;
+  height: 80%;
+  background: rgba(0, 0, 0, 0.9);
+}
+
+/* ── Floating Badges ── */
+.casa-hero__float-badge {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(10, 10, 15, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  z-index: 10;
+  animation: badge-float 4s ease-in-out infinite;
+}
+
+.casa-hero__float-badge svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--hero-color-1);
+}
+
+.casa-hero__float-badge--1 {
+  top: 10%;
+  right: -10%;
+}
+
+.casa-hero__float-badge--2 {
+  bottom: 25%;
+  left: -15%;
+  animation-delay: -1s;
+}
+
+.casa-hero__float-badge--3 {
+  bottom: 5%;
+  right: 5%;
+  animation-delay: -2s;
+}
+
+@keyframes badge-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SCROLL INDICATOR
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.casa-hero__scroll-indicator {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  z-index: 10;
+  animation: scroll-fade 2s ease-in-out infinite;
+}
+
+.casa-hero__scroll-mouse {
+  width: 24px;
+  height: 40px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.casa-hero__scroll-wheel {
+  width: 4px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 2px;
+  animation: scroll-wheel 1.5s ease-in-out infinite;
+}
+
+.casa-hero__scroll-indicator span {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+@keyframes scroll-fade {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes scroll-wheel {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(12px); opacity: 0; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   REDUCED MOTION
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .casa-hero__particle,
+  .casa-hero__aurora-layer,
+  .casa-hero__orb,
+  .casa-hero__gradient-flow,
+  .casa-hero__star,
+  .casa-hero__wave,
+  .casa-hero__promo,
+  .casa-hero__glow-ring,
+  .casa-hero__product-image,
+  .casa-hero__mirror,
+  .casa-hero__mirror-glow,
+  .casa-hero__mirror-depth,
+  .casa-hero__float-badge,
+  .casa-hero__scroll-indicator,
+  .casa-hero__scroll-wheel,
+  .casa-hero__text,
+  .casa-hero__visual,
+  .casa-hero__btn--primary[data-pulse] {
+    animation: none !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1200px) {
+  .casa-hero__container {
+    padding: 0 40px;
+  }
+
+  .casa-hero__content {
+    gap: 60px;
+  }
+
+  .casa-hero__visual-wrapper {
+    max-width: 450px;
+  }
+
+  .casa-hero__float-badge--1 { right: -5%; }
+  .casa-hero__float-badge--2 { left: -5%; }
+}
+
+@media (max-width: 900px) {
+  .casa-hero {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow-x: hidden;
+    padding-top: var(--hero-mobile-padding-top, 80px);
+    padding-bottom: var(--hero-mobile-padding-bottom, 60px);
+  }
+
+  .casa-hero__promo {
+    /* Keep absolute positioning — overlaps the padding-top area */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 8px 16px;
+    box-sizing: border-box;
+  }
+
+  .casa-hero__promo-inner {
+    font-size: 11px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .casa-hero__container {
+    padding: 0 20px;
+    box-sizing: border-box;
+  }
+
+  .casa-hero__content {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 32px;
+    text-align: center;
+  }
+
+  .casa-hero__text {
+    width: 100% !important;
+    max-width: 100% !important;
+    align-items: center !important;
+    text-align: center !important;
+    order: 1;
+  }
+
+  .casa-hero__visual {
+    width: 100% !important;
+    display: flex;
+    justify-content: center;
+    order: 2;
+    overflow: hidden;
+  }
+
+  .casa-hero__visual-wrapper {
+    max-width: var(--hero-mobile-visual-size, 250px);
+    margin: 0 auto;
+  }
+
+  .casa-hero--mobile-visual-first .casa-hero__text { order: 2 !important; }
+  .casa-hero--mobile-visual-first .casa-hero__visual { order: 1 !important; }
+  .casa-hero--mobile-no-visual .casa-hero__visual { display: none !important; }
+
+  .casa-hero__badges { justify-content: center; flex-wrap: wrap; }
+  .casa-hero__subtitle { max-width: 100%; }
+  .casa-hero__features { justify-content: center; flex-wrap: wrap; }
+  .casa-hero__buttons { justify-content: center; flex-wrap: wrap; width: 100%; }
+  .casa-hero__social-proof { align-items: center; }
+  .casa-hero__trust-row { justify-content: center; flex-wrap: wrap; }
+
+  .casa-hero__float-badge { display: none !important; }
+  .casa-hero__waves { display: none; }
+}
+}
+
+@media (max-width: 600px) {
+  .casa-hero {
+    padding-top: var(--hero-mobile-padding-top, 60px);
+    padding-bottom: var(--hero-mobile-padding-bottom, 48px);
+  }
+
+  .casa-hero__container { padding: 0 16px; }
+  .casa-hero__content { gap: 24px !important; }
+
+  .casa-hero__title {
+    font-size: clamp(24px, 7vw, 36px) !important;
+    letter-spacing: -1px;
+    word-break: break-word;
+  }
+
+  .casa-hero__subtitle { font-size: 14px !important; }
+
+  .casa-hero__btn,
+  .casa-hero__btn--small,
+  .casa-hero__btn--medium,
+  .casa-hero__btn--large {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 20px;
+    font-size: 14px;
+  }
+
+  .casa-hero__features {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .casa-hero__visual-wrapper {
+    max-width: var(--hero-mobile-visual-size, 200px);
+  }
+}
+{% endstylesheet %}

@@ -1,0 +1,407 @@
+{%- comment -%}
+  Seoul Glow Lab - Sticky Add to Cart
+  Enhanced sticky cart that hides when cart drawer is open
+
+  Parameters:
+  - product: The product object
+  - current_variant: The currently selected variant
+  - initial_quantity: Initial quantity value
+  - section_id: The section ID
+  - hide_when_cart_open: Whether to hide when cart drawer is open
+{%- endcomment -%}
+
+<script src="{{ 'casa-sticky-cart.js' | asset_url }}" type="module" defer></script>
+
+<casa-sticky-cart
+  class="casa-sticky-cart"
+  data-variant-available="{{ current_variant.available }}"
+  data-product-id="{{ product.id }}"
+  data-current-variant-id="{{ current_variant.id }}"
+  data-initial-quantity="{{ initial_quantity }}"
+  data-hide-when-cart-open="{{ hide_when_cart_open }}"
+>
+  <div
+    class="casa-sticky-cart__bar"
+    data-stuck="false"
+    data-cart-open="false"
+    ref="stickyBar"
+    role="region"
+    aria-label="{{ 'products.product.sticky_add_to_cart' | t }}"
+  >
+    {%- liquid
+      assign image_to_show = current_variant.featured_image | default: product.featured_image
+    -%}
+
+    {%- if image_to_show -%}
+      <div class="casa-sticky-cart__image">
+        {%- assign image_alt = image_to_show.alt | default: product.title | escape -%}
+        {{
+          image_to_show
+          | image_url: width: 120
+          | image_tag:
+            loading: 'lazy',
+            alt: image_alt,
+            class: 'casa-sticky-cart__image-img',
+            ref: 'productImage'
+        }}
+      </div>
+    {%- endif -%}
+
+    <div class="casa-sticky-cart__info">
+      <h3 class="casa-sticky-cart__title">
+        {{ product.title | escape }}
+      </h3>
+      <div
+        class="casa-sticky-cart__variant"
+        {% if product.has_only_default_variant %}style="display: none;"{% endif %}
+        ref="variantTitle"
+      >
+        {%- unless product.has_only_default_variant -%}
+          {{ current_variant.title | escape }}
+        {%- endunless -%}
+      </div>
+    </div>
+
+    <div class="casa-sticky-cart__price" ref="priceDisplay">
+      {%- render 'price', product_resource: product, show_sale_price_first: true, hide_installments: true -%}
+    </div>
+
+    <button
+      type="button"
+      class="casa-sticky-cart__button"
+      ref="addToCartButton"
+      {% unless current_variant.available %}disabled{% endunless %}
+    >
+      <span class="casa-sticky-cart__button-text" ref="buttonText">
+        {%- if current_variant.available -%}
+          <span class="casa-sticky-cart__button-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="21" r="1"/>
+              <circle cx="20" cy="21" r="1"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+          </span>
+          <span>{{ 'products.product.add_to_cart' | t }}</span>
+          <span class="casa-sticky-cart__quantity" ref="quantityDisplay" style="{% if initial_quantity <= 1 %}display: none;{% endif %}">
+            (<span ref="quantityNumber">{{ initial_quantity }}</span>)
+          </span>
+        {%- elsif current_variant == blank -%}
+          {{ 'products.product.unavailable' | t }}
+        {%- else -%}
+          {{ 'products.product.sold_out' | t }}
+        {%- endif -%}
+      </span>
+      <span class="casa-sticky-cart__button-added" ref="addedState">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        <span>Added!</span>
+      </span>
+    </button>
+  </div>
+</casa-sticky-cart>
+
+{% stylesheet %}
+/* ══════════════════════════════════════════════════════════════════════════
+   CASA STICKY CART
+   Enhanced sticky add-to-cart with cart drawer awareness
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.casa-sticky-cart__bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(calc(100% + 40px));
+  opacity: 0;
+  z-index: 999;
+
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  width: auto;
+  max-width: 600px;
+  padding: 12px 16px;
+
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.casa-sticky-cart__bar[data-stuck="true"] {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Hide when cart drawer is open */
+.casa-sticky-cart__bar[data-cart-open="true"] {
+  transform: translateX(-50%) translateY(calc(100% + 40px)) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Hide when variant unavailable */
+casa-sticky-cart:not([data-variant-available="true"]) .casa-sticky-cart__bar {
+  display: none;
+}
+
+/* ── Image ── */
+.casa-sticky-cart__image {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+.casa-sticky-cart__image-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── Info ── */
+.casa-sticky-cart__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.casa-sticky-cart__title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #0a0a0a;
+}
+
+.casa-sticky-cart__variant {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.5);
+  margin-top: 2px;
+}
+
+/* ── Price ── */
+.casa-sticky-cart__price {
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #0a0a0a;
+}
+
+.casa-sticky-cart__price .compare-at-price {
+  display: none;
+}
+
+.casa-sticky-cart__price .price-save-badge {
+  display: none;
+}
+
+/* Hide installments / Shop Pay widget — targets the div wrapper and the
+   custom element Shopify injects via JS (shopify-payment-terms lives in
+   a shadow DOM so display:none on the host is the only reliable way) */
+.casa-sticky-cart .price-installments,
+.casa-sticky-cart shopify-payment-terms,
+.casa-sticky-cart payment-terms,
+.casa-sticky-cart form#installments-form,
+.casa-sticky-cart [id^="installments-form"] {
+  display: none !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* ── Button ── */
+.casa-sticky-cart__button {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 12px 24px;
+  min-height: 48px;
+
+  background: #0a0a0a;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.casa-sticky-cart__button:hover:not(:disabled) {
+  background: #222;
+}
+
+.casa-sticky-cart__button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.casa-sticky-cart__button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.casa-sticky-cart__button-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.casa-sticky-cart__button-icon {
+  display: flex;
+  align-items: center;
+}
+
+.casa-sticky-cart__button-added {
+  display: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.casa-sticky-cart__button[data-added="true"] .casa-sticky-cart__button-text {
+  display: none;
+}
+
+.casa-sticky-cart__button[data-added="true"] .casa-sticky-cart__button-added {
+  display: flex;
+}
+
+.casa-sticky-cart__quantity {
+  opacity: 0.7;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE - MOBILE
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 749px) {
+  .casa-sticky-cart__bar {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: translateX(0) translateY(100%);
+
+    max-width: none;
+    width: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    gap: 12px;
+  }
+
+  .casa-sticky-cart__bar[data-stuck="true"] {
+    transform: translateX(0) translateY(0);
+  }
+
+  .casa-sticky-cart__bar[data-cart-open="true"] {
+    transform: translateX(0) translateY(100%) !important;
+  }
+
+  .casa-sticky-cart__image {
+    display: none;
+  }
+
+  .casa-sticky-cart__info {
+    flex: 1;
+  }
+
+  .casa-sticky-cart__title {
+    font-size: 13px;
+  }
+
+  .casa-sticky-cart__variant {
+    font-size: 11px;
+  }
+
+  .casa-sticky-cart__price {
+    font-size: 14px;
+  }
+
+  .casa-sticky-cart__button {
+    padding: 12px 20px;
+    font-size: 13px;
+    border-radius: 10px;
+  }
+}
+
+@media (max-width: 389px) {
+  .casa-sticky-cart__variant {
+    display: none !important;
+  }
+}
+
+@media (max-width: 375px) {
+  .casa-sticky-cart__bar {
+    padding: 10px 12px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    gap: 10px;
+  }
+
+  .casa-sticky-cart__title {
+    font-size: 12px;
+  }
+
+  .casa-sticky-cart__price {
+    font-size: 13px;
+  }
+
+  .casa-sticky-cart__button {
+    padding: 10px 14px;
+    font-size: 12px;
+    min-height: 42px;
+    border-radius: 8px;
+    gap: 6px;
+  }
+
+  .casa-sticky-cart__button-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .casa-sticky-cart__button-text span:last-of-type {
+    display: none;
+  }
+
+  .casa-sticky-cart__button-icon {
+    display: flex;
+  }
+}
+
+@media (max-width: 320px) {
+  .casa-sticky-cart__info {
+    display: none;
+  }
+
+  .casa-sticky-cart__bar {
+    justify-content: space-between;
+  }
+
+  .casa-sticky-cart__price {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .casa-sticky-cart__button {
+    flex: 1;
+    max-width: 150px;
+  }
+}
+{% endstylesheet %}

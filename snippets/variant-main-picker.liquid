@@ -6,6 +6,230 @@
 {%- enddoc -%}
 
 {% assign block_settings = block.settings %}
+{%- liquid
+  assign cdl_font_size            = card_font_size        | default: 12
+  assign cdl_price_size           = card_price_font_size  | default: 11
+  assign cdl_border_animation     = border_animation      | default: 'gradient'
+  assign cdl_info_layout          = info_layout           | default: 'outside'
+  assign cdl_dim_size             = cdl_font_size | minus: 3
+  assign cdl_cards_per_row        = cards_per_row         | default: 3
+  assign cdl_image_width          = image_width           | default: 100
+  assign cdl_image_height         = image_height          | default: 80
+  assign cdl_image_ratio          = image_ratio           | default: 'fixed'
+  assign cdl_card_min_height      = card_min_height       | default: 0
+  assign cdl_cards_per_row_mobile = cards_per_row_mobile  | default: 2
+  assign cdl_image_width_mobile   = image_width_mobile    | default: cdl_image_width
+  assign cdl_image_height_mobile  = image_height_mobile   | default: cdl_image_height
+  assign cdl_image_ratio_mobile   = image_ratio_mobile    | default: cdl_image_ratio
+  assign cdl_card_min_height_mobile = card_min_height_mobile | default: cdl_card_min_height
+  assign cdl_hide_text_mobile     = hide_text_mobile      | default: false
+  assign cdl_hide_price_mobile    = hide_price_mobile     | default: false
+  assign cdl_hide_text            = hide_text             | default: false
+  assign cdl_hide_price           = hide_price            | default: false
+  assign cdl_card_padding         = card_padding          | default: 9
+  assign cdl_card_padding_mobile  = card_padding_mobile   | default: 4
+-%}
+
+{%- comment -%} Scoped per-instance styles — grid + image size + info layout + border animation {%- endcomment -%}
+<style>
+  .cdl-vp-{{ block.id }} .variant-option__button-label__text { font-size: {{ cdl_font_size }}px !important; }
+  .cdl-vp-{{ block.id }} .variant-option__dimensions { font-size: {{ cdl_dim_size }}px !important; }
+
+  /* ── Mobile layout (≤749px) ── */
+  @media (max-width: 749px) {
+    .cdl-vp-{{ block.id }} .variant-option--buttons {
+      display: grid !important;
+      grid-template-columns: repeat({{ cdl_cards_per_row_mobile }}, 1fr) !important;
+      gap: 4px !important;
+    }
+    .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label {
+      padding: {{ cdl_card_padding_mobile }}px !important;
+    }
+    .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label--has-img {
+      padding: {{ cdl_card_padding_mobile }}px {{ cdl_card_padding_mobile }}px {{ cdl_card_padding_mobile | plus: 2 }}px !important;
+    }
+    .cdl-vp-{{ block.id }} .variant-option__card-img-wrap {
+      width: {{ cdl_image_width_mobile }}% !important;
+      {%- if cdl_image_ratio_mobile == 'fixed' %}
+      height: {{ cdl_image_height_mobile }}px !important;
+      aspect-ratio: unset !important;
+      {%- else %}
+      height: unset !important;
+      aspect-ratio: {{ cdl_image_ratio_mobile | replace: ':', ' /' }} !important;
+      {%- endif %}
+      {%- if cdl_image_width_mobile < 100 %}
+      margin-left: auto !important;
+      margin-right: auto !important;
+      border-radius: 6px !important;
+      {%- endif %}
+    }
+    {%- if cdl_card_min_height_mobile > 0 %}
+    .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label {
+      min-height: {{ cdl_card_min_height_mobile }}px !important;
+      justify-content: center !important;
+    }
+    {%- endif %}
+    {%- if cdl_hide_text_mobile %}
+    .cdl-vp-{{ block.id }} .variant-option__button-label__text { display: none !important; }
+    {%- endif %}
+    {%- if cdl_hide_price_mobile %}
+    .cdl-vp-{{ block.id }} .variant-option__price { display: none !important; }
+    {%- endif %}
+    {%- if cdl_hide_text_mobile and cdl_hide_price_mobile %}
+    .cdl-vp-{{ block.id }} .variant-option__card-info { display: none !important; }
+    .cdl-vp-{{ block.id }} .variant-option__card-img-wrap { margin-bottom: 0 !important; }
+    {%- endif %}
+  }
+
+  /* ── Desktop layout (≥750px) ── */
+  @media (min-width: 750px) {
+    .cdl-vp-{{ block.id }} .variant-option--buttons {
+      display: grid !important;
+      grid-template-columns: repeat({{ cdl_cards_per_row }}, 1fr) !important;
+      gap: 6px !important;
+    }
+    .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label {
+      padding: {{ cdl_card_padding }}px !important;
+    }
+    .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label--has-img {
+      padding: {{ cdl_card_padding }}px {{ cdl_card_padding }}px {{ cdl_card_padding | plus: 2 }}px !important;
+    }
+    .cdl-vp-{{ block.id }} .variant-option__card-img-wrap {
+      width: {{ cdl_image_width }}% !important;
+      {%- if cdl_image_ratio == 'fixed' %}
+      height: {{ cdl_image_height }}px !important;
+      aspect-ratio: unset !important;
+      {%- else %}
+      height: unset !important;
+      aspect-ratio: {{ cdl_image_ratio | replace: ':', ' /' }} !important;
+      {%- endif %}
+      {%- if cdl_image_width < 100 %}
+      margin-left: auto !important;
+      margin-right: auto !important;
+      border-radius: 6px !important;
+      {%- endif %}
+    }
+    {%- if cdl_card_min_height > 0 %}
+    .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label {
+      min-height: {{ cdl_card_min_height }}px !important;
+      justify-content: center !important;
+    }
+    {%- endif %}
+    {%- if cdl_hide_text %}
+    .cdl-vp-{{ block.id }} .variant-option__button-label__text { display: none !important; }
+    {%- endif %}
+    {%- if cdl_hide_price %}
+    .cdl-vp-{{ block.id }} .variant-option__price { display: none !important; }
+    {%- endif %}
+    {%- if cdl_hide_text and cdl_hide_price %}
+    .cdl-vp-{{ block.id }} .variant-option__card-info { display: none !important; }
+    .cdl-vp-{{ block.id }} .variant-option__card-img-wrap { margin-bottom: 0 !important; }
+    {%- endif %}
+  }
+
+  {%- if cdl_info_layout == 'overlay' -%}
+  /* ── Overlay layout: gradient + text appears on hover only ── */
+  .cdl-vp-{{ block.id }} .variant-option__button-label--has-img {
+    padding: 0 !important;
+    overflow: hidden;
+  }
+  /* Info hidden by default */
+  .cdl-vp-{{ block.id }} .variant-option__button-label--has-img .variant-option__card-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 6px 6px 7px;
+    background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0) 100%);
+    border-radius: 0 0 7px 7px;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  /* Reveal on hover or when card is selected */
+  .cdl-vp-{{ block.id }} .variant-option__button-label--has-img:hover .variant-option__card-info,
+  .cdl-vp-{{ block.id }} .variant-option__button-label--has-img:has(input:checked) .variant-option__card-info {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .cdl-vp-{{ block.id }} .variant-option__button-label--has-img .variant-option__button-label__text {
+    color: #fff !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option__button-label--has-img .variant-option__dimensions {
+    color: rgba(255,255,255,0.75) !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option__button-label--has-img .variant-option__price {
+    color: #fff !important;
+  }
+  @media (max-width: 749px) {
+    .cdl-vp-{{ block.id }} .variant-option__button-label--has-img .variant-option__card-img-wrap {
+      position: relative;
+      width: 100% !important;
+      {%- if cdl_image_ratio_mobile == 'fixed' %}
+      height: {{ cdl_image_height_mobile }}px !important;
+      aspect-ratio: unset !important;
+      {%- else %}
+      height: unset !important;
+      aspect-ratio: {{ cdl_image_ratio_mobile | replace: ':', ' /' }} !important;
+      {%- endif %}
+      margin-bottom: 0 !important;
+      border-radius: 7px !important;
+    }
+  }
+  @media (min-width: 750px) {
+    .cdl-vp-{{ block.id }} .variant-option__button-label--has-img .variant-option__card-img-wrap {
+      position: relative;
+      width: 100% !important;
+      {%- if cdl_image_ratio == 'fixed' %}
+      height: {{ cdl_image_height }}px !important;
+      aspect-ratio: unset !important;
+      {%- else %}
+      height: unset !important;
+      aspect-ratio: {{ cdl_image_ratio | replace: ':', ' /' }} !important;
+      {%- endif %}
+      margin-bottom: 0 !important;
+      border-radius: 7px !important;
+    }
+  }
+  {%- endif -%}
+
+  {%- if cdl_border_animation == 'gradient' -%}
+  /* ── Animated gradient border ──
+     Technique: hue-rotate on a solid purple/pink box-shadow ring.
+     No pseudo-elements, no z-index, works everywhere.
+  ── */
+  @keyframes cdl-hue-{{ block.id }} {
+    0%   { box-shadow: 0 0 0 2px #9333ea, 0 0 8px rgba(147,51,234,0.3); filter: hue-rotate(0deg); }
+    50%  { box-shadow: 0 0 0 2px #ec4899, 0 0 8px rgba(236,72,153,0.3); filter: hue-rotate(40deg); }
+    100% { box-shadow: 0 0 0 2px #9333ea, 0 0 8px rgba(147,51,234,0.3); filter: hue-rotate(0deg); }
+  }
+
+  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label:has(input:checked) {
+    border-color: #9333ea !important;
+    animation: cdl-hue-{{ block.id }} 2s ease-in-out infinite !important;
+  }
+
+  {%- elsif cdl_border_animation == 'pulse' -%}
+  /* ── Pulse glow on selected card ── */
+  @keyframes cdl-pulse-{{ block.id }} {
+    0%, 100% { box-shadow: 0 0 0 2px #9333ea; }
+    50%       { box-shadow: 0 0 0 4px rgba(147, 51, 234, 0.35), 0 0 12px rgba(147, 51, 234, 0.25); }
+  }
+
+  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label:has(input:checked) {
+    border-color: #9333ea !important;
+    animation: cdl-pulse-{{ block.id }} 2s ease-in-out infinite !important;
+    box-shadow: none;
+  }
+
+  {%- elsif cdl_border_animation == 'none' -%}
+  /* ── Static border (no animation) ── */
+  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label:has(input:checked) {
+    border-color: #9333ea !important;
+    box-shadow: 0 0 0 1px #9333ea !important;
+  }
+  {%- endif -%}
+</style>
 
 {% unless product_resource.has_only_default_variant %}
   {% liquid
@@ -17,8 +241,8 @@
     endif
   %}
   <variant-picker
-    class="variant-picker spacing-style variant-picker--{{ block_settings.alignment }}"
-    style="--color-strikethrough-mix: {{ strikethrough_color_mix }}; {% render 'spacing-style', settings: block_settings %}"
+    class="variant-picker spacing-style variant-picker--{{ block_settings.alignment }} cdl-vp-{{ block.id }}"
+    style="--color-strikethrough-mix: {{ strikethrough_color_mix }}; --cdl-price-size: {{ cdl_price_size }}px; {% render 'spacing-style', settings: block_settings %}"
     data-section-id="{{ section.id }}"
     data-product-id="{{ product_resource.id }}"
     data-block-id="{{ block.id }}"
@@ -53,7 +277,7 @@
           endif
         -%}
 
-        {%- if variant_style == 'swatch' or block_settings.variant_style == 'buttons' -%}
+        {%- if variant_style == 'swatch' or variant_style == 'buttons' -%}
           {%- assign fieldset_index = forloop.index0 -%}
           <fieldset
             class="variant-option variant-option--buttons{% if variant_style == 'swatch' %} variant-option--swatches{% else %} variant-option--{{ settings.variant_button_width }}{% endif %}"
@@ -71,8 +295,14 @@
               {% if product_option_value.size > longest_value and option_id_attribute %}
                 {% assign longest_value = product_option_value.size %}
               {% endif %}
+              {%- liquid
+                assign cdl_label_media = product_option_value.variant.featured_media
+                if cdl_label_media == blank and product_option_value.product_url
+                  assign cdl_label_media = product_option_value.variant.product.featured_media
+                endif
+              -%}
               <label
-                class="variant-option__button-label{% if variant_style == 'swatch' %} variant-option__button-label--has-swatch{% endif %}"
+                class="variant-option__button-label{% if variant_style == 'swatch' %} variant-option__button-label--has-swatch{% endif %}{% if cdl_label_media != blank %} variant-option__button-label--has-img{% endif %}"
               >
                 <input
                   type="radio"
@@ -116,17 +346,59 @@
                     mode: 'unscaled'
                   %}
                 {% else %}
-                  {% if product_option_value.available == true %}
+                  {%- comment -%} Resolve variant image {%- endcomment -%}
+                  {%- liquid
+                    assign cdl_featured_media = product_option_value.variant.featured_media
+                    if cdl_featured_media == blank and product_option_value.product_url
+                      assign cdl_featured_media = product_option_value.variant.product.featured_media
+                    endif
+                    assign cdl_has_img = false
+                    if cdl_featured_media != blank
+                      assign cdl_has_img = true
+                    endif
+                  -%}
+
+                  {%- comment -%} Badge tag (top-right pill) {%- endcomment -%}
+                  {%- if product_option_value.variant -%}
+                    {%- assign variant_tag_badge = product_option_value.variant.metafields.custom.badge | default: '' -%}
+                    {%- if variant_tag_badge != blank -%}
+                      <span class="variant-option__badge-tag">{{ variant_tag_badge }}</span>
+                    {%- endif -%}
+                  {%- endif -%}
+
+                  {%- if cdl_has_img -%}
+                    {%- comment -%} Image wrapper — always rendered when image exists {%- endcomment -%}
+                    <span class="variant-option__card-img-wrap">
+                      <img
+                        src="{{ cdl_featured_media.preview_image | image_url: width: 320 }}"
+                        alt="{{ product_option_value | escape }}"
+                        class="variant-option__card-img"
+                        loading="lazy"
+                        width="{{ cdl_image_size }}"
+                        height="{{ cdl_image_size }}"
+                      >
+                    </span>
+                  {%- endif -%}
+
+                  {%- comment -%} Info block — outside or overlay depending on setting {%- endcomment -%}
+                  <span class="variant-option__card-info">
                     <span
-                      class="variant-option__button-label__pill"
-                      data-key="variant-option-pill"
-                    ></span>
-                  {% endif %}
-                  <span
-                    class="variant-option__button-label__text"
-                    data-key="variant-option-text"
-                  >
-                    {{- product_option_value | escape -}}
+                      class="variant-option__button-label__text"
+                      data-key="variant-option-text"
+                    >
+                      {{- product_option_value | escape -}}
+                    </span>
+
+                    {%- if product_option_value.variant -%}
+                      {%- assign v = product_option_value.variant -%}
+                      {%- assign v_dimensions = v.metafields.custom.dimensions | default: '' -%}
+                      {%- if v_dimensions != blank -%}
+                        <span class="variant-option__dimensions">{{ v_dimensions }}</span>
+                      {%- endif -%}
+                      <span class="variant-option__price" data-variant-price>
+                        {{- v.price | money -}}
+                      </span>
+                    {%- endif -%}
                   </span>
                 {% endif %}
                 {% render 'strikethrough-variant', product_option: product_option_value %}
@@ -140,7 +412,7 @@
               {% endstyle %}
             {% endif %}
           </fieldset>
-        {%- elsif block_settings.variant_style == 'dropdowns' -%}
+        {%- elsif variant_style == 'dropdown' or variant_style == 'swatch_dropdown' -%}
           {%
             # There is an opportunity to build a custom select component that will allow us to style the select element further (animation for dropdown, swatches shown in the dropdown options, etc)
             # It's too bad as it mean rebuilding baked in behaviours but I think we've already done that for the locale selectors
@@ -155,48 +427,129 @@
             endif
           %}
 
+          {%- comment -%} Parse variant badges from product metafield (JSON object) {%- endcomment -%}
+          {%- assign variant_badges_meta = product_resource.metafields.custom.variant_badges.value -%}
+
           <div class="variant-option variant-option--dropdowns">
             <label for="Option-{{ block.id }}-{{ forloop.index0 }}">{{ product_option.name | escape }}</label>
-            <div
-              class="variant-option__select-wrapper"
-              style="
-                {%- if property_being_updated  -%}
-                  --variant-picker-swatch-width: clamp(10px,{{ new_width }}px, 50px);
-                {%- endif -%}
-              "
+
+            {%- comment -%} Hidden native select for form submission {%- endcomment -%}
+            <select
+              id="Option-{{ block.id }}-{{ forloop.index0 }}"
+              name="options[{{ product_option.name | escape }}]"
+              class="casa-vdd__hidden-select"
+              aria-hidden="true"
+              tabindex="-1"
             >
-              <select
-                id="Option-{{ block.id }}-{{ forloop.index0 }}"
-                name="options[{{ product_option.name | escape }}]"
-                class="variant-option__select"
-              >
+              {%- for product_option_value in product_option.values -%}
+                <option
+                  value="{{ product_option_value | escape }}"
+                  data-input-id="{{ product_option.position }}-{{ forloop.index0 }}"
+                  data-option-value-id="{{ product_option_value.id }}"
+                  data-variant-id="{{ product_option_value.variant.id }}"
+                  data-connected-product-url="{{ product_option_value.product_url }}"
+                  {% if product_option_value.selected %}selected="selected"{% endif %}
+                >{{ product_option_value | escape }}</option>
+              {%- endfor -%}
+            </select>
+
+            {%- comment -%} Custom visual dropdown with variant images {%- endcomment -%}
+            <div class="casa-vdd" data-casa-vdd>
+              {%- comment -%} Selected display (trigger) {%- endcomment -%}
+              {%- for product_option_value in product_option.values -%}
+                {%- if product_option_value.selected -%}
+                  {%- assign selected_val = product_option_value -%}
+                {%- endif -%}
+              {%- endfor -%}
+              {%- assign selected_val = selected_val | default: product_option.values.first -%}
+              {%- comment -%} Get selected variant's badges {%- endcomment -%}
+              {%- assign _sel_variant = nil -%}
+              {%- for v in product_resource.variants -%}
+                {%- if v.title contains selected_val -%}
+                  {%- assign _sel_variant = v -%}
+                  {%- break -%}
+                {%- endif -%}
+              {%- endfor -%}
+              <button type="button" class="casa-vdd__trigger" aria-expanded="false" aria-haspopup="listbox">
+                {%- if selected_val.variant.image -%}
+                  <img src="{{ selected_val.variant.image | image_url: width: 80, height: 80, crop: 'center' }}" alt="{{ selected_val | escape }}" class="casa-vdd__trigger-img" loading="lazy" width="40" height="40">
+                {%- endif -%}
+                <span class="casa-vdd__trigger-text">{{ selected_val | escape }}</span>
+                {%- if _sel_variant and _sel_variant.metafields.custom.variant_badge != blank -%}
+                  {%- assign _trig_badges = _sel_variant.metafields.custom.variant_badge.value | split: ',' -%}
+                  {%- assign _trig_colors = _sel_variant.metafields.custom.variant_badge_colors.value | default: '' | split: ',' -%}
+                  {%- for _tb in _trig_badges limit: 2 -%}
+                    {%- assign _tb_text = _tb | strip -%}
+                    {%- if _tb_text != blank -%}
+                      {%- assign _tb_color = _trig_colors[forloop.index0] | strip | default: '' -%}
+                      <span class="casa-vdd__option-badge casa-vdd__trigger-badge"{% if _tb_color != blank %} style="background: {{ _tb_color }};"{% endif %}>{{ _tb_text }}</span>
+                    {%- endif -%}
+                  {%- endfor -%}
+                {%- endif -%}
+                {%- if selected_val.available == false -%}
+                  <span class="casa-vdd__unavailable">Unavailable</span>
+                {%- endif -%}
+                <svg class="casa-vdd__caret" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 4.5 6 7.5 9 4.5"></polyline></svg>
+              </button>
+
+              {%- comment -%} Dropdown options list {%- endcomment -%}
+              <div class="casa-vdd__list" role="listbox" aria-label="{{ product_option.name | escape }}">
                 {%- for product_option_value in product_option.values -%}
-                  <option
-                    value="{{ product_option_value | escape }}"
-                    data-input-id="{{ product_option.position }}-{{ forloop.index0 }}"
+                  <button
+                    type="button"
+                    class="casa-vdd__option{% if product_option_value.selected %} casa-vdd__option--selected{% endif %}{% unless product_option_value.available %} casa-vdd__option--unavailable{% endunless %}"
+                    role="option"
+                    aria-selected="{{ product_option_value.selected }}"
+                    data-value="{{ product_option_value | escape }}"
                     data-option-value-id="{{ product_option_value.id }}"
                     data-variant-id="{{ product_option_value.variant.id }}"
-                    data-connected-product-url="{{ product_option_value.product_url }}"
-                    {% if product_option_value.selected %}
-                      selected="selected"
-                    {% endif %}
                   >
-                    {% if product_option_value.available == false %}
-                      {{ product_option_value | escape }} - {{ 'content.unavailable' | t }}
-                    {% else %}
-                      {{ product_option_value | escape }}
-                    {% endif %}
-                  </option>
+                    {%- if product_option_value.variant.image -%}
+                      <img
+                        src="{{ product_option_value.variant.image | image_url: width: 80, height: 80, crop: 'center' }}"
+                        alt="{{ product_option_value | escape }}"
+                        class="casa-vdd__option-img"
+                        loading="lazy"
+                        width="40"
+                        height="40"
+                      >
+                    {%- endif -%}
+                    {%- comment -%} Find the variant for this option value to read its metafields {%- endcomment -%}
+                    {%- assign _opt_variant = nil -%}
+                    {%- for v in product_resource.variants -%}
+                      {%- if v.title contains product_option_value -%}
+                        {%- assign _opt_variant = v -%}
+                        {%- break -%}
+                      {%- endif -%}
+                    {%- endfor -%}
+                    <span class="casa-vdd__option-text">
+                      <span class="casa-vdd__option-name">
+                        {{ product_option_value | escape }}
+                        {%- if _opt_variant and _opt_variant.metafields.custom.variant_badge != blank -%}
+                          {%- assign _vb_badges = _opt_variant.metafields.custom.variant_badge.value | split: ',' -%}
+                          {%- assign _vb_colors = _opt_variant.metafields.custom.variant_badge_colors.value | default: '' | split: ',' -%}
+                          {%- for _badge_item in _vb_badges limit: 3 -%}
+                            {%- assign _badge_text = _badge_item | strip -%}
+                            {%- if _badge_text != blank -%}
+                              {%- assign _badge_color = _vb_colors[forloop.index0] | strip | default: '' -%}
+                              <span class="casa-vdd__option-badge"{% if _badge_color != blank %} style="background: {{ _badge_color }};"{% endif %}>{{ _badge_text }}</span>
+                            {%- endif -%}
+                          {%- endfor -%}
+                        {%- endif -%}
+                      </span>
+                      {%- if _opt_variant and _opt_variant.metafields.custom.variant_description != blank -%}
+                        <span class="casa-vdd__option-desc">{{ _opt_variant.metafields.custom.variant_description.value }}</span>
+                      {%- endif -%}
+                      {%- unless product_option_value.available -%}
+                        <span class="casa-vdd__option-status">Unavailable</span>
+                      {%- endunless -%}
+                    </span>
+                    {%- if product_option_value.selected -%}
+                      <svg class="casa-vdd__check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    {%- endif -%}
+                  </button>
                 {%- endfor -%}
-              </select>
-              <svg
-                aria-hidden="true"
-                focusable="false"
-                class="icon icon-caret"
-                viewBox="0 0 10 6"
-              >
-                {%- render 'icon', icon: 'caret' -%}
-              </svg>
+              </div>
             </div>
           </div>
         {%- endif -%}
@@ -210,6 +563,7 @@
 {% endunless %}
 
 {% stylesheet %}
+  /* Variant picker container styles - unique to main variant picker */
   .variant-picker {
     width: 100%;
   }
@@ -223,404 +577,7 @@
     padding-inline-start: max(4px, var(--padding-inline-start));
   }
 
-  .variant-option {
-    --options-border-radius: var(--variant-picker-button-radius);
-    --options-border-width: var(--variant-picker-button-border-width);
-    --variant-option-padding-inline: var(--padding-md);
-  }
-
-  .variant-option + .variant-option {
-    margin-top: var(--padding-lg);
-  }
-
-  .variant-option--swatches {
-    --options-border-radius: var(--variant-picker-swatch-radius);
-
-    width: 100%;
-  }
-
-  .variant-option--swatches-disabled {
-    pointer-events: none;
-    cursor: not-allowed;
-  }
-
-  .variant-option--swatches > overflow-list {
-    justify-content: var(--product-swatches-alignment);
-
-    @media (max-width: 749px) {
-      justify-content: var(--product-swatches-alignment-mobile);
-    }
-  }
-
-  .variant-option--buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--gap-sm);
-    margin: 0;
-    padding: 0;
-    border: none;
-  }
-
-  .variant-option--buttons legend {
-    padding: 0;
-    margin-block-end: var(--margin-xs);
-  }
-
-  .variant-option__swatch-value {
-    padding-inline-start: var(--padding-xs);
-    color: rgb(var(--color-foreground-rgb) / var(--opacity-70));
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    .variant-option__button-label,
-    .variant-option__select-wrapper,
-    .variant-option__button-label::before,
-    .variant-option__button-label::after,
-    .variant-option__button-label:has([data-previous-checked='true'], [data-current-checked='true'])
-      .variant-option__button-label__pill,
-    .variant-option__button-label:not(.variant-option__button-label--has-swatch) svg line:last-of-type {
-      transition-duration: var(--animation-speed);
-      transition-timing-function: var(--animation-easing);
-    }
-
-    .variant-option__button-label__pill {
-      transition-property: transform;
-    }
-
-    .variant-option__button-label:not(.variant-option__button-label--has-swatch) svg line:last-of-type {
-      transition-property: clip-path;
-    }
-
-    .variant-option__button-label:has([data-previous-checked='true'], [data-current-checked='true'])
-      .variant-option__button-label__pill {
-      transition-property: transform;
-    }
-
-    .variant-option__button-label::after {
-      transition-property: clip-path;
-    }
-
-    .variant-option__button-label::before {
-      transition-property: border-color;
-    }
-
-    .variant-option__select-wrapper,
-    .variant-option__button-label {
-      transition-property: background-color, border-color, color;
-    }
-  }
-
-  .variant-option__button-label {
-    --variant-picker-stroke-color: var(--color-variant-border);
-
-    cursor: pointer;
-    display: flex;
-    flex: 0 0 3.25em;
-    align-items: center;
-    position: relative;
-    padding-block: var(--padding-sm);
-    padding-inline: var(--padding-lg);
-    border: var(--options-border-width) solid var(--color-variant-border);
-    border-radius: var(--options-border-radius);
-    overflow: clip;
-    justify-content: center;
-    min-height: 3.25em;
-    min-width: fit-content;
-    white-space: nowrap;
-    background-color: var(--color-variant-background);
-    color: var(--color-variant-text);
-
-    &:hover,
-    &:hover:has([aria-disabled='true']):has([data-option-available='false']) {
-      background-color: var(--color-variant-hover-background);
-      border-color: var(--color-variant-hover-border);
-      color: var(--color-variant-hover-text);
-    }
-
-    /* we need something like overflow-clip-margin to use the pseudoelement but it doesn't work in Safari */
-
-    /* so instead use the layered background image trick */
-    &:not(.variant-option__button-label--has-swatch):has([data-option-available='false']) {
-      border-width: 0;
-    }
-
-    /* ::after/::before act as a fake border for the button style variant */
-
-    /* ::after is the unavailable variant border that clips in */
-    &:not(.variant-option__button-label--has-swatch)::before,
-    &:has([data-option-available='false']):not(.variant-option__button-label--has-swatch)::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border: var(--options-border-width) solid var(--color-selected-variant-border);
-      border-radius: inherit;
-      pointer-events: none;
-      z-index: 2;
-      /* stylelint-disable-next-line plugin/no-unsupported-browser-features */
-      clip-path: inset(var(--clip, 0 0 0 0));
-    }
-
-    &:has([data-option-available='false']):not(.variant-option__button-label--has-swatch)::before {
-      inset: 0;
-    }
-
-    &:not(.variant-option__button-label--has-swatch)::before {
-      /* stylelint-disable-next-line plugin/no-unsupported-browser-features */
-      clip-path: inset(0 0 0 0);
-      border-color: var(--color-variant-border);
-      inset: calc(var(--options-border-width) * -1);
-    }
-
-    &:has(:checked):not(.variant-option__button-label--has-swatch, :has([data-option-available='false']))::before {
-      border-color: var(--color-selected-variant-border);
-    }
-
-    /* setting left/right accounts for variant buttons of different widths */
-    &:not(:has(:checked)):has(~ label > :checked),
-    &:has(:checked):has(~ label > [data-previous-checked='true']) {
-      .variant-option__button-label__pill {
-        right: 0;
-        left: unset;
-      }
-    }
-
-    &:has([data-previous-checked='true']) ~ label:has([data-current-checked='true']),
-    &:has(:checked) ~ label {
-      .variant-option__button-label__pill {
-        left: 0;
-        right: unset;
-      }
-    }
-
-    &:not(:has(:checked)):has(~ label > :checked) {
-      --pill-offset: calc(100% + 1px);
-    }
-
-    &:has(:checked) ~ label {
-      --pill-offset: calc(-100% - 1px);
-    }
-
-    &:has([data-current-checked='true']):first-of-type
-      ~ label:last-of-type:not(.variant-option__button-label--has-swatch),
-    &:not(:has(:checked)):has(~ label > :checked):not(.variant-option__button-label--has-swatch) {
-      --clip: 0 0 0 100%;
-    }
-
-    &:not(:has([data-current-checked='true'])):first-of-type:has(~ label:last-of-type > :checked):not(
-        .variant-option__button-label--has-swatch
-      ),
-    &:has(:checked) ~ label:not(.variant-option__button-label--has-swatch) {
-      --clip: 0 100% 0 0;
-    }
-
-    &:has([data-previous-checked='true'], [data-current-checked='true']) .variant-option__button-label__pill {
-      width: max(var(--pill-width-current, 100%), var(--pill-width-previous, 100%));
-    }
-
-    @media screen and (min-width: 750px) {
-      padding: var(--padding-xs) var(--variant-option-padding-inline);
-    }
-  }
-
-  /* wrap around only for 3 or more variants in a row */
-
-  /* the more complex selector rules here produce the wrap around effect for first/last variants */
-  .variant-option--buttons:has(:nth-of-type(3)) {
-    .variant-option__button-label:has([data-current-checked='true']):first-of-type ~ label:last-of-type {
-      --pill-offset: calc(100% + 1px);
-    }
-
-    .variant-option__button-label:not(:has([data-current-checked='true'])):first-of-type:has(
-        ~ label:last-of-type > :checked
-      ) {
-      --pill-offset: calc(-100% - 1px);
-    }
-  }
-
-  .variant-option__button-label__pill {
-    background: var(--color-selected-variant-background);
-    position: absolute;
-    top: calc(var(--options-border-width) * -1);
-    bottom: calc(var(--options-border-width) * -1);
-    border-radius: inherit;
-    pointer-events: none;
-    width: 100%;
-    transform: translateX(var(--pill-offset, 0));
-  }
-
-  .variant-option__button-label__text {
-    pointer-events: none;
-    text-align: start;
-    text-wrap: auto;
-    z-index: 2;
-  }
-
-  .variant-option--equal-width-buttons {
-    --variant-min-width: clamp(44px, calc(var(--variant-option-padding-inline) * 2 + var(--variant-ch)), 100%);
-
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(var(--variant-min-width), 1fr));
-
-    .variant-option__button-label {
-      min-width: var(--variant-min-width);
-    }
-
-    .variant-option__button-label__text {
-      text-align: center;
-      text-wrap: balance;
-    }
-  }
-
-  .variant-option__button-label:has(:focus-visible) {
-    --variant-picker-stroke-color: var(--color-foreground);
-
-    border-color: var(--color-foreground);
-    outline: var(--focus-outline-width) solid var(--color-foreground);
-    outline-offset: var(--focus-outline-offset);
-  }
-
-  .variant-option__button-label--has-swatch {
-    --focus-outline-radius: var(--variant-picker-swatch-radius);
-
-    padding: 0;
-    border: none;
-    display: block;
-    flex-basis: auto;
-    min-height: auto;
-  }
-
-  .variant-option__button-label:has(:checked) {
-    color: var(--color-selected-variant-text);
-    border-color: var(--color-selected-variant-border);
-  }
-
-  .variant-option__button-label:has(:checked):hover {
-    border-color: var(--color-selected-variant-hover-border);
-    color: var(--color-selected-variant-hover-text);
-
-    .variant-option__button-label__pill {
-      background-color: var(--color-selected-variant-hover-background);
-    }
-  }
-
-  .variant-option__button-label:has([data-option-available='false']) {
-    color: rgb(var(--color-variant-text-rgb) / var(--opacity-60));
-  }
-
-  .facets__inputs-list--swatches-grid .variant-option__button-label--has-swatch:hover .swatch {
-    --focus-outline: var(--focus-outline-width) solid rgb(var(--color-foreground-rgb) / var(--opacity-35-55));
-
-    outline: var(--focus-outline);
-    outline-offset: var(--focus-outline-offset);
-  }
-
-  .facets__inputs-list--swatches-grid .variant-option__button-label:has(:focus-visible) .swatch {
-    --focus-outline: var(--focus-outline-width) solid currentcolor;
-
-    outline: var(--focus-outline);
-    outline-offset: var(--focus-outline-offset);
-  }
-
-  .facets__inputs-list--swatches-grid .variant-option__button-label:has(:focus-visible) {
-    outline: none;
-  }
-
-  .facets__inputs-list--swatches-grid .variant-option__button-label--has-swatch:hover {
-    outline: none;
-  }
-
-  .variant-option__button-label--has-swatch:hover {
-    outline: var(--focus-outline-width) solid rgb(var(--color-foreground-rgb) / var(--opacity-35-55));
-    outline-offset: var(--focus-outline-offset);
-  }
-
-  .facets__inputs-list--swatches-grid .variant-option__button-label--has-swatch:has(:checked) {
-    --focus-outline: none;
-  }
-
-  .facets__inputs-list--swatches-grid .variant-option__button-label--has-swatch:has(:checked) .swatch {
-    outline: var(--focus-outline);
-    outline-offset: var(--focus-outline-offset);
-  }
-
-  .variant-option__button-label--has-swatch:has(:checked) {
-    --focus-outline: var(--focus-outline-width) solid var(--color-foreground);
-
-    outline: var(--focus-outline);
-    outline-offset: var(--focus-outline-offset);
-  }
-
-  /* This triggers iOS < 16.4. The outline bug is not recognized as a lack of @supports */
-  @supports not (background-color: rgb(from red 150 g b / alpha)) {
-    /** There is a bug in safari < 16.4 that causes the outline to not follow the elements border radius. This is a workaround. **/
-    .variant-option__button-label--has-swatch:has(:checked),
-    .variant-option__button-label:has(:focus-visible) .swatch,
-    .facets__inputs-list--swatches-grid .variant-option__button-label--has-swatch:hover .swatch {
-      outline: none;
-      position: relative;
-      overflow: visible;
-    }
-
-    .variant-option__button-label--has-swatch:has(:checked)::after,
-    .variant-option__button-label:has(:focus-visible) .swatch::after,
-    .facets__inputs-list--swatches-grid .variant-option__button-label--has-swatch:hover .swatch::after {
-      content: '';
-      position: absolute;
-      inset: calc(-1 * var(--focus-outline-offset));
-      border: var(--focus-outline);
-      border-radius: var(--focus-outline-radius, 50%);
-      background-color: transparent;
-      display: inherit;
-    }
-  }
-
-  .variant-option__button-label:has([data-option-available='false']):has(:checked) {
-    background-color: inherit;
-    color: rgb(var(--color-variant-text-rgb) / var(--opacity-60));
-  }
-
-  .variant-option__button-label input,
-  .variant-option--images input {
-    /* remove the checkbox from the page flow */
-    position: absolute;
-
-    /* set the dimensions to match those of the label */
-    inset: 0;
-
-    /* hide it */
-    opacity: 0;
-    margin: 0;
-    cursor: pointer;
-    width: 100%;
-    height: 100%;
-  }
-
-  .variant-option__button-label svg {
-    position: absolute;
-    left: var(--options-border-width);
-    top: var(--options-border-width);
-    height: calc(100% - (var(--options-border-width) * 2));
-    width: calc(100% - (var(--options-border-width) * 2));
-    cursor: pointer;
-    pointer-events: none;
-    stroke-width: var(--style-border-width);
-    stroke: var(--variant-picker-stroke-color);
-  }
-
-  .variant-option__button-label:not(.variant-option__button-label--has-swatch) svg {
-    stroke: var(--color-variant-border);
-
-    line {
-      stroke-width: var(--options-border-width);
-    }
-
-    line:last-of-type {
-      /* stylelint-disable-next-line plugin/no-unsupported-browser-features */
-      clip-path: inset(var(--clip, 0 0 0 0));
-      stroke: rgb(var(--color-variant-text-rgb) / 1);
-    }
-  }
-
+  /* Dropdown variant option styles */
   .variant-option__select-wrapper {
     display: flex;
     position: relative;
@@ -676,6 +633,7 @@
     transform: translateY(-50%);
   }
 
+  /* Variant picker alignment modifiers */
   .variant-picker--center,
   .variant-picker--center .variant-option {
     text-align: center;
@@ -689,4 +647,354 @@
     text-align: right;
     justify-content: right;
   }
+
+  /* ═══════════════════════════════════════════════
+     SEOUL GLOW LAB — Card-style variant buttons
+     Figma: node 160-2486
+     Each option = a card: size label / dimension / price
+     3 cards per row, wraps into grid below
+     ═══════════════════════════════════════════════ */
+
+  /* Fieldset: grid base (3 col default) — overridden per-instance by scoped <style> */
+  .variant-option--buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding-bottom: 2px;
+    padding-top: 6px;
+  }
+
+  /* Legend spans all grid columns — sits above cards, not counted as a card */
+  .variant-option--buttons legend {
+    grid-column: 1 / -1;
+    font-size: 13px;
+    font-weight: 500;
+    color: #0a0a0a;
+    margin-bottom: 4px;
+    width: 100%;
+  }
+
+  /* Hide the raw radio input */
+  .variant-option__button-label input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  /* Each card — grid item, fills its column cell */
+  .variant-option--buttons .variant-option__button-label {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    padding: 9px 5px;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.18s, box-shadow 0.18s;
+    text-align: center;
+    box-sizing: border-box;
+    min-height: 0;
+  }
+
+  /* Selected card: base state — overridden by scoped animation style */
+  .variant-option--buttons .variant-option__button-label:has(input:checked) {
+    border-color: #9333ea;
+    box-shadow: 0 0 0 1px #9333ea;
+  }
+  /* Unavailable: muted + strikethrough */
+  .variant-option--buttons .variant-option__button-label:has(input[aria-disabled="true"]) {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Hover on unselected */
+  .variant-option--buttons .variant-option__button-label:hover:not(:has(input:checked)) {
+    border-color: #bbb;
+  }
+
+  /* Size name text — default 12px; overridden by scoped <style> per instance */
+  .variant-option__button-label__text {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0a0a0a;
+    line-height: 1.5;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* Dimension sub-label (from custom.dimensions metafield) */
+  .variant-option__dimensions {
+    display: block;
+    font-size: 9px;
+    font-weight: 400;
+    color: #757575;
+    line-height: 1.4;
+    text-align: center;
+  }
+
+  /* Per-variant price — font size controlled by --cdl-price-size */
+  .variant-option__price {
+    display: block;
+    font-size: var(--cdl-price-size, 11px);
+    font-weight: 600;
+    color: #0a0a0a;
+    line-height: 1.5;
+    text-align: center;
+    margin-top: 2px;
+  }
+
+  /* Badge tag (e.g. "Gift") — gradient pill top-right */
+  .variant-option__badge-tag {
+    position: absolute;
+    top: -7px;
+    right: 2px;
+    background: linear-gradient(90deg, #9333ea, #ec4899);
+    color: #fff;
+    font-size: 7px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 6px;
+    line-height: 14.5px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Hide the availability pill dot (not in Figma) */
+  .variant-option__button-label__pill { display: none; }
+
+  /* ── Variant card image ── */
+  .variant-option__card-img-wrap {
+    display: block;
+    width: 100%;       /* overridden by scoped style */
+    height: 80px;      /* overridden by scoped style */
+    overflow: hidden;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    flex-shrink: 0;
+  }
+
+  .variant-option__card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s ease;
+  }
+
+  .variant-option__button-label:hover .variant-option__card-img {
+    transform: scale(1.05);
+  }
+
+  /* Card with image: tighter padding */
+  .variant-option--buttons .variant-option__button-label--has-img {
+    padding: 5px 5px 7px;
+  }
+
+  /* Info block: outside layout (default) — normal flow below image */
+  .variant-option__card-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
+  /* Overlay layout base — scoped style positions it absolute */
+  .variant-option__button-label--has-img {
+    position: relative;
+  }
 {% endstylesheet %}
+
+<style>
+/* ── Custom Visual Dropdown (casa-vdd) ── */
+.casa-vdd__hidden-select {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
+  padding: 0;
+  margin: -1px;
+}
+.casa-vdd {
+  position: relative;
+  margin-top: 6px;
+}
+.casa-vdd__trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--color-input-background, #fff);
+  border: var(--style-border-width-inputs, 1px) solid var(--color-border, #d1d5db);
+  border-radius: var(--style-border-radius-inputs, 8px);
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  color: inherit;
+  transition: border-color 0.2s;
+}
+.casa-vdd__trigger:hover {
+  border-color: var(--color-variant-hover-border, #9333ea);
+}
+.casa-vdd__trigger-img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+  border: 2px solid transparent;
+}
+.casa-vdd__trigger-text {
+  flex: 1;
+  font-weight: 500;
+}
+.casa-vdd__unavailable {
+  font-size: 11px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.casa-vdd__caret {
+  flex-shrink: 0;
+  transition: transform 0.2s;
+  opacity: 0.5;
+}
+.casa-vdd.is-open .casa-vdd__caret {
+  transform: rotate(180deg);
+}
+/* Options list */
+.casa-vdd__list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: var(--color-background, #ffffff);
+  border: 1px solid var(--color-border, #d1d5db);
+  border-radius: var(--style-border-radius-inputs, 8px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+  max-height: 320px;
+  overflow-y: auto;
+  display: none;
+  padding: 0;
+}
+.casa-vdd.is-open .casa-vdd__list {
+  display: block;
+}
+.casa-vdd__option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 15px;
+  color: inherit;
+  border-radius: 0;
+  transition: background 0.15s;
+}
+.casa-vdd__option:first-child {
+  border-radius: 6px 6px 0 0;
+}
+.casa-vdd__option:last-child {
+  border-radius: 0 0 6px 6px;
+  border-bottom: none;
+}
+.casa-vdd__option:only-child {
+  border-radius: 6px;
+}
+.casa-vdd__option:hover {
+  background: rgba(147, 51, 234, 0.06);
+}
+.casa-vdd__option--selected {
+  background: rgba(147, 51, 234, 0.08);
+}
+.casa-vdd__option--selected:hover {
+  background: rgba(147, 51, 234, 0.1);
+}
+.casa-vdd__option--unavailable {
+  opacity: 0.45;
+}
+.casa-vdd__option-img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+  border: 2px solid transparent;
+}
+.casa-vdd__option--selected .casa-vdd__option-img {
+  border-color: #9333ea;
+}
+.casa-vdd__option-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.casa-vdd__option-name {
+  font-weight: 500;
+}
+.casa-vdd__option-status {
+  font-size: 11px;
+  color: #9ca3af;
+}
+.casa-vdd__check {
+  flex-shrink: 0;
+  color: #9333ea;
+  width: 20px;
+  height: 20px;
+}
+.casa-vdd__option-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  margin-left: 6px;
+  background: var(--vdd-badge-bg, linear-gradient(135deg, #9333ea, #ec4899));
+  color: var(--vdd-badge-text, #fff);
+  font-size: var(--vdd-badge-fs, 10px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+  line-height: 1.4;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.casa-vdd__option-badges {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.casa-vdd__option-desc {
+  display: block;
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 400;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.casa-vdd__check {
+  flex-shrink: 0;
+  color: #9333ea;
+}
+
+</style>
+
+{%- comment -%} JS for casa-vdd is in snippets/quick-add-modal.liquid (global) {%- endcomment -%}

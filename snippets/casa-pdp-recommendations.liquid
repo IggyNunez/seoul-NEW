@@ -1,0 +1,261 @@
+{%- comment -%}
+  Casa PDP Recommendations
+  Product recommendations section (Complete the Collection)
+
+  Parameters:
+  - block: The block object with settings
+  - product: The product object
+{%- endcomment -%}
+
+{%- liquid
+  assign title = block.settings.title | default: 'Complete the Collection'
+  assign products_count = block.settings.products_count | default: 4
+-%}
+
+<div class="casa-pdp-recommendations">
+  <h3 class="casa-pdp-recommendations__title">{{ title }}</h3>
+
+  <div class="casa-pdp-recommendations__grid" id="casa-recommendations-{{ section.id }}">
+    {%- comment -%} Load recommendations via JavaScript {%- endcomment -%}
+    <div class="casa-pdp-recommendations__loading">
+      <div class="casa-pdp-recommendations__spinner"></div>
+      <span>Loading recommendations...</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const container = document.getElementById('casa-recommendations-{{ section.id }}');
+    if (!container) return;
+
+    const productId = {{ product.id }};
+    const limit = {{ products_count }};
+
+    // Fetch recommendations
+    fetch(`/recommendations/products.json?product_id=${productId}&limit=${limit}&intent=related`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.products && data.products.length > 0) {
+          renderProducts(data.products);
+        } else {
+          container.innerHTML = '<p class="casa-pdp-recommendations__empty">No recommendations available</p>';
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching recommendations:', error);
+        container.innerHTML = '';
+      });
+
+    function renderProducts(products) {
+      let html = '';
+      products.forEach(product => {
+        const image = product.featured_image || '/cdn/shopify/s/files/1/0000/0000/0000/t/1/assets/placeholder.svg';
+        const price = formatMoney(product.price);
+        const comparePrice = product.compare_at_price ? formatMoney(product.compare_at_price) : null;
+
+        html += `
+          <a href="${product.url}" class="casa-pdp-recommendations__card">
+            <div class="casa-pdp-recommendations__image-wrapper">
+              <img
+                src="${image}"
+                alt="${product.title}"
+                class="casa-pdp-recommendations__image"
+                loading="lazy"
+                width="300"
+                height="300"
+              >
+            </div>
+            <div class="casa-pdp-recommendations__info">
+              <h4 class="casa-pdp-recommendations__product-title">${product.title}</h4>
+              <div class="casa-pdp-recommendations__price">
+                <span class="casa-pdp-recommendations__price-current">${price}</span>
+                ${comparePrice ? `<span class="casa-pdp-recommendations__price-compare">${comparePrice}</span>` : ''}
+              </div>
+            </div>
+          </a>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function formatMoney(cents) {
+      return '$' + (cents / 100).toFixed(2);
+    }
+  })();
+</script>
+
+<style>
+.casa-pdp-recommendations__title {
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 600;
+  margin: 0 0 32px 0;
+  color: #0a0a0a;
+}
+
+.casa-pdp-recommendations__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+.casa-pdp-recommendations__loading {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px;
+  color: #666;
+  font-size: 14px;
+}
+
+.casa-pdp-recommendations__spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e5e5e5;
+  border-top-color: var(--cpm-accent-1, #9333ea);
+  border-radius: 50%;
+  animation: casa-rec-spin 0.8s linear infinite;
+}
+
+@keyframes casa-rec-spin {
+  to { transform: rotate(360deg); }
+}
+
+.casa-pdp-recommendations__empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 48px;
+  color: #666;
+}
+
+/* ── Product Card ── */
+.casa-pdp-recommendations__card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease;
+}
+
+.casa-pdp-recommendations__card:hover {
+  transform: translateY(-4px);
+}
+
+.casa-pdp-recommendations__image-wrapper {
+  aspect-ratio: 1;
+  background: #f8f8f8;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.casa-pdp-recommendations__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.casa-pdp-recommendations__card:hover .casa-pdp-recommendations__image {
+  transform: scale(1.05);
+}
+
+.casa-pdp-recommendations__info {
+  padding: 0 4px;
+}
+
+.casa-pdp-recommendations__product-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 6px 0;
+  color: #0a0a0a;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.casa-pdp-recommendations__price {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.casa-pdp-recommendations__price-current {
+  font-weight: 600;
+  color: #0a0a0a;
+}
+
+.casa-pdp-recommendations__price-compare {
+  text-decoration: line-through;
+  color: var(--compare-price-color, #6b7280);
+  font-weight: 400;
+}
+
+/* ── Responsive ── */
+@media (max-width: 999px) {
+  .casa-pdp-recommendations__grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .casa-pdp-recommendations__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .casa-pdp-recommendations__grid {
+    gap: 12px;
+  }
+
+  .casa-pdp-recommendations__image-wrapper {
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+
+  .casa-pdp-recommendations__product-title {
+    font-size: 13px;
+  }
+
+  .casa-pdp-recommendations__price {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 375px) {
+  .casa-pdp-recommendations__title {
+    font-size: 20px;
+    margin-bottom: 24px;
+  }
+
+  .casa-pdp-recommendations__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .casa-pdp-recommendations__image-wrapper {
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+
+  .casa-pdp-recommendations__product-title {
+    font-size: 12px;
+    -webkit-line-clamp: 1;
+  }
+
+  .casa-pdp-recommendations__price {
+    font-size: 12px;
+  }
+
+  .casa-pdp-recommendations__info {
+    padding: 0 2px;
+  }
+}
+</style>

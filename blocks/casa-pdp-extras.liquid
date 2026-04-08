@@ -1,0 +1,498 @@
+{%- comment -%}
+  Casa PDP Extras Block
+  Renders delivery estimate, feature highlights, accordion (Specs, What's Included,
+  Installation, Care & Maintenance), and inline reviews below the buy buttons.
+  Works as a @theme block inside _product-details.
+{%- endcomment -%}
+
+<div class="casa-pdp-extras" {{ block.shopify_attributes }}>
+
+  {%- comment -%} ── Delivery Estimate ── {%- endcomment -%}
+  <div class="casa-pdp-delivery">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+    <span>Order in <strong id="casa-countdown">--h --m</strong> for delivery <strong id="casa-delivery-date">5–8 days</strong></span>
+  </div>
+
+  {%- comment -%} ── Feature Highlights (2×2 grid) ── {%- endcomment -%}
+  <div class="casa-pdp-features">
+    <div class="casa-pdp-features__item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>{{ block.settings.feature_1 }}</span>
+    </div>
+    <div class="casa-pdp-features__item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>{{ block.settings.feature_2 }}</span>
+    </div>
+    <div class="casa-pdp-features__item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>{{ block.settings.feature_3 }}</span>
+    </div>
+    <div class="casa-pdp-features__item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>{{ block.settings.feature_4 }}</span>
+    </div>
+  </div>
+
+  {%- comment -%} ── Accordion: Specifications ── {%- endcomment -%}
+  <details class="casa-pdp-acc" open>
+    <summary class="casa-pdp-acc__header">
+      <span class="casa-pdp-acc__title">Specifications</span>
+      <span class="casa-pdp-acc__chevron">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+    </summary>
+    <div class="casa-pdp-acc__body">
+      <div class="casa-pdp-specs">
+        {%- assign specs_raw = block.settings.specs | split: '||' -%}
+        {%- for spec in specs_raw -%}
+          {%- assign pair = spec | split: '::' -%}
+          {%- if pair.size == 2 -%}
+            <div class="casa-pdp-specs__item">
+              <span class="casa-pdp-specs__label">{{ pair[0] | strip }}</span>
+              <span class="casa-pdp-specs__value">{{ pair[1] | strip }}</span>
+            </div>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+    </div>
+  </details>
+
+  {%- comment -%} ── Accordion: What's Included ── {%- endcomment -%}
+  <details class="casa-pdp-acc">
+    <summary class="casa-pdp-acc__header">
+      <span class="casa-pdp-acc__title">What's Included</span>
+      <span class="casa-pdp-acc__chevron">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+    </summary>
+    <div class="casa-pdp-acc__body">
+      <ul class="casa-pdp-checklist">
+        {%- assign items = block.settings.whats_included | split: '||' -%}
+        {%- for item in items -%}
+          {%- assign trimmed = item | strip -%}
+          {%- if trimmed != blank -%}
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              {{ trimmed }}
+            </li>
+          {%- endif -%}
+        {%- endfor -%}
+      </ul>
+    </div>
+  </details>
+
+  {%- comment -%} ── Accordion: Installation ── {%- endcomment -%}
+  <details class="casa-pdp-acc">
+    <summary class="casa-pdp-acc__header">
+      <span class="casa-pdp-acc__title">Installation</span>
+      <span class="casa-pdp-acc__chevron">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+    </summary>
+    <div class="casa-pdp-acc__body">
+      {%- assign steps = block.settings.installation_steps | split: '||' -%}
+      {%- for step in steps -%}
+        {%- assign trimmed = step | strip -%}
+        {%- if trimmed != blank -%}
+          <p class="casa-pdp-step"><strong>Step {{ forloop.index }}:</strong> {{ trimmed }}</p>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+  </details>
+
+  {%- comment -%} ── Accordion: Care & Maintenance ── {%- endcomment -%}
+  <details class="casa-pdp-acc">
+    <summary class="casa-pdp-acc__header">
+      <span class="casa-pdp-acc__title">Care & Maintenance</span>
+      <span class="casa-pdp-acc__chevron">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+    </summary>
+    <div class="casa-pdp-acc__body">
+      <p class="casa-pdp-care">{{ block.settings.care_text }}</p>
+    </div>
+  </details>
+
+  {%- comment -%} ── Inline Reviews ── {%- endcomment -%}
+  <div class="casa-pdp-reviews-inline" id="reviews">
+    <div class="casa-pdp-reviews-inline__header">
+      <span class="casa-pdp-reviews-inline__title">What Customers Say</span>
+      <a href="#reviews" class="casa-pdp-reviews-inline__link">See All</a>
+    </div>
+    <div class="casa-pdp-reviews-inline__card">
+      <div class="casa-pdp-reviews-inline__stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+      <p class="casa-pdp-reviews-inline__text">{{ block.settings.review_text }}</p>
+      <div class="casa-pdp-reviews-inline__author">
+        <div class="casa-pdp-reviews-inline__avatar">{{ block.settings.reviewer_initials }}</div>
+        <div class="casa-pdp-reviews-inline__info">
+          <span class="casa-pdp-reviews-inline__name">{{ block.settings.reviewer_name }}</span>
+          <span class="casa-pdp-reviews-inline__verified">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            Verified
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    var c = document.getElementById('casa-countdown');
+    var d = document.getElementById('casa-delivery-date');
+    if (!c) return;
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    function fmt(dt){ return months[dt.getMonth()] + ' ' + dt.getDate(); }
+    function tick(){
+      var now = new Date();
+      var cutoff = new Date(now);
+      cutoff.setHours(14,0,0,0);
+      if (now >= cutoff) cutoff.setDate(cutoff.getDate() + 1);
+      var diff = cutoff - now;
+      c.textContent = Math.floor(diff/36e5) + 'h ' + Math.floor((diff%36e5)/6e4) + 'm';
+      var base = now >= cutoff ? new Date(now.getTime()+864e5) : now;
+      var mn = new Date(base); mn.setDate(mn.getDate()+5);
+      var mx = new Date(base); mx.setDate(mx.getDate()+8);
+      d.textContent = fmt(mn) + '-' + mx.getDate();
+    }
+    tick(); setInterval(tick, 60000);
+  })();
+</script>
+
+{% stylesheet %}
+/* ── Container ── */
+.casa-pdp-extras {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ── Delivery Estimate ── */
+.casa-pdp-delivery {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #f5f5f5;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.4;
+}
+.casa-pdp-delivery strong {
+  color: #0a0a0a;
+  font-weight: 600;
+}
+
+/* ── Feature Highlights ── */
+.casa-pdp-features {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  padding: 4px 0;
+}
+.casa-pdp-features__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: #333;
+  line-height: 1.4;
+}
+.casa-pdp-features__item svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ── Accordion ── */
+.casa-pdp-features + .casa-pdp-acc {
+  border-top: 1px solid #e5e5e5;
+  margin-top: 4px;
+}
+.casa-pdp-acc {
+  border-bottom: 1px solid #e5e5e5;
+}
+.casa-pdp-acc__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  cursor: pointer;
+  list-style: none;
+}
+.casa-pdp-acc__header::-webkit-details-marker {
+  display: none;
+}
+.casa-pdp-acc__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0a0a0a;
+}
+.casa-pdp-acc__chevron {
+  display: flex;
+  color: #999;
+  transition: transform 0.2s ease;
+}
+.casa-pdp-acc[open] .casa-pdp-acc__chevron {
+  transform: rotate(180deg);
+}
+.casa-pdp-acc__body {
+  padding: 0 0 20px 0;
+}
+
+/* ── Specs Grid ── */
+.casa-pdp-specs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.casa-pdp-specs__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 8px 10px 0;
+  gap: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.casa-pdp-specs__item:nth-last-child(-n+2) {
+  border-bottom: none;
+}
+.casa-pdp-specs__label {
+  font-size: 12px;
+  color: #999;
+  white-space: nowrap;
+}
+.casa-pdp-specs__value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0a0a0a;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ── Checklist ── */
+.casa-pdp-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.casa-pdp-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #333;
+}
+.casa-pdp-checklist li svg {
+  flex-shrink: 0;
+}
+
+/* ── Installation Steps ── */
+.casa-pdp-step {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #555;
+  margin: 0 0 12px;
+}
+.casa-pdp-step:last-child { margin-bottom: 0; }
+.casa-pdp-step strong { color: #0a0a0a; }
+
+/* ── Care ── */
+.casa-pdp-care {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #555;
+  margin: 0;
+}
+
+/* ── Reviews Inline ── */
+.casa-pdp-reviews-inline {
+  border-top: 1px solid #e5e5e5;
+  padding-top: 20px;
+}
+.casa-pdp-reviews-inline__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.casa-pdp-reviews-inline__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0a0a0a;
+}
+.casa-pdp-reviews-inline__link {
+  font-size: 13px;
+  font-weight: 500;
+  color: #9333ea;
+  text-decoration: none;
+}
+.casa-pdp-reviews-inline__link:hover { text-decoration: underline; }
+.casa-pdp-reviews-inline__card {
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 16px;
+}
+.casa-pdp-reviews-inline__stars {
+  font-size: 14px;
+  color: #fbbf24;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.casa-pdp-reviews-inline__text {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+  margin: 0 0 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.casa-pdp-reviews-inline__author {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.casa-pdp-reviews-inline__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #22c55e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.casa-pdp-reviews-inline__info {
+  display: flex;
+  flex-direction: column;
+}
+.casa-pdp-reviews-inline__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0a0a0a;
+}
+.casa-pdp-reviews-inline__verified {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #22c55e;
+}
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .casa-pdp-acc__title { font-size: 14px; }
+  .casa-pdp-specs__label { font-size: 11px; }
+  .casa-pdp-specs__value { font-size: 12px; }
+  .casa-pdp-reviews-inline__card { padding: 14px; }
+  .casa-pdp-reviews-inline__text { font-size: 12px; }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa PDP Extras",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Feature Highlights"
+    },
+    {
+      "type": "text",
+      "id": "feature_1",
+      "label": "Feature 1",
+      "default": "16+ Million RGB Colors"
+    },
+    {
+      "type": "text",
+      "id": "feature_2",
+      "label": "Feature 2",
+      "default": "App & Voice Control"
+    },
+    {
+      "type": "text",
+      "id": "feature_3",
+      "label": "Feature 3",
+      "default": "Mirror by Day, Portal by Night"
+    },
+    {
+      "type": "text",
+      "id": "feature_4",
+      "label": "Feature 4",
+      "default": "50,000 Hour LED Lifespan"
+    },
+    {
+      "type": "header",
+      "content": "Specifications"
+    },
+    {
+      "type": "textarea",
+      "id": "specs",
+      "label": "Specs (Label::Value separated by ||)",
+      "default": "Dimensions::50cm × 50cm||Weight::5.2 kg||LED Count::144 LEDs||Power::24W Max||Connectivity::WiFi + BT 5.0||LED Life::50,000+ hrs"
+    },
+    {
+      "type": "header",
+      "content": "What's Included"
+    },
+    {
+      "type": "textarea",
+      "id": "whats_included",
+      "label": "Items (separated by ||)",
+      "default": "OctaMirror Unit||Wall Mount Kit & Hardware||Power Adapter (Universal)||Quick Start Guide||App Download Card"
+    },
+    {
+      "type": "header",
+      "content": "Installation"
+    },
+    {
+      "type": "textarea",
+      "id": "installation_steps",
+      "label": "Steps (separated by ||)",
+      "default": "Choose your location and mark mounting points||Secure the wall mount bracket using included hardware||Hang the mirror and connect the power adapter||Download the app and connect via WiFi"
+    },
+    {
+      "type": "header",
+      "content": "Care & Maintenance"
+    },
+    {
+      "type": "textarea",
+      "id": "care_text",
+      "label": "Care text",
+      "default": "Clean the mirror surface with a soft microfiber cloth. Avoid harsh chemicals or abrasive materials. The LED system is maintenance-free with a 50,000+ hour lifespan."
+    },
+    {
+      "type": "header",
+      "content": "Inline Review"
+    },
+    {
+      "type": "text",
+      "id": "review_text",
+      "label": "Review quote",
+      "default": "\"Completely transformed my gaming setup. The music sync is absolutely unreal. Best purchase I've made for my room!\""
+    },
+    {
+      "type": "text",
+      "id": "reviewer_name",
+      "label": "Reviewer name",
+      "default": "Jake K."
+    },
+    {
+      "type": "text",
+      "id": "reviewer_initials",
+      "label": "Reviewer initials",
+      "default": "JK"
+    }
+  ]
+}
+{% endschema %}

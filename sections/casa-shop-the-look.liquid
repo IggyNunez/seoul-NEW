@@ -1,0 +1,697 @@
+{%- comment -%}
+  Seoul Glow Lab - Shop the Look
+  Lookbook section with interactive hotspot dots over a lifestyle image.
+  Each hotspot links to a product with a smart-positioned popup card.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign sid = section.id
+
+  assign title       = s.title
+  assign description = s.description
+  assign image       = s.image
+  assign mobile_image = s.mobile_image
+  assign bg_color    = s.bg_color | default: '#0a0a0a'
+  assign text_color  = s.text_color | default: '#ffffff'
+  assign accent      = s.accent_color | default: '#9333ea'
+  assign collection  = s.collection_link
+  assign show_count  = s.show_product_count
+
+  assign pt  = s.padding_top | default: 100
+  assign pb  = s.padding_bottom | default: 100
+  assign mpt = s.padding_mobile_top | default: 60
+  assign mpb = s.padding_mobile_bottom | default: 60
+-%}
+
+<section
+  class="casa-stl"
+  id="casa-stl-{{ sid }}"
+  style="
+    --stl-bg: {{ bg_color }};
+    --stl-text: {{ text_color }};
+    --stl-accent: {{ accent }};
+    --stl-pt: {{ pt }}px;
+    --stl-pb: {{ pb }}px;
+    --stl-mpt: {{ mpt }}px;
+    --stl-mpb: {{ mpb }}px;
+  "
+>
+  <div class="casa-stl__container">
+
+    {%- comment -%} Header {%- endcomment -%}
+    {%- if title != blank or description != blank -%}
+      <div class="casa-stl__header">
+        {%- if title != blank -%}
+          <h2 class="casa-stl__title">{{ title }}</h2>
+        {%- endif -%}
+        {%- if description != blank -%}
+          <p class="casa-stl__desc">{{ description }}</p>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    {%- comment -%} Image + Hotspots {%- endcomment -%}
+    <div class="casa-stl__canvas" data-stl-canvas>
+      {%- if image != blank -%}
+        <picture class="casa-stl__picture">
+          {%- if mobile_image != blank -%}
+            <source
+              media="(max-width: 749px)"
+              srcset="{{ mobile_image | image_url: width: 800 }} 800w, {{ mobile_image | image_url: width: 1200 }} 1200w"
+              sizes="100vw"
+            >
+          {%- endif -%}
+          <img
+            class="casa-stl__image"
+            src="{{ image | image_url: width: 1600 }}"
+            srcset="{{ image | image_url: width: 1200 }} 1200w, {{ image | image_url: width: 1600 }} 1600w, {{ image | image_url: width: 2000 }} 2000w"
+            sizes="(min-width: 1400px) 1320px, 95vw"
+            alt="{{ image.alt | escape }}"
+            width="{{ image.width }}"
+            height="{{ image.height }}"
+            loading="lazy"
+          >
+        </picture>
+      {%- else -%}
+        <div class="casa-stl__placeholder">
+          {{ 'lifestyle-2' | placeholder_svg_tag: 'casa-stl__placeholder-svg' }}
+        </div>
+      {%- endif -%}
+
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'hotspot' -%}
+          {%- assign product = block.settings.product -%}
+          {%- if product != blank -%}
+            {%- assign x = block.settings.x_position | default: 50 -%}
+            {%- assign y = block.settings.y_position | default: 50 -%}
+            {%- assign first_image = product.featured_image -%}
+            {%- assign current_price = product.price -%}
+            {%- assign compare_price = product.compare_at_price -%}
+            {%- assign on_sale = false -%}
+            {%- if compare_price > current_price -%}
+              {%- assign on_sale = true -%}
+            {%- endif -%}
+
+            <button
+              class="casa-stl__dot"
+              style="left: {{ x }}%; top: {{ y }}%;"
+              data-stl-dot
+              data-stl-index="{{ forloop.index0 }}"
+              aria-label="View {{ product.title | escape }}"
+              {{ block.shopify_attributes }}
+            >
+              <span class="casa-stl__dot-ping"></span>
+              <span class="casa-stl__dot-core"></span>
+            </button>
+
+            <div
+              class="casa-stl__popup"
+              data-stl-popup
+              data-stl-index="{{ forloop.index0 }}"
+              data-stl-x="{{ x }}"
+              data-stl-y="{{ y }}"
+              aria-hidden="true"
+            >
+              <button class="casa-stl__popup-close" data-stl-close aria-label="Close">&times;</button>
+
+              {%- if first_image != blank -%}
+                <a href="{{ product.url }}" class="casa-stl__popup-img-link" tabindex="-1">
+                  <img
+                    class="casa-stl__popup-img"
+                    src="{{ first_image | image_url: width: 400 }}"
+                    alt="{{ first_image.alt | default: product.title | escape }}"
+                    width="200"
+                    height="200"
+                    loading="lazy"
+                  >
+                </a>
+              {%- endif -%}
+
+              <div class="casa-stl__popup-info">
+                <a href="{{ product.url }}" class="casa-stl__popup-title">{{ product.title }}</a>
+
+                <div class="casa-stl__popup-price">
+                  <span class="casa-stl__popup-current {% if on_sale %}casa-stl__popup-current--sale{% endif %}">
+                    {{ current_price | money }}
+                  </span>
+                  {%- if on_sale -%}
+                    <span class="casa-stl__popup-compare">{{ compare_price | money }}</span>
+                  {%- endif -%}
+                </div>
+
+                <a href="{{ product.url }}" class="casa-stl__popup-btn">
+                  View Product
+                </a>
+              </div>
+            </div>
+          {%- endif -%}
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+
+    {%- comment -%} Product count {%- endcomment -%}
+    {%- if show_count and section.blocks.size > 0 -%}
+      <p class="casa-stl__count">
+        {{ section.blocks.size }} product{{ section.blocks.size | pluralize: '', 's' }} featured in this look
+      </p>
+    {%- endif -%}
+
+    {%- comment -%} Shop All CTA {%- endcomment -%}
+    {%- if collection != blank -%}
+      <div class="casa-stl__cta">
+        <a href="{{ collection.url }}" class="casa-stl__cta-btn">
+          Shop All {{ collection.title }}
+        </a>
+      </div>
+    {%- endif -%}
+
+  </div>
+</section>
+
+{%- comment -%} ============  STYLES  ============ {%- endcomment -%}
+<style>
+  /* ---- Layout ---- */
+  .casa-stl {
+    background: var(--stl-bg);
+    color: var(--stl-text);
+    padding: var(--stl-pt) 0 var(--stl-pb);
+  }
+  @media (max-width: 749px) {
+    .casa-stl { padding: var(--stl-mpt) 0 var(--stl-mpb); }
+  }
+  .casa-stl__container {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  /* ---- Header ---- */
+  .casa-stl__header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .casa-stl__title {
+    font-family: var(--font-heading-family, serif);
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    margin: 0 0 16px;
+    color: var(--stl-text);
+  }
+  .casa-stl__desc {
+    font-size: clamp(14px, 1.5vw, 18px);
+    line-height: 1.6;
+    max-width: 640px;
+    margin: 0 auto;
+    opacity: 0.7;
+  }
+
+  /* ---- Canvas ---- */
+  .casa-stl__canvas {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    line-height: 0;
+  }
+  .casa-stl__picture { display: block; width: 100%; }
+  .casa-stl__image {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+  }
+  .casa-stl__placeholder {
+    aspect-ratio: 16 / 9;
+    background: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .casa-stl__placeholder-svg { width: 50%; opacity: 0.3; }
+
+  /* ---- Hotspot Dot ---- */
+  .casa-stl__dot {
+    position: absolute;
+    z-index: 5;
+    width: 36px;
+    height: 36px;
+    transform: translate(-50%, -50%);
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .casa-stl__dot-core {
+    position: relative;
+    display: block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--stl-accent);
+    border: 2px solid rgba(255,255,255,0.9);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+    z-index: 2;
+    transition: transform 0.2s ease;
+  }
+  .casa-stl__dot:hover .casa-stl__dot-core { transform: scale(1.2); }
+  .casa-stl__dot-ping {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--stl-accent);
+    opacity: 0;
+    z-index: 1;
+    animation: stl-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  @keyframes stl-ping {
+    0%   { transform: scale(0.5); opacity: 0.5; }
+    75%, 100% { transform: scale(1.2); opacity: 0; }
+  }
+
+  /* ---- Popup Card ---- */
+  .casa-stl__popup {
+    position: absolute;
+    z-index: 20;
+    width: 280px;
+    background: #161616;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px) scale(0.96);
+    transition: opacity 0.25s ease, visibility 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+    line-height: 1.4;
+  }
+  .casa-stl__popup.is-active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+  .casa-stl__popup-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 3;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    font-size: 18px;
+    line-height: 28px;
+    text-align: center;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s;
+  }
+  .casa-stl__popup-close:hover { background: rgba(0,0,0,0.8); }
+  .casa-stl__popup-img-link { display: block; }
+  .casa-stl__popup-img {
+    display: block;
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+  }
+  .casa-stl__popup-info {
+    padding: 14px 16px 16px;
+  }
+  .casa-stl__popup-title {
+    display: block;
+    font-family: var(--font-heading-family, serif);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--stl-text);
+    text-decoration: none;
+    margin-bottom: 6px;
+    transition: color 0.2s;
+    line-height: 1.3;
+  }
+  .casa-stl__popup-title:hover { color: var(--stl-accent); }
+
+  .casa-stl__popup-price {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+  .casa-stl__popup-current {
+    font-weight: 600;
+    color: var(--stl-text);
+  }
+  .casa-stl__popup-current--sale {
+    color: #ec4899;
+  }
+  .casa-stl__popup-compare {
+    text-decoration: line-through;
+    opacity: 0.45;
+    font-size: 13px;
+  }
+  .casa-stl__popup-btn {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 10px 0;
+    border: 1px solid var(--stl-accent);
+    border-radius: 8px;
+    color: var(--stl-accent);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background 0.25s, color 0.25s;
+  }
+  .casa-stl__popup-btn:hover {
+    background: var(--stl-accent);
+    color: #fff;
+  }
+
+  /* ---- Product Count ---- */
+  .casa-stl__count {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 14px;
+    opacity: 0.5;
+    letter-spacing: 0.02em;
+  }
+
+  /* ---- CTA ---- */
+  .casa-stl__cta {
+    text-align: center;
+    margin-top: 32px;
+  }
+  .casa-stl__cta-btn {
+    display: inline-block;
+    padding: 14px 40px;
+    background: var(--stl-accent);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: opacity 0.25s;
+  }
+  .casa-stl__cta-btn:hover { opacity: 0.85; }
+
+  /* ---- Mobile ---- */
+  @media (max-width: 749px) {
+    .casa-stl__header { margin-bottom: 28px; }
+    .casa-stl__canvas { border-radius: 8px; }
+    .casa-stl__dot { width: 30px; height: 30px; }
+    .casa-stl__dot-core { width: 12px; height: 12px; }
+    .casa-stl__dot-ping { width: 30px; height: 30px; }
+    .casa-stl__popup {
+      width: 240px;
+    }
+    .casa-stl__popup-img { height: 140px; }
+    .casa-stl__popup-info { padding: 10px 12px 14px; }
+  }
+</style>
+
+{%- comment -%} ============  SCRIPT  ============ {%- endcomment -%}
+<script>
+  (function () {
+    const section = document.getElementById('casa-stl-{{ sid }}');
+    if (!section) return;
+
+    const canvas = section.querySelector('[data-stl-canvas]');
+    const dots   = section.querySelectorAll('[data-stl-dot]');
+    const popups = section.querySelectorAll('[data-stl-popup]');
+
+    let activePopup = null;
+
+    function closeAll() {
+      popups.forEach(function (p) {
+        p.classList.remove('is-active');
+        p.setAttribute('aria-hidden', 'true');
+      });
+      activePopup = null;
+    }
+
+    function positionPopup(popup) {
+      const x  = parseFloat(popup.dataset.stlX);
+      const y  = parseFloat(popup.dataset.stlY);
+      const cw = canvas.offsetWidth;
+      const ch = canvas.offsetHeight;
+      const pw = popup.offsetWidth;
+      const ph = popup.offsetHeight;
+
+      /* Pixel position of the dot centre */
+      const dotPx = (x / 100) * cw;
+      const dotPy = (y / 100) * ch;
+
+      /* Default: place popup below-right of the dot */
+      let left = dotPx + 20;
+      let top  = dotPy + 20;
+
+      /* Flip horizontal if near right edge */
+      if (left + pw > cw - 10) {
+        left = dotPx - pw - 20;
+      }
+      /* Clamp left */
+      if (left < 6) left = 6;
+
+      /* Flip vertical if near bottom edge */
+      if (top + ph > ch - 10) {
+        top = dotPy - ph - 20;
+      }
+      /* Clamp top */
+      if (top < 6) top = 6;
+
+      /* Final clamp right */
+      if (left + pw > cw - 6) {
+        left = cw - pw - 6;
+      }
+
+      popup.style.left = left + 'px';
+      popup.style.top  = top + 'px';
+    }
+
+    dots.forEach(function (dot) {
+      dot.addEventListener('click', function (e) {
+        e.stopPropagation();
+        const idx = dot.dataset.stlIndex;
+        const popup = canvas.querySelector('[data-stl-popup][data-stl-index="' + idx + '"]');
+        if (!popup) return;
+
+        if (popup === activePopup) {
+          closeAll();
+          return;
+        }
+
+        closeAll();
+        positionPopup(popup);
+        popup.classList.add('is-active');
+        popup.setAttribute('aria-hidden', 'false');
+        activePopup = popup;
+      });
+    });
+
+    /* Close buttons */
+    section.querySelectorAll('[data-stl-close]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        closeAll();
+      });
+    });
+
+    /* Click outside closes */
+    document.addEventListener('click', function (e) {
+      if (activePopup && !activePopup.contains(e.target)) {
+        closeAll();
+      }
+    });
+
+    /* Reposition on resize */
+    let resizeTimer;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        if (activePopup) positionPopup(activePopup);
+      }, 100);
+    });
+
+    /* Escape key closes */
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && activePopup) closeAll();
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Shop the Look",
+  "tag": "section",
+  "class": "casa-shop-the-look",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Shop the Look"
+    },
+    {
+      "type": "textarea",
+      "id": "description",
+      "label": "Description",
+      "default": "Click the hotspots to discover every piece in this styled room."
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Lifestyle Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "mobile_image",
+      "label": "Mobile Image (optional)",
+      "info": "If empty, the desktop image will be used on mobile."
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background Color",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text Color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent Color",
+      "default": "#9333ea"
+    },
+    {
+      "type": "collection",
+      "id": "collection_link",
+      "label": "Shop All Collection"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_product_count",
+      "label": "Show product count",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding Top",
+      "min": 0,
+      "max": 200,
+      "step": 4,
+      "unit": "px",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding Bottom",
+      "min": 0,
+      "max": 200,
+      "step": 4,
+      "unit": "px",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile_top",
+      "label": "Mobile Padding Top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile_bottom",
+      "label": "Mobile Padding Bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "default": 60
+    }
+  ],
+  "blocks": [
+    {
+      "type": "hotspot",
+      "name": "Hotspot",
+      "limit": 8,
+      "settings": [
+        {
+          "type": "product",
+          "id": "product",
+          "label": "Product"
+        },
+        {
+          "type": "range",
+          "id": "x_position",
+          "label": "Horizontal Position (%)",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "default": 50
+        },
+        {
+          "type": "range",
+          "id": "y_position",
+          "label": "Vertical Position (%)",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "default": 50
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Shop the Look",
+      "blocks": [
+        {
+          "type": "hotspot",
+          "settings": {
+            "x_position": 25,
+            "y_position": 40
+          }
+        },
+        {
+          "type": "hotspot",
+          "settings": {
+            "x_position": 55,
+            "y_position": 60
+          }
+        },
+        {
+          "type": "hotspot",
+          "settings": {
+            "x_position": 78,
+            "y_position": 30
+          }
+        }
+      ]
+    }
+  ],
+  "templates": ["page"]
+}
+{% endschema %}

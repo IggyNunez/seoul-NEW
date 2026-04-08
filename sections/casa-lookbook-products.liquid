@@ -1,0 +1,554 @@
+{% comment %}
+  Seoul Glow Lab — Lookbook Featured Products
+  Curated product showcase for lookbook pages
+{% endcomment %}
+
+{%- liquid
+  assign section_id = section.id
+  assign title = section.settings.title
+  assign description = section.settings.description
+  assign collection = section.settings.collection
+  assign columns = section.settings.columns | default: 2
+  assign bg_color = section.settings.bg_color | default: '#0a0a0a'
+  assign text_color = section.settings.text_color | default: '#ffffff'
+  assign accent_color = section.settings.accent_color | default: '#9333ea'
+  assign card_bg = section.settings.card_bg | default: '#141414'
+  assign card_border_radius = section.settings.card_border_radius | default: 12
+  assign show_rating = section.settings.show_rating
+  assign show_compare_price = section.settings.show_compare_price
+  assign button_text = section.settings.button_text | default: 'Shop Now'
+  assign collection_link = section.settings.collection_link
+  assign padding_top = section.settings.padding_top | default: 80
+  assign padding_bottom = section.settings.padding_bottom | default: 80
+
+  assign manual_products = false
+  for block in section.blocks
+    if block.type == 'product' and block.settings.product != blank
+      assign manual_products = true
+      break
+    endif
+  endfor
+-%}
+
+<section
+  id="casa-lb-prod-{{ section_id }}"
+  class="casa-lb-prod"
+  style="
+    --casa-lb-prod-bg: {{ bg_color }};
+    --casa-lb-prod-text: {{ text_color }};
+    --casa-lb-prod-accent: {{ accent_color }};
+    --casa-lb-prod-card-bg: {{ card_bg }};
+    --casa-lb-prod-card-radius: {{ card_border_radius }}px;
+    --casa-lb-prod-cols: {{ columns }};
+    --casa-lb-prod-pt: {{ padding_top }}px;
+    --casa-lb-prod-pb: {{ padding_bottom }}px;
+  "
+>
+  <div class="casa-lb-prod__container">
+
+    {%- if title != blank or description != blank -%}
+      <div class="casa-lb-prod__header">
+        {%- if title != blank -%}
+          <h2 class="casa-lb-prod__title">{{ title | escape }}</h2>
+        {%- endif -%}
+        {%- if description != blank -%}
+          <p class="casa-lb-prod__description">{{ description | escape }}</p>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    <div class="casa-lb-prod__grid">
+      {%- if manual_products -%}
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'product' and block.settings.product != blank -%}
+            {%- assign prod = block.settings.product -%}
+            {%- render 'casa-lb-prod-card',
+              product: prod,
+              accent_color: accent_color,
+              show_rating: show_rating,
+              show_compare_price: show_compare_price,
+              button_text: button_text,
+              block: block
+            -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- elsif collection != blank and collection.products_count > 0 -%}
+        {%- for prod in collection.products limit: 8 -%}
+          {%- render 'casa-lb-prod-card',
+            product: prod,
+            accent_color: accent_color,
+            show_rating: show_rating,
+            show_compare_price: show_compare_price,
+            button_text: button_text,
+            block: nil
+          -%}
+        {%- endfor -%}
+      {%- else -%}
+        {%- for i in (1..4) -%}
+          <div class="casa-lb-prod__card casa-lb-prod__card--placeholder">
+            <div class="casa-lb-prod__card-image">
+              {{ 'product-1' | placeholder_svg_tag: 'casa-lb-prod__placeholder-svg' }}
+            </div>
+            <div class="casa-lb-prod__card-body">
+              <h3 class="casa-lb-prod__card-title">Sample Product {{ i }}</h3>
+              <div class="casa-lb-prod__card-price">
+                <span class="casa-lb-prod__price">{{ 9999 | money }}</span>
+              </div>
+              <span class="casa-lb-prod__card-btn">{{ button_text }}</span>
+            </div>
+          </div>
+        {%- endfor -%}
+      {%- endif -%}
+    </div>
+
+    {%- if collection_link != blank -%}
+      <div class="casa-lb-prod__footer">
+        <a href="{{ collection_link }}" class="casa-lb-prod__view-collection">
+          View Collection
+          <svg class="casa-lb-prod__arrow" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M4 10h12M12 6l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </div>
+    {%- elsif collection != blank -%}
+      <div class="casa-lb-prod__footer">
+        <a href="{{ collection.url }}" class="casa-lb-prod__view-collection">
+          View Collection
+          <svg class="casa-lb-prod__arrow" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M4 10h12M12 6l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </div>
+    {%- endif -%}
+
+  </div>
+</section>
+
+<style>
+  /* ── Casa Lookbook Products ── */
+  .casa-lb-prod {
+    background-color: var(--casa-lb-prod-bg);
+    color: var(--casa-lb-prod-text);
+    padding-top: var(--casa-lb-prod-pt);
+    padding-bottom: var(--casa-lb-prod-pb);
+  }
+
+  .casa-lb-prod__container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Header */
+  .casa-lb-prod__header {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+
+  .casa-lb-prod__title {
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0 0 16px;
+    color: var(--casa-lb-prod-text);
+  }
+
+  .casa-lb-prod__description {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    opacity: 0.7;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  /* Grid */
+  .casa-lb-prod__grid {
+    display: grid;
+    grid-template-columns: repeat(var(--casa-lb-prod-cols), 1fr);
+    gap: 32px;
+  }
+
+  /* Card */
+  .casa-lb-prod__card {
+    background: var(--casa-lb-prod-card-bg);
+    border-radius: var(--casa-lb-prod-card-radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                box-shadow 0.35s ease;
+    position: relative;
+  }
+
+  .casa-lb-prod__card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Card link overlay */
+  .casa-lb-prod__card-link {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  /* Badge */
+  .casa-lb-prod__badge {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 2;
+    padding: 6px 14px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-radius: 4px;
+    background: var(--casa-lb-prod-accent);
+    color: #fff;
+  }
+
+  /* Image */
+  .casa-lb-prod__card-image {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    background: #1a1a1a;
+  }
+
+  .casa-lb-prod__card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    display: block;
+  }
+
+  .casa-lb-prod__card:hover .casa-lb-prod__card-image img {
+    transform: scale(1.05);
+  }
+
+  .casa-lb-prod__placeholder-svg {
+    width: 100%;
+    height: 100%;
+    opacity: 0.25;
+  }
+
+  /* Card body */
+  .casa-lb-prod__card-body {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .casa-lb-prod__card-title {
+    font-size: 1.1rem;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    margin: 0 0 12px;
+    color: var(--casa-lb-prod-text);
+    line-height: 1.4;
+  }
+
+  /* Price */
+  .casa-lb-prod__card-price {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .casa-lb-prod__price {
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--casa-lb-prod-text);
+  }
+
+  .casa-lb-prod__price--sale {
+    color: #ec4899;
+  }
+
+  .casa-lb-prod__compare-price {
+    font-size: 0.9rem;
+    text-decoration: line-through;
+    opacity: 0.45;
+  }
+
+  .casa-lb-prod__save-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: rgba(236, 72, 153, 0.15);
+    color: #ec4899;
+  }
+
+  /* Rating */
+  .casa-lb-prod__rating {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .casa-lb-prod__stars {
+    display: flex;
+    gap: 2px;
+    color: #facc15;
+  }
+
+  .casa-lb-prod__stars svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .casa-lb-prod__stars--empty {
+    color: #333;
+  }
+
+  .casa-lb-prod__rating-count {
+    font-size: 0.78rem;
+    opacity: 0.45;
+  }
+
+  /* CTA button */
+  .casa-lb-prod__card-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: auto;
+    padding: 13px 28px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: var(--casa-lb-prod-text);
+    background: transparent;
+    transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+    text-align: center;
+  }
+
+  .casa-lb-prod__card:hover .casa-lb-prod__card-btn {
+    background: var(--casa-lb-prod-accent);
+    border-color: var(--casa-lb-prod-accent);
+    color: #fff;
+  }
+
+  /* Footer — View Collection */
+  .casa-lb-prod__footer {
+    text-align: center;
+    margin-top: 56px;
+  }
+
+  .casa-lb-prod__view-collection {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 40px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: #fff;
+    background: var(--casa-lb-prod-accent);
+    border-radius: 6px;
+    transition: background 0.3s ease, transform 0.3s ease;
+  }
+
+  .casa-lb-prod__view-collection:hover {
+    background: color-mix(in srgb, var(--casa-lb-prod-accent), #000 15%);
+    transform: translateY(-2px);
+  }
+
+  .casa-lb-prod__arrow {
+    transition: transform 0.3s ease;
+  }
+
+  .casa-lb-prod__view-collection:hover .casa-lb-prod__arrow {
+    transform: translateX(4px);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 999px) {
+    .casa-lb-prod__grid {
+      --casa-lb-prod-cols: 2;
+      gap: 20px;
+    }
+  }
+
+  @media (max-width: 599px) {
+    .casa-lb-prod__grid {
+      --casa-lb-prod-cols: 1;
+      gap: 24px;
+    }
+
+    .casa-lb-prod__container {
+      padding: 0 16px;
+    }
+
+    .casa-lb-prod__header {
+      margin-bottom: 36px;
+    }
+
+    .casa-lb-prod__card-body {
+      padding: 20px;
+    }
+
+    .casa-lb-prod__footer {
+      margin-top: 40px;
+    }
+
+    .casa-lb-prod__view-collection {
+      width: 100%;
+      justify-content: center;
+      padding: 16px 24px;
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "Lookbook Products",
+  "tag": "section",
+  "class": "casa-lookbook-products",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Section title",
+      "default": "Featured in This Space"
+    },
+    {
+      "type": "textarea",
+      "id": "description",
+      "label": "Section description"
+    },
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Collection",
+      "info": "Fallback when no manual products are added via blocks."
+    },
+    {
+      "type": "select",
+      "id": "columns",
+      "label": "Desktop columns",
+      "options": [
+        { "value": "2", "label": "2 columns" },
+        { "value": "3", "label": "3 columns" }
+      ],
+      "default": "2"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "card_bg",
+      "label": "Card background",
+      "default": "#141414"
+    },
+    {
+      "type": "range",
+      "id": "card_border_radius",
+      "label": "Card border radius",
+      "min": 0,
+      "max": 24,
+      "step": 2,
+      "default": 12,
+      "unit": "px"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_rating",
+      "label": "Show star rating",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_compare_price",
+      "label": "Show compare-at price",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Card button text",
+      "default": "Shop Now"
+    },
+    {
+      "type": "url",
+      "id": "collection_link",
+      "label": "Collection link override",
+      "info": "Overrides the auto-generated collection URL."
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Top padding",
+      "min": 0,
+      "max": 120,
+      "step": 8,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Bottom padding",
+      "min": 0,
+      "max": 120,
+      "step": 8,
+      "default": 80,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "product",
+      "name": "Product",
+      "limit": 8,
+      "settings": [
+        {
+          "type": "product",
+          "id": "product",
+          "label": "Product"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Featured in This Space",
+      "blocks": []
+    }
+  ],
+  "templates": ["page"]
+}
+{% endschema %}

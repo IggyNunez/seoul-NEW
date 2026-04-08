@@ -1,0 +1,342 @@
+{%- comment -%}
+  Seoul Glow Lab Stats Section
+  4-column grid with gradient numbers + countup animation
+{%- endcomment -%}
+
+{%- liquid
+  assign bg_color = section.settings.bg_color | default: '#fafafa'
+  assign number_color_1 = section.settings.number_color_1 | default: '#9333ea'
+  assign number_color_2 = section.settings.number_color_2 | default: '#ec4899'
+  assign label_color = section.settings.label_color | default: '#6b7280'
+  assign padding_top = section.settings.padding_top | default: 120
+  assign padding_bottom = section.settings.padding_bottom | default: 120
+  assign enable_countup = section.settings.enable_countup
+  assign countup_duration = section.settings.countup_duration | default: 2000
+-%}
+
+<section
+  class="casa-stats"
+  style="
+    --cs-bg: {{ bg_color }};
+    --cs-num-1: {{ number_color_1 }};
+    --cs-num-2: {{ number_color_2 }};
+    --cs-label: {{ label_color }};
+    --cs-pt: {{ padding_top }}px;
+    --cs-pb: {{ padding_bottom }}px;
+  "
+>
+  {%- if section.settings.title != blank -%}
+    <div class="casa-stats__header">
+      {%- if section.settings.subtitle != blank -%}
+        <div class="casa-stats__subtitle">{{ section.settings.subtitle }}</div>
+      {%- endif -%}
+      <h2 class="casa-stats__title">{{ section.settings.title }}</h2>
+    </div>
+  {%- endif -%}
+  <div class="casa-stats__grid">
+    {%- for block in section.blocks -%}
+      <div class="casa-stats__item" {{ block.shopify_attributes }}>
+        <div
+          class="casa-stats__number"
+          {% if enable_countup %}
+            data-countup
+            data-countup-value="{{ block.settings.number }}"
+            data-countup-duration="{{ countup_duration }}"
+          {% endif %}
+        >
+          {{ block.settings.number }}
+        </div>
+        <div class="casa-stats__label">{{ block.settings.label }}</div>
+      </div>
+    {%- endfor -%}
+  </div>
+</section>
+
+{% if enable_countup %}
+<script>
+(function() {
+  function parseNumber(str) {
+    /* Extract numeric value, prefix, and suffix from strings like "50K+", "$4.9M", "100%", "2-Year" */
+    var match = str.match(/^([^0-9]*?)([\d,.]+)(.*?)$/);
+    if (!match) return null;
+    var prefix = match[1];
+    var numStr = match[2].replace(/,/g, '');
+    var suffix = match[3];
+    var num = parseFloat(numStr);
+    if (isNaN(num)) return null;
+    var decimals = numStr.includes('.') ? numStr.split('.')[1].length : 0;
+    /* Handle K/M/B in suffix */
+    var multiplier = 1;
+    var multiplierChar = '';
+    if (suffix.charAt(0) === 'K' || suffix.charAt(0) === 'k') { multiplier = 1000; multiplierChar = suffix.charAt(0); suffix = suffix.substring(1); }
+    else if (suffix.charAt(0) === 'M' || suffix.charAt(0) === 'm') { multiplier = 1000000; multiplierChar = suffix.charAt(0); suffix = suffix.substring(1); }
+    else if (suffix.charAt(0) === 'B' || suffix.charAt(0) === 'b') { multiplier = 1000000000; multiplierChar = suffix.charAt(0); suffix = suffix.substring(1); }
+    return { prefix: prefix, num: num, suffix: suffix, decimals: decimals, multiplier: multiplier, multiplierChar: multiplierChar, original: str };
+  }
+
+  function formatNumber(val, decimals) {
+    if (decimals > 0) return val.toFixed(decimals);
+    return Math.round(val).toLocaleString('en-US');
+  }
+
+  function easeOutQuart(t) {
+    return 1 - Math.pow(1 - t, 4);
+  }
+
+  function animateCountup(el) {
+    var raw = el.getAttribute('data-countup-value');
+    var duration = parseInt(el.getAttribute('data-countup-duration')) || 2000;
+    var parsed = parseNumber(raw);
+    if (!parsed) return;
+
+    var startTime = null;
+    el.textContent = parsed.prefix + '0' + parsed.multiplierChar + parsed.suffix;
+
+    function step(timestamp) {
+      if (!startTime) startTime = timestamp;
+      var progress = Math.min((timestamp - startTime) / duration, 1);
+      var eased = easeOutQuart(progress);
+      var current = eased * parsed.num;
+      el.textContent = parsed.prefix + formatNumber(current, parsed.decimals) + parsed.multiplierChar + parsed.suffix;
+      if (progress < 1) requestAnimationFrame(step);
+      else el.textContent = raw; /* Ensure exact original string at end */
+    }
+
+    requestAnimationFrame(step);
+  }
+
+  /* IntersectionObserver — only animate when visible */
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        animateCountup(entry.target);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.3 });
+
+  document.querySelectorAll('[data-countup]').forEach(function(el) {
+    observer.observe(el);
+  });
+})();
+</script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Casa Stats",
+  "tag": "section",
+  "class": "casa-stats-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title"
+    },
+    {
+      "type": "text",
+      "id": "subtitle",
+      "label": "Subtitle"
+    },
+    {
+      "type": "header",
+      "content": "Animation"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_countup",
+      "label": "Enable count-up animation",
+      "info": "Numbers animate from 0 when scrolled into view",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "countup_duration",
+      "label": "Animation duration",
+      "min": 500,
+      "max": 4000,
+      "step": 250,
+      "default": 2000,
+      "unit": "ms"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background",
+      "default": "#fafafa"
+    },
+    {
+      "type": "color",
+      "id": "number_color_1",
+      "label": "Number gradient start",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "number_color_2",
+      "label": "Number gradient end",
+      "default": "#ec4899"
+    },
+    {
+      "type": "color",
+      "id": "label_color",
+      "label": "Label color",
+      "default": "#6b7280"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 120,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 120,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "stat",
+      "name": "Stat",
+      "settings": [
+        {
+          "type": "text",
+          "id": "number",
+          "label": "Number",
+          "info": "Supports formats: 50K+, 4.9, $100M, 87%, 2-Year",
+          "default": "50K+"
+        },
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Label",
+          "default": "Happy Customers"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Stats",
+      "settings": {
+        "enable_countup": true
+      },
+      "blocks": [
+        { "type": "stat", "settings": { "number": "50K+", "label": "Happy Customers" } },
+        { "type": "stat", "settings": { "number": "4.9", "label": "Average Rating" } },
+        { "type": "stat", "settings": { "number": "87", "label": "Countries Shipped" } },
+        { "type": "stat", "settings": { "number": "100K+", "label": "Products Sold" } }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+<style>
+.casa-stats {
+  background: var(--cs-bg, #fafafa);
+  padding: var(--cs-pt, 120px) 80px var(--cs-pb, 120px);
+}
+
+.casa-stats__header {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto 48px;
+}
+
+.casa-stats__subtitle {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--cs-num-1, #9333ea);
+  margin-bottom: 8px;
+}
+
+.casa-stats__title {
+  font-size: 32px;
+  font-weight: 300;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.casa-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 48px;
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.casa-stats__number {
+  font-size: 64px;
+  font-weight: 300;
+  background: linear-gradient(135deg, var(--cs-num-1, #9333ea), var(--cs-num-2, #ec4899));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.casa-stats__label {
+  font-size: 16px;
+  color: var(--cs-label, #6b7280);
+}
+
+@media (max-width: 900px) {
+  .casa-stats {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+  .casa-stats__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 40px;
+  }
+  .casa-stats__number {
+    font-size: 48px;
+  }
+}
+
+@media (max-width: 600px) {
+  .casa-stats {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .casa-stats__grid {
+    gap: 32px;
+  }
+  .casa-stats__number {
+    font-size: 40px;
+  }
+  .casa-stats__label {
+    font-size: 14px;
+  }
+  .casa-stats__title {
+    font-size: 24px;
+  }
+}
+</style>

@@ -1,0 +1,733 @@
+{%- comment -%}
+  Seoul Glow Lab — Split Feature Section
+  Two full-bleed cards side-by-side: image/video fills entire card,
+  glassmorphic title overlay revealed on hover.
+  Day/Night concept for mirror by day / portal by night.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign min_h = s.min_height | default: 600
+
+  assign day_title    = s.day_title | default: 'Mirror by Day'
+  assign day_sub      = s.day_subtitle | default: 'A perfect, functional reflection'
+  assign night_title  = s.night_title | default: 'Portal by Night'
+  assign night_sub    = s.night_subtitle | default: 'An infinite, mesmerizing dimension'
+
+  assign desktop_ratio = s.desktop_ratio | default: 'auto'
+  assign mobile_ratio  = s.mobile_ratio | default: '16/9'
+  assign show_overlay  = s.show_overlay
+  assign mobile_cols   = s.mobile_columns | default: '1'
+
+  assign day_has_video = false
+  assign day_has_ext   = false
+  if s.day_video != blank
+    assign day_has_video = true
+  endif
+  if s.day_video_url != blank
+    assign day_has_ext = true
+  endif
+
+  assign night_has_video = false
+  assign night_has_ext   = false
+  if s.night_video != blank
+    assign night_has_video = true
+  endif
+  if s.night_video_url != blank
+    assign night_has_ext = true
+  endif
+-%}
+
+<section
+  class="cdl-split{% if mobile_cols == '2' %} cdl-split--two-col-mobile{% endif %}{% unless show_overlay %} cdl-split--no-overlay{% endunless %}"
+  id="cdl-split-{{ section.id }}"
+  style="
+    --cdl-split-h: {{ min_h }}px;
+    --cdl-split-desktop-ratio: {{ desktop_ratio }};
+    --cdl-split-mobile-ratio: {{ mobile_ratio }};
+    --cdl-split-padding: {{ s.section_padding | default: 0 }}px;
+    --cdl-split-gap: {{ s.card_gap | default: 0 }}px;
+    --cdl-split-radius: {{ s.card_radius | default: 0 }}px;
+    --cdl-split-bg: {{ s.section_bg | default: '#0a0a0f' }};
+    --cdl-split-overlay: {{ s.overlay_opacity | default: 30 | divided_by: 100.0 }};
+    --cdl-split-title-color: {{ s.title_color | default: '#ffffff' }};
+    --cdl-split-sub-color: {{ s.subtitle_color | default: '#ffffff' }};
+    --cdl-split-title-size: {{ s.title_size | default: 28 }}px;
+    --cdl-split-title-weight: {{ s.title_weight | default: '300' }};
+    --cdl-split-glass-blur: {{ s.glass_blur | default: 12 }}px;
+    --cdl-split-glass-radius: {{ s.glass_radius | default: 12 }}px;
+    {%- if s.glass_bg != blank %}--cdl-split-glass-bg: {{ s.glass_bg }};{% endif -%}
+  "
+>
+  {%- comment -%} ── DAY SIDE ── {%- endcomment -%}
+  <div class="cdl-split__card cdl-split__card--day">
+    {%- comment -%} Video background {%- endcomment -%}
+    {%- if day_has_video -%}
+      <video class="cdl-split__media" autoplay loop muted playsinline
+        {%- if s.day_image != blank %} poster="{{ s.day_image | image_url: width: 1400 }}"{% endif %}>
+        {%- for source in s.day_video.sources -%}
+          <source src="{{ source.url }}" type="{{ source.mime_type }}">
+        {%- endfor -%}
+      </video>
+    {%- elsif day_has_ext -%}
+      <video class="cdl-split__media" src="{{ s.day_video_url }}" autoplay loop muted playsinline
+        {%- if s.day_image != blank %} poster="{{ s.day_image | image_url: width: 1400 }}"{% endif %}></video>
+    {%- endif -%}
+
+    {%- comment -%} Image background {%- endcomment -%}
+    {%- if s.day_image != blank -%}
+      <img
+        src="{{ s.day_image | image_url: width: 1400 }}"
+        srcset="
+          {{ s.day_image | image_url: width: 600 }} 600w,
+          {{ s.day_image | image_url: width: 900 }} 900w,
+          {{ s.day_image | image_url: width: 1400 }} 1400w
+        "
+        sizes="(max-width: 900px) 100vw, 50vw"
+        alt="{{ day_title | escape }}"
+        class="cdl-split__media cdl-split__media--img{% if day_has_video or day_has_ext %} cdl-split__media--poster{% endif %}"
+        loading="lazy"
+      >
+    {%- endif -%}
+
+    {%- comment -%} Fallback gradient when no image/video {%- endcomment -%}
+    {%- if s.day_image == blank and day_has_video == false and day_has_ext == false -%}
+      <div class="cdl-split__fallback cdl-split__fallback--day"></div>
+    {%- endif -%}
+
+    <div class="cdl-split__overlay"></div>
+
+    <div class="cdl-split__content">
+      <div class="cdl-split__glass">
+        <h3 class="cdl-split__title">{{ day_title }}</h3>
+        <p class="cdl-split__sub">{{ day_sub }}</p>
+      </div>
+    </div>
+
+    {%- if s.day_link != blank -%}
+      <a href="{{ s.day_link }}" class="cdl-split__link" aria-label="{{ day_title | escape }}"></a>
+    {%- endif -%}
+  </div>
+
+  {%- comment -%} ── NIGHT SIDE ── {%- endcomment -%}
+  <div class="cdl-split__card cdl-split__card--night">
+    {%- if night_has_video -%}
+      <video class="cdl-split__media" autoplay loop muted playsinline
+        {%- if s.night_image != blank %} poster="{{ s.night_image | image_url: width: 1400 }}"{% endif %}>
+        {%- for source in s.night_video.sources -%}
+          <source src="{{ source.url }}" type="{{ source.mime_type }}">
+        {%- endfor -%}
+      </video>
+    {%- elsif night_has_ext -%}
+      <video class="cdl-split__media" src="{{ s.night_video_url }}" autoplay loop muted playsinline
+        {%- if s.night_image != blank %} poster="{{ s.night_image | image_url: width: 1400 }}"{% endif %}></video>
+    {%- endif -%}
+
+    {%- if s.night_image != blank -%}
+      <img
+        src="{{ s.night_image | image_url: width: 1400 }}"
+        srcset="
+          {{ s.night_image | image_url: width: 600 }} 600w,
+          {{ s.night_image | image_url: width: 900 }} 900w,
+          {{ s.night_image | image_url: width: 1400 }} 1400w
+        "
+        sizes="(max-width: 900px) 100vw, 50vw"
+        alt="{{ night_title | escape }}"
+        class="cdl-split__media cdl-split__media--img{% if night_has_video or night_has_ext %} cdl-split__media--poster{% endif %}"
+        loading="lazy"
+      >
+    {%- endif -%}
+
+    {%- if s.night_image == blank and night_has_video == false and night_has_ext == false -%}
+      <div class="cdl-split__fallback cdl-split__fallback--night"></div>
+    {%- endif -%}
+
+    <div class="cdl-split__overlay"></div>
+
+    <div class="cdl-split__content">
+      <div class="cdl-split__glass">
+        <h3 class="cdl-split__title">{{ night_title }}</h3>
+        <p class="cdl-split__sub">{{ night_sub }}</p>
+      </div>
+    </div>
+
+    {%- if s.night_link != blank -%}
+      <a href="{{ s.night_link }}" class="cdl-split__link" aria-label="{{ night_title | escape }}"></a>
+    {%- endif -%}
+  </div>
+</section>
+
+<script>
+(function() {
+  var root = document.getElementById('cdl-split-{{ section.id }}');
+  if (!root) return;
+
+  /* Fade poster once video plays */
+  root.querySelectorAll('.cdl-split__card').forEach(function(card) {
+    var video = card.querySelector('video.cdl-split__media');
+    var poster = card.querySelector('.cdl-split__media--poster');
+    if (!video || !poster) return;
+    video.addEventListener('playing', function() {
+      poster.style.opacity = '0';
+    }, { once: true });
+  });
+
+  /* Pause off-screen videos */
+  if ('IntersectionObserver' in window) {
+    var obs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) e.target.play().catch(function(){});
+        else e.target.pause();
+      });
+    }, { rootMargin: '100px' });
+    root.querySelectorAll('video.cdl-split__media').forEach(function(v) { obs.observe(v); });
+  }
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Casa Split Feature",
+  "tag": "section",
+  "class": "cdl-split-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "min_height",
+      "label": "Minimum height (desktop)",
+      "min": 400,
+      "max": 900,
+      "step": 20,
+      "default": 600,
+      "unit": "px",
+      "info": "Used when desktop ratio is set to Auto"
+    },
+    {
+      "type": "select",
+      "id": "desktop_ratio",
+      "label": "Image ratio — Desktop",
+      "options": [
+        { "value": "auto", "label": "Auto (min-height)" },
+        { "value": "16/9", "label": "16:9 Landscape" },
+        { "value": "4/3", "label": "4:3" },
+        { "value": "3/2", "label": "3:2" },
+        { "value": "1/1", "label": "1:1 Square" },
+        { "value": "3/4", "label": "3:4 Portrait" },
+        { "value": "9/16", "label": "9:16 Tall" }
+      ],
+      "default": "auto"
+    },
+    {
+      "type": "select",
+      "id": "mobile_ratio",
+      "label": "Image ratio — Mobile",
+      "options": [
+        { "value": "16/9", "label": "16:9 Landscape" },
+        { "value": "4/3", "label": "4:3" },
+        { "value": "3/2", "label": "3:2" },
+        { "value": "1/1", "label": "1:1 Square" },
+        { "value": "3/4", "label": "3:4 Portrait" },
+        { "value": "9/16", "label": "9:16 Tall" }
+      ],
+      "default": "16/9"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_overlay",
+      "label": "Show dark overlay on images",
+      "default": true,
+      "info": "Gradient overlay improves text legibility"
+    },
+    {
+      "type": "select",
+      "id": "mobile_columns",
+      "label": "Mobile layout",
+      "options": [
+        { "value": "1", "label": "Stacked (1 column)" },
+        { "value": "2", "label": "Side by side (2 columns)" }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "header",
+      "content": "Day side (Left)"
+    },
+    {
+      "type": "text",
+      "id": "day_title",
+      "label": "Title",
+      "default": "Mirror by Day"
+    },
+    {
+      "type": "text",
+      "id": "day_subtitle",
+      "label": "Subtitle",
+      "default": "A perfect, functional reflection"
+    },
+    {
+      "type": "image_picker",
+      "id": "day_image",
+      "label": "Image",
+      "info": "Fills the entire card. Also used as poster frame when a video is set."
+    },
+    {
+      "type": "video",
+      "id": "day_video",
+      "label": "Video (Shopify-hosted)",
+      "info": "Loops silently as card background"
+    },
+    {
+      "type": "text",
+      "id": "day_video_url",
+      "label": "Video URL (fallback)",
+      "info": "Direct .mp4 URL — used only if no Shopify video above"
+    },
+    {
+      "type": "url",
+      "id": "day_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Night side (Right)"
+    },
+    {
+      "type": "text",
+      "id": "night_title",
+      "label": "Title",
+      "default": "Portal by Night"
+    },
+    {
+      "type": "text",
+      "id": "night_subtitle",
+      "label": "Subtitle",
+      "default": "An infinite, mesmerizing dimension"
+    },
+    {
+      "type": "image_picker",
+      "id": "night_image",
+      "label": "Image",
+      "info": "Fills the entire card. Also used as poster frame when a video is set."
+    },
+    {
+      "type": "video",
+      "id": "night_video",
+      "label": "Video (Shopify-hosted)",
+      "info": "Loops silently as card background"
+    },
+    {
+      "type": "text",
+      "id": "night_video_url",
+      "label": "Video URL (fallback)",
+      "info": "Direct .mp4 URL — used only if no Shopify video above"
+    },
+    {
+      "type": "url",
+      "id": "night_link",
+      "label": "Link"
+    },
+    {
+      "type": "header",
+      "content": "Container Style"
+    },
+    {
+      "type": "range",
+      "id": "section_padding",
+      "label": "Section padding",
+      "min": 0,
+      "max": 60,
+      "step": 4,
+      "default": 0,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "card_gap",
+      "label": "Gap between cards",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "default": 0,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "card_radius",
+      "label": "Card border radius",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "default": 0,
+      "unit": "px"
+    },
+    {
+      "type": "color",
+      "id": "section_bg",
+      "label": "Section background",
+      "info": "Visible when padding or gap is set",
+      "default": "#0a0a0f"
+    },
+    {
+      "type": "header",
+      "content": "Overlay & Text"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "label": "Overlay darkness",
+      "min": 0,
+      "max": 80,
+      "step": 5,
+      "default": 30,
+      "unit": "%"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Title color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "subtitle_color",
+      "label": "Subtitle color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "label": "Title font size",
+      "min": 16,
+      "max": 48,
+      "step": 2,
+      "default": 28,
+      "unit": "px"
+    },
+    {
+      "type": "select",
+      "id": "title_weight",
+      "label": "Title font weight",
+      "options": [
+        { "value": "300", "label": "Light" },
+        { "value": "400", "label": "Regular" },
+        { "value": "600", "label": "Semibold" },
+        { "value": "700", "label": "Bold" }
+      ],
+      "default": "300"
+    },
+    {
+      "type": "header",
+      "content": "Glass Card Style"
+    },
+    {
+      "type": "color",
+      "id": "glass_bg",
+      "label": "Glass background color",
+      "info": "Base color for the glassmorphic card"
+    },
+    {
+      "type": "range",
+      "id": "glass_blur",
+      "label": "Glass blur intensity",
+      "min": 0,
+      "max": 30,
+      "step": 2,
+      "default": 12,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "glass_radius",
+      "label": "Glass card radius",
+      "min": 0,
+      "max": 24,
+      "step": 2,
+      "default": 12,
+      "unit": "px"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Split Feature"
+    }
+  ]
+}
+{% endschema %}
+
+{% stylesheet %}
+/* ══════════════════════════════════════════════════════════════════════════
+   CDL SPLIT FEATURE — Full-bleed day/night cards with glassmorphic overlay
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.cdl-split-section,
+.cdl-split {
+  background: var(--cdl-split-bg, transparent);
+}
+.cdl-split-section {
+  padding: 0 !important;
+  margin: 0;
+}
+
+.cdl-split {
+  display: flex;
+  gap: var(--cdl-split-gap, 0px);
+  padding: var(--cdl-split-padding, 0px);
+  min-height: var(--cdl-split-h, 600px);
+}
+
+/* ── Card base ── */
+.cdl-split__card {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  border-radius: var(--cdl-split-radius, 0px);
+}
+
+/* ── Desktop aspect ratio (when not "auto") ── */
+.cdl-split__card {
+  aspect-ratio: var(--cdl-split-desktop-ratio);
+}
+/* When auto, min-height drives sizing instead of aspect-ratio */
+.cdl-split[style*="--cdl-split-desktop-ratio: auto"] .cdl-split__card {
+  aspect-ratio: unset;
+}
+
+/* ── Media — fills entire card ── */
+.cdl-split__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  transition: transform 0.6s ease;
+}
+
+.cdl-split__card:hover .cdl-split__media {
+  transform: scale(1.05);
+}
+
+/* Poster image fades out when video plays (JS sets opacity:0) */
+.cdl-split__media--poster {
+  z-index: 1;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+/* ── Fallback gradients when no image/video ── */
+.cdl-split__fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.cdl-split__fallback--day {
+  background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 50%, #d4d4d8 100%);
+}
+
+.cdl-split__fallback--night {
+  background: linear-gradient(135deg, #0a0a14 0%, #1a1a2e 50%, #2d1b4e 100%);
+}
+
+/* ── Dark overlay — subtle gradient from bottom for text legibility ── */
+.cdl-split__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, var(--cdl-split-overlay, 0.3)) 0%,
+    rgba(0, 0, 0, calc(var(--cdl-split-overlay, 0.3) * 0.4)) 40%,
+    rgba(0, 0, 0, calc(var(--cdl-split-overlay, 0.3) * 0.1)) 100%
+  );
+  transition: background 0.4s ease;
+  pointer-events: none;
+}
+
+.cdl-split__card:hover .cdl-split__overlay {
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0.25) 50%,
+    rgba(0, 0, 0, 0.1) 100%
+  );
+}
+
+/* ── No-overlay modifier ── */
+.cdl-split--no-overlay .cdl-split__overlay {
+  display: none;
+}
+
+/* ── Content — positioned bottom-left ── */
+.cdl-split__content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* ── Glassmorphic pill ── */
+.cdl-split__glass {
+  background: var(--cdl-split-glass-bg, rgba(255, 255, 255, 0.12));
+  backdrop-filter: blur(var(--cdl-split-glass-blur, 12px));
+  -webkit-backdrop-filter: blur(var(--cdl-split-glass-blur, 12px));
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--cdl-split-glass-radius, 12px);
+  padding: 20px 28px;
+  transition: background 0.35s ease, transform 0.35s ease;
+}
+
+.cdl-split__card:hover .cdl-split__glass {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-4px);
+}
+
+/* ── Title ── */
+.cdl-split__title {
+  font-size: var(--cdl-split-title-size, 28px);
+  font-weight: var(--cdl-split-title-weight, 300);
+  color: var(--cdl-split-title-color, #ffffff);
+  margin: 0 0 6px 0;
+  line-height: 1.25;
+  letter-spacing: -0.3px;
+}
+
+/* ── Subtitle — hidden by default, slides in on hover ── */
+.cdl-split__sub {
+  font-size: 14px;
+  color: var(--cdl-split-sub-color, rgba(255, 255, 255, 0.7));
+  margin: 0;
+  line-height: 1.5;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.35s ease;
+}
+
+.cdl-split__card:hover .cdl-split__sub {
+  max-height: 80px;
+  opacity: 1;
+}
+
+/* ── Full-card clickable link ── */
+.cdl-split__link {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+  .cdl-split {
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  /* Two-column mobile: keep side-by-side */
+  .cdl-split--two-col-mobile {
+    flex-direction: row;
+  }
+
+  .cdl-split__card {
+    min-height: 280px;
+    aspect-ratio: var(--cdl-split-mobile-ratio, 16/9);
+  }
+
+  /* Two-col mobile: each card takes half width */
+  .cdl-split--two-col-mobile .cdl-split__card {
+    flex: 1;
+    min-height: 240px;
+  }
+
+  .cdl-split__content {
+    padding: 28px;
+  }
+
+  .cdl-split__glass {
+    padding: 16px 22px;
+    border-radius: 12px;
+  }
+
+  .cdl-split__title {
+    font-size: 24px;
+  }
+
+  /* Two-col mobile: smaller text */
+  .cdl-split--two-col-mobile .cdl-split__title {
+    font-size: 20px;
+  }
+
+  /* Show subtitle always on mobile (no hover) */
+  .cdl-split__sub {
+    max-height: 80px;
+    opacity: 1;
+    margin-top: 4px;
+  }
+}
+
+@media (max-width: 600px) {
+  .cdl-split__card {
+    min-height: 220px;
+  }
+
+  .cdl-split--two-col-mobile .cdl-split__card {
+    min-height: 200px;
+  }
+
+  .cdl-split__content {
+    padding: 20px;
+  }
+
+  /* Two-col mobile: tighter padding */
+  .cdl-split--two-col-mobile .cdl-split__content {
+    padding: 14px;
+  }
+
+  .cdl-split__glass {
+    padding: 14px 18px;
+    border-radius: 10px;
+  }
+
+  .cdl-split--two-col-mobile .cdl-split__glass {
+    padding: 10px 14px;
+    border-radius: 8px;
+  }
+
+  .cdl-split__title {
+    font-size: 20px;
+  }
+
+  .cdl-split--two-col-mobile .cdl-split__title {
+    font-size: 16px;
+  }
+
+  .cdl-split__sub {
+    font-size: 13px;
+  }
+
+  .cdl-split--two-col-mobile .cdl-split__sub {
+    font-size: 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cdl-split__media,
+  .cdl-split__glass,
+  .cdl-split__overlay,
+  .cdl-split__sub {
+    transition: none !important;
+  }
+}
+{% endstylesheet %}

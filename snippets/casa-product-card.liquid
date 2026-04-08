@@ -1,0 +1,1521 @@
+{%- doc -%}
+  Seoul Glow Lab Product Card
+  Premium product card with CRO features
+
+  @param product {product} - Required. The product object
+  @param variant {string} - Optional. Card variant: 'default', 'mega-menu', 'minimal', 'featured', 'collection'
+  @param show_badge {boolean} - Optional. Show product badge (default: true)
+  @param show_sale_badge {boolean} - Optional. Show auto-calculated sale % badge (default: true)
+  @param show_rating {boolean} - Optional. Show star rating (default: true for default variant)
+  @param show_price {boolean} - Optional. Show price (default: true)
+  @param lazy_load {boolean} - Optional. Lazy load image (default: true)
+  @param index {number} - Optional. Card index for gradient variation
+
+  CRO Features (all optional, passed from parent section):
+  @param show_quick_add {boolean} - Quick Add to Cart button on hover
+  @param show_variant_swatches {boolean} - Color/size variant swatches
+  @param show_wishlist {boolean} - Wishlist heart icon
+  @param show_stock_urgency {boolean} - "Only X left!" badge for low stock
+  @param stock_threshold {number} - Threshold for low stock warning (default: 5)
+  @param show_installment {boolean} - Installment price display (e.g., "Or 4× €25")
+  @param installment_count {number} - Number of installments (default: 4)
+  @param show_quick_view {boolean} - Quick view button
+  @param show_hover_video {boolean} - Play product video on hover
+  @param show_savings_highlight {boolean} - Enhanced savings display
+  @param show_social_proof {boolean} - Social proof badges ("Bestseller", "142 sold")
+{%- enddoc -%}
+
+{%- liquid
+  assign _variant = variant | default: 'default'
+  assign _show_badge = show_badge | default: settings.card_show_badges | default: true
+  assign _show_sale_badge = show_sale_badge | default: settings.card_show_sale_badge | default: true, allow_false: true
+  assign _info_align = info_align | default: settings.card_info_align | default: 'left'
+  assign _title_tag = title_tag | default: settings.card_title_tag | default: 'h3'
+  assign _title_font_size = title_font_size | default: nil
+  assign _review_style = review_style | default: settings.card_review_style | default: 'full'
+  assign _show_rating = show_rating | default: settings.card_show_rating | default: false
+  assign _show_price = show_price | default: settings.card_show_price | default: true
+  assign _show_compare_price = show_compare_price | default: settings.card_show_compare_price | default: true
+  assign _show_savings = show_savings | default: settings.card_show_savings | default: false
+  assign _lazy_load = lazy_load | default: true
+  assign _index = index | default: 0
+  assign _image_ratio = image_ratio | default: settings.card_image_ratio | default: 'adapt'
+  assign _border_radius = border_radius | default: settings.card_border_radius | default: 12
+
+  if _variant == 'default'
+    assign _show_rating = show_rating | default: settings.card_show_rating | default: true
+  endif
+
+  # CRO feature flags (all default to false)
+  assign _show_quick_add = show_quick_add | default: false
+  assign _show_variant_swatches = show_variant_swatches | default: settings.card_show_swatches | default: false
+  assign _show_wishlist = show_wishlist | default: false
+  assign _show_stock_urgency = show_stock_urgency | default: false
+  assign _stock_threshold = stock_threshold | default: 5 | plus: 0
+  assign _show_installment = show_installment | default: false
+  assign _installment_count = installment_count | default: 4 | plus: 0
+  assign _show_quick_view = show_quick_view | default: false
+  assign _show_hover_video = show_hover_video | default: false
+  assign _show_savings_highlight = show_savings_highlight | default: _show_savings | default: false
+  assign _show_social_proof = show_social_proof | default: false
+
+  # Color customization (section overrides > global theme settings > hardcoded fallback)
+  assign _title_color = title_color | default: settings.card_title_color | default: nil
+  assign _price_color = price_color | default: settings.card_price_color | default: nil
+  assign _compare_color = compare_color | default: settings.compare_price_color | default: nil
+  assign _badge_bg = badge_bg | default: settings.card_badge_bg | default: nil
+  assign _badge_text = badge_text | default: settings.card_badge_text | default: nil
+  assign _savings_bg = savings_bg | default: settings.savings_badge_bg | default: nil
+  assign _savings_text = savings_text | default: settings.savings_badge_text | default: nil
+  assign _installment_color = installment_color | default: settings.card_installment_color | default: nil
+  assign _stars_color = stars_color | default: settings.card_stars_color | default: nil
+  assign _reviews_color = reviews_color | default: settings.card_reviews_color | default: nil
+  assign _card_bg_color = card_bg_color | default: settings.card_bg_color | default: nil
+  assign _hover_shadow_color = hover_shadow_color | default: settings.card_hover_shadow_color | default: nil
+
+  # Get product badge from metafield or compare_at_price
+  assign product_badge = nil
+  assign badge_type = nil
+
+  # Custom badges from metafield list (custom.badges — up to 8)
+  assign custom_badges_meta = product.metafields.custom.badges.value
+
+  if product.compare_at_price > product.price and _show_sale_badge
+    assign discount = product.compare_at_price | minus: product.price | times: 100.0 | divided_by: product.compare_at_price | round
+    assign product_badge = discount | append: '% OFF'
+    assign badge_type = 'sale'
+  elsif product.available == false
+    assign product_badge = 'Sold Out'
+    assign badge_type = 'soldout'
+  elsif custom_badges_meta == blank
+    if product.tags contains 'bestseller' or product.tags contains 'best-seller'
+      assign product_badge = 'Bestseller'
+      assign badge_type = 'bestseller'
+    elsif product.tags contains 'new'
+      assign product_badge = 'New'
+      assign badge_type = 'new'
+    endif
+  endif
+
+  # Get rating from metafield (convert to numbers to avoid string comparison errors)
+  assign rating_value = product.metafields.reviews.rating.value.rating | default: 5 | plus: 0 | round
+  assign rating_count = product.metafields.reviews.rating_count.value | default: 0 | plus: 0
+
+  # Calculate savings for highlight
+  assign savings_amount = 0
+  if product.compare_at_price > product.price
+    assign savings_amount = product.compare_at_price | minus: product.price
+  endif
+
+  # Calculate installment price
+  assign installment_price = product.price | divided_by: _installment_count
+
+  # Get stock level for urgency
+  assign total_inventory = 0
+  for variant in product.variants
+    assign total_inventory = total_inventory | plus: variant.inventory_quantity
+  endfor
+  assign show_urgency = false
+  if _show_stock_urgency and total_inventory > 0 and total_inventory <= _stock_threshold
+    assign show_urgency = true
+  endif
+
+  # Social proof data from metafields
+  assign sold_count = product.metafields.sgl.sold_count.value | default: 0 | plus: 0
+  assign is_bestseller = false
+  if product.tags contains 'bestseller' or product.tags contains 'best-seller'
+    assign is_bestseller = true
+  endif
+
+  # Get variant swatches — match any visual option (color, style, design, etc.)
+  assign color_option_index = nil
+  assign size_option_index = nil
+  assign _first_multi_option = nil
+  for option in product.options_with_values
+    assign option_name_lower = option.name | downcase
+    if option_name_lower contains 'color' or option_name_lower contains 'colour' or option_name_lower contains 'style' or option_name_lower contains 'design' or option_name_lower contains 'finish' or option_name_lower contains 'material' or option_name_lower contains 'body' or option_name_lower contains 'type' or option_name_lower contains 'variant'
+      if color_option_index == nil
+        assign color_option_index = forloop.index0
+      endif
+    endif
+    if option_name_lower contains 'size'
+      assign size_option_index = forloop.index0
+    endif
+    if _first_multi_option == nil and option.values.size > 1
+      assign _first_multi_option = forloop.index0
+    endif
+  endfor
+  # Fallback: if no known visual option found, use first option with multiple values
+  if color_option_index == nil and _first_multi_option != nil and product.options.size == 1
+    assign color_option_index = _first_multi_option
+  endif
+
+  # Get product video for hover
+  assign product_video = nil
+  if _show_hover_video
+    for media in product.media
+      if media.media_type == 'video' or media.media_type == 'external_video'
+        assign product_video = media
+        break
+      endif
+    endfor
+  endif
+
+  # Gradient backgrounds based on index
+  assign bg_gradients = 'linear-gradient(135deg, #f5f5f7, #e5e5ea)|linear-gradient(135deg, #fdf2f8, #fce7f3)|linear-gradient(135deg, #f0fdfa, #ccfbf1)|linear-gradient(135deg, #faf5ff, #f3e8ff)|linear-gradient(135deg, #f0f9ff, #e0f2fe)|linear-gradient(135deg, #fef3c7, #fde68a)' | split: '|'
+  assign bg_index = _index | modulo: 6
+  assign card_bg = bg_gradients[bg_index]
+-%}
+
+<div
+  class="casa-product-card casa-product-card--{{ _variant }}{% if _show_quick_add or _show_quick_view %} casa-product-card--has-actions{% endif %}"
+  data-product-id="{{ product.id }}"
+  style="
+    {%- if _title_color -%}--card-title-color: {{ _title_color }};{%- endif -%}
+    {%- if _price_color -%}--card-price-color: {{ _price_color }};{%- endif -%}
+    {%- if _compare_color -%}--card-compare-color: {{ _compare_color }};{%- endif -%}
+    --card-info-align: {{ _info_align }};
+    {%- if _badge_bg -%}--card-badge-bg: {{ _badge_bg }};{%- endif -%}
+    {%- if _badge_text -%}--card-badge-text: {{ _badge_text }};{%- endif -%}
+    {%- if _savings_bg -%}--card-savings-bg: {{ _savings_bg }};{%- endif -%}
+    {%- if _savings_text -%}--card-savings-text: {{ _savings_text }};{%- endif -%}
+    {%- if _installment_color -%}--card-installment-color: {{ _installment_color }};{%- endif -%}
+    {%- if _stars_color -%}--card-stars-color: {{ _stars_color }};{%- endif -%}
+    {%- if _reviews_color -%}--card-reviews-color: {{ _reviews_color }};{%- endif -%}
+    {%- if _card_bg_color -%}--card-bg-color: {{ _card_bg_color }};{%- endif -%}
+    {%- if _hover_shadow_color -%}--card-hover-shadow-color: {{ _hover_shadow_color }};{%- endif -%}
+    --card-border-radius: {{ _border_radius }}px;
+  "
+>
+  {%- comment -%} Wishlist button {%- endcomment -%}
+  {%- if _show_wishlist -%}
+    <button type="button" class="casa-product-card__wishlist" aria-label="Add to wishlist" data-product-id="{{ product.id }}">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+      </svg>
+    </button>
+  {%- endif -%}
+
+  <a href="{{ product.url }}" class="casa-product-card__link">
+    <div class="casa-product-card__image" style="background: {{ card_bg }};">
+      {%- if product.featured_image != blank -%}
+        <img
+          src="{{ product.featured_image | image_url: width: 600 }}"
+          alt="{{ product.featured_image.alt | default: product.title | escape }}"
+          width="300"
+          height="300"
+          {% if _lazy_load %}loading="lazy"{% endif %}
+          class="casa-product-card__img"
+        >
+        {%- comment -%} Secondary image on hover {%- endcomment -%}
+        {%- if product.images.size > 1 -%}
+          <img
+            src="{{ product.images[1] | image_url: width: 600 }}"
+            alt="{{ product.images[1].alt | default: product.title | escape }}"
+            width="300"
+            height="300"
+            loading="lazy"
+            class="casa-product-card__img casa-product-card__img--hover"
+          >
+        {%- endif -%}
+      {%- else -%}
+        {%- comment -%} Placeholder shape for products without images {%- endcomment -%}
+        <div class="casa-product-card__placeholder">
+          {%- case _index | modulo: 4 -%}
+            {%- when 0 -%}
+              <div class="casa-product-card__shape casa-product-card__shape--octagon"></div>
+            {%- when 1 -%}
+              <div class="casa-product-card__shape casa-product-card__shape--hexagon"></div>
+            {%- when 2 -%}
+              <div class="casa-product-card__shape casa-product-card__shape--circle"></div>
+            {%- when 3 -%}
+              <div class="casa-product-card__shape casa-product-card__shape--triangle"></div>
+          {%- endcase -%}
+        </div>
+      {%- endif -%}
+
+      {%- comment -%} Hover Video {%- endcomment -%}
+      {%- if product_video != blank -%}
+        <div class="casa-product-card__video">
+          {%- if product_video.media_type == 'video' -%}
+            <video muted loop playsinline preload="none" data-src="{{ product_video.sources[0].url }}">
+              <source data-src="{{ product_video.sources[0].url }}" type="{{ product_video.sources[0].mime_type }}">
+            </video>
+          {%- elsif product_video.media_type == 'external_video' -%}
+            {%- comment -%} External video placeholder - would need API integration {%- endcomment -%}
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+
+      {%- comment -%} Badges row {%- endcomment -%}
+      <div class="casa-product-card__badges">
+        {%- if _show_badge and product_badge != blank -%}
+          <span class="casa-product-card__badge casa-product-card__badge--{{ badge_type }}">
+            {{ product_badge }}
+          </span>
+        {%- endif -%}
+
+        {%- comment -%} Custom badges from custom.badges metafield list {%- endcomment -%}
+        {%- if _show_badge and custom_badges_meta != blank -%}
+          {%- for custom_badge_item in custom_badges_meta limit: 8 -%}
+            {%- if custom_badge_item != blank -%}
+              <span class="casa-product-card__badge casa-product-card__badge--meta casa-product-card__badge--meta-{{ custom_badge_item | handleize }}">
+                {{ custom_badge_item }}
+              </span>
+            {%- endif -%}
+          {%- endfor -%}
+        {%- endif -%}
+
+        {%- comment -%} Stock Urgency Badge {%- endcomment -%}
+        {%- if show_urgency -%}
+          <span class="casa-product-card__badge casa-product-card__badge--urgency">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+            Only {{ total_inventory }} left!
+          </span>
+        {%- endif -%}
+
+        {%- comment -%} Social Proof Badge {%- endcomment -%}
+        {%- if _show_social_proof -%}
+          {%- if is_bestseller -%}
+            <span class="casa-product-card__badge casa-product-card__badge--social">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+              </svg>
+              Bestseller
+            </span>
+          {%- elsif sold_count > 0 -%}
+            <span class="casa-product-card__badge casa-product-card__badge--social">
+              {{ sold_count }} sold this week
+            </span>
+          {%- endif -%}
+        {%- endif -%}
+      </div>
+
+      {%- comment -%} Quick View Button {%- endcomment -%}
+      {%- if _show_quick_view -%}
+        <button type="button" class="casa-product-card__quick-view" aria-label="Quick view" data-product-url="{{ product.url }}">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+      {%- endif -%}
+    </div>
+
+    <div class="casa-product-card__info">
+      {%- comment -%} Variant Swatches — Image-based with hover preview {%- endcomment -%}
+      {%- if _show_variant_swatches and color_option_index != nil -%}
+        <div class="casa-product-card__swatches" data-product-url="{{ product.url }}">
+          {%- assign color_option = product.options_with_values[color_option_index] -%}
+          {%- assign swatch_count = 0 -%}
+          {%- for variant in product.variants -%}
+            {%- if swatch_count < 5 -%}
+              {%- comment -%} Only show one swatch per unique color option {%- endcomment -%}
+              {%- assign color_value = variant.options[color_option_index] -%}
+              {%- assign already_shown = false -%}
+              {%- for prev_variant in product.variants -%}
+                {%- if forloop.index < forloop.parentloop.index -%}
+                  {%- if prev_variant.options[color_option_index] == color_value -%}
+                    {%- assign already_shown = true -%}
+                    {%- break -%}
+                  {%- endif -%}
+                {%- endif -%}
+              {%- endfor -%}
+              {%- unless already_shown -%}
+                {%- assign swatch_count = swatch_count | plus: 1 -%}
+                <button
+                  type="button"
+                  class="casa-product-card__swatch{% if forloop.first %} casa-product-card__swatch--active{% endif %}"
+                  data-variant-id="{{ variant.id }}"
+                  data-variant-url="{{ product.url }}?variant={{ variant.id }}"
+                  data-variant-image="{{ variant.featured_image | default: product.featured_image | image_url: width: 600 }}"
+                  data-variant-price="{{ variant.price | money }}"
+                  data-variant-available="{{ variant.available }}"
+                  title="{{ color_value }}"
+                  aria-label="Select {{ color_value }}"
+                >
+                  {%- if variant.featured_image != blank -%}
+                    <img
+                      src="{{ variant.featured_image | image_url: width: 80 }}"
+                      alt="{{ color_value }}"
+                      loading="lazy"
+                    >
+                  {%- elsif product.featured_image != blank -%}
+                    <img
+                      src="{{ product.featured_image | image_url: width: 80 }}"
+                      alt="{{ color_value }}"
+                      loading="lazy"
+                    >
+                  {%- else -%}
+                    <span class="casa-product-card__swatch-fallback">{{ color_value | slice: 0 }}</span>
+                  {%- endif -%}
+                </button>
+              {%- endunless -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {%- if color_option.values.size > 5 -%}
+            <a href="{{ product.url }}" class="casa-product-card__swatch-more">+{{ color_option.values.size | minus: 5 }}</a>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+
+      <{{ _title_tag }} class="casa-product-card__title{% if _title_tag == 'h2' %} {{ _title_tag }}{% elsif _title_tag == 'h3' %} {{ _title_tag }}{% elsif _title_tag == 'h4' %} {{ _title_tag }}{% endif %}"{% if _title_font_size %} style="font-size: {{ _title_font_size }}px !important;"{% endif %}>{{ product.title }}</{{ _title_tag }}>
+
+      {%- if _show_rating and rating_count > 0 -%}
+        <div class="casa-product-card__rating">
+          {%- case _review_style -%}
+            {%- when 'full' -%}
+              <span class="casa-product-card__stars">
+                {%- for i in (1..5) -%}
+                  {%- if i <= rating_value -%}★{%- else -%}☆{%- endif -%}
+                {%- endfor -%}
+              </span>
+              <span class="casa-product-card__rating-count">{{ rating_count }} reviews</span>
+            {%- when 'compact' -%}
+              <span class="casa-product-card__stars">★</span>
+              <span class="casa-product-card__rating-count">{{ rating_value }}.0 ({{ rating_count }})</span>
+            {%- when 'stars-only' -%}
+              <span class="casa-product-card__stars">
+                {%- for i in (1..5) -%}
+                  {%- if i <= rating_value -%}★{%- else -%}☆{%- endif -%}
+                {%- endfor -%}
+              </span>
+            {%- when 'text-only' -%}
+              <span class="casa-product-card__rating-count">{{ rating_value }}.0 · {{ rating_count }} reviews</span>
+          {%- endcase -%}
+        </div>
+      {%- endif -%}
+
+      {%- if _show_price -%}
+        <div class="casa-product-card__price">
+          <span class="casa-product-card__price-current">
+            {%- if product.price_varies -%}
+              From {{ product.price_min | money }}
+            {%- else -%}
+              {{ product.price | money }}
+            {%- endif -%}
+          </span>
+          {%- if product.compare_at_price > product.price and _show_compare_price -%}
+            <span class="casa-product-card__price-compare">
+              {{ product.compare_at_price | money }}
+            </span>
+            {%- if _show_savings_highlight -%}
+              <span class="casa-product-card__savings">
+                Save{{ savings_amount | money }}
+              </span>
+            {%- endif -%}
+          {%- endif -%}
+        </div>
+
+        {%- comment -%} Installment Price {%- endcomment -%}
+        {%- if _show_installment and product.price > 0 -%}
+          <div class="casa-product-card__installment">
+            Or {{ _installment_count }}× {{ installment_price | money }}
+          </div>
+        {%- endif -%}
+      {%- endif -%}
+    </div>
+  </a>
+
+  {%- comment -%} Quick Add Button {%- endcomment -%}
+  {%- if _show_quick_add and product.available -%}
+    <div class="casa-product-card__quick-add">
+      {%- if product.variants.size == 1 -%}
+        <button
+          type="button"
+          class="casa-product-card__add-btn"
+          data-casa-add-to-cart="{{ product.variants.first.id }}"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="m1 1 4 4h16l-2 9H7"></path>
+          </svg>
+          <span>Add to Cart</span>
+        </button>
+      {%- else -%}
+        <a href="{{ product.url }}" class="casa-product-card__add-btn casa-product-card__add-btn--options">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span>Select Options</span>
+        </a>
+      {%- endif -%}
+    </div>
+  {%- endif -%}
+</div>
+
+{% stylesheet %}
+.casa-product-card {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+  background: var(--card-bg-color, #ffffff);
+  border-radius: var(--card-border-radius, 20px);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  height: 100%;
+}
+
+.casa-product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 30px 60px -15px color-mix(in srgb, var(--card-hover-shadow-color, #000000) 15%, transparent);
+}
+
+.casa-product-card > .casa-product-card__link {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Neutralize rogue __link elements injected inside __info by apps/scripts */
+.casa-product-card__info > .casa-product-card__link,
+.casa-product-card__swatches > .casa-product-card__link {
+  display: contents;
+}
+
+/* ==========================================================================
+   WISHLIST BUTTON
+   ========================================================================== */
+
+.casa-product-card__wishlist {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+  color: #6b7280;
+}
+
+.casa-product-card:hover .casa-product-card__wishlist {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.casa-product-card__wishlist:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.casa-product-card__wishlist:hover svg {
+  fill: white;
+}
+
+.casa-product-card__wishlist.is-active {
+  opacity: 1;
+  background: #ef4444;
+  color: white;
+}
+
+.casa-product-card__wishlist.is-active svg {
+  fill: white;
+}
+
+/* ==========================================================================
+   IMAGE CONTAINER
+   ========================================================================== */
+
+.casa-product-card__image {
+  aspect-ratio: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.casa-product-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.4s ease, transform 0.3s ease;
+}
+
+.casa-product-card__img--hover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+}
+
+.casa-product-card:hover .casa-product-card__img:not(.casa-product-card__img--hover) {
+  transform: scale(1.05);
+}
+
+.casa-product-card:hover .casa-product-card__img--hover {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+/* ==========================================================================
+   HOVER VIDEO
+   ========================================================================== */
+
+.casa-product-card__video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.casa-product-card:hover .casa-product-card__video {
+  opacity: 1;
+}
+
+.casa-product-card__video video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ==========================================================================
+   BADGES
+   ========================================================================== */
+
+.casa-product-card__badges {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  z-index: 5;
+  max-width: calc(100% - 50px);
+}
+
+.casa-product-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  line-height: 1.2;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.casa-product-card__badge--bestseller {
+  background: var(--card-badge-bestseller-bg, #0a0a0a);
+  color: var(--card-badge-text, #ffffff);
+}
+
+.casa-product-card__badge--new {
+  background: var(--card-badge-new-bg, linear-gradient(135deg, #9333ea, #ec4899));
+  color: var(--card-badge-text, #ffffff);
+}
+
+.casa-product-card__badge--sale {
+  background: var(--card-badge-bg, #ef4444);
+  color: var(--card-badge-text, #ffffff);
+}
+
+.casa-product-card__badge--soldout {
+  background: var(--card-badge-soldout-bg, #6b7280);
+  color: var(--card-badge-text, #ffffff);
+}
+
+.casa-product-card__badge--custom {
+  background: var(--card-badge-custom-bg, linear-gradient(135deg, #9333ea, #ec4899));
+  color: var(--card-badge-text, #ffffff);
+}
+
+/* Custom metafield badges (custom.badges) */
+.casa-product-card__badge--meta {
+  background: linear-gradient(135deg, #9333ea, #6366f1);
+  color: var(--card-badge-text, #ffffff);
+}
+
+/* ── Exact matches for current metafield choices ── */
+.casa-product-card__badge--meta-1-bestseller {
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+}
+.casa-product-card__badge--meta-bestseller {
+  background: #0a0a0a;
+}
+.casa-product-card__badge--meta-new-arrival {
+  background: linear-gradient(135deg, #9333ea, #ec4899);
+}
+.casa-product-card__badge--meta-use-code-new20 {
+  background: linear-gradient(135deg, #06b6d4, #9333ea);
+}
+.casa-product-card__badge--meta-new {
+  background: linear-gradient(135deg, #9333ea, #ec4899);
+}
+.casa-product-card__badge--meta-gift-favorite {
+  background: linear-gradient(135deg, #ec4899, #f43f5e);
+}
+.casa-product-card__badge--meta-editor-s-pick {
+  background: linear-gradient(135deg, #0f172a, #334155);
+}
+
+/* ── Additional named variants ── */
+.casa-product-card__badge--meta-limited-edition,
+.casa-product-card__badge--meta-limited {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+.casa-product-card__badge--meta-trending,
+.casa-product-card__badge--meta-hot {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+}
+.casa-product-card__badge--meta-eco-friendly,
+.casa-product-card__badge--meta-eco {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+.casa-product-card__badge--meta-exclusive {
+  background: linear-gradient(135deg, #0f172a, #334155);
+}
+.casa-product-card__badge--meta-handmade,
+.casa-product-card__badge--meta-artisan {
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+}
+.casa-product-card__badge--meta-free-shipping {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+}
+.casa-product-card__badge--meta-best-value,
+.casa-product-card__badge--meta-value {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.casa-product-card__badge--urgency {
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  color: var(--card-badge-text, #ffffff);
+  animation: casaPulse 2s ease-in-out infinite;
+}
+
+@keyframes casaPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+.casa-product-card__badge--social {
+  background: rgba(0, 0, 0, 0.8);
+  color: var(--card-badge-text, #ffffff);
+  backdrop-filter: blur(4px);
+}
+
+/* ==========================================================================
+   QUICK VIEW BUTTON
+   ========================================================================== */
+
+.casa-product-card__quick-view {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 10;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease, background 0.2s ease;
+  color: #0a0a0a;
+}
+
+.casa-product-card:hover .casa-product-card__quick-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.casa-product-card__quick-view:hover {
+  background: linear-gradient(135deg, #9333ea, #ec4899);
+  color: white;
+}
+
+/* ==========================================================================
+   PLACEHOLDER
+   ========================================================================== */
+
+.casa-product-card__placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.casa-product-card__shape {
+  width: 50%;
+  height: 50%;
+}
+
+.casa-product-card__shape--octagon {
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+  background: linear-gradient(135deg, #9333ea, #ec4899);
+}
+
+.casa-product-card__shape--hexagon {
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: linear-gradient(135deg, #06b6d4, #9333ea);
+}
+
+.casa-product-card__shape--circle {
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ec4899, #9333ea);
+}
+
+.casa-product-card__shape--triangle {
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  background: linear-gradient(135deg, #22c55e, #06b6d4);
+}
+
+/* ==========================================================================
+   INFO SECTION
+   ========================================================================== */
+
+.casa-product-card__info {
+  padding: var(--card-info-padding, 20px 24px 24px);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-info-gap, 6px);
+  text-align: var(--card-info-align, left);
+}
+.casa-product-card__info .casa-product-card__price,
+.casa-product-card__info .casa-product-card__rating,
+.casa-product-card__info .casa-product-card__swatches {
+  justify-content: var(--card-info-justify, flex-start);
+}
+.casa-product-card[style*="--card-info-align: center"] .casa-product-card__price,
+.casa-product-card[style*="--card-info-align: center"] .casa-product-card__rating,
+.casa-product-card[style*="--card-info-align: center"] .casa-product-card__swatches {
+  justify-content: center;
+}
+.casa-product-card[style*="--card-info-align: right"] .casa-product-card__price,
+.casa-product-card[style*="--card-info-align: right"] .casa-product-card__rating,
+.casa-product-card[style*="--card-info-align: right"] .casa-product-card__swatches {
+  justify-content: flex-end;
+}
+
+
+/* ==========================================================================
+   VARIANT SWATCHES — Image-Based with Live Preview
+   ========================================================================== */
+
+/* Spacer for cards without swatches — matches swatch area height */
+.casa-product-card__swatches-spacer {
+  height: 32px;
+  margin: 0;
+}
+
+.casa-product-card__swatches {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  flex-wrap: wrap;
+}
+
+.casa-product-card__swatch {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #f5f5f5;
+  overflow: hidden;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.casa-product-card__swatch img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.casa-product-card__swatch-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  text-transform: uppercase;
+}
+
+/* Hover state */
+.casa-product-card__swatch:hover {
+  transform: scale(1.1);
+  border-color: #9333ea;
+  box-shadow: 0 4px 12px rgba(147, 51, 234, 0.25);
+}
+
+/* Active/selected state */
+.casa-product-card__swatch--active {
+  border-color: #9333ea;
+  box-shadow:
+    0 0 0 2px rgba(147, 51, 234, 0.2),
+    0 4px 12px rgba(147, 51, 234, 0.2);
+}
+
+.casa-product-card__swatch--active::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 2px solid #9333ea;
+  border-radius: 10px;
+  animation: swatchPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes swatchPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0; transform: scale(1.1); }
+}
+
+/* More variants link */
+.casa-product-card__swatch-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+}
+
+.casa-product-card__swatch-more:hover {
+  background: linear-gradient(135deg, #9333ea, #ec4899);
+  color: white;
+  transform: scale(1.05);
+}
+
+/* Title */
+.casa-product-card__title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--card-title-color, #0a0a0a);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* When using theme heading tags, inherit their font settings */
+h2.casa-product-card__title { font-size: var(--font-h2--size); font-family: var(--font-h2--family); font-weight: var(--font-h2--weight); line-height: var(--font-h2--line-height); letter-spacing: var(--font-h2--letter-spacing); }
+h3.casa-product-card__title { font-size: var(--font-h3--size); font-family: var(--font-h3--family); font-weight: var(--font-h3--weight); line-height: var(--font-h3--line-height); letter-spacing: var(--font-h3--letter-spacing); }
+h4.casa-product-card__title { font-size: var(--font-h4--size); font-family: var(--font-h4--family); font-weight: var(--font-h4--weight); line-height: var(--font-h4--line-height); letter-spacing: var(--font-h4--letter-spacing); }
+h5.casa-product-card__title { font-size: var(--font-h5--size); font-family: var(--font-h5--family); font-weight: var(--font-h5--weight); line-height: var(--font-h5--line-height); letter-spacing: var(--font-h5--letter-spacing); }
+
+/* Price — always inline */
+.casa-product-card__price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.casa-product-card__price-current {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--card-price-color, #0a0a0a);
+}
+
+.casa-product-card__price-compare {
+  font-size: 14px;
+  color: var(--compare-price-color, #6b7280);
+  text-decoration: line-through;
+}
+
+.casa-product-card__savings {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: var(--card-savings-bg, var(--savings-badge-bg, #fef2f2));
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--card-savings-text, #ef4444);
+}
+
+/* Installment Price */
+.casa-product-card__installment {
+  font-size: 12px;
+  color: var(--card-installment-color, #6b7280);
+  margin: 0;
+}
+
+/* Rating */
+.casa-product-card__rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.casa-product-card__stars {
+  color: var(--card-stars-color, #fbbf24);
+  font-size: 14px;
+  letter-spacing: -1px;
+}
+
+.casa-product-card__rating-count {
+  font-size: 12px;
+  color: var(--card-reviews-color, #6b7280);
+}
+
+/* ==========================================================================
+   QUICK ADD BUTTON
+   ========================================================================== */
+
+.casa-product-card__quick-add {
+  position: relative;
+  padding: 0 12px 12px;
+  z-index: 10;
+}
+
+.casa-product-card__add-form {
+  width: 100%;
+}
+
+.casa-product-card__add-form {
+  width: 100%;
+}
+
+.casa-product-card__add-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  background: var(--card-atc-bg, linear-gradient(135deg, #0a0a0a, #1f1f1f));
+  color: var(--card-atc-text, white);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  border-radius: var(--card-atc-radius, 12px);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.casa-product-card__add-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+}
+
+.casa-product-card__add-btn--options {
+  background: var(--card-options-bg, linear-gradient(135deg, #9333ea, #ec4899));
+  color: var(--card-options-text, white);
+}
+
+/* Adjust info padding when quick add is enabled */
+.casa-product-card--has-actions .casa-product-card__info {
+  padding-bottom: 70px;
+}
+
+/* ==========================================================================
+   MEGA MENU VARIANT
+   ========================================================================== */
+
+.casa-product-card--mega-menu {
+  background: transparent;
+  border-radius: 12px;
+}
+
+.casa-product-card--mega-menu:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 30px -8px rgba(0, 0, 0, 0.3);
+}
+
+.casa-product-card--mega-menu .casa-product-card__image {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.casa-product-card--mega-menu .casa-product-card__info {
+  padding: 12px 0 0 0;
+}
+
+.casa-product-card--mega-menu .casa-product-card__title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.casa-product-card--mega-menu .casa-product-card__price-current {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.casa-product-card--mega-menu .casa-product-card__badges {
+  top: 8px;
+  left: 8px;
+}
+
+.casa-product-card--mega-menu .casa-product-card__badge {
+  padding: 4px 8px;
+  font-size: 10px;
+}
+
+/* ==========================================================================
+   MINIMAL VARIANT
+   ========================================================================== */
+
+.casa-product-card--minimal {
+  background: transparent;
+}
+
+.casa-product-card--minimal:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.casa-product-card--minimal .casa-product-card__info {
+  padding: 12px 0 0 0;
+}
+
+.casa-product-card--minimal .casa-product-card__title {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   FEATURED VARIANT
+   ========================================================================== */
+
+.casa-product-card--featured {
+  border: 2px solid transparent;
+  background: linear-gradient(#ffffff, #ffffff) padding-box,
+              linear-gradient(135deg, #9333ea, #ec4899) border-box;
+}
+
+.casa-product-card--featured:hover {
+  transform: translateY(-12px);
+  box-shadow: 0 40px 80px -20px rgba(147, 51, 234, 0.3);
+}
+
+/* ==========================================================================
+   COLLECTION VARIANT (DARK BG)
+   ========================================================================== */
+
+.casa-product-card--collection {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+.casa-product-card--collection:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.2);
+}
+
+.casa-product-card--collection .casa-product-card__image {
+  background: transparent !important;
+  aspect-ratio: 1 / 1;
+  height: auto;
+}
+
+
+
+.casa-product-card--collection .casa-product-card__title {
+  color: var(--card-title-color, #ffffff);
+}
+
+.casa-product-card--collection .casa-product-card__price-current {
+  color: var(--card-price-color, rgba(255, 255, 255, 0.6));
+}
+
+.casa-product-card--collection .casa-product-card__price-current span {
+  color: var(--card-price-color, #ffffff);
+  font-weight: 600;
+}
+
+.casa-product-card--collection .casa-product-card__wishlist {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.casa-product-card--collection .casa-product-card__quick-view {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.casa-product-card--collection .casa-product-card__swatches {
+  margin: 0;
+}
+
+.casa-product-card--collection .casa-product-card__swatch {
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.2),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.casa-product-card--collection .casa-product-card__swatch:hover {
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(147, 51, 234, 0.5),
+    0 8px 25px rgba(147, 51, 234, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.casa-product-card--collection .casa-product-card__swatch-more {
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.casa-product-card--collection:hover .casa-product-card__swatch-more {
+  background: rgba(147, 51, 234, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.casa-product-card--collection .casa-product-card__price-compare {
+  color: var(--compare-price-color, #6b7280);
+}
+
+.casa-product-card--collection .casa-product-card__installment {
+  color: var(--card-installment-color, rgba(255, 255, 255, 0.5));
+}
+
+.casa-product-card--collection .casa-product-card__stars {
+  color: var(--card-stars-color, #fbbf24);
+}
+
+.casa-product-card--collection .casa-product-card__rating-count {
+  color: var(--card-reviews-color, rgba(255, 255, 255, 0.5));
+}
+
+.casa-product-card--collection .casa-product-card__savings {
+  background: var(--card-savings-bg, linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(249, 115, 22, 0.2)));
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--card-savings-text, #ef4444);
+}
+
+/* --- Collection variant: Inline quick-add button (no overlap) --- */
+.casa-product-card--collection .casa-product-card__quick-add {
+  position: relative;
+  padding: 0 12px 12px;
+}
+
+.casa-product-card--collection.casa-product-card--has-actions .casa-product-card__info {
+  padding-bottom: 14px;
+}
+
+.casa-product-card--collection .casa-product-card__add-btn {
+  padding: 10px 16px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+/* --- Collection variant: Minimal info section --- */
+.casa-product-card--collection .casa-product-card__info {
+  padding: 12px 14px 14px;
+  gap: 2px;
+}
+
+.casa-product-card--collection .casa-product-card__title {
+  font-size: var(--card-title-size, 13px);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  margin: 0;
+  -webkit-line-clamp: 1;
+}
+
+.casa-product-card--collection .casa-product-card__price-current {
+  font-size: 13px;
+}
+
+.casa-product-card--collection .casa-product-card__price-compare {
+  font-size: 11px;
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+
+@media (max-width: 600px) {
+  .casa-product-card__info {
+    padding: 16px;
+  }
+
+  .casa-product-card__title {
+    font-size: 14px;
+  }
+
+  .casa-product-card__price-current {
+    font-size: 16px;
+  }
+
+  .casa-product-card__wishlist {
+    opacity: 1;
+    transform: scale(1);
+    width: 32px;
+    height: 32px;
+  }
+
+  .casa-product-card__quick-view {
+    opacity: 1;
+    transform: translateY(0);
+    width: 36px;
+    height: 36px;
+  }
+
+  .casa-product-card__quick-add {
+    opacity: 1;
+    transform: translateY(0);
+    padding: 0 12px 12px;
+  }
+
+  .casa-product-card__add-btn {
+    padding: 12px 16px;
+    font-size: 12px;
+  }
+
+  .casa-product-card--has-actions .casa-product-card__info {
+    padding-bottom: 60px;
+  }
+
+  .casa-product-card__swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .casa-product-card,
+  .casa-product-card__img,
+  .casa-product-card__wishlist,
+  .casa-product-card__quick-view,
+  .casa-product-card__quick-add,
+  .casa-product-card__add-btn,
+  .casa-product-card__video,
+  .casa-product-card__swatch {
+    transition: none;
+  }
+
+  .casa-product-card__badge--urgency {
+    animation: none;
+  }
+}
+{% endstylesheet %}
+
+<script>
+  // Initialize product card interactions
+  document.addEventListener('DOMContentLoaded', function() {
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // VARIANT SWATCHES — Click to swap image & update link
+    // ═══════════════════════════════════════════════════════════════════════
+    document.querySelectorAll('.casa-product-card__swatch').forEach(swatch => {
+      swatch.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const card = this.closest('.casa-product-card');
+        const swatchContainer = this.closest('.casa-product-card__swatches');
+        if (!card) return;
+
+        // Update active state
+        swatchContainer.querySelectorAll('.casa-product-card__swatch').forEach(s => {
+          s.classList.remove('casa-product-card__swatch--active');
+        });
+        this.classList.add('casa-product-card__swatch--active');
+
+        // Get variant data
+        const variantUrl = this.dataset.variantUrl;
+        const variantImage = this.dataset.variantImage;
+        const variantId = this.dataset.variantId;
+
+        // Update main product link
+        const productLink = card.querySelector('.casa-product-card__link');
+        if (productLink && variantUrl) {
+          productLink.href = variantUrl;
+        }
+
+        // Update main product image with smooth transition
+        const mainImage = card.querySelector('.casa-product-card__img:not(.casa-product-card__img--hover)');
+        const hoverImage = card.querySelector('.casa-product-card__img--hover');
+        if (mainImage && variantImage) {
+          // Hide hover image so the swatch change is visible immediately
+          if (hoverImage) {
+            hoverImage.style.opacity = '0';
+            hoverImage.style.pointerEvents = 'none';
+          }
+          mainImage.style.opacity = '0';
+          setTimeout(() => {
+            mainImage.src = variantImage;
+            mainImage.style.opacity = '1';
+            // Update hover image to variant image too, then re-enable hover
+            if (hoverImage) {
+              hoverImage.src = variantImage;
+              hoverImage.style.pointerEvents = '';
+              // Remove inline opacity so CSS hover can take over again
+              setTimeout(() => { hoverImage.style.opacity = ''; }, 300);
+            }
+          }, 150);
+        }
+
+        // Update Quick Add form hidden input if present
+        const variantInput = card.querySelector('.casa-product-card__add-form input[name="id"]');
+        if (variantInput && variantId) {
+          variantInput.value = variantId;
+        }
+
+        // Update Quick View button URL
+        const quickViewBtn = card.querySelector('.casa-product-card__quick-view');
+        if (quickViewBtn && variantUrl) {
+          quickViewBtn.dataset.productUrl = variantUrl;
+        }
+      });
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // WISHLIST
+    // ═══════════════════════════════════════════════════════════════════════
+    document.querySelectorAll('.casa-product-card__wishlist').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.toggle('is-active');
+        const productId = this.dataset.productId;
+        window.dispatchEvent(new CustomEvent('wishlist:toggle', { detail: { productId } }));
+      });
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // QUICK VIEW
+    // ═══════════════════════════════════════════════════════════════════════
+    document.querySelectorAll('.casa-product-card__quick-view').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const productUrl = this.dataset.productUrl;
+        window.dispatchEvent(new CustomEvent('quickview:open', { detail: { productUrl } }));
+      });
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // HOVER VIDEO
+    // ═══════════════════════════════════════════════════════════════════════
+    document.querySelectorAll('.casa-product-card').forEach(card => {
+      const video = card.querySelector('.casa-product-card__video video');
+      if (video) {
+        card.addEventListener('mouseenter', function() {
+          const sources = video.querySelectorAll('source[data-src]');
+          sources.forEach(source => {
+            if (source.dataset.src && !source.src) {
+              source.src = source.dataset.src;
+            }
+          });
+          if (video.dataset.src && !video.src) {
+            video.src = video.dataset.src;
+          }
+          video.load();
+          video.play().catch(() => {});
+        });
+
+        card.addEventListener('mouseleave', function() {
+          video.pause();
+          video.currentTime = 0;
+        });
+      }
+    });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // QUICK ADD — AJAX add then open cart drawer (no HTML replacement)
+    // ═══════════════════════════════════════════════════════════════════════
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-casa-add-to-cart]');
+      if (!btn || btn.classList.contains('is-loading')) return;
+
+      var variantId = btn.getAttribute('data-casa-add-to-cart');
+      var spanEl = btn.querySelector('span');
+      var originalText = spanEl ? spanEl.textContent : '';
+
+      btn.classList.add('is-loading');
+      btn.disabled = true;
+      if (spanEl) spanEl.textContent = 'Adding...';
+
+      fetch('/cart/add.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: [{ id: parseInt(variantId), quantity: 1 }] })
+      })
+      .then(function(res) {
+        if (!res.ok) throw new Error('Failed');
+        return res.json();
+      })
+      .then(function() {
+        if (spanEl) spanEl.textContent = 'Added!';
+
+        // Just open the cart drawer — clicking the cart button triggers
+        // the theme's native drawer open which fetches fresh cart data
+        var cartBtn = document.querySelector('.casa-header__cart-btn');
+        if (cartBtn) cartBtn.click();
+
+        setTimeout(function() {
+          if (spanEl) spanEl.textContent = originalText;
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+        }, 1200);
+      })
+      .catch(function() {
+        if (spanEl) spanEl.textContent = 'Error';
+        setTimeout(function() {
+          if (spanEl) spanEl.textContent = originalText;
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+        }, 2000);
+      });
+    });
+  });
+</script>

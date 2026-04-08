@@ -1,0 +1,90 @@
+{% comment %}
+  Seoul Glow Lab — Lookbook Product Card snippet
+  Renders a single product card for the lookbook products section.
+
+  Accepts:
+    - product: Shopify product object
+    - accent_color: string
+    - show_rating: boolean
+    - show_compare_price: boolean
+    - button_text: string
+    - block: block object (optional, for shopify_attributes)
+{% endcomment %}
+
+{%- liquid
+  assign on_sale = false
+  if product.compare_at_price > product.price
+    assign on_sale = true
+  endif
+
+  assign badge_text = product.metafields.custom.badge.value | default: ''
+-%}
+
+<div class="casa-lb-prod__card" {{ block.shopify_attributes }}>
+  {%- if badge_text != blank -%}
+    <span class="casa-lb-prod__badge">{{ badge_text | escape }}</span>
+  {%- endif -%}
+
+  <a href="{{ product.url }}" class="casa-lb-prod__card-link" aria-label="{{ product.title | escape }}">
+    <div class="casa-lb-prod__card-image">
+      {%- if product.featured_image != blank -%}
+        <img
+          src="{{ product.featured_image | image_url: width: 800 }}"
+          srcset="
+            {{ product.featured_image | image_url: width: 400 }} 400w,
+            {{ product.featured_image | image_url: width: 600 }} 600w,
+            {{ product.featured_image | image_url: width: 800 }} 800w,
+            {{ product.featured_image | image_url: width: 1000 }} 1000w
+          "
+          sizes="(min-width: 1000px) 50vw, 100vw"
+          alt="{{ product.featured_image.alt | default: product.title | escape }}"
+          loading="lazy"
+          width="{{ product.featured_image.width }}"
+          height="{{ product.featured_image.height }}"
+        >
+      {%- else -%}
+        {{ 'product-1' | placeholder_svg_tag: 'casa-lb-prod__placeholder-svg' }}
+      {%- endif -%}
+    </div>
+
+    <div class="casa-lb-prod__card-body">
+      <h3 class="casa-lb-prod__card-title">{{ product.title | escape }}</h3>
+
+      <div class="casa-lb-prod__card-price">
+        {%- if on_sale and show_compare_price -%}
+          <span class="casa-lb-prod__price casa-lb-prod__price--sale">{{ product.price | money }}</span>
+          <s class="casa-lb-prod__compare-price">{{ product.compare_at_price | money }}</s>
+          {%- assign save_amount = product.compare_at_price | minus: product.price -%}
+          <span class="casa-lb-prod__save-badge">Save {{ save_amount | money }}</span>
+        {%- else -%}
+          <span class="casa-lb-prod__price">{{ product.price | money }}</span>
+        {%- endif -%}
+      </div>
+
+      {%- if show_rating -%}
+        {%- assign rating_value = product.metafields.reviews.rating.value.rating | default: 0 | round -%}
+        {%- assign rating_count = product.metafields.reviews.rating_count.value | default: 0 -%}
+        <div class="casa-lb-prod__rating" aria-label="{{ rating_value }} out of 5 stars">
+          <div class="casa-lb-prod__stars">
+            {%- for i in (1..5) -%}
+              {%- if i <= rating_value -%}
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z"/>
+                </svg>
+              {%- else -%}
+                <svg class="casa-lb-prod__stars--empty" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z"/>
+                </svg>
+              {%- endif -%}
+            {%- endfor -%}
+          </div>
+          {%- if rating_count > 0 -%}
+            <span class="casa-lb-prod__rating-count">({{ rating_count }})</span>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+
+      <span class="casa-lb-prod__card-btn">{{ button_text }}</span>
+    </div>
+  </a>
+</div>

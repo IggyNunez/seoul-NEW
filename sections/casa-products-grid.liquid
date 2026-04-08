@@ -1,0 +1,1164 @@
+{%- comment -%}
+  Seoul Glow Lab Products Grid Section
+  Premium product grid with animations, multiple layouts, CRO features, and full customization
+{%- endcomment -%}
+
+{%- liquid
+  # Layout settings
+  assign layout = section.settings.layout | default: 'grid'
+  assign columns = section.settings.columns | default: 4
+  assign gap = section.settings.gap | default: 32
+  assign product_limit = section.settings.product_limit | default: 4
+
+  # Style settings
+  assign bg_style = section.settings.background_style | default: 'light'
+  assign accent_primary = section.settings.accent_primary | default: '#9333ea'
+  assign accent_secondary = section.settings.accent_secondary | default: '#ec4899'
+  assign card_style = section.settings.card_style | default: 'default'
+
+  # Animation settings
+  assign animation = section.settings.animation | default: 'fade-up'
+  assign stagger_delay = section.settings.stagger_delay | default: 100
+
+  # Padding
+  assign padding_top = section.settings.padding_top | default: 120
+  assign padding_bottom = section.settings.padding_bottom | default: 120
+  assign padding_mobile_top = section.settings.padding_mobile_top | default: 60
+  assign padding_mobile_bottom = section.settings.padding_mobile_bottom | default: 60
+
+  # Header settings
+  assign header_alignment = section.settings.header_alignment | default: 'center'
+  assign title_size = section.settings.title_size | default: 'large'
+  assign show_divider = section.settings.show_divider
+
+  # CRO Feature settings
+  assign show_quick_add = section.settings.show_quick_add
+  assign show_variant_swatches = section.settings.show_variant_swatches
+  assign show_wishlist = section.settings.show_wishlist
+  assign show_stock_urgency = section.settings.show_stock_urgency
+  assign stock_threshold = section.settings.stock_threshold | default: 5
+  assign show_installment = section.settings.show_installment
+  assign installment_count = section.settings.installment_count | default: 4
+  assign show_quick_view = section.settings.show_quick_view
+  assign show_hover_video = section.settings.show_hover_video
+  assign show_savings_highlight = section.settings.show_savings_highlight
+  assign show_social_proof = section.settings.show_social_proof
+
+  # Text colors based on background
+  if bg_style == 'dark' or bg_style == 'gradient-dark'
+    assign text_primary = '#ffffff'
+    assign text_secondary = 'rgba(255, 255, 255, 0.7)'
+    assign tag_color = accent_primary
+  else
+    assign text_primary = '#0a0a0a'
+    assign text_secondary = '#6b7280'
+    assign tag_color = accent_primary
+  endif
+
+  # Title sizes
+  case title_size
+    when 'small'
+      assign title_font_size = '32px'
+      assign title_font_size_mobile = '24px'
+    when 'medium'
+      assign title_font_size = '40px'
+      assign title_font_size_mobile = '28px'
+    when 'large'
+      assign title_font_size = '48px'
+      assign title_font_size_mobile = '32px'
+    when 'xlarge'
+      assign title_font_size = '56px'
+      assign title_font_size_mobile = '36px'
+  endcase
+
+  # Get collection
+  assign collection = collections[section.settings.collection]
+-%}
+
+<section
+  id="casa-pg-{{ section.id }}"
+  class="casa-products-grid casa-products-grid--{{ layout }} casa-products-grid--bg-{{ bg_style }} casa-products-grid--cards-{{ card_style }}"
+  style="
+    --pg-padding-top: {{ padding_top }}px;
+    --pg-padding-bottom: {{ padding_bottom }}px;
+    --pg-padding-mobile-top: {{ padding_mobile_top }}px;
+    --pg-padding-mobile-bottom: {{ padding_mobile_bottom }}px;
+    --pg-columns: {{ columns }};
+    --pg-gap: {{ gap }}px;
+    --pg-accent-primary: {{ accent_primary }};
+    --pg-accent-secondary: {{ accent_secondary }};
+    --pg-text-primary: {{ text_primary }};
+    --pg-text-secondary: {{ text_secondary }};
+    --pg-tag-color: {{ tag_color }};
+    --pg-title-size: {{ title_font_size }};
+    --pg-title-size-mobile: {{ title_font_size_mobile }};
+    --card-title-size: {{ section.settings.card_title_size | default: 16 }}px;
+    --card-info-gap: {{ section.settings.card_info_gap | default: 8 }}px;
+    {%- if section.settings.atc_bg_1 != blank and section.settings.atc_bg_2 != blank -%}--card-atc-bg: linear-gradient(135deg, {{ section.settings.atc_bg_1 }}, {{ section.settings.atc_bg_2 }});{%- endif -%}
+    {%- if section.settings.atc_text != blank -%}--card-atc-text: {{ section.settings.atc_text }};{%- endif -%}
+    {%- if section.settings.options_bg_1 != blank and section.settings.options_bg_2 != blank -%}--card-options-bg: linear-gradient(135deg, {{ section.settings.options_bg_1 }}, {{ section.settings.options_bg_2 }});{%- endif -%}
+    {%- if section.settings.options_text != blank -%}--card-options-text: {{ section.settings.options_text }};{%- endif -%}
+    --pg-max-w: {% case section.settings.section_width %}{% when 'full' %}100%{% when 'wide' %}1600px{% when 'narrow' %}1200px{% else %}1400px{% endcase %};
+  "
+  data-animation="{{ animation }}"
+>
+  {%- comment -%} Ambient glow effects for dark backgrounds {%- endcomment -%}
+  {%- if bg_style == 'dark' or bg_style == 'gradient-dark' -%}
+    <div class="casa-products-grid__ambient-glow casa-products-grid__ambient-glow--left"></div>
+    <div class="casa-products-grid__ambient-glow casa-products-grid__ambient-glow--right"></div>
+  {%- endif -%}
+
+  <div class="casa-products-grid__container">
+    {%- comment -%} Header {%- endcomment -%}
+    <div class="casa-products-grid__header casa-products-grid__header--{{ header_alignment }}">
+      {%- if section.settings.tag != blank -%}
+        <span class="casa-products-grid__tag">{{ section.settings.tag }}</span>
+      {%- endif -%}
+
+      {%- if section.settings.title != blank -%}
+        <h2 class="casa-products-grid__title">{{ section.settings.title }}</h2>
+      {%- endif -%}
+
+      {%- if show_divider -%}
+        <div class="casa-products-grid__divider"></div>
+      {%- endif -%}
+
+      {%- if section.settings.subtitle != blank -%}
+        <p class="casa-products-grid__subtitle">{{ section.settings.subtitle }}</p>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} Products Grid {%- endcomment -%}
+    <div class="casa-products-grid__grid" role="list">
+      {%- if collection != blank and collection.products.size > 0 -%}
+        {%- for product in collection.products limit: product_limit -%}
+          <div
+            class="casa-products-grid__item"
+            style="--item-delay: {{ forloop.index0 | times: stagger_delay }}ms;"
+            role="listitem"
+          >
+            {%- render 'casa-product-card',
+              product: product,
+              variant: card_style,
+              index: forloop.index0,
+              show_quick_add: show_quick_add,
+              show_variant_swatches: show_variant_swatches,
+              show_wishlist: show_wishlist,
+              show_stock_urgency: show_stock_urgency,
+              stock_threshold: stock_threshold,
+              show_installment: show_installment,
+              installment_count: installment_count,
+              show_quick_view: show_quick_view,
+              show_hover_video: show_hover_video,
+              show_social_proof: show_social_proof
+            -%}
+          </div>
+        {%- endfor -%}
+      {%- else -%}
+        {%- comment -%} Placeholder cards when no collection selected {%- endcomment -%}
+        {%- for i in (1..product_limit) -%}
+          <div class="casa-products-grid__item casa-products-grid__placeholder" style="--item-delay: {{ forloop.index0 | times: stagger_delay }}ms;">
+            <div class="casa-products-grid__placeholder-image">
+              <div class="casa-products-grid__placeholder-shape"></div>
+            </div>
+            <div class="casa-products-grid__placeholder-info">
+              <div class="casa-products-grid__placeholder-title"></div>
+              <div class="casa-products-grid__placeholder-price"></div>
+            </div>
+          </div>
+        {%- endfor -%}
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} View All Button {%- endcomment -%}
+    {%- if section.settings.view_all_text != blank and collection != blank -%}
+      <div class="casa-products-grid__footer">
+        <a href="{{ collection.url }}" class="casa-products-grid__view-all">
+          <span>{{ section.settings.view_all_text }}</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      </div>
+    {%- endif -%}
+  </div>
+</section>
+
+<script>
+  (function() {
+    function initProductsGrid() {
+      var section = document.getElementById('casa-pg-{{ section.id }}');
+      if (!section || section.dataset.initialized) return;
+      section.dataset.initialized = 'true';
+
+      var animation = section.dataset.animation;
+      var items = section.querySelectorAll('.casa-products-grid__item');
+
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        items.forEach(function(item) {
+          item.classList.add('casa-products-grid__item--visible');
+          item.style.animation = 'none';
+        });
+        return;
+      }
+
+      if (animation && animation !== 'none') {
+        var observer = new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('casa-products-grid__item--visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+        items.forEach(function(item) { observer.observe(item); });
+      } else {
+        items.forEach(function(item) { item.classList.add('casa-products-grid__item--visible'); });
+      }
+    }
+
+    // Run now if DOM is ready, otherwise wait
+    if (document.readyState !== 'loading') {
+      initProductsGrid();
+    } else {
+      document.addEventListener('DOMContentLoaded', initProductsGrid);
+    }
+
+    // Re-init on Shopify section events (customizer add/reorder/select)
+    document.addEventListener('shopify:section:load', function(e) {
+      if (e.target.querySelector('#casa-pg-{{ section.id }}')) initProductsGrid();
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Casa Products Grid",
+  "tag": "section",
+  "class": "casa-products-grid-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Header"
+    },
+    {
+      "type": "text",
+      "id": "tag",
+      "label": "Tag",
+      "default": "Customer Favorites"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Best Sellers"
+    },
+    {
+      "type": "textarea",
+      "id": "subtitle",
+      "label": "Subtitle",
+      "default": "The pieces our customers love most"
+    },
+    {
+      "type": "select",
+      "id": "header_alignment",
+      "label": "Header alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "select",
+      "id": "title_size",
+      "label": "Title size",
+      "options": [
+        { "value": "small", "label": "Small" },
+        { "value": "medium", "label": "Medium" },
+        { "value": "large", "label": "Large" },
+        { "value": "xlarge", "label": "Extra Large" }
+      ],
+      "default": "large"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_divider",
+      "label": "Show gradient divider",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Products"
+    },
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Collection"
+    },
+    {
+      "type": "range",
+      "id": "product_limit",
+      "label": "Products to show",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "select",
+      "id": "card_info_align",
+      "label": "Card text alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_badge",
+      "label": "Show product badges",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_sale_badge",
+      "label": "Show sale % badge",
+      "info": "Auto-calculated discount percentage. Disable to hide sale badges while keeping custom badges.",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_rating",
+      "label": "Show star ratings",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_price",
+      "label": "Show prices",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "view_all_text",
+      "label": "View all link text",
+      "default": "View All Products"
+    },
+    {
+      "type": "header",
+      "content": "CRO Features"
+    },
+    {
+      "type": "paragraph",
+      "content": "Conversion rate optimization features to boost sales"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_quick_add",
+      "label": "Quick Add button",
+      "info": "Add to cart without leaving the page",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_variant_swatches",
+      "label": "Color swatches",
+      "info": "Show color options on the product card",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_wishlist",
+      "label": "Wishlist heart icon",
+      "info": "Allow customers to save products",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_quick_view",
+      "label": "Quick View button",
+      "info": "Preview product without leaving page",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_stock_urgency",
+      "label": "Low stock urgency badge",
+      "info": "Show 'Only X left!' for low stock items",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "stock_threshold",
+      "label": "Low stock threshold",
+      "min": 1,
+      "max": 20,
+      "step": 1,
+      "default": 5,
+      "info": "Show urgency badge when stock is at or below this number"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_installment",
+      "label": "Installment pricing",
+      "info": "Show 'Or 4× €X' below price",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "installment_count",
+      "label": "Number of installments",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "checkbox",
+      "id": "show_savings_highlight",
+      "label": "Enhanced savings display",
+      "info": "Show 'Save €X' badge for sale items",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_social_proof",
+      "label": "Social proof badges",
+      "info": "Show 'Bestseller' or 'X sold this week'",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_hover_video",
+      "label": "Hover video",
+      "info": "Play product video on card hover (if available)",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Card overrides"
+    },
+    {
+      "type": "paragraph",
+      "content": "Card typography and colors are controlled globally in Theme Settings > Casa Product Cards."
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Layout style",
+      "options": [
+        { "value": "grid", "label": "Standard Grid" },
+        { "value": "carousel", "label": "Horizontal Carousel" },
+        { "value": "featured", "label": "Featured First (Large + Small)" }
+      ],
+      "default": "grid"
+    },
+    {
+      "type": "range",
+      "id": "columns",
+      "label": "Columns (desktop)",
+      "min": 2,
+      "max": 6,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "select",
+      "id": "mobile_columns",
+      "label": "Columns (mobile)",
+      "options": [
+        { "value": "1", "label": "1" },
+        { "value": "2", "label": "2" }
+      ],
+      "default": "2"
+    },
+    {
+      "type": "checkbox",
+      "id": "carousel_on_mobile",
+      "label": "Carousel on mobile",
+      "info": "Horizontal scroll instead of stacked grid on mobile",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "Column gap",
+      "min": 0,
+      "max": 48,
+      "step": 4,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "row_gap",
+      "label": "Row gap",
+      "min": 0,
+      "max": 48,
+      "step": 4,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "Section width",
+      "options": [
+        { "value": "contained", "label": "Contained (max-width)" },
+        { "value": "full", "label": "Full width" }
+      ],
+      "default": "contained"
+    },
+    {
+      "type": "select",
+      "id": "grid_alignment",
+      "label": "Grid alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Card Style"
+    },
+    {
+      "type": "select",
+      "id": "card_style",
+      "label": "Card style",
+      "options": [
+        { "value": "default", "label": "Default (Light)" },
+        { "value": "minimal", "label": "Minimal" },
+        { "value": "featured", "label": "Featured" }
+      ],
+      "default": "default"
+    },
+    {
+      "type": "range",
+      "id": "card_title_size",
+      "label": "Card title size",
+      "min": 10,
+      "max": 22,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_info_gap",
+      "label": "Card info spacing",
+      "min": 0,
+      "max": 16,
+      "step": 1,
+      "unit": "px",
+      "default": 8,
+      "info": "Space between title, reviews, and price"
+    },
+    {
+      "type": "header",
+      "content": "Animation"
+    },
+    {
+      "type": "select",
+      "id": "animation",
+      "label": "Entrance animation",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "fade-up", "label": "Fade Up" },
+        { "value": "fade-in", "label": "Fade In" },
+        { "value": "scale-up", "label": "Scale Up" },
+        { "value": "slide-in", "label": "Slide In" }
+      ],
+      "default": "fade-up"
+    },
+    {
+      "type": "range",
+      "id": "stagger_delay",
+      "label": "Stagger delay",
+      "min": 0,
+      "max": 200,
+      "step": 25,
+      "unit": "ms",
+      "default": 100,
+      "info": "Delay between each card animating in"
+    },
+    {
+      "type": "header",
+      "content": "Background"
+    },
+    {
+      "type": "select",
+      "id": "background_style",
+      "label": "Background style",
+      "options": [
+        { "value": "light", "label": "Light (White)" },
+        { "value": "subtle", "label": "Subtle Gray" },
+        { "value": "dark", "label": "Dark" },
+        { "value": "gradient-dark", "label": "Gradient Dark" }
+      ],
+      "default": "light"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "accent_primary",
+      "label": "Primary accent",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "accent_secondary",
+      "label": "Secondary accent",
+      "default": "#ec4899"
+    },
+    {
+      "type": "header",
+      "content": "Button Colors"
+    },
+    {
+      "type": "color",
+      "id": "atc_bg_1",
+      "label": "Add to Cart gradient start"
+    },
+    {
+      "type": "color",
+      "id": "atc_bg_2",
+      "label": "Add to Cart gradient end"
+    },
+    {
+      "type": "color",
+      "id": "atc_text",
+      "label": "Add to Cart text color"
+    },
+    {
+      "type": "color",
+      "id": "options_bg_1",
+      "label": "Select Options gradient start"
+    },
+    {
+      "type": "color",
+      "id": "options_bg_2",
+      "label": "Select Options gradient end"
+    },
+    {
+      "type": "color",
+      "id": "options_text",
+      "label": "Select Options text color"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "default": 120
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "unit": "px",
+      "default": 120
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile_top",
+      "label": "Padding top (mobile)",
+      "min": 0,
+      "max": 120,
+      "step": 10,
+      "unit": "px",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile_bottom",
+      "label": "Padding bottom (mobile)",
+      "min": 0,
+      "max": 120,
+      "step": 10,
+      "unit": "px",
+      "default": 60
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Products Grid",
+      "settings": {
+        "tag": "Customer Favorites",
+        "title": "Best Sellers",
+        "subtitle": "The pieces our customers love most"
+      }
+    },
+    {
+      "name": "Casa Products Grid - CRO Optimized",
+      "settings": {
+        "tag": "Limited Stock",
+        "title": "Trending Now",
+        "subtitle": "Join thousands of happy customers",
+        "show_quick_add": true,
+        "show_variant_swatches": true,
+        "show_stock_urgency": true,
+        "show_savings_highlight": true,
+        "show_social_proof": true
+      }
+    }
+  ]
+}
+{% endschema %}
+
+{% stylesheet %}
+/* ==========================================================================
+   BASE STYLES
+   ========================================================================== */
+
+.casa-products-grid {
+  position: relative;
+  padding: var(--pg-padding-top) 80px var(--pg-padding-bottom);
+  overflow: hidden;
+}
+
+.casa-products-grid__container {
+  max-width: var(--pg-max-w, 1400px);
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   BACKGROUNDS
+   ========================================================================== */
+
+.casa-products-grid--bg-light {
+  background: #ffffff;
+}
+
+.casa-products-grid--bg-subtle {
+  background: #fafafa;
+}
+
+.casa-products-grid--bg-dark {
+  background: #0a0a0f;
+}
+
+.casa-products-grid--bg-gradient-dark {
+  background: linear-gradient(180deg, #0a0a0f 0%, #12121a 50%, #0a0a0f 100%);
+}
+
+/* Ambient glow */
+.casa-products-grid__ambient-glow {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.casa-products-grid__ambient-glow--left {
+  top: 20%;
+  left: -10%;
+  background: var(--pg-accent-primary);
+}
+
+.casa-products-grid__ambient-glow--right {
+  bottom: 20%;
+  right: -10%;
+  background: var(--pg-accent-secondary);
+}
+
+/* ==========================================================================
+   HEADER
+   ========================================================================== */
+
+.casa-products-grid__header {
+  margin-bottom: 60px;
+}
+
+.casa-products-grid__header--left {
+  text-align: left;
+}
+
+.casa-products-grid__header--center {
+  text-align: center;
+}
+
+.casa-products-grid__header--right {
+  text-align: right;
+}
+
+.casa-products-grid__tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pg-tag-color);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+.casa-products-grid__title {
+  font-size: var(--pg-title-size, 48px);
+  font-weight: 300;
+  margin: 0 0 16px 0;
+  letter-spacing: -1px;
+  color: var(--pg-text-primary);
+  line-height: 1.1;
+}
+
+.casa-products-grid__divider {
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--pg-accent-primary), var(--pg-accent-secondary));
+  border-radius: 2px;
+  margin: 20px 0;
+}
+
+.casa-products-grid__header--center .casa-products-grid__divider {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.casa-products-grid__header--right .casa-products-grid__divider {
+  margin-left: auto;
+}
+
+.casa-products-grid__subtitle {
+  font-size: 18px;
+  color: var(--pg-text-secondary);
+  max-width: 600px;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.casa-products-grid__header--center .casa-products-grid__subtitle {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.casa-products-grid__header--right .casa-products-grid__subtitle {
+  margin-left: auto;
+}
+
+/* ==========================================================================
+   GRID LAYOUTS
+   ========================================================================== */
+
+.casa-products-grid__grid {
+  display: grid;
+  grid-template-columns: repeat(var(--pg-columns), 1fr);
+  gap: var(--pg-gap);
+}
+
+/* Featured layout - first item larger */
+.casa-products-grid--featured .casa-products-grid__grid {
+  grid-template-columns: repeat(var(--pg-columns), 1fr);
+}
+
+.casa-products-grid--featured .casa-products-grid__item:first-child {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+/* Carousel layout */
+.casa-products-grid--carousel .casa-products-grid__grid {
+  display: flex;
+  gap: var(--pg-gap);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 20px;
+}
+
+.casa-products-grid--carousel .casa-products-grid__grid::-webkit-scrollbar {
+  display: none;
+}
+
+.casa-products-grid--carousel .casa-products-grid__item {
+  flex: 0 0 calc((100% - var(--pg-gap) * 3) / 4);
+  scroll-snap-align: start;
+}
+
+/* ==========================================================================
+   ITEMS & ANIMATIONS
+   ========================================================================== */
+
+.casa-products-grid__item {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transition-delay: var(--item-delay, 0ms);
+}
+
+.casa-products-grid__item--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Animation variants */
+.casa-products-grid[data-animation="fade-in"] .casa-products-grid__item {
+  transform: none;
+}
+
+.casa-products-grid[data-animation="scale-up"] .casa-products-grid__item {
+  transform: scale(0.9);
+}
+
+.casa-products-grid[data-animation="scale-up"] .casa-products-grid__item--visible {
+  transform: scale(1);
+}
+
+.casa-products-grid[data-animation="slide-in"] .casa-products-grid__item {
+  transform: translateX(-30px);
+}
+
+.casa-products-grid[data-animation="slide-in"] .casa-products-grid__item--visible {
+  transform: translateX(0);
+}
+
+.casa-products-grid[data-animation="none"] .casa-products-grid__item {
+  opacity: 1;
+  transform: none;
+}
+
+/* ==========================================================================
+   FOOTER / VIEW ALL
+   ========================================================================== */
+
+.casa-products-grid__footer {
+  text-align: center;
+  margin-top: 48px;
+}
+
+.casa-products-grid__view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 32px;
+  background: linear-gradient(135deg, var(--pg-accent-primary), var(--pg-accent-secondary));
+  color: white;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 50px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.casa-products-grid__view-all:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(147, 51, 234, 0.3);
+}
+
+.casa-products-grid__view-all svg {
+  transition: transform 0.3s ease;
+}
+
+.casa-products-grid__view-all:hover svg {
+  transform: translateX(4px);
+}
+
+/* Dark background view-all styling */
+.casa-products-grid--bg-dark .casa-products-grid__view-all,
+.casa-products-grid--bg-gradient-dark .casa-products-grid__view-all {
+  box-shadow: 0 0 30px rgba(147, 51, 234, 0.2);
+}
+
+/* ==========================================================================
+   PLACEHOLDERS
+   ========================================================================== */
+
+.casa-products-grid__placeholder {
+  background: #ffffff;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.casa-products-grid--bg-dark .casa-products-grid__placeholder,
+.casa-products-grid--bg-gradient-dark .casa-products-grid__placeholder {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.casa-products-grid__placeholder-image {
+  aspect-ratio: 1;
+  background: linear-gradient(135deg, #f5f5f7, #e5e5ea);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.casa-products-grid--bg-dark .casa-products-grid__placeholder-image,
+.casa-products-grid--bg-gradient-dark .casa-products-grid__placeholder-image {
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+}
+
+.casa-products-grid__placeholder-shape {
+  width: 50%;
+  height: 50%;
+  background: linear-gradient(135deg, var(--pg-accent-primary), var(--pg-accent-secondary));
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+  opacity: 0.5;
+  animation: pgPlaceholderPulse 2s ease-in-out infinite;
+}
+
+@keyframes pgPlaceholderPulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.95); }
+  50% { opacity: 0.6; transform: scale(1); }
+}
+
+.casa-products-grid__placeholder-info {
+  padding: 24px;
+}
+
+.casa-products-grid__placeholder-title {
+  height: 20px;
+  background: #e5e5e5;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.casa-products-grid--bg-dark .casa-products-grid__placeholder-title,
+.casa-products-grid--bg-gradient-dark .casa-products-grid__placeholder-title {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.casa-products-grid__placeholder-price {
+  height: 16px;
+  width: 60%;
+  background: #e5e5e5;
+  border-radius: 4px;
+}
+
+.casa-products-grid--bg-dark .casa-products-grid__placeholder-price,
+.casa-products-grid--bg-gradient-dark .casa-products-grid__placeholder-price {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+  .casa-products-grid {
+    padding: var(--pg-padding-top) 40px var(--pg-padding-bottom);
+  }
+
+  .casa-products-grid__grid {
+    --pg-columns: 3;
+  }
+
+  .casa-products-grid--carousel .casa-products-grid__item {
+    flex: 0 0 calc((100% - var(--pg-gap) * 2) / 3);
+  }
+}
+
+@media (max-width: 900px) {
+  .casa-products-grid__grid {
+    --pg-columns: 2;
+    gap: 24px;
+  }
+
+  .casa-products-grid__title {
+    font-size: var(--pg-title-size-mobile, 32px);
+  }
+
+  .casa-products-grid__header {
+    margin-bottom: 40px;
+  }
+
+  .casa-products-grid--featured .casa-products-grid__item:first-child {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
+
+  .casa-products-grid--carousel .casa-products-grid__item {
+    flex: 0 0 calc((100% - var(--pg-gap)) / 2);
+  }
+
+  .casa-products-grid__ambient-glow {
+    width: 300px;
+    height: 300px;
+  }
+}
+
+@media (max-width: 600px) {
+  .casa-products-grid {
+    padding: var(--pg-padding-mobile-top) 20px var(--pg-padding-mobile-bottom);
+  }
+
+  .casa-products-grid__grid {
+    gap: 16px;
+  }
+
+  .casa-products-grid__title {
+    font-size: var(--pg-title-size-mobile, 28px);
+  }
+
+  .casa-products-grid__subtitle {
+    font-size: 16px;
+  }
+
+  .casa-products-grid--featured .casa-products-grid__item:first-child {
+    grid-column: span 1;
+  }
+
+  .casa-products-grid--carousel .casa-products-grid__item {
+    flex: 0 0 280px;
+  }
+
+  .casa-products-grid__view-all {
+    padding: 14px 24px;
+    font-size: 13px;
+  }
+
+  .casa-products-grid__footer {
+    margin-top: 32px;
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .casa-products-grid__item {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .casa-products-grid__view-all {
+    transition: none;
+  }
+
+  .casa-products-grid__placeholder-shape {
+    animation: none;
+  }
+}
+{% endstylesheet %}

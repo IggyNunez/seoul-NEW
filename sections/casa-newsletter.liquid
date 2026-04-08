@@ -1,0 +1,346 @@
+{%- comment -%}
+  Seoul Glow Lab Newsletter Section
+  Gradient background with email signup form
+{%- endcomment -%}
+
+{%- liquid
+  assign _cn_grad_start = section.settings.gradient_start | default: '#9333ea'
+  assign _cn_grad_end = section.settings.gradient_end | default: '#ec4899'
+  assign _cn_text = section.settings.text_color | default: '#ffffff'
+  assign _cn_btn_bg = section.settings.btn_bg | default: '#ffffff'
+  assign _cn_btn_text = section.settings.btn_text | default: '#9333ea'
+-%}
+<section
+  class="casa-newsletter"
+  style="
+    --cn-padding-top: {{ section.settings.padding_top | default: 80 }}px;
+    --cn-padding-bottom: {{ section.settings.padding_bottom | default: 80 }}px;
+    --cn-gradient-start: {{ _cn_grad_start }};
+    --cn-gradient-end: {{ _cn_grad_end }};
+    --cn-text: {{ _cn_text }};
+    --cn-btn-bg: {{ _cn_btn_bg }};
+    --cn-btn-text: {{ _cn_btn_text }};
+  "
+>
+  <div class="casa-newsletter__content">
+    {%- if section.settings.title != blank -%}
+      <h2 class="casa-newsletter__title">{{ section.settings.title }}</h2>
+    {%- endif -%}
+
+    {%- if section.settings.subtitle != blank -%}
+      <p class="casa-newsletter__subtitle">{{ section.settings.subtitle }}</p>
+    {%- endif -%}
+
+    {%- form 'customer', class: 'casa-newsletter__form' -%}
+      {%- if form.posted_successfully? -%}
+        <p class="casa-newsletter__success">Thanks for subscribing! Check your inbox for your 10% off code.</p>
+      {%- else -%}
+        <input type="hidden" name="contact[tags]" value="newsletter">
+        <input
+          type="email"
+          name="contact[email]"
+          class="casa-newsletter__input"
+          placeholder="{{ section.settings.placeholder | default: 'Enter your email address' }}"
+          required
+          autocomplete="email"
+        >
+        <button type="submit" class="casa-newsletter__btn">
+          {{ section.settings.button_text | default: 'Subscribe' }}
+        </button>
+        {%- if form.errors -%}
+          <p class="casa-newsletter__error">{{ form.errors.translated_fields['email'] | capitalize }} {{ form.errors.messages['email'] }}</p>
+        {%- endif -%}
+      {%- endif -%}
+    {%- endform -%}
+
+    {%- if section.settings.disclaimer != blank -%}
+      <p class="casa-newsletter__disclaimer">{{ section.settings.disclaimer }}</p>
+    {%- endif -%}
+
+    {%- for block in section.blocks -%}
+      {%- case block.type -%}
+        {%- when '@app' -%}
+          <div {{ block.shopify_attributes }}>
+            {%- render block -%}
+          </div>
+        {%- when 'custom-liquid' -%}
+          <div {{ block.shopify_attributes }}>
+            {{ block.settings.custom_liquid }}
+          </div>
+      {%- endcase -%}
+    {%- endfor -%}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Casa Newsletter",
+  "tag": "section",
+  "class": "casa-newsletter-section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Join the Casa Family"
+    },
+    {
+      "type": "text",
+      "id": "subtitle",
+      "label": "Subtitle",
+      "default": "Get 10% off your first order + exclusive access to new releases"
+    },
+    {
+      "type": "text",
+      "id": "placeholder",
+      "label": "Input placeholder",
+      "default": "Enter your email address"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button text",
+      "default": "Subscribe"
+    },
+    {
+      "type": "text",
+      "id": "disclaimer",
+      "label": "Disclaimer text",
+      "default": "No spam, unsubscribe anytime."
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "gradient_start",
+      "label": "Gradient start",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "gradient_end",
+      "label": "Gradient end",
+      "default": "#ec4899"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "btn_bg",
+      "label": "Button background",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "btn_text",
+      "label": "Button text",
+      "default": "#9333ea"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 20,
+      "max": 200,
+      "step": 10,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 20,
+      "max": 200,
+      "step": 10,
+      "default": 80,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "@app"
+    },
+    {
+      "type": "custom-liquid",
+      "name": "Custom Liquid",
+      "settings": [
+        {
+          "type": "liquid",
+          "id": "custom_liquid",
+          "label": "Custom Liquid"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Newsletter"
+    }
+  ]
+}
+{% endschema %}
+
+<style>
+  /* Override base theme input background for dark newsletter */
+  .casa-newsletter__input,
+  .casa-newsletter__input:hover,
+  .casa-newsletter__input:focus {
+    background-color: transparent !important;
+    color: var(--cn-text, #ffffff);
+  }
+  .casa-newsletter__input:focus {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--cn-text, #ffffff) 30%, transparent);
+  }
+  .casa-newsletter__input:-webkit-autofill,
+  .casa-newsletter__input:-webkit-autofill:hover,
+  .casa-newsletter__input:-webkit-autofill:focus,
+  .casa-newsletter__input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #0f0f18 inset !important;
+    -webkit-text-fill-color: var(--cn-text, #ffffff) !important;
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: var(--cn-text, #ffffff);
+  }
+</style>
+
+{% stylesheet %}
+.casa-newsletter {
+  --cn-padding-top: 80px;
+  --cn-padding-bottom: 80px;
+
+  background: linear-gradient(to right, var(--cn-gradient-start, #9333ea), var(--cn-gradient-end, #ec4899));
+  text-align: center;
+  padding: var(--cn-padding-top) 80px var(--cn-padding-bottom);
+}
+
+.casa-newsletter__content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.casa-newsletter__title {
+  font-size: 42px;
+  font-weight: 300;
+  color: var(--cn-text, #ffffff);
+  margin: 0 0 16px 0;
+}
+
+.casa-newsletter__subtitle {
+  font-size: 16px;
+  color: color-mix(in srgb, var(--cn-text, #ffffff) 80%, transparent);
+  margin: 0 0 32px 0;
+}
+
+.casa-newsletter__form {
+  display: flex;
+  gap: 16px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.casa-newsletter__input {
+  flex: 1;
+  padding: 14px 20px;
+  border: 1px solid color-mix(in srgb, var(--cn-text, #ffffff) 40%, transparent);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  background: transparent;
+  color: var(--cn-text, #ffffff);
+}
+
+.casa-newsletter__input::placeholder {
+  color: color-mix(in srgb, var(--cn-text, #ffffff) 60%, transparent);
+}
+
+.casa-newsletter__input:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cn-text, #ffffff) 30%, transparent);
+}
+
+
+.casa-newsletter__btn {
+  padding: 14px 32px;
+  background: var(--cn-btn-bg, #ffffff);
+  color: var(--cn-btn-text, #9333ea);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
+}
+
+.casa-newsletter__btn:hover {
+  transform: scale(1.05);
+}
+
+.casa-newsletter__success {
+  font-size: 16px;
+  color: var(--cn-text, #ffffff);
+  font-weight: 500;
+  margin: 0;
+  padding: 14px 24px;
+  background: color-mix(in srgb, var(--cn-text, #ffffff) 15%, transparent);
+  border-radius: 8px;
+}
+
+.casa-newsletter__error {
+  font-size: 13px;
+  color: #fecaca;
+  margin: 12px 0 0 0;
+  text-align: center;
+}
+
+.casa-newsletter__disclaimer {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--cn-text, #ffffff) 70%, transparent);
+  margin: 16px 0 0 0;
+}
+
+@media (max-width: 600px) {
+  .casa-newsletter {
+    padding: 60px 20px;
+  }
+
+  .casa-newsletter__title {
+    font-size: 28px;
+  }
+
+  .casa-newsletter__subtitle {
+    font-size: 16px;
+    margin-bottom: 32px;
+  }
+
+  /* Keep form inline on mobile to match Figma */
+  .casa-newsletter__form {
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .casa-newsletter__input {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+
+  .casa-newsletter__btn {
+    padding: 12px 20px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+}
+{% endstylesheet %}

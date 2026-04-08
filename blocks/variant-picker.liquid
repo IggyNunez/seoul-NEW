@@ -7,8 +7,68 @@
   endif
 -%}
 
+{%- liquid
+  assign vp_bg = block.settings.container_bg | default: ''
+  assign vp_border_color = block.settings.container_border_color | default: ''
+  assign vp_border_width = block.settings.container_border_width | default: 0
+  assign vp_border_radius = block.settings.container_border_radius | default: 0
+  assign vp_inner_padding = block.settings.container_inner_padding | default: 0
+  assign vp_shadow = block.settings.container_shadow | default: 'none'
+  assign vp_title = block.settings.section_title | default: ''
+  assign vp_title_size = block.settings.section_title_size | default: 14
+  assign vp_title_color = block.settings.section_title_color | default: ''
+  assign has_container = false
+  if vp_bg != blank or vp_border_width > 0 or vp_border_radius > 0 or vp_inner_padding > 0
+    assign has_container = true
+  endif
+-%}
+
 {% unless product_resource == blank %}
-  {% render 'variant-main-picker', product_resource: product_resource %}
+  {%- if has_container -%}
+    <div class="casa-vp-container" style="
+      {%- if vp_bg != blank %}background: {{ vp_bg }};{% endif -%}
+      {%- if vp_border_width > 0 %}border: {{ vp_border_width }}px solid {{ vp_border_color | default: 'rgba(255,255,255,0.1)' }};{% endif -%}
+      {%- if vp_border_radius > 0 %}border-radius: {{ vp_border_radius }}px;{% endif -%}
+      {%- if vp_inner_padding > 0 %}padding: {{ vp_inner_padding }}px;{% endif -%}
+      {%- if vp_shadow == 'subtle' %}box-shadow: 0 2px 8px rgba(0,0,0,0.1);{% endif -%}
+      {%- if vp_shadow == 'medium' %}box-shadow: 0 4px 16px rgba(0,0,0,0.15);{% endif -%}
+      {%- if vp_shadow == 'glow' %}box-shadow: 0 4px 24px rgba(147,51,234,0.15);{% endif -%}
+    ">
+    {%- if vp_title != blank -%}
+      <div class="casa-vp-title" style="font-size: {{ vp_title_size }}px;{%- if vp_title_color != blank %}color: {{ vp_title_color }};{% endif -%}">{{ vp_title }}</div>
+    {%- endif -%}
+  {%- endif -%}
+  {% render 'variant-main-picker',
+    product_resource: product_resource,
+    card_font_size: block.settings.card_font_size,
+    card_price_font_size: block.settings.card_price_font_size,
+    border_animation: block.settings.border_animation,
+    info_layout: block.settings.info_layout,
+    cards_per_row: block.settings.cards_per_row,
+    image_width: block.settings.image_width,
+    image_ratio: block.settings.image_ratio,
+    image_height: block.settings.image_height,
+    card_min_height: block.settings.card_min_height,
+    hide_text: block.settings.hide_text,
+    hide_price: block.settings.hide_price,
+    card_padding: block.settings.card_padding,
+    cards_per_row_mobile: block.settings.cards_per_row_mobile,
+    image_width_mobile: block.settings.image_width_mobile,
+    image_ratio_mobile: block.settings.image_ratio_mobile,
+    image_height_mobile: block.settings.image_height_mobile,
+    card_min_height_mobile: block.settings.card_min_height_mobile,
+    hide_text_mobile: block.settings.hide_text_mobile,
+    hide_price_mobile: block.settings.hide_price_mobile,
+    card_padding_mobile: block.settings.card_padding_mobile,
+    badge_default_bg: block.settings.badge_default_bg,
+    badge_text_color: block.settings.badge_text_color,
+    badge_font_size: block.settings.badge_font_size,
+    selected_border_color: block.settings.selected_border_color,
+    selected_glow_color: block.settings.selected_glow_color,
+    hover_border_color: block.settings.hover_border_color,
+    unselected_border_color: block.settings.unselected_border_color
+  %}
+  {%- if has_container -%}</div>{%- endif -%}
 {% endunless %}
 
 {% schema %}
@@ -30,7 +90,7 @@
       "label": "t:settings.style",
       "options": [
         {
-          "value": "dropdowns",
+          "value": "dropdown",
           "label": "t:options.dropdowns"
         },
         {
@@ -51,6 +111,368 @@
       "id": "alignment",
       "label": "t:settings.alignment",
       "default": "left"
+    },
+    {
+      "type": "header",
+      "content": "Card style"
+    },
+    {
+      "type": "select",
+      "id": "border_animation",
+      "label": "Selected card border",
+      "options": [
+        {
+          "value": "gradient",
+          "label": "Animated gradient"
+        },
+        {
+          "value": "pulse",
+          "label": "Pulse glow"
+        },
+        {
+          "value": "none",
+          "label": "Static (no animation)"
+        }
+      ],
+      "default": "gradient"
+    },
+    {
+      "type": "color",
+      "id": "selected_border_color",
+      "label": "Selected border color",
+      "info": "Border color of the active/selected variant card",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "selected_glow_color",
+      "label": "Selected glow color",
+      "info": "Glow/shadow color around selected card. Set transparent to disable.",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "hover_border_color",
+      "label": "Hover border color",
+      "default": "#7c3aed"
+    },
+    {
+      "type": "header",
+      "content": "Variant badges"
+    },
+    {
+      "type": "color",
+      "id": "badge_default_bg",
+      "label": "Default badge color",
+      "info": "Fallback when no per-variant color is set",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "badge_text_color",
+      "label": "Badge text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "range",
+      "id": "badge_font_size",
+      "label": "Badge font size",
+      "min": 8,
+      "max": 14,
+      "step": 1,
+      "default": 10,
+      "unit": "px"
+    },
+    {
+      "type": "color",
+      "id": "unselected_border_color",
+      "label": "Unselected border color",
+      "info": "Border color for non-selected variant cards",
+      "default": "#e5e7eb"
+    },
+    {
+      "type": "select",
+      "id": "info_layout",
+      "label": "Info layout",
+      "info": "Where name and price appear when a card has an image",
+      "options": [
+        {
+          "value": "outside",
+          "label": "Below image"
+        },
+        {
+          "value": "overlay",
+          "label": "Overlay on image"
+        }
+      ],
+      "default": "outside"
+    },
+    {
+      "type": "range",
+      "id": "card_font_size",
+      "label": "Option name font size",
+      "min": 8,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "card_price_font_size",
+      "label": "Price font size",
+      "min": 8,
+      "max": 16,
+      "step": 1,
+      "unit": "px",
+      "default": 11
+    },
+    {
+      "type": "header",
+      "content": "Desktop layout"
+    },
+    {
+      "type": "range",
+      "id": "cards_per_row",
+      "label": "Cards per row",
+      "min": 2,
+      "max": 5,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "image_width",
+      "label": "Image width",
+      "info": "As % of card width",
+      "min": 20,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "label": "Image ratio",
+      "info": "Overrides image height when set. 'Fixed height' uses the px value below.",
+      "options": [
+        { "value": "fixed",    "label": "Fixed height (px)" },
+        { "value": "1:1",      "label": "Square (1:1)" },
+        { "value": "3:4",      "label": "Portrait (3:4)" },
+        { "value": "2:3",      "label": "Tall (2:3)" },
+        { "value": "4:3",      "label": "Landscape (4:3)" },
+        { "value": "16:9",     "label": "Wide (16:9)" }
+      ],
+      "default": "fixed"
+    },
+    {
+      "type": "range",
+      "id": "image_height",
+      "label": "Image height",
+      "info": "Used when ratio is set to Fixed height",
+      "min": 32,
+      "max": 220,
+      "step": 4,
+      "unit": "px",
+      "default": 80
+    },
+    {
+      "type": "range",
+      "id": "card_min_height",
+      "label": "Card min height",
+      "info": "Set to 0 to let content determine height",
+      "min": 0,
+      "max": 280,
+      "step": 4,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_text",
+      "label": "Hide option name",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_price",
+      "label": "Hide price",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "card_padding",
+      "label": "Card padding",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 9
+    },
+    {
+      "type": "header",
+      "content": "Mobile layout"
+    },
+    {
+      "type": "range",
+      "id": "cards_per_row_mobile",
+      "label": "Cards per row",
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "default": 2
+    },
+    {
+      "type": "range",
+      "id": "image_width_mobile",
+      "label": "Image width",
+      "info": "As % of card width",
+      "min": 20,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "select",
+      "id": "image_ratio_mobile",
+      "label": "Image ratio",
+      "info": "Overrides image height when set. 'Fixed height' uses the px value below.",
+      "options": [
+        { "value": "fixed",    "label": "Fixed height (px)" },
+        { "value": "1:1",      "label": "Square (1:1)" },
+        { "value": "3:4",      "label": "Portrait (3:4)" },
+        { "value": "2:3",      "label": "Tall (2:3)" },
+        { "value": "4:3",      "label": "Landscape (4:3)" },
+        { "value": "16:9",     "label": "Wide (16:9)" }
+      ],
+      "default": "fixed"
+    },
+    {
+      "type": "range",
+      "id": "image_height_mobile",
+      "label": "Image height",
+      "info": "Used when ratio is set to Fixed height",
+      "min": 32,
+      "max": 220,
+      "step": 4,
+      "unit": "px",
+      "default": 80
+    },
+    {
+      "type": "range",
+      "id": "card_min_height_mobile",
+      "label": "Card min height",
+      "info": "Set to 0 to let content determine height",
+      "min": 0,
+      "max": 280,
+      "step": 4,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_text_mobile",
+      "label": "Hide option name on mobile",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_price_mobile",
+      "label": "Hide price on mobile",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "card_padding_mobile",
+      "label": "Card padding",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 4
+    },
+    {
+      "type": "header",
+      "content": "Container Style"
+    },
+    {
+      "type": "text",
+      "id": "section_title",
+      "label": "Section title",
+      "info": "Optional label above the variants",
+      "placeholder": "e.g. Choose Your Style"
+    },
+    {
+      "type": "range",
+      "id": "section_title_size",
+      "label": "Title font size",
+      "min": 10,
+      "max": 22,
+      "step": 1,
+      "default": 14,
+      "unit": "px"
+    },
+    {
+      "type": "color",
+      "id": "section_title_color",
+      "label": "Title color",
+      "info": "Leave blank for default"
+    },
+    {
+      "type": "color",
+      "id": "container_bg",
+      "label": "Background color",
+      "info": "Leave blank for transparent"
+    },
+    {
+      "type": "color",
+      "id": "container_border_color",
+      "label": "Border color",
+      "default": "#1f1f2e"
+    },
+    {
+      "type": "range",
+      "id": "container_border_width",
+      "label": "Border width",
+      "min": 0,
+      "max": 4,
+      "step": 1,
+      "default": 0,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "container_border_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 24,
+      "step": 2,
+      "default": 0,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "container_inner_padding",
+      "label": "Inner padding",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "default": 0,
+      "unit": "px"
+    },
+    {
+      "type": "select",
+      "id": "container_shadow",
+      "label": "Shadow",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "subtle", "label": "Subtle" },
+        { "value": "medium", "label": "Medium" },
+        { "value": "glow", "label": "Purple glow" }
+      ],
+      "default": "none"
     },
     {
       "type": "header",
@@ -105,3 +527,78 @@
   ]
 }
 {% endschema %}
+
+<style>
+.casa-vp-container {
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.casa-vp-title {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+</style>
+
+{%- comment -%} Variant card border color overrides {%- endcomment -%}
+{%- assign _sel_border = block.settings.selected_border_color | default: '#9333ea' -%}
+{%- assign _sel_glow = block.settings.selected_glow_color | default: '#9333ea' -%}
+{%- assign _hover_border = block.settings.hover_border_color | default: '#7c3aed' -%}
+{%- assign _unsel_border = block.settings.unselected_border_color | default: '#e5e7eb' -%}
+{%- assign _badge_bg = block.settings.badge_default_bg | default: '#9333ea' -%}
+{%- assign _badge_text = block.settings.badge_text_color | default: '#ffffff' -%}
+{%- assign _badge_fs = block.settings.badge_font_size | default: 10 -%}
+<style>
+  /* Unselected variant cards — Horizon uses .variant-option__button-label */
+  .cdl-vp-{{ block.id }} .variant-option__button-label {
+    border-color: {{ _unsel_border }} !important;
+  }
+
+  /* Hover state */
+  .cdl-vp-{{ block.id }} .variant-option__button-label:hover {
+    border-color: {{ _hover_border }} !important;
+  }
+
+  /* Selected/checked variant card — Horizon uses :has(input:checked) */
+  .cdl-vp-{{ block.id }} .variant-option__button-label:has(input:checked) {
+    border-color: {{ _sel_border }} !important;
+    box-shadow: 0 0 0 1px {{ _sel_border }}, 0 4px 16px {{ _sel_glow }}40 !important;
+  }
+
+  /* Fallback for browsers without :has() — uses sibling selector */
+  .cdl-vp-{{ block.id }} input:checked + .variant-option__button-label,
+  .cdl-vp-{{ block.id }} input:checked + label {
+    border-color: {{ _sel_border }} !important;
+    box-shadow: 0 0 0 1px {{ _sel_border }}, 0 4px 16px {{ _sel_glow }}40 !important;
+  }
+
+  /* Swatch variant style */
+  .cdl-vp-{{ block.id }} .variant-option--swatches .swatch:has(input:checked) {
+    box-shadow: 0 0 0 2px {{ _sel_border }} !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--swatches .swatch:hover {
+    box-shadow: 0 0 0 2px {{ _hover_border }} !important;
+  }
+
+  /* Casa VDD (custom dropdown) selected state */
+  .cdl-vp-{{ block.id }} .casa-vdd__option--selected {
+    border-color: {{ _sel_border }} !important;
+    background: {{ _sel_border }}10 !important;
+  }
+  .cdl-vp-{{ block.id }} .casa-vdd__trigger {
+    border-color: {{ _unsel_border }} !important;
+  }
+  .cdl-vp-{{ block.id }} .casa-vdd__trigger:hover {
+    border-color: {{ _hover_border }} !important;
+  }
+  .cdl-vp-{{ block.id }} .casa-vdd__check {
+    color: {{ _sel_border }} !important;
+  }
+
+  /* Badge colors */
+  .cdl-vp-{{ block.id }} .casa-vdd__option-badge {
+    background: {{ _badge_bg }} !important;
+    color: {{ _badge_text }} !important;
+    font-size: {{ _badge_fs }}px !important;
+  }
+</style>

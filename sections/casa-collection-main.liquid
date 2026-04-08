@@ -1,0 +1,2992 @@
+{%- liquid
+  assign products_per_page = section.settings.products_per_page | default: 24
+  assign columns_desktop = section.settings.columns_desktop | default: 4
+  assign columns_mobile = section.settings.columns_mobile | default: 2
+  assign show_sidebar = section.settings.show_sidebar_filters | default: true
+  assign show_sort = section.settings.show_sort | default: true
+  assign show_view_toggle = section.settings.show_view_toggle | default: true
+  assign show_product_count = section.settings.show_product_count | default: true
+  assign sort_by = collection.sort_by | default: collection.default_sort_by
+  assign padding_top = section.settings.padding_top | default: 0
+  assign padding_bottom = section.settings.padding_bottom | default: 60
+
+  # Color settings
+  assign bg_color = section.settings.bg_color | default: '#0a0a0f'
+  assign bg_secondary = section.settings.bg_secondary | default: '#0f0f18'
+  assign text_primary = section.settings.text_primary | default: '#ffffff'
+  assign text_secondary = section.settings.text_secondary | default: '#a0a0a0'
+  assign accent_primary = section.settings.accent_primary | default: '#9333ea'
+  assign accent_secondary = section.settings.accent_secondary | default: '#ec4899'
+  assign toolbar_bg = section.settings.toolbar_bg | default: '#1a1a24'
+  assign toolbar_border = section.settings.toolbar_border | default: '#2a2a3a'
+  assign remove_accent = section.settings.remove_accent | default: '#ef4444'
+  assign divider_color = section.settings.divider_color | default: '#1a1a2e'
+  assign overlay_color = section.settings.overlay_color | default: '#000000'
+  assign input_bg = section.settings.input_bg | default: '#12121a'
+  assign input_border = section.settings.input_border | default: '#2a2a3e'
+  assign card_bg = section.settings.card_bg | default: '#0f0f18'
+  assign highlight_bg = section.settings.highlight_bg | default: '#1f1f2e'
+
+  # Border radius settings
+  assign radius_small = section.settings.radius_small | default: 8
+  assign radius_pill = section.settings.radius_pill | default: 20
+
+  # Spacing settings
+  assign grid_gap = section.settings.grid_gap | default: 12
+  assign sidebar_width = section.settings.sidebar_width | default: 280
+  assign toolbar_padding = section.settings.toolbar_padding | default: 60
+  assign filter_gap = section.settings.filter_gap | default: 16
+
+  # Effect settings
+  assign backdrop_blur = section.settings.backdrop_blur | default: 12
+  assign overlay_opacity = section.settings.overlay_opacity | default: 60
+  assign hover_lift = section.settings.hover_lift | default: 4
+  assign border_width = section.settings.border_width | default: 1
+
+  # Typography settings
+  assign font_size_xs = section.settings.font_size_xs | default: 11
+  assign font_size_sm = section.settings.font_size_sm | default: 12
+  assign font_size_md = section.settings.font_size_md | default: 15
+  assign font_size_lg = section.settings.font_size_lg | default: 24
+  assign font_size_xl = section.settings.font_size_xl | default: 36
+  assign font_weight_normal = section.settings.font_weight_normal | default: 500
+  assign font_weight_bold = section.settings.font_weight_bold | default: 600
+  assign letter_spacing_caps = section.settings.letter_spacing_caps | default: 1
+
+  # Element size settings
+  assign swatch_size = section.settings.swatch_size | default: 28
+  assign checkbox_size = section.settings.checkbox_size | default: 16
+  assign toggle_width = section.settings.toggle_width | default: 40
+  assign toggle_height = section.settings.toggle_height | default: 22
+  assign icon_size_sm = section.settings.icon_size_sm | default: 18
+  assign icon_size_lg = section.settings.icon_size_lg | default: 24
+  assign view_btn_size = section.settings.view_btn_size | default: 36
+
+  # Shadow settings
+  assign shadow_intensity = section.settings.shadow_intensity | default: 20
+  assign shadow_blur = section.settings.shadow_blur | default: 20
+  assign shadow_offset = section.settings.shadow_offset | default: 20
+
+  # Transition settings
+  assign transition_fast = section.settings.transition_fast | default: 200
+  assign transition_normal = section.settings.transition_normal | default: 300
+
+  # Drawer settings
+  assign drawer_width = section.settings.drawer_width | default: 360
+  assign drawer_header_height = section.settings.drawer_header_height | default: 60
+  assign drawer_padding = section.settings.drawer_padding | default: 20
+  assign drawer_footer_height = section.settings.drawer_footer_height | default: 80
+  assign drawer_radius = section.settings.drawer_radius | default: 16
+
+  # Pagination settings
+  assign page_btn_size = section.settings.page_btn_size | default: 44
+  assign page_btn_gap = section.settings.page_btn_gap | default: 8
+
+  # Promo banner settings
+  assign promo_padding = section.settings.promo_padding | default: 32
+  assign promo_full_padding = section.settings.promo_full_padding | default: 48
+  assign promo_visual_size = section.settings.promo_visual_size | default: 180
+  assign promo_gap = section.settings.promo_gap | default: 60
+
+  # Filter element settings
+  assign chip_padding_x = section.settings.chip_padding_x | default: 10
+  assign chip_padding_y = section.settings.chip_padding_y | default: 5
+  assign chip_gap = section.settings.chip_gap | default: 8
+  assign option_gap = section.settings.option_gap | default: 2
+
+  # State settings
+  assign disabled_opacity = section.settings.disabled_opacity | default: 30
+  assign hover_scale = section.settings.hover_scale | default: 110
+
+  # CRO feature flags
+  assign show_quick_add = section.settings.show_quick_add | default: false
+  assign show_variant_swatches = section.settings.show_variant_swatches | default: false
+  assign show_wishlist = section.settings.show_wishlist | default: false
+  assign show_rating = section.settings.show_rating | default: false
+  assign show_quick_view = section.settings.show_quick_view | default: false
+  assign show_stock_urgency = section.settings.show_stock_urgency | default: false
+  assign show_installment = section.settings.show_installment | default: false
+  assign show_savings_highlight = section.settings.show_savings_highlight | default: false
+  assign show_social_proof = section.settings.show_social_proof | default: false
+
+  # Collect promo banner positions for insertion logic
+  assign promo_blocks = '' | split: ','
+  for block in section.blocks
+    if block.type == 'promo_banner' or block.type == 'full_width_banner' or block.type == 'media_banner'
+      assign promo_blocks = promo_blocks | push: block
+    endif
+  endfor
+-%}
+
+<section
+  class="casa-col-main"
+  id="casa-collection-main"
+  data-section-id="{{ section.id }}"
+  style="
+    --ccm-columns: {{ columns_desktop }};
+    --ccm-columns-mobile: {{ columns_mobile }};
+    --ccm-pt: {{ padding_top }}px;
+    --ccm-pb: {{ padding_bottom }}px;
+    --ccm-bg: {{ bg_color }};
+    --ccm-bg-secondary: {{ bg_secondary }};
+    --ccm-text: {{ text_primary }};
+    --ccm-text-muted: {{ text_secondary }};
+    --ccm-accent-1: {{ accent_primary }};
+    --ccm-accent-2: {{ accent_secondary }};
+    --ccm-toolbar-bg: {{ toolbar_bg }};
+    --ccm-toolbar-border: {{ toolbar_border }};
+    --ccm-remove-accent: {{ remove_accent }};
+    --ccm-divider: {{ divider_color }};
+    --ccm-overlay: {{ overlay_color }};
+    --ccm-input-bg: {{ input_bg }};
+    --ccm-input-border: {{ input_border }};
+    --ccm-card-bg: {{ card_bg }};
+    --ccm-highlight-bg: {{ highlight_bg }};
+    --ccm-radius-sm: {{ radius_small }}px;
+    --ccm-radius-pill: {{ radius_pill }}px;
+    --ccm-grid-gap: {{ grid_gap }}px;
+    --card-title-size: {{ section.settings.card_title_size | default: 13 }}px;
+    --card-info-gap: {{ section.settings.card_info_gap | default: 4 }}px;
+    --ccm-sidebar-w: {{ sidebar_width }}px;
+    --ccm-toolbar-pad: {{ toolbar_padding }}px;
+    --ccm-filter-gap: {{ filter_gap }}px;
+    --ccm-blur: {{ backdrop_blur }}px;
+    --ccm-overlay-opacity: {{ overlay_opacity }};
+    --ccm-hover-lift: {{ hover_lift }}px;
+    --ccm-border-w: {{ border_width }}px;
+    --ccm-font-xs: {{ font_size_xs }}px;
+    --ccm-font-sm: {{ font_size_sm }}px;
+    --ccm-font-md: {{ font_size_md }}px;
+    --ccm-font-lg: {{ font_size_lg }}px;
+    --ccm-font-xl: {{ font_size_xl }}px;
+    --ccm-fw-normal: {{ font_weight_normal }};
+    --ccm-fw-bold: {{ font_weight_bold }};
+    --ccm-ls-caps: {{ letter_spacing_caps }}px;
+    --ccm-swatch-size: {{ swatch_size }}px;
+    --ccm-checkbox-size: {{ checkbox_size }}px;
+    --ccm-toggle-w: {{ toggle_width }}px;
+    --ccm-toggle-h: {{ toggle_height }}px;
+    --ccm-icon-sm: {{ icon_size_sm }}px;
+    --ccm-icon-lg: {{ icon_size_lg }}px;
+    --ccm-view-btn: {{ view_btn_size }}px;
+    --ccm-shadow-intensity: {{ shadow_intensity }}%;
+    --ccm-shadow-blur: {{ shadow_blur }}px;
+    --ccm-shadow-offset: {{ shadow_offset }}px;
+    --ccm-trans-fast: {{ transition_fast }}ms;
+    --ccm-trans-normal: {{ transition_normal }}ms;
+    --ccm-drawer-w: {{ drawer_width }}px;
+    --ccm-drawer-header: {{ drawer_header_height }}px;
+    --ccm-drawer-pad: {{ drawer_padding }}px;
+    --ccm-drawer-footer: {{ drawer_footer_height }}px;
+    --ccm-drawer-radius: {{ drawer_radius }}px;
+    --ccm-page-btn: {{ page_btn_size }}px;
+    --ccm-page-gap: {{ page_btn_gap }}px;
+    --ccm-promo-pad: {{ promo_padding }}px;
+    --ccm-promo-full-pad: {{ promo_full_padding }}px;
+    --ccm-promo-visual: {{ promo_visual_size }}px;
+    --ccm-promo-gap: {{ promo_gap }}px;
+    --ccm-chip-px: {{ chip_padding_x }}px;
+    --ccm-chip-py: {{ chip_padding_y }}px;
+    --ccm-chip-gap: {{ chip_gap }}px;
+    --ccm-option-gap: {{ option_gap }}px;
+    --ccm-disabled-opacity: {{ disabled_opacity | divided_by: 100.0 }};
+    --ccm-hover-scale: {{ hover_scale | divided_by: 100.0 }};
+    {%- if section.settings.card_atc_bg_1 != blank and section.settings.card_atc_bg_2 != blank -%}--card-atc-bg: linear-gradient(135deg, {{ section.settings.card_atc_bg_1 }}, {{ section.settings.card_atc_bg_2 }});{%- endif -%}
+    {%- if section.settings.card_atc_text != blank -%}--card-atc-text: {{ section.settings.card_atc_text }};{%- endif -%}
+    {%- if section.settings.card_options_bg_1 != blank and section.settings.card_options_bg_2 != blank -%}--card-options-bg: linear-gradient(135deg, {{ section.settings.card_options_bg_1 }}, {{ section.settings.card_options_bg_2 }});{%- endif -%}
+    {%- if section.settings.card_options_text != blank -%}--card-options-text: {{ section.settings.card_options_text }};{%- endif -%}
+  "
+>
+  {%- comment -%} ══════════════════════════════════════════════════
+     TOOLBAR
+  ══════════════════════════════════════════════════ {%- endcomment -%}
+  <div class="casa-col-main__toolbar">
+    <div class="casa-col-main__toolbar-left">
+      <button type="button" class="casa-col-main__filter-toggle" data-drawer-open aria-label="Open filters">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="21" x2="4" y2="14"></line>
+          <line x1="4" y1="10" x2="4" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12" y2="3"></line>
+          <line x1="20" y1="21" x2="20" y2="16"></line>
+          <line x1="20" y1="12" x2="20" y2="3"></line>
+          <line x1="1" y1="14" x2="7" y2="14"></line>
+          <line x1="9" y1="8" x2="15" y2="8"></line>
+          <line x1="17" y1="16" x2="23" y2="16"></line>
+        </svg>
+        <span>Filters</span>
+      </button>
+      <div class="casa-col-main__active-filters-wrap" data-active-filters-container>
+        {%- render 'casa-collection-active-filters', filters: collection.filters, collection_url: collection.url -%}
+      </div>
+    </div>
+
+    <div class="casa-col-main__toolbar-right">
+      {%- if show_product_count -%}
+        <span class="casa-col-main__count" data-product-count>
+          {{ collection.products_count }} products
+        </span>
+      {%- endif -%}
+
+      {%- if show_sort -%}
+        <div class="casa-col-main__sort">
+          <label for="casa-sort-select" class="visually-hidden">Sort by</label>
+          <select id="casa-sort-select" class="casa-col-main__sort-select" data-sort-select>
+            {%- for option in collection.sort_options -%}
+              <option value="{{ option.value }}" {% if option.value == sort_by %}selected{% endif %}>
+                {{ option.name }}
+              </option>
+            {%- endfor -%}
+          </select>
+          <svg class="casa-col-main__sort-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+      {%- endif -%}
+
+      {%- if show_view_toggle -%}
+        <div class="casa-col-main__view-toggle">
+          <button type="button" class="casa-col-main__view-btn casa-col-main__view-btn--active" data-view="grid" aria-label="Grid view">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+            </svg>
+          </button>
+          <button type="button" class="casa-col-main__view-btn" data-view="large" aria-label="Large grid view">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="8"></rect>
+              <rect x="3" y="13" width="18" height="8"></rect>
+            </svg>
+          </button>
+          <button type="button" class="casa-col-main__view-btn" data-view="list" aria-label="List view">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+
+  {%- comment -%} ══════════════════════════════════════════════════
+     MAIN LAYOUT: Sidebar + Grid
+  ══════════════════════════════════════════════════ {%- endcomment -%}
+  <div class="casa-col-main__layout">
+
+    {%- comment -%} SIDEBAR FILTERS (desktop) {%- endcomment -%}
+    {%- if show_sidebar -%}
+      <aside class="casa-col-main__sidebar" data-sidebar>
+        <form id="casa-filter-form" data-filter-form>
+          {%- for filter in collection.filters -%}
+            {%- render 'casa-collection-filter', filter: filter, open: true -%}
+          {%- endfor -%}
+
+          {%- comment -%} Show Results button (visible on mobile drawer) {%- endcomment -%}
+          <button type="submit" class="casa-col-main__apply-btn">
+            Show {{ collection.products_count }} Results
+          </button>
+        </form>
+      </aside>
+    {%- endif -%}
+
+    {%- comment -%} PRODUCT GRID {%- endcomment -%}
+    <div class="casa-col-main__grid-wrapper" data-grid-wrapper>
+      {%- paginate collection.products by products_per_page -%}
+        {%- if collection.products.size > 0 -%}
+          <ul class="casa-col-main__grid" data-product-grid>
+            {%- assign grid_index = 0 -%}
+            {%- for product in collection.products -%}
+              {%- assign grid_index = grid_index | plus: 1 -%}
+
+              {%- comment -%} Check if a banner should be inserted before this product {%- endcomment -%}
+              {%- for block in section.blocks -%}
+                {%- if block.type == 'promo_banner' -%}
+                  {%- assign _block_pos = block.settings.grid_position | plus: 0 -%}
+                  {%- if _block_pos == grid_index -%}
+                    {%- liquid
+                      assign _bw = block.settings.banner_width | default: 'full'
+                      if _bw == 'full'
+                        assign _col = '1 / -1'
+                      else
+                        assign _col = '1 / span ' | append: _bw
+                      endif
+                    -%}
+                    <li class="casa-col-main__grid-item casa-col-main__grid-item--promo" style="grid-column: {{ _col }};" {{ block.shopify_attributes }}>
+                      {%- render 'casa-collection-promo-banner', block: block -%}
+                    </li>
+                  {%- endif -%}
+                {%- endif -%}
+              {%- endfor -%}
+
+              <li class="casa-col-main__grid-item">
+                {%- render 'casa-product-card',
+                  product: product,
+                  variant: 'collection',
+                  info_align: section.settings.card_info_align,
+                  index: forloop.index0,
+                  show_quick_add: show_quick_add,
+                  show_variant_swatches: show_variant_swatches,
+                  show_wishlist: show_wishlist,
+                  show_rating: show_rating,
+                  show_quick_view: show_quick_view,
+                  show_stock_urgency: show_stock_urgency,
+                  show_installment: show_installment,
+                  show_savings_highlight: show_savings_highlight,
+                  show_social_proof: show_social_proof,
+                  title_color: section.settings.card_title_color,
+                  price_color: section.settings.card_price_color,
+                  compare_color: section.settings.card_compare_color,
+                  show_sale_badge: section.settings.show_sale_badge,
+                  badge_bg: section.settings.card_badge_bg,
+                  badge_text: section.settings.card_badge_text,
+                  savings_bg: section.settings.card_savings_bg,
+                  savings_text: section.settings.card_savings_text,
+                  installment_color: section.settings.card_installment_color,
+                  stars_color: section.settings.card_stars_color,
+                  reviews_color: section.settings.card_reviews_color
+                -%}
+              </li>
+            {%- endfor -%}
+
+            {%- comment -%} Render banners positioned beyond product count {%- endcomment -%}
+            {%- for block in section.blocks -%}
+              {%- if block.type == 'promo_banner' -%}
+                {%- assign _block_pos = block.settings.grid_position | default: 999 | plus: 0 -%}
+                {%- if _block_pos >= grid_index -%}
+                  {%- liquid
+                    assign _bw = block.settings.banner_width | default: 'full'
+                    if _bw == 'full'
+                      assign _col = '1 / -1'
+                    else
+                      assign _col = '1 / span ' | append: _bw
+                    endif
+                  -%}
+                  <li class="casa-col-main__grid-item casa-col-main__grid-item--promo" style="grid-column: {{ _col }};" {{ block.shopify_attributes }}>
+                    {%- render 'casa-collection-promo-banner', block: block -%}
+                  </li>
+                {%- endif -%}
+              {%- endif -%}
+            {%- endfor -%}
+          </ul>
+
+          {%- comment -%} Pagination {%- endcomment -%}
+          {%- if paginate.pages > 1 -%}
+            <nav class="casa-col-main__pagination" aria-label="Pagination" data-pagination>
+              {%- if paginate.previous -%}
+                <a href="{{ paginate.previous.url }}" class="casa-col-main__page-btn" data-page-link aria-label="Previous page">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </a>
+              {%- endif -%}
+
+              {%- for part in paginate.parts -%}
+                {%- if part.is_link -%}
+                  <a href="{{ part.url }}" class="casa-col-main__page-num" data-page-link>{{ part.title }}</a>
+                {%- elsif part.title == paginate.current_page -%}
+                  <span class="casa-col-main__page-num casa-col-main__page-num--current" aria-current="page">{{ part.title }}</span>
+                {%- else -%}
+                  <span class="casa-col-main__page-dots">{{ part.title }}</span>
+                {%- endif -%}
+              {%- endfor -%}
+
+              {%- if paginate.next -%}
+                <a href="{{ paginate.next.url }}" class="casa-col-main__page-btn" data-page-link aria-label="Next page">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </a>
+              {%- endif -%}
+            </nav>
+          {%- endif -%}
+        {%- else -%}
+          <div class="casa-col-main__empty">
+            <p>No products match your filters.</p>
+            <a href="{{ collection.url }}" class="casa-col-main__empty-link">Clear all filters</a>
+          </div>
+        {%- endif -%}
+      {%- endpaginate -%}
+    </div>
+  </div>
+
+  {%- comment -%} ══════════════════════════════════════════════════
+     MOBILE FILTER DRAWER
+  ══════════════════════════════════════════════════ {%- endcomment -%}
+  <div class="casa-col-main__drawer" data-drawer aria-hidden="true">
+    <div class="casa-col-main__drawer-header">
+      <h3 class="casa-col-main__drawer-title">Filter & Sort</h3>
+      <button type="button" class="casa-col-main__drawer-close" data-drawer-close aria-label="Close filters">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <div class="casa-col-main__drawer-body" data-drawer-body>
+      {%- comment -%} Filter form gets cloned here via JS {%- endcomment -%}
+    </div>
+    <div class="casa-col-main__drawer-footer">
+      <button type="button" class="casa-col-main__drawer-apply" data-drawer-apply>
+        Show {{ collection.products_count }} Results
+      </button>
+    </div>
+  </div>
+  <div class="casa-col-main__drawer-overlay" data-drawer-overlay></div>
+</section>
+
+{% schema %}
+{
+  "name": "Casa Collection Main",
+  "tag": "section",
+  "class": "casa-collection-main-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "products_per_page",
+      "label": "Products per page",
+      "min": 12,
+      "max": 48,
+      "step": 4,
+      "default": 24
+    },
+    {
+      "type": "select",
+      "id": "columns_desktop",
+      "label": "Desktop columns",
+      "options": [
+        { "value": "3", "label": "3 columns" },
+        { "value": "4", "label": "4 columns" }
+      ],
+      "default": "4"
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "label": "Mobile columns",
+      "options": [
+        { "value": "1", "label": "1 column" },
+        { "value": "2", "label": "2 columns" }
+      ],
+      "default": "2"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_sidebar_filters",
+      "label": "Show sidebar filters",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Toolbar"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_sort",
+      "label": "Show sort dropdown",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_view_toggle",
+      "label": "Show view toggle",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_product_count",
+      "label": "Show product count",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "CRO Features"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_quick_add",
+      "label": "Quick Add to Cart",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_variant_swatches",
+      "label": "Variant swatches",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_wishlist",
+      "label": "Wishlist button",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_rating",
+      "label": "Star rating",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_quick_view",
+      "label": "Quick view",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_stock_urgency",
+      "label": "Low stock urgency badge",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_installment",
+      "label": "Installment pricing",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_savings_highlight",
+      "label": "Savings highlight",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_social_proof",
+      "label": "Social proof badges",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#0a0a0f"
+    },
+    {
+      "type": "color",
+      "id": "bg_secondary",
+      "label": "Secondary background",
+      "default": "#0f0f18"
+    },
+    {
+      "type": "color",
+      "id": "text_primary",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "text_secondary",
+      "label": "Secondary text",
+      "default": "#a0a0a0"
+    },
+    {
+      "type": "color",
+      "id": "accent_primary",
+      "label": "Primary accent",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "accent_secondary",
+      "label": "Secondary accent",
+      "default": "#ec4899"
+    },
+    {
+      "type": "color",
+      "id": "toolbar_bg",
+      "label": "Toolbar/filter pill background",
+      "default": "#1a1a24"
+    },
+    {
+      "type": "color",
+      "id": "toolbar_border",
+      "label": "Toolbar/filter pill border",
+      "default": "#2a2a3a"
+    },
+    {
+      "type": "color",
+      "id": "remove_accent",
+      "label": "Remove/danger accent",
+      "default": "#ef4444",
+      "info": "Color for filter pill remove hover"
+    },
+    {
+      "type": "color",
+      "id": "divider_color",
+      "label": "Divider/border color",
+      "default": "#1a1a2e",
+      "info": "Subtle borders and dividers"
+    },
+    {
+      "type": "color",
+      "id": "overlay_color",
+      "label": "Overlay color",
+      "default": "#000000",
+      "info": "Base color for drawer overlay"
+    },
+    {
+      "type": "color",
+      "id": "input_bg",
+      "label": "Input background",
+      "default": "#12121a",
+      "info": "Form input backgrounds"
+    },
+    {
+      "type": "color",
+      "id": "input_border",
+      "label": "Input border",
+      "default": "#2a2a3e",
+      "info": "Form input borders"
+    },
+    {
+      "type": "color",
+      "id": "card_bg",
+      "label": "Card background",
+      "default": "#0f0f18",
+      "info": "Promo cards and empty state"
+    },
+    {
+      "type": "color",
+      "id": "highlight_bg",
+      "label": "Highlight background",
+      "default": "#1f1f2e",
+      "info": "Hover/active state backgrounds"
+    },
+    {
+      "type": "header",
+      "content": "Product Card Colors"
+    },
+    {
+      "type": "color",
+      "id": "card_title_color",
+      "label": "Product title",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "card_price_color",
+      "label": "Product price",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "card_compare_color",
+      "label": "Compare at price",
+      "info": "Overrides global compare price color for this section. Leave empty to use theme setting."
+    },
+    {
+      "type": "select",
+      "id": "card_info_align",
+      "label": "Card text alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_sale_badge",
+      "label": "Show sale % badge",
+      "info": "Auto-calculated discount percentage. Disable to hide sale badges while keeping custom badges.",
+      "default": true
+    },
+    {
+      "type": "color",
+      "id": "card_badge_bg",
+      "label": "Sale badge background",
+      "default": "#ef4444"
+    },
+    {
+      "type": "color",
+      "id": "card_badge_text",
+      "label": "Sale badge text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "card_savings_bg",
+      "label": "Savings badge background",
+      "default": "#fef2f2"
+    },
+    {
+      "type": "color",
+      "id": "card_savings_text",
+      "label": "Savings badge text",
+      "default": "#dc2626"
+    },
+    {
+      "type": "color",
+      "id": "card_installment_color",
+      "label": "Installment price",
+      "default": "#9ca3af",
+      "info": "e.g. Or 4× RD$ 3,075.00"
+    },
+    {
+      "type": "color",
+      "id": "card_stars_color",
+      "label": "Star rating color",
+      "default": "#fbbf24"
+    },
+    {
+      "type": "color",
+      "id": "card_reviews_color",
+      "label": "Reviews count",
+      "default": "#9ca3af"
+    },
+    {
+      "type": "header",
+      "content": "Button Colors"
+    },
+    {
+      "type": "color",
+      "id": "card_atc_bg_1",
+      "label": "Add to Cart gradient start"
+    },
+    {
+      "type": "color",
+      "id": "card_atc_bg_2",
+      "label": "Add to Cart gradient end"
+    },
+    {
+      "type": "color",
+      "id": "card_atc_text",
+      "label": "Add to Cart text color"
+    },
+    {
+      "type": "color",
+      "id": "card_options_bg_1",
+      "label": "Select Options gradient start"
+    },
+    {
+      "type": "color",
+      "id": "card_options_bg_2",
+      "label": "Select Options gradient end"
+    },
+    {
+      "type": "color",
+      "id": "card_options_text",
+      "label": "Select Options text color"
+    },
+    {
+      "type": "header",
+      "content": "Border Radius"
+    },
+    {
+      "type": "range",
+      "id": "radius_small",
+      "label": "Small radius",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 8,
+      "unit": "px",
+      "info": "Buttons, inputs, checkboxes"
+    },
+    {
+      "type": "range",
+      "id": "radius_pill",
+      "label": "Pill radius",
+      "min": 8,
+      "max": 30,
+      "step": 1,
+      "default": 20,
+      "unit": "px",
+      "info": "Filter pills, badges, tags"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "grid_gap",
+      "label": "Product grid gap",
+      "min": 4,
+      "max": 40,
+      "step": 2,
+      "default": 12,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "card_title_size",
+      "label": "Card title size",
+      "min": 10,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "default": 13
+    },
+    {
+      "type": "range",
+      "id": "card_info_gap",
+      "label": "Card info spacing",
+      "min": 0,
+      "max": 12,
+      "step": 1,
+      "unit": "px",
+      "default": 4,
+      "info": "Space between title, reviews, price"
+    },
+    {
+      "type": "range",
+      "id": "sidebar_width",
+      "label": "Sidebar width",
+      "min": 200,
+      "max": 320,
+      "step": 10,
+      "default": 280,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "toolbar_padding",
+      "label": "Toolbar padding",
+      "min": 16,
+      "max": 100,
+      "step": 4,
+      "default": 60,
+      "unit": "px",
+      "info": "Horizontal padding for toolbar"
+    },
+    {
+      "type": "range",
+      "id": "filter_gap",
+      "label": "Filter group spacing",
+      "min": 12,
+      "max": 32,
+      "step": 2,
+      "default": 24,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Effects"
+    },
+    {
+      "type": "range",
+      "id": "backdrop_blur",
+      "label": "Toolbar blur",
+      "min": 0,
+      "max": 24,
+      "step": 2,
+      "default": 12,
+      "unit": "px",
+      "info": "Backdrop blur on sticky toolbar"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "label": "Overlay opacity",
+      "min": 20,
+      "max": 90,
+      "step": 5,
+      "default": 60,
+      "unit": "%",
+      "info": "Drawer overlay darkness"
+    },
+    {
+      "type": "range",
+      "id": "hover_lift",
+      "label": "Hover lift",
+      "min": 0,
+      "max": 8,
+      "step": 1,
+      "default": 4,
+      "unit": "px",
+      "info": "Card lift on hover"
+    },
+    {
+      "type": "range",
+      "id": "border_width",
+      "label": "Border width",
+      "min": 1,
+      "max": 3,
+      "step": 1,
+      "default": 1,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "font_size_xs",
+      "label": "Font size XS",
+      "min": 9,
+      "max": 14,
+      "step": 1,
+      "default": 11,
+      "unit": "px",
+      "info": "Counts, badges, small labels"
+    },
+    {
+      "type": "range",
+      "id": "font_size_sm",
+      "label": "Font size SM",
+      "min": 12,
+      "max": 16,
+      "step": 1,
+      "default": 14,
+      "unit": "px",
+      "info": "Body text, buttons, options"
+    },
+    {
+      "type": "range",
+      "id": "font_size_md",
+      "label": "Font size MD",
+      "min": 14,
+      "max": 18,
+      "step": 1,
+      "default": 15,
+      "unit": "px",
+      "info": "Subtitles, descriptions"
+    },
+    {
+      "type": "range",
+      "id": "font_size_lg",
+      "label": "Font size LG",
+      "min": 18,
+      "max": 32,
+      "step": 1,
+      "default": 24,
+      "unit": "px",
+      "info": "Promo titles"
+    },
+    {
+      "type": "range",
+      "id": "font_size_xl",
+      "label": "Font size XL",
+      "min": 28,
+      "max": 48,
+      "step": 1,
+      "default": 36,
+      "unit": "px",
+      "info": "Banner headlines"
+    },
+    {
+      "type": "range",
+      "id": "font_weight_normal",
+      "label": "Normal font weight",
+      "min": 400,
+      "max": 600,
+      "step": 100,
+      "default": 500,
+      "info": "Regular text weight"
+    },
+    {
+      "type": "range",
+      "id": "font_weight_bold",
+      "label": "Bold font weight",
+      "min": 500,
+      "max": 800,
+      "step": 100,
+      "default": 600,
+      "info": "Headings, buttons weight"
+    },
+    {
+      "type": "range",
+      "id": "letter_spacing_caps",
+      "label": "Uppercase letter spacing",
+      "min": 0,
+      "max": 4,
+      "step": 0.5,
+      "default": 1,
+      "unit": "px",
+      "info": "Spacing for uppercase text"
+    },
+    {
+      "type": "header",
+      "content": "Element Sizes"
+    },
+    {
+      "type": "range",
+      "id": "swatch_size",
+      "label": "Color swatch size",
+      "min": 24,
+      "max": 48,
+      "step": 2,
+      "default": 36,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "checkbox_size",
+      "label": "Checkbox size",
+      "min": 16,
+      "max": 28,
+      "step": 2,
+      "default": 20,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "toggle_width",
+      "label": "Toggle switch width",
+      "min": 32,
+      "max": 56,
+      "step": 2,
+      "default": 40,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "toggle_height",
+      "label": "Toggle switch height",
+      "min": 18,
+      "max": 32,
+      "step": 2,
+      "default": 22,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "icon_size_sm",
+      "label": "Small icon size",
+      "min": 14,
+      "max": 24,
+      "step": 2,
+      "default": 18,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "icon_size_lg",
+      "label": "Large icon size",
+      "min": 20,
+      "max": 32,
+      "step": 2,
+      "default": 24,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "view_btn_size",
+      "label": "View toggle button size",
+      "min": 28,
+      "max": 48,
+      "step": 2,
+      "default": 36,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Shadows"
+    },
+    {
+      "type": "range",
+      "id": "shadow_intensity",
+      "label": "Shadow intensity",
+      "min": 5,
+      "max": 40,
+      "step": 5,
+      "default": 20,
+      "unit": "%",
+      "info": "Opacity of accent shadow"
+    },
+    {
+      "type": "range",
+      "id": "shadow_blur",
+      "label": "Shadow blur",
+      "min": 10,
+      "max": 50,
+      "step": 5,
+      "default": 20,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "shadow_offset",
+      "label": "Shadow offset",
+      "min": 5,
+      "max": 40,
+      "step": 5,
+      "default": 20,
+      "unit": "px",
+      "info": "Vertical shadow distance"
+    },
+    {
+      "type": "header",
+      "content": "Transitions"
+    },
+    {
+      "type": "range",
+      "id": "transition_fast",
+      "label": "Fast transition",
+      "min": 100,
+      "max": 400,
+      "step": 50,
+      "default": 200,
+      "unit": "ms",
+      "info": "Hover states, quick changes"
+    },
+    {
+      "type": "range",
+      "id": "transition_normal",
+      "label": "Normal transition",
+      "min": 200,
+      "max": 500,
+      "step": 50,
+      "default": 300,
+      "unit": "ms",
+      "info": "Panels, toggles, slides"
+    },
+    {
+      "type": "header",
+      "content": "Mobile Drawer"
+    },
+    {
+      "type": "range",
+      "id": "drawer_width",
+      "label": "Drawer width",
+      "min": 280,
+      "max": 420,
+      "step": 10,
+      "default": 360,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "drawer_header_height",
+      "label": "Drawer header height",
+      "min": 48,
+      "max": 80,
+      "step": 4,
+      "default": 60,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "drawer_padding",
+      "label": "Drawer padding",
+      "min": 12,
+      "max": 32,
+      "step": 2,
+      "default": 20,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "drawer_footer_height",
+      "label": "Drawer footer height",
+      "min": 60,
+      "max": 100,
+      "step": 4,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "drawer_radius",
+      "label": "Drawer corner radius",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "default": 16,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Pagination"
+    },
+    {
+      "type": "range",
+      "id": "page_btn_size",
+      "label": "Page button size",
+      "min": 32,
+      "max": 56,
+      "step": 2,
+      "default": 44,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "page_btn_gap",
+      "label": "Page button gap",
+      "min": 4,
+      "max": 16,
+      "step": 2,
+      "default": 8,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Promo Banners"
+    },
+    {
+      "type": "range",
+      "id": "promo_padding",
+      "label": "Card promo padding",
+      "min": 20,
+      "max": 48,
+      "step": 4,
+      "default": 32,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "promo_full_padding",
+      "label": "Full-width banner padding",
+      "min": 32,
+      "max": 80,
+      "step": 4,
+      "default": 48,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "promo_visual_size",
+      "label": "Promo visual size",
+      "min": 120,
+      "max": 240,
+      "step": 10,
+      "default": 180,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "promo_gap",
+      "label": "Banner content gap",
+      "min": 30,
+      "max": 100,
+      "step": 10,
+      "default": 60,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Filter Elements"
+    },
+    {
+      "type": "range",
+      "id": "chip_padding_x",
+      "label": "Chip horizontal padding",
+      "min": 8,
+      "max": 24,
+      "step": 2,
+      "default": 14,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "chip_padding_y",
+      "label": "Chip vertical padding",
+      "min": 4,
+      "max": 16,
+      "step": 2,
+      "default": 8,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "chip_gap",
+      "label": "Chip gap",
+      "min": 4,
+      "max": 16,
+      "step": 2,
+      "default": 8,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "option_gap",
+      "label": "Option list gap",
+      "min": 0,
+      "max": 12,
+      "step": 2,
+      "default": 4,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "States"
+    },
+    {
+      "type": "range",
+      "id": "disabled_opacity",
+      "label": "Disabled opacity",
+      "min": 20,
+      "max": 60,
+      "step": 5,
+      "default": 30,
+      "unit": "%"
+    },
+    {
+      "type": "range",
+      "id": "hover_scale",
+      "label": "Hover scale",
+      "min": 100,
+      "max": 120,
+      "step": 5,
+      "default": 110,
+      "unit": "%",
+      "info": "Swatch/element hover zoom"
+    },
+    {
+      "type": "header",
+      "content": "Section Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 0,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 60,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "promo_banner",
+      "name": "Collection Banner",
+      "settings": [
+        {
+          "type": "range",
+          "id": "grid_position",
+          "label": "Position in product grid",
+          "info": "Insert after this many products",
+          "min": 1,
+          "max": 48,
+          "step": 1,
+          "default": 5
+        },
+        {
+          "type": "select",
+          "id": "banner_width",
+          "label": "Banner width",
+          "options": [
+            { "value": "1", "label": "1 column" },
+            { "value": "2", "label": "2 columns" },
+            { "value": "3", "label": "3 columns" },
+            { "value": "4", "label": "4 columns" },
+            { "value": "full", "label": "Full width" }
+          ],
+          "default": "full"
+        },
+        {
+          "type": "range",
+          "id": "banner_height",
+          "label": "Banner height",
+          "min": 150,
+          "max": 600,
+          "step": 10,
+          "default": 280,
+          "unit": "px"
+        },
+        {
+          "type": "range",
+          "id": "border_radius",
+          "label": "Corner radius",
+          "min": 0,
+          "max": 32,
+          "step": 2,
+          "default": 12,
+          "unit": "px"
+        },
+        {
+          "type": "header",
+          "content": "Media"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Desktop image"
+        },
+        {
+          "type": "image_picker",
+          "id": "mobile_image",
+          "label": "Mobile image",
+          "info": "Optional. Shown under 768px."
+        },
+        {
+          "type": "url",
+          "id": "video_url",
+          "label": "Video URL (MP4)",
+          "info": "Overrides image. Autoplays muted."
+        },
+        {
+          "type": "select",
+          "id": "image_position",
+          "label": "Image focal point",
+          "options": [
+            { "value": "top", "label": "Top" },
+            { "value": "center", "label": "Center" },
+            { "value": "bottom", "label": "Bottom" }
+          ],
+          "default": "center"
+        },
+        {
+          "type": "range",
+          "id": "overlay_opacity",
+          "label": "Overlay darkness",
+          "info": "0 = no overlay",
+          "min": 0,
+          "max": 90,
+          "step": 5,
+          "default": 40,
+          "unit": "%"
+        },
+        {
+          "type": "header",
+          "content": "Content (all optional)"
+        },
+        {
+          "type": "text",
+          "id": "tag",
+          "label": "Badge text"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title"
+        },
+        {
+          "type": "textarea",
+          "id": "subtitle",
+          "label": "Subtitle"
+        },
+        {
+          "type": "text",
+          "id": "cta_text",
+          "label": "Button text"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link",
+          "info": "Entire banner is clickable if no button text set"
+        },
+        {
+          "type": "select",
+          "id": "content_position",
+          "label": "Content position",
+          "options": [
+            { "value": "left", "label": "Left" },
+            { "value": "center", "label": "Center" },
+            { "value": "right", "label": "Right" },
+            { "value": "bottom-left", "label": "Bottom Left" },
+            { "value": "bottom-center", "label": "Bottom Center" }
+          ],
+          "default": "bottom-left"
+        },
+        {
+          "type": "header",
+          "content": "Colors"
+        },
+        {
+          "type": "color",
+          "id": "bg_color",
+          "label": "Background color",
+          "info": "Fallback when no image set",
+          "default": "#0f0f18"
+        },
+        {
+          "type": "color",
+          "id": "text_color",
+          "label": "Text color",
+          "default": "#ffffff"
+        },
+        {
+          "type": "color",
+          "id": "tag_bg",
+          "label": "Badge background",
+          "default": "#9333ea"
+        },
+        {
+          "type": "color",
+          "id": "btn_bg",
+          "label": "Button background",
+          "default": "#9333ea"
+        },
+        {
+          "type": "color",
+          "id": "btn_text",
+          "label": "Button text color",
+          "default": "#ffffff"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+{% stylesheet %}
+/* ═══════════════════════════════════════════════════════════════════════
+   CASA COLLECTION MAIN — Core Layout
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.casa-col-main {
+  background: var(--ccm-bg);
+  padding: var(--ccm-pt) 0 var(--ccm-pb);
+}
+
+/* ── TOOLBAR ─────────────────────────────────────────────────────────── */
+
+.casa-col-main__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px var(--ccm-toolbar-pad);
+  border-bottom: var(--ccm-border-w) solid var(--ccm-divider);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--ccm-bg) 95%, transparent);
+  backdrop-filter: blur(var(--ccm-blur));
+}
+
+.casa-col-main__toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.casa-col-main__toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+/* Filter toggle (mobile only) */
+.casa-col-main__filter-toggle {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: var(--ccm-chip-py) 16px;
+  background: color-mix(in srgb, var(--ccm-toolbar-bg) 50%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: var(--ccm-border-w) solid color-mix(in srgb, var(--ccm-toolbar-border) 50%, transparent);
+  border-radius: var(--ccm-radius-sm);
+  color: var(--ccm-text);
+  font-size: var(--ccm-font-sm);
+  font-weight: var(--ccm-fw-normal);
+  cursor: pointer;
+  transition: background var(--ccm-trans-fast), border-color var(--ccm-trans-fast);
+  white-space: nowrap;
+}
+
+.casa-col-main__filter-toggle:hover {
+  background: color-mix(in srgb, var(--ccm-bg-secondary) 60%, transparent);
+  border-color: var(--ccm-accent-1);
+}
+
+.casa-col-main__active-filters-wrap {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Product count */
+.casa-col-main__count {
+  font-size: var(--ccm-font-sm);
+  color: var(--ccm-text-muted);
+  white-space: nowrap;
+}
+
+/* Sort dropdown */
+.casa-col-main__sort {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.casa-col-main__sort-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: color-mix(in srgb, var(--ccm-toolbar-bg) 50%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: var(--ccm-border-w) solid color-mix(in srgb, var(--ccm-toolbar-border) 50%, transparent);
+  border-radius: var(--ccm-radius-sm);
+  color: var(--ccm-text);
+  font-size: var(--ccm-font-sm);
+  padding: var(--ccm-chip-py) 36px var(--ccm-chip-py) var(--ccm-chip-px);
+  cursor: pointer;
+  transition: border-color var(--ccm-trans-fast);
+}
+
+.casa-col-main__sort-select:hover,
+.casa-col-main__sort-select:focus {
+  border-color: var(--ccm-accent-1);
+  outline: none;
+}
+
+.casa-col-main__sort-select option {
+  background: var(--ccm-bg-secondary);
+  color: var(--ccm-text);
+}
+
+.casa-col-main__sort-icon {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  color: var(--ccm-text-muted);
+}
+
+/* View toggle */
+.casa-col-main__view-toggle {
+  display: flex;
+  gap: 4px;
+  background: color-mix(in srgb, var(--ccm-toolbar-bg) 50%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: var(--ccm-border-w) solid color-mix(in srgb, var(--ccm-toolbar-border) 50%, transparent);
+  border-radius: var(--ccm-radius-sm);
+  padding: 4px;
+}
+
+.casa-col-main__view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ccm-view-btn);
+  height: var(--ccm-view-btn);
+  border: none;
+  border-radius: calc(var(--ccm-radius-sm) - 2px);
+  background: transparent;
+  color: var(--ccm-text-muted);
+  cursor: pointer;
+  transition: all var(--ccm-trans-fast);
+}
+
+.casa-col-main__view-btn:hover {
+  color: var(--ccm-text-muted);
+}
+
+.casa-col-main__view-btn--active {
+  background: color-mix(in srgb, var(--ccm-highlight-bg) 60%, transparent);
+  color: var(--ccm-text);
+}
+
+/* ── MAIN LAYOUT ─────────────────────────────────────────────────────── */
+
+.casa-col-main__layout {
+  display: flex;
+  gap: 0;
+  padding: 0 var(--ccm-toolbar-pad);
+}
+
+/* ── SIDEBAR ─────────────────────────────────────────────────────────── */
+
+.casa-col-main__sidebar {
+  flex-shrink: 0;
+  width: var(--ccm-sidebar-w);
+  padding: var(--ccm-filter-gap);
+  max-height: calc(100vh - var(--header-group-height, 80px) - 20px);
+  overflow-y: auto;
+  position: sticky;
+  top: calc(var(--header-group-height, 80px) + 10px);
+  align-self: flex-start;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ccm-highlight-bg) transparent;
+  /* Glassmorphism */
+  background: color-mix(in srgb, var(--ccm-bg-secondary) 55%, transparent);
+  backdrop-filter: blur(var(--ccm-blur));
+  -webkit-backdrop-filter: blur(var(--ccm-blur));
+  border: var(--ccm-border-w) solid color-mix(in srgb, var(--ccm-divider) 40%, transparent);
+  border-radius: var(--ccm-radius-sm);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 color-mix(in srgb, var(--ccm-text) 5%, transparent);
+  margin-right: var(--ccm-filter-gap);
+}
+
+.casa-col-main__sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.casa-col-main__sidebar::-webkit-scrollbar-thumb {
+  background: var(--ccm-highlight-bg);
+  border-radius: 4px;
+}
+
+.casa-col-main__apply-btn {
+  display: none;
+}
+
+/* ── PRODUCT GRID ────────────────────────────────────────────────────── */
+
+.casa-col-main__grid-wrapper {
+  flex: 1;
+  min-width: 0;
+  padding: var(--ccm-filter-gap) 0 0 32px;
+}
+
+.casa-col-main__grid {
+  display: grid;
+  grid-template-columns: repeat(var(--ccm-columns), 1fr);
+  grid-auto-rows: auto;
+  grid-auto-flow: dense;
+  gap: var(--ccm-grid-gap);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.casa-col-main__grid-item {
+  min-width: 0;
+  display: flex;
+}
+
+/* Banners — grid-column set inline, content fills */
+.casa-col-main__grid-item--promo > a,
+.casa-col-main__grid-item--promo > div,
+.casa-col-main__grid-item--full-width > a,
+.casa-col-main__grid-item--full-width > div,
+.casa-col-main__grid-item--media-banner > div {
+  width: 100%;
+  height: 100%;
+}
+
+.casa-col-main__grid-item--full-width {
+  grid-column: 1 / -1;
+}
+
+/* Empty state */
+.casa-col-main__empty {
+  text-align: center;
+  padding: 80px var(--ccm-drawer-pad);
+  color: var(--ccm-text-muted);
+  font-size: var(--ccm-font-md);
+}
+
+.casa-col-main__empty-link {
+  display: inline-block;
+  margin-top: 16px;
+  color: var(--ccm-accent-1);
+  text-decoration: none;
+  font-weight: var(--ccm-fw-normal);
+}
+
+.casa-col-main__empty-link:hover {
+  text-decoration: underline;
+}
+
+/* ── PAGINATION ──────────────────────────────────────────────────────── */
+
+.casa-col-main__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ccm-page-gap);
+  padding: 48px 0 24px;
+}
+
+.casa-col-main__page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ccm-page-btn);
+  height: var(--ccm-page-btn);
+  border-radius: var(--ccm-radius-sm);
+  background: var(--ccm-input-bg);
+  color: var(--ccm-text-muted);
+  text-decoration: none;
+  transition: all var(--ccm-trans-fast);
+}
+
+.casa-col-main__page-btn:hover {
+  background: var(--ccm-highlight-bg);
+  color: var(--ccm-text);
+}
+
+.casa-col-main__page-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--ccm-page-btn);
+  height: var(--ccm-page-btn);
+  padding: 0 var(--ccm-page-gap);
+  border-radius: var(--ccm-radius-sm);
+  font-size: var(--ccm-font-sm);
+  font-weight: var(--ccm-fw-normal);
+  color: var(--ccm-text-muted);
+  text-decoration: none;
+  transition: all var(--ccm-trans-fast);
+}
+
+.casa-col-main__page-num:hover {
+  background: var(--ccm-input-bg);
+  color: var(--ccm-text);
+}
+
+.casa-col-main__page-num--current {
+  background: linear-gradient(135deg, var(--ccm-accent-1), var(--ccm-accent-2));
+  color: var(--ccm-text);
+}
+
+.casa-col-main__page-dots {
+  color: var(--ccm-text-muted);
+  font-size: var(--ccm-font-sm);
+  padding: 0 4px;
+}
+
+/* ── MOBILE FILTER DRAWER ────────────────────────────────────────────── */
+
+.casa-col-main__drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 85vw;
+  max-width: var(--ccm-drawer-w);
+  height: 100vh;
+  height: 100dvh;
+  z-index: 1000;
+  transform: translateX(-100%);
+  transition: transform var(--ccm-trans-normal) cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  border-radius: 0 var(--ccm-drawer-radius) var(--ccm-drawer-radius) 0;
+  /* Glassmorphism */
+  background: color-mix(in srgb, var(--ccm-bg-secondary) 70%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: var(--ccm-border-w) solid color-mix(in srgb, var(--ccm-divider) 40%, transparent);
+  box-shadow:
+    4px 0 30px rgba(0, 0, 0, 0.2),
+    inset 1px 0 0 color-mix(in srgb, var(--ccm-text) 5%, transparent);
+}
+
+.casa-col-main__drawer.is-open {
+  transform: translateX(0);
+}
+
+.casa-col-main__drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ccm-drawer-pad) calc(var(--ccm-drawer-pad) + 4px);
+  min-height: var(--ccm-drawer-header);
+  border-bottom: var(--ccm-border-w) solid color-mix(in srgb, var(--ccm-divider) 40%, transparent);
+}
+
+.casa-col-main__drawer-title {
+  font-size: calc(var(--ccm-font-sm) + 4px);
+  font-weight: var(--ccm-fw-bold);
+  color: var(--ccm-text);
+  margin: 0;
+}
+
+.casa-col-main__drawer-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ccm-page-btn);
+  height: var(--ccm-page-btn);
+  background: transparent;
+  border: none;
+  color: var(--ccm-text-muted);
+  cursor: pointer;
+  transition: color var(--ccm-trans-fast);
+}
+
+.casa-col-main__drawer-close:hover {
+  color: var(--ccm-text);
+}
+
+.casa-col-main__drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: calc(var(--ccm-drawer-pad) + 4px);
+  -webkit-overflow-scrolling: touch;
+}
+
+.casa-col-main__drawer-footer {
+  padding: var(--ccm-drawer-pad) calc(var(--ccm-drawer-pad) + 4px);
+  min-height: var(--ccm-drawer-footer);
+  border-top: var(--ccm-border-w) solid color-mix(in srgb, var(--ccm-divider) 40%, transparent);
+}
+
+.casa-col-main__drawer-apply {
+  width: 100%;
+  padding: var(--ccm-chip-px);
+  background: linear-gradient(135deg, var(--ccm-accent-1), var(--ccm-accent-2));
+  color: var(--ccm-text);
+  font-size: var(--ccm-font-md);
+  font-weight: var(--ccm-fw-bold);
+  border: none;
+  border-radius: calc(var(--ccm-radius-sm) + 4px);
+  cursor: pointer;
+  transition: transform var(--ccm-trans-fast), box-shadow var(--ccm-trans-fast);
+}
+
+.casa-col-main__drawer-apply:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 var(--ccm-shadow-offset) var(--ccm-shadow-blur) color-mix(in srgb, var(--ccm-accent-1) var(--ccm-shadow-intensity), transparent);
+}
+
+.casa-col-main__drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--ccm-overlay) calc(var(--ccm-overlay-opacity) * 1%), transparent);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--ccm-trans-normal), visibility var(--ccm-trans-normal);
+}
+
+.casa-col-main__drawer-overlay.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ── FILTER STYLES ───────────────────────────────────────────────────── */
+
+.casa-col-filter {
+  margin-bottom: var(--ccm-filter-gap);
+  border-bottom: var(--ccm-border-w) solid color-mix(in srgb, var(--ccm-divider) 40%, transparent);
+  padding-bottom: var(--ccm-filter-gap);
+}
+
+.casa-col-filter__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  padding: 4px 0;
+  user-select: none;
+}
+
+.casa-col-filter__header::-webkit-details-marker {
+  display: none;
+}
+
+.casa-col-filter__label {
+  font-size: var(--ccm-font-sm);
+  font-weight: var(--ccm-fw-bold);
+  color: var(--ccm-text);
+  flex: 1;
+  text-transform: uppercase;
+  letter-spacing: var(--ccm-ls-caps);
+  line-height: 1.2;
+}
+
+.casa-col-filter__count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--ccm-checkbox-size);
+  height: var(--ccm-checkbox-size);
+  padding: 0 6px;
+  border-radius: calc(var(--ccm-checkbox-size) / 2);
+  background: var(--ccm-accent-1);
+  color: var(--ccm-text);
+  font-size: var(--ccm-font-xs);
+  font-weight: 700;
+}
+
+.casa-col-filter__chevron {
+  color: var(--ccm-text-muted);
+  transition: transform var(--ccm-trans-fast);
+  flex-shrink: 0;
+}
+
+.casa-col-filter[open] > .casa-col-filter__header .casa-col-filter__chevron {
+  transform: rotate(180deg);
+}
+
+.casa-col-filter__body {
+  padding-top: 10px;
+}
+
+/* Price range */
+.casa-col-filter__price-slider {
+  padding: 0 4px;
+  margin-bottom: 16px;
+}
+
+.casa-col-filter__price-track {
+  position: relative;
+  height: 4px;
+  background: var(--ccm-highlight-bg);
+  border-radius: 4px;
+}
+
+.casa-col-filter__price-fill {
+  position: absolute;
+  height: 100%;
+  background: linear-gradient(90deg, var(--ccm-accent-1), var(--ccm-accent-2));
+  border-radius: 4px;
+}
+
+.casa-col-filter__price-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  pointer-events: none;
+}
+
+.casa-col-filter__price-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: var(--ccm-icon-sm);
+  height: var(--ccm-icon-sm);
+  border-radius: 50%;
+  background: var(--ccm-text);
+  border: 3px solid var(--ccm-accent-1);
+  cursor: pointer;
+  pointer-events: all;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--ccm-overlay) 30%, transparent);
+}
+
+.casa-col-filter__price-thumb::-moz-range-thumb {
+  width: var(--ccm-icon-sm);
+  height: var(--ccm-icon-sm);
+  border-radius: 50%;
+  background: var(--ccm-text);
+  border: 3px solid var(--ccm-accent-1);
+  cursor: pointer;
+  pointer-events: all;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--ccm-overlay) 30%, transparent);
+}
+
+.casa-col-filter__price-inputs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.casa-col-filter__price-field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: var(--ccm-input-bg);
+  border: var(--ccm-border-w) solid var(--ccm-input-border);
+  border-radius: var(--ccm-radius-sm);
+  padding: 0 12px;
+  transition: border-color var(--ccm-trans-fast);
+}
+
+.casa-col-filter__price-field:focus-within {
+  border-color: color-mix(in srgb, var(--ccm-accent-1) 50%, transparent);
+}
+
+.casa-col-filter__price-currency {
+  color: var(--ccm-text-muted);
+  font-size: var(--ccm-font-sm);
+  margin-right: 4px;
+}
+
+.casa-col-filter__price-input {
+  background: transparent;
+  border: none;
+  color: var(--ccm-text);
+  font-size: var(--ccm-font-sm);
+  padding: 10px 0;
+  width: 100%;
+  outline: none;
+}
+
+.casa-col-filter__price-input::-webkit-inner-spin-button,
+.casa-col-filter__price-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.casa-col-filter__price-input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.casa-col-filter__price-sep {
+  color: var(--ccm-text-muted);
+  flex-shrink: 0;
+}
+
+/* Swatch grid */
+.casa-col-filter__swatch-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ccm-chip-gap);
+}
+
+.casa-col-filter__swatch {
+  position: relative;
+  cursor: pointer;
+}
+
+.casa-col-filter__swatch-color {
+  display: block;
+  width: var(--ccm-swatch-size);
+  height: var(--ccm-swatch-size);
+  border-radius: 50%;
+  border: var(--ccm-border-w) solid transparent;
+  box-shadow: inset 0 2px 4px color-mix(in srgb, var(--ccm-text) 15%, transparent), 0 0 0 1px var(--ccm-input-border);
+  transition: all var(--ccm-trans-fast);
+}
+
+.casa-col-filter__swatch-img {
+  display: block;
+  width: var(--ccm-swatch-size);
+  height: var(--ccm-swatch-size);
+  border-radius: 50%;
+  object-fit: cover;
+  border: var(--ccm-border-w) solid transparent;
+  transition: all var(--ccm-trans-fast);
+}
+
+.casa-col-filter__swatch:hover .casa-col-filter__swatch-color,
+.casa-col-filter__swatch:hover .casa-col-filter__swatch-img {
+  border-color: color-mix(in srgb, var(--ccm-text) 50%, transparent);
+  transform: scale(var(--ccm-hover-scale));
+}
+
+.casa-col-filter__swatch--active .casa-col-filter__swatch-color,
+.casa-col-filter__swatch--active .casa-col-filter__swatch-img {
+  border-color: var(--ccm-accent-1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ccm-accent-1) 30%, transparent);
+}
+
+.casa-col-filter__swatch--disabled {
+  opacity: var(--ccm-disabled-opacity);
+  pointer-events: none;
+}
+
+/* Chip buttons */
+.casa-col-filter__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ccm-chip-gap);
+}
+
+.casa-col-filter__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--ccm-chip-py) var(--ccm-chip-px);
+  border-radius: var(--ccm-radius-sm);
+  background: var(--ccm-input-bg);
+  border: var(--ccm-border-w) solid var(--ccm-input-border);
+  color: var(--ccm-text-muted);
+  font-size: calc(var(--ccm-font-sm) - 1px);
+  cursor: pointer;
+  transition: all var(--ccm-trans-fast);
+  line-height: 1.2;
+}
+
+.casa-col-filter__chip:hover {
+  background: var(--ccm-highlight-bg);
+  border-color: color-mix(in srgb, var(--ccm-text) 20%, transparent);
+  color: var(--ccm-text);
+}
+
+.casa-col-filter__chip--active {
+  background: color-mix(in srgb, var(--ccm-accent-1) 20%, transparent);
+  border-color: color-mix(in srgb, var(--ccm-accent-1) 40%, transparent);
+  color: var(--ccm-text);
+}
+
+.casa-col-filter__chip--disabled {
+  opacity: var(--ccm-disabled-opacity);
+  pointer-events: none;
+}
+
+.casa-col-filter__chip-icon svg {
+  display: block;
+}
+
+.casa-col-filter__chip-text {
+  white-space: nowrap;
+}
+
+/* Checkbox list */
+.casa-col-filter__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ccm-option-gap);
+}
+
+.casa-col-filter__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: var(--ccm-chip-py) 0;
+  cursor: pointer;
+  transition: color var(--ccm-trans-fast);
+  color: var(--ccm-text-muted);
+  font-size: var(--ccm-font-sm);
+  line-height: 1.2;
+}
+
+.casa-col-filter__option:hover {
+  color: var(--ccm-text);
+}
+
+.casa-col-filter__option--active {
+  color: var(--ccm-text);
+}
+
+.casa-col-filter__option--disabled {
+  opacity: var(--ccm-disabled-opacity);
+  pointer-events: none;
+}
+
+.casa-col-filter__option input[type="checkbox"] {
+  display: none;
+}
+
+.casa-col-filter__checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ccm-checkbox-size);
+  height: var(--ccm-checkbox-size);
+  border-radius: calc(var(--ccm-radius-sm) - 3px);
+  border: var(--ccm-border-w) solid var(--ccm-input-border);
+  background: transparent;
+  flex-shrink: 0;
+  transition: all var(--ccm-trans-fast);
+}
+
+.casa-col-filter__checkbox svg {
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all var(--ccm-trans-fast);
+  color: var(--ccm-text);
+}
+
+.casa-col-filter__option input:checked ~ .casa-col-filter__checkbox {
+  background: var(--ccm-accent-1);
+  border-color: var(--ccm-accent-1);
+}
+
+.casa-col-filter__option input:checked ~ .casa-col-filter__checkbox svg {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.casa-col-filter__option-text {
+  flex: 1;
+}
+
+.casa-col-filter__option-count {
+  font-size: var(--ccm-font-xs);
+  color: var(--ccm-text-muted);
+}
+
+/* Toggle switch */
+.casa-col-filter__toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: var(--ccm-chip-py) 0;
+  cursor: pointer;
+}
+
+.casa-col-filter__toggle-text {
+  flex: 1;
+  font-size: var(--ccm-font-sm);
+  color: var(--ccm-text-muted);
+}
+
+.casa-col-filter__toggle-switch {
+  position: relative;
+  width: var(--ccm-toggle-w);
+  height: var(--ccm-toggle-h);
+  flex-shrink: 0;
+}
+
+.casa-col-filter__toggle-switch input {
+  display: none;
+}
+
+.casa-col-filter__toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--ccm-highlight-bg);
+  border-radius: var(--ccm-radius-pill);
+  transition: background var(--ccm-trans-normal);
+  cursor: pointer;
+}
+
+.casa-col-filter__toggle-slider::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(var(--ccm-toggle-h) - 4px);
+  height: calc(var(--ccm-toggle-h) - 4px);
+  border-radius: 50%;
+  background: var(--ccm-text);
+  transition: transform var(--ccm-trans-normal);
+}
+
+.casa-col-filter__toggle-switch input:checked + .casa-col-filter__toggle-slider {
+  background: var(--ccm-accent-1);
+}
+
+.casa-col-filter__toggle-switch input:checked + .casa-col-filter__toggle-slider::after {
+  transform: translateX(calc(var(--ccm-toggle-w) - var(--ccm-toggle-h)));
+}
+
+/* ── ACTIVE FILTER PILLS ─────────────────────────────────────────────── */
+
+.casa-col-active {
+  display: flex;
+  align-items: center;
+  gap: var(--ccm-chip-gap);
+  flex-wrap: wrap;
+}
+
+.casa-col-active__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: color-mix(in srgb, var(--ccm-toolbar-bg) 50%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: var(--ccm-border-w) solid color-mix(in srgb, var(--ccm-toolbar-border) 50%, transparent);
+  border-radius: var(--ccm-radius-pill);
+  color: var(--ccm-text);
+  font-size: calc(var(--ccm-font-sm) - 1px);
+  text-decoration: none;
+  transition: all var(--ccm-trans-fast);
+  white-space: nowrap;
+}
+
+.casa-col-active__pill:hover {
+  background: color-mix(in srgb, var(--ccm-bg-secondary) 60%, transparent);
+  border-color: var(--ccm-remove-accent);
+  color: var(--ccm-remove-accent);
+}
+
+.casa-col-active__pill svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.casa-col-active__pill:hover svg {
+  opacity: 1;
+}
+
+.casa-col-active__clear {
+  font-size: calc(var(--ccm-font-sm) - 1px);
+  color: var(--ccm-text-muted);
+  text-decoration: none;
+  padding: 6px var(--ccm-chip-gap);
+  transition: color var(--ccm-trans-fast);
+}
+
+.casa-col-active__clear:hover {
+  color: var(--ccm-text);
+}
+
+/* ── COLLECTION BANNER (Unified) ────────────────────────────────────── */
+
+.casa-col-banner {
+  position: relative;
+  height: var(--cb-height, 280px);
+  border-radius: var(--cb-radius, 12px);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cb-bg, #0f0f18);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.casa-col-banner__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.casa-col-banner__media--mobile {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .casa-col-banner__media--desktop {
+    display: none;
+  }
+  .casa-col-banner__media--mobile {
+    display: block;
+  }
+}
+
+.casa-col-banner__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0, calc(var(--cb-overlay) * 0.5)) 0%, rgba(0,0,0, var(--cb-overlay)) 100%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.casa-col-banner__link {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+
+.casa-col-banner__content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 32px;
+  max-width: 560px;
+  color: var(--cb-text, #ffffff);
+}
+
+.casa-col-banner__content--center {
+  align-items: center;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.casa-col-banner__content--left {
+  align-items: flex-start;
+  margin-right: auto;
+}
+
+.casa-col-banner__content--right {
+  align-items: flex-end;
+  text-align: right;
+  margin-left: auto;
+}
+
+.casa-col-banner__content--bottom-left {
+  align-items: flex-start;
+  align-self: flex-end;
+  margin-right: auto;
+}
+
+.casa-col-banner__content--bottom-center {
+  align-items: center;
+  text-align: center;
+  align-self: flex-end;
+  margin: 0 auto;
+}
+
+.casa-col-banner__tag {
+  display: inline-flex;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: var(--cb-tag-bg, #9333ea);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.casa-col-banner__title {
+  margin: 0;
+  color: var(--cb-text, #ffffff);
+  font-size: clamp(20px, 2.5vw, 36px);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.3px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.casa-col-banner__subtitle {
+  margin: 0;
+  color: var(--cb-text, rgba(255, 255, 255, 0.8));
+  opacity: 0.85;
+  font-size: 14px;
+  line-height: 1.5;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.casa-col-banner__cta {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 24px;
+  margin-top: 4px;
+  border-radius: 8px;
+  background: var(--cb-btn-bg, #9333ea);
+  color: var(--cb-btn-text, #ffffff);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.casa-col-banner__cta:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+/* Banner grid item */
+.casa-col-main__grid-item--promo > a,
+.casa-col-main__grid-item--promo > div {
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 480px) {
+  .casa-col-banner__content {
+    padding: 20px;
+  }
+  .casa-col-banner__title {
+    font-size: 20px;
+  }
+  .casa-col-banner__cta {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── RESPONSIVE ──────────────────────────────────────────────────────── */
+
+@media (max-width: 1200px) {
+  .casa-col-main__toolbar {
+    padding: 16px 24px;
+  }
+  .casa-col-main__layout {
+    padding: 0 24px;
+  }
+  .casa-col-main__sidebar {
+    width: 240px;
+  }
+  .casa-col-main__grid {
+    --ccm-columns: 3;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 900px) {
+  .casa-col-main__filter-toggle {
+    display: flex;
+  }
+  .casa-col-main__sidebar {
+    display: none;
+  }
+  .casa-col-main__toolbar {
+    padding: 12px 16px;
+  }
+  .casa-col-main__layout {
+    padding: 0 16px;
+  }
+  .casa-col-main__grid-wrapper {
+    padding: 16px 0 0 0;
+  }
+  .casa-col-main__grid {
+    grid-template-columns: repeat(var(--ccm-columns-mobile), 1fr);
+    gap: 16px;
+  }
+  .casa-col-main__grid-item--promo {
+    grid-column: 1 / -1 !important;
+  }
+  .casa-col-main__view-toggle {
+    display: none;
+  }
+  .casa-col-main__count {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .casa-col-main__toolbar {
+    padding: 10px 12px;
+  }
+  .casa-col-main__layout {
+    padding: 0 12px;
+  }
+  .casa-col-main__grid {
+    gap: 12px;
+  }
+  .casa-col-main__active-filters-wrap {
+    display: none;
+  }
+  .casa-col-main__sort-select {
+    font-size: 13px;
+    padding: 6px 30px 6px 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .casa-col-main__drawer,
+  .casa-col-main__drawer-overlay,
+  .casa-col-main__grid-item,
+  .casa-col-banner,
+  .casa-col-banner__cta,
+  .casa-col-filter__chevron,
+  .casa-col-filter__toggle-slider,
+  .casa-col-filter__toggle-slider::after {
+    transition: none;
+  }
+}
+{% endstylesheet %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const section = document.getElementById('casa-collection-main');
+  if (!section) return;
+
+  const sectionId = section.dataset.sectionId;
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // AJAX FILTERING
+  // ═══════════════════════════════════════════════════════════════════════
+
+  const filterForm = section.querySelector('[data-filter-form]');
+  const gridWrapper = section.querySelector('[data-grid-wrapper]');
+  const activeFiltersContainer = section.querySelector('[data-active-filters-container]');
+  const productCountEl = section.querySelector('[data-product-count]');
+  let fetchController = null;
+
+  function getFilterURL() {
+    if (!filterForm) return window.location.pathname;
+    const formData = new FormData(filterForm);
+    const params = new URLSearchParams();
+
+    for (const [key, value] of formData.entries()) {
+      if (value !== '' && value !== null) {
+        params.append(key, value);
+      }
+    }
+
+    // Remove empty price filters
+    if (params.get('filter.v.price.gte') === '') params.delete('filter.v.price.gte');
+    if (params.get('filter.v.price.lte') === '') params.delete('filter.v.price.lte');
+
+    // Add sort
+    const sortSelect = section.querySelector('[data-sort-select]');
+    if (sortSelect && sortSelect.value) {
+      params.set('sort_by', sortSelect.value);
+    }
+
+    const url = window.location.pathname;
+    const paramString = params.toString();
+    return paramString ? url + '?' + paramString : url;
+  }
+
+  function updateSection(url) {
+    if (fetchController) fetchController.abort();
+    fetchController = new AbortController();
+
+    gridWrapper.classList.add('is-loading');
+
+    const fetchURL = url + (url.includes('?') ? '&' : '?') + 'section_id=' + sectionId;
+
+    fetch(fetchURL, { signal: fetchController.signal })
+      .then(res => res.text())
+      .then(html => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newSection = doc.getElementById('casa-collection-main');
+
+        if (newSection) {
+          // Update grid
+          const newGrid = newSection.querySelector('[data-grid-wrapper]');
+          if (newGrid && gridWrapper) {
+            gridWrapper.innerHTML = newGrid.innerHTML;
+          }
+
+          // Update active filters
+          const newActive = newSection.querySelector('[data-active-filters-container]');
+          if (newActive && activeFiltersContainer) {
+            activeFiltersContainer.innerHTML = newActive.innerHTML;
+          }
+
+          // Update product count
+          const newCount = newSection.querySelector('[data-product-count]');
+          if (newCount && productCountEl) {
+            productCountEl.textContent = newCount.textContent;
+          }
+
+          // Re-bind pagination links
+          bindPaginationLinks();
+          // Re-bind active filter removal
+          bindActiveFilterLinks();
+        }
+
+        gridWrapper.classList.remove('is-loading');
+        history.pushState(null, '', url);
+      })
+      .catch(err => {
+        if (err.name !== 'AbortError') {
+          gridWrapper.classList.remove('is-loading');
+          console.error('Filter update failed:', err);
+        }
+      });
+  }
+
+  // Debounce helper
+  let filterTimeout;
+  function debouncedUpdate() {
+    clearTimeout(filterTimeout);
+    filterTimeout = setTimeout(() => {
+      updateSection(getFilterURL());
+    }, 300);
+  }
+
+  // Listen for filter changes
+  if (filterForm) {
+    filterForm.addEventListener('change', function(e) {
+      if (e.target.matches('input, select')) {
+        debouncedUpdate();
+      }
+    });
+
+    filterForm.addEventListener('input', function(e) {
+      if (e.target.matches('.casa-col-filter__price-input')) {
+        debouncedUpdate();
+      }
+    });
+
+    filterForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      updateSection(getFilterURL());
+    });
+  }
+
+  // Sort change
+  const sortSelect = section.querySelector('[data-sort-select]');
+  if (sortSelect) {
+    sortSelect.addEventListener('change', function() {
+      updateSection(getFilterURL());
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ACTIVE FILTER REMOVAL (AJAX)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  function bindActiveFilterLinks() {
+    section.querySelectorAll('[data-filter-remove], [data-filter-clear]').forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        updateSection(this.href);
+      });
+    });
+  }
+  bindActiveFilterLinks();
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PAGINATION (AJAX)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  function bindPaginationLinks() {
+    section.querySelectorAll('[data-page-link]').forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        updateSection(this.href);
+        // Scroll to top of section
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+  bindPaginationLinks();
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // BACK/FORWARD NAVIGATION
+  // ═══════════════════════════════════════════════════════════════════════
+
+  window.addEventListener('popstate', function() {
+    updateSection(window.location.href);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // VIEW TOGGLE
+  // ═══════════════════════════════════════════════════════════════════════
+
+  section.querySelectorAll('[data-view]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      section.querySelectorAll('[data-view]').forEach(b => b.classList.remove('casa-col-main__view-btn--active'));
+      this.classList.add('casa-col-main__view-btn--active');
+
+      const view = this.dataset.view;
+      const grid = section.querySelector('[data-product-grid]');
+      if (!grid) return;
+
+      if (view === 'large') {
+        grid.style.setProperty('--ccm-columns', '2');
+      } else if (view === 'list') {
+        grid.style.setProperty('--ccm-columns', '1');
+      } else {
+        grid.style.removeProperty('--ccm-columns');
+      }
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // MOBILE FILTER DRAWER
+  // ═══════════════════════════════════════════════════════════════════════
+
+  const drawer = section.querySelector('[data-drawer]');
+  const drawerOverlay = section.querySelector('[data-drawer-overlay]');
+  const drawerBody = section.querySelector('[data-drawer-body]');
+  const openBtn = section.querySelector('[data-drawer-open]');
+  const closeBtn = section.querySelector('[data-drawer-close]');
+  const applyBtn = section.querySelector('[data-drawer-apply]');
+
+  function openDrawer() {
+    if (!drawer || !drawerBody || !filterForm) return;
+
+    // Clone filter form into drawer
+    const clone = filterForm.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.setAttribute('data-drawer-filter-form', '');
+    drawerBody.innerHTML = '';
+    drawerBody.appendChild(clone);
+
+    drawer.classList.add('is-open');
+    drawer.setAttribute('aria-hidden', 'false');
+    drawerOverlay.classList.add('is-visible');
+    document.body.style.overflow = 'hidden';
+
+    // Sync changes from drawer back to main form
+    clone.addEventListener('change', function(e) {
+      const name = e.target.name;
+      const value = e.target.value;
+      const checked = e.target.checked;
+      const mainInput = filterForm.querySelector('[name="' + name + '"][value="' + value + '"]');
+      if (mainInput) {
+        mainInput.checked = checked;
+      }
+    });
+  }
+
+  function closeDrawer() {
+    if (!drawer) return;
+    drawer.classList.remove('is-open');
+    drawer.setAttribute('aria-hidden', 'true');
+    drawerOverlay.classList.remove('is-visible');
+    document.body.style.overflow = '';
+  }
+
+  if (openBtn) openBtn.addEventListener('click', openDrawer);
+  if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+  if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
+  if (applyBtn) {
+    applyBtn.addEventListener('click', function() {
+      closeDrawer();
+      updateSection(getFilterURL());
+    });
+  }
+
+  // Close drawer on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && drawer && drawer.classList.contains('is-open')) {
+      closeDrawer();
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // PRICE SLIDER SYNC
+  // ═══════════════════════════════════════════════════════════════════════
+
+  section.querySelectorAll('.casa-col-filter__price-range').forEach(priceRange => {
+    const minThumb = priceRange.querySelector('.casa-col-filter__price-thumb--min');
+    const maxThumb = priceRange.querySelector('.casa-col-filter__price-thumb--max');
+    const fill = priceRange.querySelector('.casa-col-filter__price-fill');
+    const minInput = priceRange.querySelector('.casa-col-filter__price-input[name*="gte"]');
+    const maxInput = priceRange.querySelector('.casa-col-filter__price-input[name*="lte"]');
+
+    if (!minThumb || !maxThumb || !fill) return;
+
+    function updateFill() {
+      const min = parseFloat(minThumb.value);
+      const max = parseFloat(maxThumb.value);
+      const rangeMin = parseFloat(minThumb.min);
+      const rangeMax = parseFloat(minThumb.max);
+      const range = rangeMax - rangeMin;
+
+      const leftPct = ((min - rangeMin) / range) * 100;
+      const rightPct = ((max - rangeMin) / range) * 100;
+
+      fill.style.left = leftPct + '%';
+      fill.style.width = (rightPct - leftPct) + '%';
+    }
+
+    minThumb.addEventListener('input', function() {
+      if (parseFloat(this.value) > parseFloat(maxThumb.value)) {
+        this.value = maxThumb.value;
+      }
+      if (minInput) minInput.value = Math.ceil(this.value);
+      updateFill();
+    });
+
+    maxThumb.addEventListener('input', function() {
+      if (parseFloat(this.value) < parseFloat(minThumb.value)) {
+        this.value = minThumb.value;
+      }
+      if (maxInput) maxInput.value = Math.ceil(this.value);
+      updateFill();
+    });
+
+    if (minInput) {
+      minInput.addEventListener('input', function() {
+        minThumb.value = this.value;
+        updateFill();
+      });
+    }
+
+    if (maxInput) {
+      maxInput.addEventListener('input', function() {
+        maxThumb.value = this.value;
+        updateFill();
+      });
+    }
+
+    // Initial fill
+    updateFill();
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ENTRANCE ANIMATIONS
+  // ═══════════════════════════════════════════════════════════════════════
+
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+    section.querySelectorAll('.casa-col-main__grid-item').forEach(function(item, index) {
+      item.style.opacity = '0';
+      item.style.transform = 'translateY(20px)';
+      item.style.transition = 'opacity 0.4s ease ' + (index % 4) * 0.08 + 's, transform 0.4s ease ' + (index % 4) * 0.08 + 's';
+      observer.observe(item);
+    });
+  }
+});
+</script>

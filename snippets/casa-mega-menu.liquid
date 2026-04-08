@@ -1,0 +1,2763 @@
+{%- comment -%}
+  Seoul Glow Lab - Desktop Mega Menu (3 Variants + 6 Themes, Fully Customizable)
+
+  VARIANT = content layout (glow/lifestyle/support)
+  THEME = visual styling (dark-glow/white/gold/midnight/emerald/rose)
+
+  All text, URLs, video, product limits, and quick links are controlled via
+  the Header section schema. Quick links are pre-rendered block HTML.
+{%- endcomment -%}
+
+{%- liquid
+  comment
+    ═══════════════════════════════════════════════════════
+    STEP 1: Detect VARIANT (content layout)
+    ═══════════════════════════════════════════════════════
+  endcomment
+  assign menu_variant = 'glow'
+  assign _title_handle = link.title | downcase | handle
+
+  case _title_handle
+    when 'shop', 'shop-all', 'skincare', 'cleansers', 'serums', 'moisturizers', 'treatments', 'best-sellers', 'essences', 'toners', 'sunscreens', 'masks', 'exfoliators'
+      assign menu_variant = 'glow'
+    when 'new-arrivals', 'new', 'collections', 'routines', 'sets', 'bundles', 'k-beauty', 'trending'
+      assign menu_variant = 'lifestyle'
+    when 'about', 'about-us', 'customer-care', 'support', 'help', 'faq', 'contact', 'our-story'
+      assign menu_variant = 'support'
+  endcase
+
+  assign _collection = collections[link.handle]
+  if _collection and _collection.metafields.sgl.menu_style != blank
+    assign menu_variant = _collection.metafields.sgl.menu_style
+  endif
+
+  comment
+    ═══════════════════════════════════════════════════════
+    STEP 2: Detect THEME (visual styling)
+    Themes: dark-glow (default), white, gold, midnight, emerald, rose
+    ═══════════════════════════════════════════════════════
+  endcomment
+  assign menu_theme = 'dark-glow'
+
+  comment
+    Check for custom_menu_theme passed from header (block override)
+  endcomment
+  if custom_menu_theme != blank and custom_menu_theme != nil
+    assign menu_theme = custom_menu_theme
+  else
+    comment
+      Auto-detect theme by menu handle
+    endcomment
+    case _title_handle
+      when 'shop', 'shop-all', 'skincare', 'cleansers', 'serums', 'moisturizers'
+        assign menu_theme = 'dark-glow'
+      when 'essences', 'toners', 'exfoliators', 'eye-cream'
+        assign menu_theme = 'white'
+      when 'new-arrivals', 'new', 'trending', 'featured'
+        assign menu_theme = 'gold'
+      when 'treatments', 'masks', 'sunscreens', 'routines', 'sets'
+        assign menu_theme = 'midnight'
+      when 'best-sellers', 'popular', 'top-rated', 'k-beauty'
+        assign menu_theme = 'emerald'
+      when 'sale', 'clearance', 'deals', 'offers'
+        assign menu_theme = 'rose'
+      when 'about', 'about-us', 'customer-care', 'support', 'help', 'faq', 'contact', 'our-story'
+        assign menu_theme = 'dark-glow'
+    endcase
+
+    comment
+      Check collection metafield override
+    endcomment
+    if _collection and _collection.metafields.sgl.menu_theme != blank
+      assign menu_theme = _collection.metafields.sgl.menu_theme
+    endif
+  endif
+
+  assign has_custom_colors = false
+  if custom_accent_primary != blank and custom_accent_primary != nil
+    assign has_custom_colors = true
+  endif
+-%}
+
+{%- comment -%} Generate inline style for custom colors if provided {%- endcomment -%}
+{%- capture custom_color_style -%}
+  {%- if has_custom_colors -%}
+    --mega-accent-1: {{ custom_accent_primary }};
+    --mega-accent-2: {{ custom_accent_secondary | default: custom_accent_primary }};
+    --mega-accent-3: {{ custom_accent_tertiary | default: custom_accent_secondary | default: custom_accent_primary }};
+    --mega-accent-1-rgb: {{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }};
+    --mega-accent-2-rgb: {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'blue' }};
+    --mega-glow-1: rgba({{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }}, 0.15);
+    --mega-glow-2: rgba({{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'blue' }}, 0.1);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba({{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }}, 0.15), rgba({{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'blue' }}, 0.1));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba({{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }}, 0.2), rgba({{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'blue' }}, 0.15));
+    --mega-cat-icon-hover: linear-gradient(135deg, {{ custom_accent_primary }}, {{ custom_accent_secondary | default: custom_accent_primary }});
+    --mega-featured-bg: linear-gradient(135deg, rgba({{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }}, 0.15), rgba({{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'blue' }}, 0.1));
+    --mega-featured-label-color: {{ custom_accent_secondary | default: custom_accent_primary }};
+    --mega-featured-top-bar: linear-gradient(90deg, {{ custom_accent_primary }}, {{ custom_accent_secondary | default: custom_accent_primary }}, {{ custom_accent_tertiary | default: custom_accent_secondary | default: custom_accent_primary }});
+    --mega-card-hover-border: rgba({{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }}, 0.3);
+    --mega-link-color: {{ custom_accent_primary }};
+  {%- endif -%}
+{%- endcapture -%}
+
+<div class="casa-mega-menu casa-mega-menu--{{ menu_variant }} casa-mega-theme--{{ menu_theme }}"{% if has_custom_colors %} style="{{ custom_color_style | strip_newlines }}"{% endif %}>
+  <div class="casa-mega-inner">
+
+    {%- comment -%} ── Left Column: Categories ── {%- endcomment -%}
+    <div class="casa-mega-categories">
+      <div class="casa-mega-section-title">
+        {%- if menu_variant == 'support' -%}{{ categories_title_support | default: 'Help Topics' }}
+        {%- elsif menu_variant == 'lifestyle' -%}{{ categories_title_lifestyle | default: 'Collections' }}
+        {%- else -%}{{ categories_title_glow | default: 'Categories' }}
+        {%- endif -%}
+      </div>
+      <div class="casa-mega-cat-list">
+        {%- for child_link in link.links -%}
+          {%- comment -%} Extract real handle from URL (more reliable than link.handle which derives from title) {%- endcomment -%}
+          {%- assign _child_url_parts = child_link.url | split: '/' -%}
+          {%- assign _child_url_handle = _child_url_parts | last -%}
+          {%- assign child_collection = collections[_child_url_handle] -%}
+          {%- assign child_page = pages[_child_url_handle] -%}
+          {%- assign child_cat_image = nil -%}
+          {%- if child_collection != blank and child_collection.image != blank -%}
+            {%- assign child_cat_image = child_collection.image -%}
+          {%- endif -%}
+          {%- if child_cat_image == blank and child_page != blank and child_page.metafields.custom.page_image != blank -%}
+            {%- assign child_cat_image = child_page.metafields.custom.page_image.value -%}
+          {%- endif -%}
+          {%- assign child_icon = 'hexagon' -%}
+          {%- assign badge_text = '' -%}
+          {%- if child_collection.metafields.sgl.badge != blank -%}
+            {%- assign badge_text = child_collection.metafields.sgl.badge -%}
+          {%- endif -%}
+          {%- if child_collection.metafields.sgl.icon != blank -%}
+            {%- assign child_icon = child_collection.metafields.sgl.icon -%}
+          {%- endif -%}
+
+          {%- comment -%} Auto-assign skincare icons based on handle {%- endcomment -%}
+          {%- if menu_variant != 'support' and child_collection.metafields.sgl.icon == blank -%}
+            {%- case _child_url_handle -%}
+              {%- when 'all', 'shop-all', 'skincare' -%}{%- assign child_icon = 'sparkles' -%}
+              {%- when 'cleansers', 'cleanser', 'cleansing' -%}{%- assign child_icon = 'droplet' -%}
+              {%- when 'serums', 'serum', 'ampoules' -%}{%- assign child_icon = 'flask' -%}
+              {%- when 'moisturizers', 'moisturizer', 'cream', 'creams' -%}{%- assign child_icon = 'moon' -%}
+              {%- when 'essences', 'essence', 'toners', 'toner' -%}{%- assign child_icon = 'droplet' -%}
+              {%- when 'sunscreens', 'sunscreen', 'spf', 'sun-care' -%}{%- assign child_icon = 'sun' -%}
+              {%- when 'masks', 'mask', 'sheet-masks' -%}{%- assign child_icon = 'heart' -%}
+              {%- when 'exfoliators', 'exfoliator', 'peels' -%}{%- assign child_icon = 'refresh' -%}
+              {%- when 'eye-cream', 'eye-care' -%}{%- assign child_icon = 'eye' -%}
+              {%- when 'treatments', 'treatment' -%}{%- assign child_icon = 'zap' -%}
+              {%- when 'sets', 'bundles', 'routines', 'routine' -%}{%- assign child_icon = 'grid' -%}
+              {%- when 'new-arrivals', 'new' -%}{%- assign child_icon = 'sparkles' -%}
+              {%- when 'best-sellers', 'bestsellers', 'popular' -%}{%- assign child_icon = 'star' -%}
+              {%- when 'sale', 'on-sale', 'clearance' -%}{%- assign child_icon = 'tag' -%}
+              {%- when 'k-beauty', 'korean-skincare' -%}{%- assign child_icon = 'heart' -%}
+              {%- when 'tools', 'accessories' -%}{%- assign child_icon = 'box' -%}
+            {%- endcase -%}
+          {%- endif -%}
+
+          {%- comment -%} Auto-assign support icons based on handle {%- endcomment -%}
+          {%- if menu_variant == 'support' -%}
+            {%- case _child_url_handle -%}
+              {%- when 'contact', 'contact-us' -%}{%- assign child_icon = 'headphones' -%}
+              {%- when 'shipping', 'shipping-policy' -%}{%- assign child_icon = 'truck' -%}
+              {%- when 'returns', 'refund-policy', 'refunds-returns' -%}{%- assign child_icon = 'refresh' -%}
+              {%- when 'warranty' -%}{%- assign child_icon = 'shield-check' -%}
+              {%- when 'faq' -%}{%- assign child_icon = 'search' -%}
+              {%- when 'our-story', 'about', 'about-us' -%}{%- assign child_icon = 'users' -%}
+              {%- when 'track-order', 'order-status' -%}{%- assign child_icon = 'package' -%}
+              {%- when 'customer-reviews', 'reviews' -%}{%- assign child_icon = 'star' -%}
+              {%- when 'skin-quiz', 'quiz' -%}{%- assign child_icon = 'search' -%}
+            {%- endcase -%}
+          {%- endif -%}
+
+          <a href="{{ child_link.url }}" class="casa-mega-cat-item">
+            {%- assign child_cat_image_url = child_cat_image | image_url: width: 88, height: 88, crop: 'center' -%}
+            <div class="casa-mega-cat-icon{% if child_cat_image_url != blank %} casa-mega-cat-icon--has-image{% endif %}">
+              {%- if child_cat_image_url != blank -%}
+                <img
+                  src="{{ child_cat_image_url }}"
+                  alt="{{ child_link.title | escape }}"
+                  width="44"
+                  height="44"
+                  loading="lazy"
+                  class="casa-mega-cat-img"
+                >
+              {%- else -%}
+                {%- render 'casa-icon', icon: child_icon, size: 22 -%}
+              {%- endif -%}
+            </div>
+            <div class="casa-mega-cat-content">
+              <div class="casa-mega-cat-name">{{ child_link.title }}</div>
+              {%- if menu_variant == 'support' -%}
+                <div class="casa-mega-cat-count">
+                  {%- if child_collection.metafields.sgl.description != blank -%}
+                    {{ child_collection.metafields.sgl.description }}
+                  {%- else -%}
+                    {{ support_fallback_description | default: 'Learn more' }}
+                  {%- endif -%}
+                </div>
+              {%- elsif child_collection -%}
+                <div class="casa-mega-cat-count">{{ child_collection.products_count }} products</div>
+              {%- endif -%}
+            </div>
+            {%- if badge_text != blank -%}
+              <span class="casa-mega-cat-badge casa-mega-cat-badge--{{ badge_text | downcase }}">{{ badge_text }}</span>
+            {%- endif -%}
+            <div class="casa-mega-cat-arrow">
+              {%- render 'casa-icon', icon: 'chevron-right', size: 20 -%}
+            </div>
+          </a>
+        {%- endfor -%}
+      </div>
+    </div>
+
+    {%- comment -%} ── Center Column ── {%- endcomment -%}
+    <div class="casa-mega-products">
+      {%- if menu_variant == 'support' -%}
+        {%- comment -%} ── Support: FAQ / Help Cards ── {%- endcomment -%}
+        <div class="casa-mega-products-header">
+          <span class="casa-mega-section-title" style="margin-bottom:0;">{{ quick_help_title | default: 'Quick Help' }}</span>
+        </div>
+        <div class="casa-mega-faq-grid">
+          {%- for child_link in link.links limit: 4 -%}
+            {%- assign faq_icon = 'search' -%}
+            {%- assign faq_collection = collections[child_link.handle] -%}
+            {%- case _child_url_handle -%}
+              {%- when 'contact', 'contact-us' -%}{%- assign faq_icon = 'headphones' -%}
+              {%- when 'shipping', 'shipping-policy' -%}{%- assign faq_icon = 'truck' -%}
+              {%- when 'returns', 'refund-policy', 'refunds-returns' -%}{%- assign faq_icon = 'refresh' -%}
+              {%- when 'warranty' -%}{%- assign faq_icon = 'shield-check' -%}
+              {%- when 'faq' -%}{%- assign faq_icon = 'search' -%}
+              {%- when 'our-story', 'about' -%}{%- assign faq_icon = 'users' -%}
+              {%- when 'customer-reviews', 'reviews' -%}{%- assign faq_icon = 'star' -%}
+              {%- when 'installation', 'apollo-installation' -%}{%- assign faq_icon = 'zap' -%}
+            {%- endcase -%}
+            <a href="{{ child_link.url }}" class="casa-mega-faq-card">
+              <div class="casa-mega-faq-icon">
+                {%- render 'casa-icon', icon: faq_icon, size: 20 -%}
+              </div>
+              <div class="casa-mega-faq-title">{{ child_link.title }}</div>
+              <div class="casa-mega-faq-desc">
+                {%- if faq_collection.metafields.sgl.description != blank -%}
+                  {{ faq_collection.metafields.sgl.description }}
+                {%- else -%}
+                  {{ support_fallback_description | default: 'Quick help & resources' }}
+                {%- endif -%}
+              </div>
+              <span class="casa-mega-faq-arrow">
+                {%- render 'casa-icon', icon: 'arrow-right', size: 14 -%}
+              </span>
+            </a>
+          {%- endfor -%}
+        </div>
+
+      {%- else -%}
+        {%- comment -%} ── Glow & Lifestyle: Products Grid ── {%- endcomment -%}
+        {%- comment -%} Select collection: custom per-menu override > variant default {%- endcomment -%}
+        {%- liquid
+          if custom_collection != blank
+            assign _active_collection = collections[custom_collection]
+          elsif menu_variant == 'lifestyle'
+            assign _active_collection = collections[collection_lifestyle]
+          else
+            assign _active_collection = collections[collection_glow]
+          endif
+        -%}
+        <div class="casa-mega-products-header">
+          <span class="casa-mega-section-title" style="margin-bottom:0;">
+            {%- if custom_products_title != blank -%}
+              {{ custom_products_title }}
+            {%- elsif menu_variant == 'lifestyle' -%}
+              {{ products_title_lifestyle | default: 'Curated Picks' }}
+            {%- else -%}
+              {{ products_title_glow | default: 'Trending Now' }}
+            {%- endif -%}
+          </span>
+          {%- if _active_collection != blank -%}
+            <a href="{{ _active_collection.url }}" class="casa-mega-products-link">
+              View All {%- render 'casa-icon', icon: 'arrow-right', size: 14 -%}
+            </a>
+          {%- endif -%}
+        </div>
+        <div class="casa-mega-products-grid" data-columns="{{ products_per_row | default: 'auto' }}">
+          {%- assign mega_collection = _active_collection -%}
+          {%- if mega_collection -%}
+            {%- assign _product_limit = custom_product_limit | default: nil -%}
+            {%- if _product_limit == nil -%}
+              {%- if menu_variant == 'lifestyle' -%}{%- assign _product_limit = product_limit_lifestyle | default: 4 -%}
+              {%- else -%}{%- assign _product_limit = product_limit_glow | default: 6 -%}{%- endif -%}
+            {%- endif -%}
+            {%- for product in mega_collection.products limit: _product_limit -%}
+              <a href="{{ product.url }}" class="casa-mega-product-card">
+                <div class="casa-mega-product-img">
+                  {%- if product.featured_image != blank -%}
+                    {{ product.featured_image | image_url: width: 300 | image_tag: loading: 'lazy', class: 'casa-mega-product-photo' }}
+                  {%- else -%}
+                    <div class="casa-octagon" style="width:60%;height:60%;background:conic-gradient(from var(--angle),var(--mega-accent-1),var(--mega-accent-2),var(--mega-accent-3),var(--mega-accent-1));animation:casa-rotate 8s linear infinite;"></div>
+                  {%- endif -%}
+
+                  {%- if product.tags contains 'bestseller' -%}
+                    <span class="casa-mega-product-badge casa-mega-product-badge--bestseller">Bestseller</span>
+                  {%- elsif product.tags contains 'new' -%}
+                    <span class="casa-mega-product-badge casa-mega-product-badge--new">New</span>
+                  {%- elsif product.compare_at_price > product.price -%}
+                    {%- assign discount = product.compare_at_price | minus: product.price | times: 100 | divided_by: product.compare_at_price -%}
+                    <span class="casa-mega-product-badge casa-mega-product-badge--sale">-{{ discount }}%</span>
+                  {%- endif -%}
+                </div>
+                <div class="casa-mega-product-name">{{ product.title }}</div>
+                <div class="casa-mega-product-price">
+                  <span class="casa-mega-product-price-current">{{ product.price | money }}</span>
+                  {%- if product.compare_at_price > product.price -%}
+                    <span class="casa-mega-product-price-original">{{ product.compare_at_price | money }}</span>
+                  {%- endif -%}
+                </div>
+              </a>
+            {%- endfor -%}
+          {%- else -%}
+            {%- assign _placeholder_limit = product_limit_glow | default: 6 -%}
+            {%- if menu_variant == 'lifestyle' -%}{%- assign _placeholder_limit = product_limit_lifestyle | default: 4 -%}{%- endif -%}
+            {%- for i in (1.._placeholder_limit) -%}
+              <div class="casa-mega-product-card casa-mega-product-card--placeholder">
+                <div class="casa-mega-product-img">
+                  <div class="casa-octagon" style="width:60%;height:60%;background:conic-gradient(from var(--angle),var(--mega-accent-1),var(--mega-accent-2),var(--mega-accent-3),var(--mega-accent-1));animation:casa-rotate 8s linear infinite;"></div>
+                </div>
+                <div class="casa-mega-product-name">Product {{ i }}</div>
+                <div class="casa-mega-product-price">
+                  <span class="casa-mega-product-price-current">$0.00</span>
+                </div>
+              </div>
+            {%- endfor -%}
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} ── Right Column: Featured Area ── {%- endcomment -%}
+    <div class="casa-mega-featured">
+      {%- if menu_variant == 'support' -%}
+        {%- comment -%} ── Support: Contact Us Card ── {%- endcomment -%}
+        <div class="casa-mega-featured-card">
+          {%- if featured_label_support != blank -%}
+            <span class="casa-mega-featured-label">
+              {%- render 'casa-icon', icon: 'headphones', size: 14 -%}
+              {{ featured_label_support }}
+            </span>
+          {%- endif -%}
+          {%- if support_title != blank -%}
+            <h3 class="casa-mega-featured-title">{{ support_title }}</h3>
+          {%- endif -%}
+          {%- if support_description != blank -%}
+            <p class="casa-mega-featured-desc">{{ support_description }}</p>
+          {%- endif -%}
+          <div class="casa-mega-contact-methods">
+            {%- if support_email != blank -%}
+              <a href="mailto:{{ support_email }}" class="casa-mega-contact-item">
+                {%- render 'casa-icon', icon: 'mail', size: 18 -%}
+                <span>{{ support_email }}</span>
+              </a>
+            {%- endif -%}
+            {%- if support_phone != blank -%}
+              <a href="tel:{{ support_phone | remove: ' ' | remove: '(' | remove: ')' | remove: '-' }}" class="casa-mega-contact-item">
+                {%- render 'casa-icon', icon: 'smartphone', size: 18 -%}
+                <span>{{ support_phone }}</span>
+              </a>
+            {%- endif -%}
+            {%- if support_chat_label != blank -%}
+              <a href="{{ support_chat_link | default: '/pages/contact' }}" class="casa-mega-contact-item">
+                {%- render 'casa-icon', icon: 'message-circle', size: 18 -%}
+                <span>{{ support_chat_label }}</span>
+              </a>
+            {%- endif -%}
+          </div>
+          {%- if support_btn_text != blank -%}
+          <div class="casa-mega-featured-cta">
+            <a href="{{ support_btn_link | default: '/pages/contact' }}" class="casa-mega-featured-btn casa-mega-featured-btn--primary">
+              {{ support_btn_text }} {%- render 'casa-icon', icon: 'arrow-right', size: 16 -%}
+            </a>
+          </div>
+          {%- endif -%}
+        </div>
+
+      {%- elsif menu_variant == 'lifestyle' -%}
+        {%- comment -%} ── Lifestyle: Style Inspiration Card ── {%- endcomment -%}
+        <div class="casa-mega-featured-card">
+          {%- if featured_label_lifestyle != blank -%}
+            <span class="casa-mega-featured-label">
+              {%- render 'casa-icon', icon: 'eye', size: 14 -%}
+              {{ featured_label_lifestyle }}
+            </span>
+          {%- endif -%}
+          {%- if lifestyle_title != blank -%}
+            <h3 class="casa-mega-featured-title">{{ lifestyle_title }}</h3>
+          {%- endif -%}
+          {%- if lifestyle_subtitle != blank -%}
+            <p class="casa-mega-featured-desc">{{ lifestyle_subtitle }}</p>
+          {%- endif -%}
+          <div class="casa-mega-featured-visual">
+            {%- if lifestyle_image -%}
+              {{ lifestyle_image | image_url: width: 600 | image_tag: loading: 'lazy' }}
+            {%- elsif lifestyle_video_url != blank -%}
+              <video class="casa-mega-featured-video" autoplay loop muted playsinline>
+                <source src="{{ lifestyle_video_url }}" type="video/mp4">
+              </video>
+            {%- else -%}
+              <div class="casa-mega-featured-lifestyle-placeholder">
+                {%- render 'casa-icon', icon: 'sun', size: 40 -%}
+              </div>
+            {%- endif -%}
+          </div>
+          <div class="casa-mega-featured-cta">
+            {%- if lifestyle_btn_primary != blank -%}
+              <a href="{{ lifestyle_link | default: '/pages/inspiration' }}" class="casa-mega-featured-btn casa-mega-featured-btn--primary">
+                {{ lifestyle_btn_primary }} {%- render 'casa-icon', icon: 'arrow-right', size: 16 -%}
+              </a>
+            {%- endif -%}
+            {%- if lifestyle_btn_secondary != blank -%}
+              <a href="{{ lifestyle_btn_secondary_link | default: '/collections' }}" class="casa-mega-featured-btn casa-mega-featured-btn--secondary">
+                {{ lifestyle_btn_secondary }}
+              </a>
+            {%- endif -%}
+          </div>
+        </div>
+
+      {%- else -%}
+        {%- comment -%} ── Glow: Featured Collection Promo (default) ── {%- endcomment -%}
+        <div class="casa-mega-featured-card">
+          {%- if featured_label_glow != blank -%}
+            <span class="casa-mega-featured-label">
+              {%- render 'casa-icon', icon: 'sparkles', size: 14 -%}
+              {{ featured_label_glow }}
+            </span>
+          {%- endif -%}
+          {%- if promo_title != blank -%}
+            <h3 class="casa-mega-featured-title">{{ promo_title }}</h3>
+          {%- endif -%}
+          {%- if promo_subtitle != blank -%}
+            <p class="casa-mega-featured-desc">{{ promo_subtitle }}</p>
+          {%- endif -%}
+          <div class="casa-mega-featured-visual">
+            {%- if promo_image -%}
+              {{ promo_image | image_url: width: 600 | image_tag: loading: 'lazy' }}
+            {%- elsif video_url != blank -%}
+              <video class="casa-mega-featured-video" autoplay loop muted playsinline>
+                <source src="{{ video_url }}" type="video/mp4">
+              </video>
+            {%- else -%}
+              <div class="casa-mega-featured-lifestyle-placeholder">
+                {%- render 'casa-icon', icon: 'sparkles', size: 40 -%}
+              </div>
+            {%- endif -%}
+          </div>
+          <div class="casa-mega-featured-cta">
+            {%- if promo_btn_primary != blank -%}
+              <a href="{{ promo_link | default: '/collections/all' }}" class="casa-mega-featured-btn casa-mega-featured-btn--primary">
+                {{ promo_btn_primary }} {%- render 'casa-icon', icon: 'arrow-right', size: 16 -%}
+              </a>
+            {%- endif -%}
+            {%- if promo_btn_secondary != blank -%}
+              <a href="{{ promo_btn_secondary_link | default: '/collections' }}" class="casa-mega-featured-btn casa-mega-featured-btn--secondary">
+                {{ promo_btn_secondary }}
+              </a>
+            {%- endif -%}
+          </div>
+        </div>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} ── Bottom: Quick Links (pre-rendered from blocks) ── {%- endcomment -%}
+    {%- assign _support_links = support_quick_links_html | strip -%}
+    {%- assign _lifestyle_links = lifestyle_quick_links_html | strip -%}
+    {%- assign _glow_links = glow_quick_links_html | strip -%}
+    {%- if menu_variant == 'support' and _support_links != blank -%}
+      <div class="casa-mega-quick">{{ support_quick_links_html }}</div>
+    {%- elsif menu_variant == 'lifestyle' and _lifestyle_links != blank -%}
+      <div class="casa-mega-quick">{{ lifestyle_quick_links_html }}</div>
+    {%- elsif _glow_links != blank -%}
+      <div class="casa-mega-quick">{{ glow_quick_links_html }}</div>
+    {%- endif -%}
+
+  </div>
+</div>
+
+{% stylesheet %}
+  /* ═══════════════════════════════════════════════════════
+     VARIANT COLOR SYSTEM
+     Colors are inherited from parent .casa-header-section CSS vars
+     ═══════════════════════════════════════════════════════ */
+
+  /* ── Glow (default): Purple + Pink ── */
+  .casa-mega-menu--glow {
+    --mega-accent-1: var(--casa-glow-primary, #9333ea);
+    --mega-accent-2: var(--casa-glow-secondary, #ec4899);
+    --mega-accent-3: var(--casa-support-primary, #06b6d4);
+    --mega-accent-1-rgb: var(--casa-glow-primary-rgb, 147, 51, 234);
+    --mega-accent-2-rgb: var(--casa-glow-secondary-rgb, 236, 72, 153);
+    --mega-glow-1: rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.15);
+    --mega-glow-2: rgba(var(--casa-glow-secondary-rgb, 236, 72, 153), 0.1);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.15), rgba(var(--casa-glow-secondary-rgb, 236, 72, 153), 0.1));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.2), rgba(var(--casa-glow-secondary-rgb, 236, 72, 153), 0.15));
+    --mega-cat-icon-hover: linear-gradient(135deg, var(--casa-glow-primary, #9333ea), var(--casa-glow-secondary, #ec4899));
+    --mega-featured-bg: linear-gradient(135deg, rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.15), rgba(var(--casa-glow-secondary-rgb, 236, 72, 153), 0.1));
+    --mega-featured-label-color: var(--casa-glow-secondary, #ec4899);
+    --mega-featured-top-bar: linear-gradient(90deg, var(--casa-glow-primary, #9333ea), var(--casa-glow-secondary, #ec4899), var(--casa-support-primary, #06b6d4));
+    --mega-card-hover-border: rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.3);
+    --mega-link-color: var(--casa-glow-primary, #9333ea);
+  }
+
+  /* ── Lifestyle: Gold + Amber ── */
+  .casa-mega-menu--lifestyle {
+    --mega-accent-1: var(--casa-lifestyle-primary, #f59e0b);
+    --mega-accent-2: var(--casa-lifestyle-secondary, #d97706);
+    --mega-accent-3: #fbbf24;
+    --mega-accent-1-rgb: var(--casa-lifestyle-primary-rgb, 245, 158, 11);
+    --mega-accent-2-rgb: var(--casa-lifestyle-secondary-rgb, 217, 119, 6);
+    --mega-glow-1: rgba(var(--casa-lifestyle-primary-rgb, 245, 158, 11), 0.12);
+    --mega-glow-2: rgba(var(--casa-lifestyle-secondary-rgb, 217, 119, 6), 0.08);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(var(--casa-lifestyle-primary-rgb, 245, 158, 11), 0.12), rgba(var(--casa-lifestyle-secondary-rgb, 217, 119, 6), 0.08));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(var(--casa-lifestyle-primary-rgb, 245, 158, 11), 0.15), rgba(var(--casa-lifestyle-secondary-rgb, 217, 119, 6), 0.1));
+    --mega-cat-icon-hover: linear-gradient(135deg, var(--casa-lifestyle-primary, #f59e0b), var(--casa-lifestyle-secondary, #d97706));
+    --mega-featured-bg: linear-gradient(135deg, rgba(var(--casa-lifestyle-primary-rgb, 245, 158, 11), 0.12), rgba(var(--casa-lifestyle-secondary-rgb, 217, 119, 6), 0.08));
+    --mega-featured-label-color: var(--casa-lifestyle-primary, #f59e0b);
+    --mega-featured-top-bar: linear-gradient(90deg, var(--casa-lifestyle-primary, #f59e0b), var(--casa-lifestyle-secondary, #d97706), #fbbf24);
+    --mega-card-hover-border: rgba(var(--casa-lifestyle-primary-rgb, 245, 158, 11), 0.3);
+    --mega-link-color: var(--casa-lifestyle-primary, #f59e0b);
+  }
+
+  /* ── Support: Teal + Cyan ── */
+  .casa-mega-menu--support {
+    --mega-accent-1: var(--casa-support-primary, #06b6d4);
+    --mega-accent-2: var(--casa-support-secondary, #0891b2);
+    --mega-accent-3: #67e8f9;
+    --mega-accent-1-rgb: var(--casa-support-primary-rgb, 6, 182, 212);
+    --mega-accent-2-rgb: var(--casa-support-secondary-rgb, 8, 145, 178);
+    --mega-glow-1: rgba(var(--casa-support-primary-rgb, 6, 182, 212), 0.1);
+    --mega-glow-2: rgba(var(--casa-support-secondary-rgb, 8, 145, 178), 0.06);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(var(--casa-support-primary-rgb, 6, 182, 212), 0.1), rgba(var(--casa-support-secondary-rgb, 8, 145, 178), 0.06));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(var(--casa-support-primary-rgb, 6, 182, 212), 0.15), rgba(var(--casa-support-secondary-rgb, 8, 145, 178), 0.1));
+    --mega-cat-icon-hover: linear-gradient(135deg, var(--casa-support-primary, #06b6d4), var(--casa-support-secondary, #0891b2));
+    --mega-featured-bg: linear-gradient(135deg, rgba(var(--casa-support-primary-rgb, 6, 182, 212), 0.1), rgba(var(--casa-support-secondary-rgb, 8, 145, 178), 0.06));
+    --mega-featured-label-color: #ffffff;
+    --mega-featured-top-bar: linear-gradient(90deg, var(--casa-support-primary, #06b6d4), var(--casa-support-secondary, #0891b2), #67e8f9);
+    --mega-card-hover-border: rgba(var(--casa-support-primary-rgb, 6, 182, 212), 0.3);
+    --mega-link-color: var(--casa-support-primary, #06b6d4);
+  }
+
+  /* Support variant: wider card column + taller menu to fit contact info */
+  .casa-mega-menu--support {
+    max-height: clamp(600px, 85vh, 820px);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .casa-mega-menu--support::-webkit-scrollbar {
+    display: none;
+  }
+  .casa-mega-menu--support .casa-mega-inner {
+    grid-template-columns: minmax(0, 18%) minmax(0, 1fr) minmax(0, 38%);
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* Support featured area: remove clipping so all content shows */
+  .casa-mega-menu--support .casa-mega-featured {
+    overflow: visible;
+  }
+  .casa-mega-menu--support .casa-mega-featured-card {
+    overflow: visible;
+  }
+
+  /* Support featured card: white text and icons */
+  .casa-mega-menu--support .casa-mega-featured-card .casa-mega-featured-label {
+    color: #ffffff;
+  }
+  .casa-mega-menu--support .casa-mega-featured-card .casa-mega-featured-label svg {
+    color: #ffffff;
+  }
+  .casa-mega-menu--support .casa-mega-contact-item svg {
+    color: #ffffff;
+  }
+  .casa-mega-menu--support .casa-mega-contact-item {
+    color: #ffffff;
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     THEME SYSTEM (Visual Styling)
+     Themes control background, borders, text colors
+     Works independently from variant (content layout)
+     ═══════════════════════════════════════════════════════ */
+
+  /* ── Theme 1: Dark Glow (default) - Purple/Pink neon on dark ── */
+  .casa-mega-theme--dark-glow {
+    --theme-bg: linear-gradient(180deg, rgba(15, 15, 24, 0.98) 0%, rgba(10, 10, 15, 0.99) 100%);
+    --theme-border: rgba(255, 255, 255, 0.08);
+    --theme-text: #ffffff;
+    --theme-text-muted: rgba(255, 255, 255, 0.4);
+    --theme-card-bg: rgba(255, 255, 255, 0.03);
+    --theme-card-border: rgba(255, 255, 255, 0.06);
+    --theme-card-hover-bg: rgba(255, 255, 255, 0.06);
+    --theme-divider: rgba(255, 255, 255, 0.08);
+    --theme-btn-primary-bg: #ffffff;
+    --theme-btn-primary-text: #0a0a0f;
+    --theme-btn-secondary-bg: rgba(255, 255, 255, 0.1);
+    --theme-btn-secondary-text: #ffffff;
+    --theme-btn-secondary-border: rgba(255, 255, 255, 0.2);
+    --theme-scrollbar-track: rgba(255, 255, 255, 0.03);
+  }
+
+  /* ── Theme 2: White (Sophisticated) - Light elegant background ── */
+  .casa-mega-theme--white {
+    --theme-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 250, 252, 0.99) 100%);
+    --theme-border: rgba(0, 0, 0, 0.08);
+    --theme-text: #1a1a2e;
+    --theme-text-muted: rgba(26, 26, 46, 0.5);
+    --theme-card-bg: rgba(0, 0, 0, 0.02);
+    --theme-card-border: rgba(0, 0, 0, 0.06);
+    --theme-card-hover-bg: rgba(0, 0, 0, 0.04);
+    --theme-divider: rgba(0, 0, 0, 0.08);
+    --theme-btn-primary-bg: #1a1a2e;
+    --theme-btn-primary-text: #ffffff;
+    --theme-btn-secondary-bg: rgba(0, 0, 0, 0.05);
+    --theme-btn-secondary-text: #1a1a2e;
+    --theme-btn-secondary-border: rgba(0, 0, 0, 0.15);
+    --theme-scrollbar-track: rgba(0, 0, 0, 0.05);
+    /* Override accent colors for light theme elegance */
+    --mega-accent-1: #8b5cf6;
+    --mega-accent-2: #a855f7;
+    --mega-accent-3: #c084fc;
+    --mega-accent-1-rgb: 139, 92, 246;
+    --mega-accent-2-rgb: 168, 85, 247;
+    --mega-glow-1: rgba(139, 92, 246, 0.08);
+    --mega-glow-2: rgba(168, 85, 247, 0.05);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(168, 85, 247, 0.05));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(168, 85, 247, 0.08));
+    --mega-cat-icon-hover: linear-gradient(135deg, #8b5cf6, #a855f7);
+    --mega-featured-bg: linear-gradient(135deg, rgba(139, 92, 246, 0.06), rgba(168, 85, 247, 0.04));
+    --mega-featured-label-color: #8b5cf6;
+    --mega-featured-top-bar: linear-gradient(90deg, #8b5cf6, #a855f7, #c084fc);
+    --mega-card-hover-border: rgba(139, 92, 246, 0.2);
+    --mega-link-color: #7c3aed;
+  }
+
+  /* ── Theme 3: Gold (Luxe) - Dark with gold metallic accents ── */
+  .casa-mega-theme--gold {
+    --theme-bg: linear-gradient(180deg, rgba(20, 18, 12, 0.98) 0%, rgba(15, 13, 8, 0.99) 100%);
+    --theme-border: rgba(212, 175, 55, 0.15);
+    --theme-text: #fef3c7;
+    --theme-text-muted: rgba(254, 243, 199, 0.5);
+    --theme-card-bg: rgba(212, 175, 55, 0.05);
+    --theme-card-border: rgba(212, 175, 55, 0.1);
+    --theme-card-hover-bg: rgba(212, 175, 55, 0.1);
+    --theme-divider: rgba(212, 175, 55, 0.12);
+    --theme-btn-primary-bg: linear-gradient(135deg, #d4af37, #f4d03f);
+    --theme-btn-primary-text: #1a1408;
+    --theme-btn-secondary-bg: rgba(212, 175, 55, 0.15);
+    --theme-btn-secondary-text: #fef3c7;
+    --theme-btn-secondary-border: rgba(212, 175, 55, 0.3);
+    --theme-scrollbar-track: rgba(212, 175, 55, 0.08);
+    /* Gold accent colors */
+    --mega-accent-1: #d4af37;
+    --mega-accent-2: #f4d03f;
+    --mega-accent-3: #fef3c7;
+    --mega-accent-1-rgb: 212, 175, 55;
+    --mega-accent-2-rgb: 244, 208, 63;
+    --mega-glow-1: rgba(212, 175, 55, 0.15);
+    --mega-glow-2: rgba(244, 208, 63, 0.1);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(212, 175, 55, 0.12), rgba(244, 208, 63, 0.08));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(244, 208, 63, 0.15));
+    --mega-cat-icon-hover: linear-gradient(135deg, #d4af37, #f4d03f);
+    --mega-featured-bg: linear-gradient(135deg, rgba(212, 175, 55, 0.12), rgba(244, 208, 63, 0.08));
+    --mega-featured-label-color: #f4d03f;
+    --mega-featured-top-bar: linear-gradient(90deg, #b8860b, #d4af37, #f4d03f);
+    --mega-card-hover-border: rgba(212, 175, 55, 0.35);
+    --mega-link-color: #f4d03f;
+  }
+
+  /* ── Theme 4: Midnight - Navy blue with silver highlights ── */
+  .casa-mega-theme--midnight {
+    --theme-bg: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(10, 15, 30, 0.99) 100%);
+    --theme-border: rgba(148, 163, 184, 0.12);
+    --theme-text: #e2e8f0;
+    --theme-text-muted: rgba(226, 232, 240, 0.5);
+    --theme-card-bg: rgba(148, 163, 184, 0.05);
+    --theme-card-border: rgba(148, 163, 184, 0.08);
+    --theme-card-hover-bg: rgba(148, 163, 184, 0.1);
+    --theme-divider: rgba(148, 163, 184, 0.1);
+    --theme-btn-primary-bg: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+    --theme-btn-primary-text: #0f172a;
+    --theme-btn-secondary-bg: rgba(148, 163, 184, 0.12);
+    --theme-btn-secondary-text: #e2e8f0;
+    --theme-btn-secondary-border: rgba(148, 163, 184, 0.25);
+    --theme-scrollbar-track: rgba(148, 163, 184, 0.06);
+    /* Silver/Blue accent colors */
+    --mega-accent-1: #60a5fa;
+    --mega-accent-2: #94a3b8;
+    --mega-accent-3: #cbd5e1;
+    --mega-accent-1-rgb: 96, 165, 250;
+    --mega-accent-2-rgb: 148, 163, 184;
+    --mega-glow-1: rgba(96, 165, 250, 0.12);
+    --mega-glow-2: rgba(148, 163, 184, 0.08);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(96, 165, 250, 0.1), rgba(148, 163, 184, 0.06));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(96, 165, 250, 0.15), rgba(148, 163, 184, 0.1));
+    --mega-cat-icon-hover: linear-gradient(135deg, #60a5fa, #94a3b8);
+    --mega-featured-bg: linear-gradient(135deg, rgba(96, 165, 250, 0.1), rgba(148, 163, 184, 0.06));
+    --mega-featured-label-color: #60a5fa;
+    --mega-featured-top-bar: linear-gradient(90deg, #3b82f6, #60a5fa, #94a3b8);
+    --mega-card-hover-border: rgba(96, 165, 250, 0.3);
+    --mega-link-color: #60a5fa;
+  }
+
+  /* ── Theme 5: Emerald - Dark with green/teal ── */
+  .casa-mega-theme--emerald {
+    --theme-bg: linear-gradient(180deg, rgba(10, 20, 18, 0.98) 0%, rgba(5, 15, 12, 0.99) 100%);
+    --theme-border: rgba(16, 185, 129, 0.12);
+    --theme-text: #d1fae5;
+    --theme-text-muted: rgba(209, 250, 229, 0.5);
+    --theme-card-bg: rgba(16, 185, 129, 0.05);
+    --theme-card-border: rgba(16, 185, 129, 0.1);
+    --theme-card-hover-bg: rgba(16, 185, 129, 0.1);
+    --theme-divider: rgba(16, 185, 129, 0.1);
+    --theme-btn-primary-bg: linear-gradient(135deg, #10b981, #34d399);
+    --theme-btn-primary-text: #052e20;
+    --theme-btn-secondary-bg: rgba(16, 185, 129, 0.15);
+    --theme-btn-secondary-text: #d1fae5;
+    --theme-btn-secondary-border: rgba(16, 185, 129, 0.3);
+    --theme-scrollbar-track: rgba(16, 185, 129, 0.06);
+    /* Emerald accent colors */
+    --mega-accent-1: #10b981;
+    --mega-accent-2: #34d399;
+    --mega-accent-3: #6ee7b7;
+    --mega-accent-1-rgb: 16, 185, 129;
+    --mega-accent-2-rgb: 52, 211, 153;
+    --mega-glow-1: rgba(16, 185, 129, 0.12);
+    --mega-glow-2: rgba(52, 211, 153, 0.08);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(52, 211, 153, 0.06));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(52, 211, 153, 0.12));
+    --mega-cat-icon-hover: linear-gradient(135deg, #10b981, #34d399);
+    --mega-featured-bg: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(52, 211, 153, 0.06));
+    --mega-featured-label-color: #34d399;
+    --mega-featured-top-bar: linear-gradient(90deg, #059669, #10b981, #34d399);
+    --mega-card-hover-border: rgba(16, 185, 129, 0.35);
+    --mega-link-color: #34d399;
+  }
+
+  /* ── Theme 6: Rose - Warm blush/copper tones ── */
+  .casa-mega-theme--rose {
+    --theme-bg: linear-gradient(180deg, rgba(25, 15, 18, 0.98) 0%, rgba(18, 10, 12, 0.99) 100%);
+    --theme-border: rgba(244, 114, 182, 0.12);
+    --theme-text: #fce7f3;
+    --theme-text-muted: rgba(252, 231, 243, 0.5);
+    --theme-card-bg: rgba(244, 114, 182, 0.05);
+    --theme-card-border: rgba(244, 114, 182, 0.1);
+    --theme-card-hover-bg: rgba(244, 114, 182, 0.1);
+    --theme-divider: rgba(244, 114, 182, 0.1);
+    --theme-btn-primary-bg: linear-gradient(135deg, #f472b6, #fb7185);
+    --theme-btn-primary-text: #4a0e23;
+    --theme-btn-secondary-bg: rgba(244, 114, 182, 0.15);
+    --theme-btn-secondary-text: #fce7f3;
+    --theme-btn-secondary-border: rgba(244, 114, 182, 0.3);
+    --theme-scrollbar-track: rgba(244, 114, 182, 0.06);
+    /* Rose/copper accent colors */
+    --mega-accent-1: #f472b6;
+    --mega-accent-2: #fb7185;
+    --mega-accent-3: #fda4af;
+    --mega-accent-1-rgb: 244, 114, 182;
+    --mega-accent-2-rgb: 251, 113, 133;
+    --mega-glow-1: rgba(244, 114, 182, 0.12);
+    --mega-glow-2: rgba(251, 113, 133, 0.08);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(244, 114, 182, 0.1), rgba(251, 113, 133, 0.06));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(244, 114, 182, 0.18), rgba(251, 113, 133, 0.12));
+    --mega-cat-icon-hover: linear-gradient(135deg, #f472b6, #fb7185);
+    --mega-featured-bg: linear-gradient(135deg, rgba(244, 114, 182, 0.1), rgba(251, 113, 133, 0.06));
+    --mega-featured-label-color: #fb7185;
+    --mega-featured-top-bar: linear-gradient(90deg, #ec4899, #f472b6, #fb7185);
+    --mega-card-hover-border: rgba(244, 114, 182, 0.35);
+    --mega-link-color: #fb7185;
+  }
+
+  /* ── Theme 7: Glassmorphic - Apple-style frosted glass ── */
+  .casa-mega-theme--glass {
+    --theme-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.35) 100%);
+    --theme-border: rgba(255, 255, 255, 0.5);
+    --theme-text: rgba(0, 0, 0, 0.85);
+    --theme-text-muted: rgba(0, 0, 0, 0.45);
+    --theme-card-bg: rgba(255, 255, 255, 0.35);
+    --theme-card-border: rgba(255, 255, 255, 0.45);
+    --theme-card-hover-bg: rgba(255, 255, 255, 0.55);
+    --theme-divider: rgba(0, 0, 0, 0.08);
+    --theme-btn-primary-bg: rgba(0, 0, 0, 0.8);
+    --theme-btn-primary-text: #ffffff;
+    --theme-btn-secondary-bg: rgba(255, 255, 255, 0.5);
+    --theme-btn-secondary-text: rgba(0, 0, 0, 0.8);
+    --theme-btn-secondary-border: rgba(0, 0, 0, 0.12);
+    --theme-scrollbar-track: rgba(0, 0, 0, 0.04);
+    /* Neutral / subtle accent for glass */
+    --mega-accent-1: rgba(0, 0, 0, 0.7);
+    --mega-accent-2: rgba(0, 0, 0, 0.5);
+    --mega-accent-3: rgba(0, 0, 0, 0.3);
+    --mega-accent-1-rgb: 60, 60, 67;
+    --mega-accent-2-rgb: 120, 120, 128;
+    --mega-glow-1: rgba(0, 0, 0, 0.04);
+    --mega-glow-2: rgba(0, 0, 0, 0.02);
+    --mega-cat-hover-bg: rgba(255, 255, 255, 0.5);
+    --mega-cat-icon-bg: rgba(255, 255, 255, 0.5);
+    --mega-cat-icon-hover: linear-gradient(135deg, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.6));
+    --mega-featured-bg: rgba(255, 255, 255, 0.35);
+    --mega-featured-label-color: rgba(0, 0, 0, 0.6);
+    --mega-featured-top-bar: linear-gradient(90deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04));
+    --mega-card-hover-border: rgba(0, 0, 0, 0.12);
+    --mega-link-color: rgba(0, 0, 0, 0.7);
+  }
+
+  /* Glassmorphic theme: stronger blur + no ambient glows */
+  .casa-mega-theme--glass.casa-mega-menu {
+    backdrop-filter: blur(60px) saturate(180%);
+    -webkit-backdrop-filter: blur(60px) saturate(180%);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), inset 0 0 0 0.5px rgba(255, 255, 255, 0.4);
+  }
+  .casa-mega-theme--glass .casa-mega-glow { display: none; }
+  .casa-mega-theme--glass .casa-mega-cat-badge { color: #ffffff; }
+  .casa-mega-theme--glass .casa-mega-cat-badge--hot { background: rgba(245, 158, 11, 0.85); }
+  .casa-mega-theme--glass .casa-mega-cat-badge--new { background: rgba(34, 197, 94, 0.85); }
+  .casa-mega-theme--glass .casa-mega-cat-badge--sale { background: rgba(239, 68, 68, 0.85); }
+
+  /* ═══════════════════════════════════════════════════════
+     MEGA MENU CONTAINER & POSITIONING
+     ═══════════════════════════════════════════════════════ */
+
+  .casa-mega-menu {
+    position: fixed;
+    /* Use JS-calculated height (includes announcement bar), fallback to CSS header height */
+    top: var(--header-group-height, var(--casa-header-height, 80px));
+    left: 50%;
+    transform: translateX(-50%) translateY(-10px);
+    width: calc(100vw - clamp(20px, 3vw, 40px));
+    max-width: 1400px;
+    /* Responsive max-height based on viewport */
+    max-height: clamp(520px, 80vh, 720px);
+    overflow: hidden;
+    background: var(--theme-bg, linear-gradient(180deg, rgba(15, 15, 24, 0.98) 0%, rgba(10, 10, 15, 0.99) 100%));
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid var(--theme-border, rgba(255, 255, 255, 0.08));
+    border-top: none;
+    border-radius: 0 0 clamp(16px, 1.8vw, 24px) clamp(16px, 1.8vw, 24px);
+    color: var(--theme-text, #ffffff);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition-delay: 0s;
+    pointer-events: none;
+    z-index: 999;
+    box-sizing: border-box;
+  }
+
+  /* Show when parent is active (click-toggled) */
+  .casa-nav-item.is-open .casa-mega-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+    transition-delay: 0s;
+  }
+
+  /* Ambient glow — uses variant variables */
+  .casa-mega-menu::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 400px;
+    background: radial-gradient(ellipse, var(--mega-glow-1, rgba(147, 51, 234, 0.15)) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .casa-mega-menu::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 400px;
+    height: 300px;
+    background: radial-gradient(ellipse, var(--mega-glow-2, rgba(236, 72, 153, 0.1)) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Inner grid - use percentages for truly flexible columns */
+  .casa-mega-inner {
+    position: relative;
+    padding: clamp(16px, 3vw, 40px);
+    padding-bottom: clamp(12px, 2vw, 24px);
+    display: grid;
+    grid-template-columns: minmax(0, 22%) minmax(0, 1fr) minmax(0, 26%);
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-items: stretch;
+    gap: clamp(16px, 2.5vw, 32px);
+    width: 100%;
+    height: 100%;
+    max-height: calc(clamp(520px, 80vh, 720px) - clamp(32px, 6vw, 80px));
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* When quick links are present, add back some bottom space */
+  /* Quick links add their own bottom padding when present */
+
+  /* ═══════════════════════════════════════════════════════
+     SECTION TITLE
+     ═══════════════════════════════════════════════════════ */
+
+  .casa-mega-section-title {
+    font-size: clamp(8px, 0.8vw, 10px);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: clamp(1px, 0.15vw, 2px);
+    color: var(--theme-text-muted, rgba(255, 255, 255, 0.4));
+    margin-bottom: clamp(10px, 2vw, 20px);
+    padding-left: clamp(8px, 1.2vw, 16px);
+    flex-shrink: 0;
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     LEFT COLUMN: CATEGORIES
+     ═══════════════════════════════════════════════════════ */
+
+  .casa-mega-categories {
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
+    height: 100%;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+    box-sizing: border-box;
+  }
+
+  /* Custom scrollbar for categories - premium glassmorphism style */
+  .casa-mega-categories::-webkit-scrollbar {
+    width: 6px;
+  }
+  .casa-mega-categories::-webkit-scrollbar-track {
+    background: var(--theme-scrollbar-track, rgba(255, 255, 255, 0.03));
+    border-radius: 10px;
+    margin: 8px 0;
+  }
+  .casa-mega-categories::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--mega-accent-1, #9333ea), var(--mega-accent-2, #ec4899));
+    border-radius: 10px;
+    border: 1px solid var(--theme-card-border, rgba(255, 255, 255, 0.1));
+    box-shadow: 0 0 8px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.3);
+  }
+  .casa-mega-categories::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--mega-accent-2, #ec4899), var(--mega-accent-1, #9333ea));
+    box-shadow: 0 0 12px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.5);
+  }
+  /* Firefox scrollbar */
+  .casa-mega-categories {
+    scrollbar-width: thin;
+    scrollbar-color: var(--mega-accent-1, #9333ea) var(--theme-scrollbar-track, rgba(255, 255, 255, 0.03));
+  }
+
+  .casa-mega-cat-list {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2px, 0.3vw, 4px);
+    min-width: 0;
+  }
+
+  .casa-mega-cat-item {
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1vw, 14px);
+    padding: clamp(8px, 1vw, 14px) clamp(10px, 1.2vw, 16px);
+    border-radius: clamp(10px, 1vw, 14px);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: var(--theme-text, white);
+    min-width: 0;
+  }
+
+  .casa-mega-cat-item:hover {
+    background: var(--mega-cat-hover-bg);
+  }
+
+  .casa-mega-cat-icon {
+    width: clamp(32px, 3.2vw, 44px);
+    height: clamp(32px, 3.2vw, 44px);
+    border-radius: clamp(8px, 0.9vw, 12px);
+    background: var(--mega-cat-icon-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    flex-shrink: 0;
+    flex-shrink: 0;
+  }
+
+  .casa-mega-cat-icon--has-image {
+    overflow: hidden;
+    padding: 0;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .casa-mega-cat-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+    transition: transform 0.3s, filter 0.3s;
+  }
+
+  .casa-mega-cat-item:hover .casa-mega-cat-img {
+    transform: scale(1.1);
+    filter: brightness(1.1);
+  }
+
+  .casa-mega-cat-item:hover .casa-mega-cat-icon {
+    background: var(--mega-cat-icon-hover);
+    box-shadow: 0 8px 24px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.4);
+  }
+
+  .casa-mega-cat-item:hover .casa-mega-cat-icon--has-image {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 8px 24px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.4);
+  }
+
+  .casa-mega-cat-content { flex: 1; min-width: 0; overflow: hidden; }
+  .casa-mega-cat-name { font-size: clamp(11px, 1vw, 14px); font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--theme-text, white); }
+  .casa-mega-cat-count { font-size: clamp(9px, 0.9vw, 12px); color: var(--theme-text-muted, rgba(255, 255, 255, 0.4)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .casa-mega-cat-arrow {
+    width: 20px;
+    height: 20px;
+    opacity: 0;
+    transform: translateX(-8px);
+    transition: all 0.2s;
+    color: var(--mega-accent-1, #9333ea);
+  }
+  .casa-mega-cat-item:hover .casa-mega-cat-arrow {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .casa-mega-cat-badge {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: white;
+  }
+  .casa-mega-cat-badge--new { background: var(--casa-green, #22c55e); }
+  .casa-mega-cat-badge--sale { background: var(--casa-red, #ef4444); }
+  .casa-mega-cat-badge--hot { background: var(--casa-gold, #f59e0b); color: #000; }
+
+  /* ═══════════════════════════════════════════════════════
+     CENTER COLUMN: PRODUCTS (Glow & Lifestyle)
+     ═══════════════════════════════════════════════════════ */
+
+  .casa-mega-products {
+    border-left: 1px solid var(--theme-divider, rgba(255, 255, 255, 0.08));
+    border-right: 1px solid var(--theme-divider, rgba(255, 255, 255, 0.08));
+    padding: 0 clamp(12px, 1.8vw, 24px);
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
+    height: 100%;
+    flex: 1 1 auto;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .casa-mega-products-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: clamp(12px, 1.8vw, 24px);
+    min-width: 0;
+    flex-shrink: 0;
+  }
+
+  .casa-mega-products-link {
+    font-size: clamp(10px, 0.9vw, 12px);
+    color: var(--mega-link-color, #9333ea);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: gap 0.2s;
+    white-space: nowrap;
+  }
+  .casa-mega-products-link:hover { gap: 8px; }
+
+  .casa-mega-products-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(8px, 1.5vw, 16px);
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+    padding-bottom: 8px;
+  }
+
+  /* Column control via data attribute */
+  .casa-mega-products-grid[data-columns="2"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .casa-mega-products-grid[data-columns="3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  /* Auto: 2 columns default, 3 on large screens handled in media query */
+
+  /* Custom scrollbar for products - premium glassmorphism style */
+  .casa-mega-products-grid::-webkit-scrollbar {
+    width: 6px;
+  }
+  .casa-mega-products-grid::-webkit-scrollbar-track {
+    background: var(--theme-scrollbar-track, rgba(255, 255, 255, 0.03));
+    border-radius: 10px;
+    margin: 8px 0;
+  }
+  .casa-mega-products-grid::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--mega-accent-1, #9333ea), var(--mega-accent-2, #ec4899));
+    border-radius: 10px;
+    border: 1px solid var(--theme-card-border, rgba(255, 255, 255, 0.1));
+    box-shadow: 0 0 8px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.3);
+  }
+  .casa-mega-products-grid::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--mega-accent-2, #ec4899), var(--mega-accent-1, #9333ea));
+    box-shadow: 0 0 12px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.5);
+  }
+  /* Firefox scrollbar */
+  .casa-mega-products-grid {
+    scrollbar-width: thin;
+    scrollbar-color: var(--mega-accent-1, #9333ea) var(--theme-scrollbar-track, rgba(255, 255, 255, 0.03));
+  }
+
+  /* Lifestyle variant: 2-column product grid */
+  .casa-mega-menu--lifestyle .casa-mega-products-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+  .casa-mega-menu--lifestyle .casa-mega-products-grid[data-columns="3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .casa-mega-product-card {
+    background: var(--theme-card-bg, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--theme-card-border, rgba(255, 255, 255, 0.06));
+    border-radius: clamp(10px, 1.2vw, 16px);
+    padding: clamp(8px, 1.2vw, 16px);
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    color: var(--theme-text, white);
+    min-width: 0;
+    box-sizing: border-box;
+    display: block;
+  }
+
+  .casa-mega-product-card:hover {
+    background: var(--theme-card-hover-bg, rgba(255, 255, 255, 0.06));
+    border-color: var(--mega-card-hover-border, rgba(147, 51, 234, 0.3));
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .casa-mega-product-img {
+    aspect-ratio: 1;
+    border-radius: clamp(8px, 1vw, 12px);
+    margin-bottom: clamp(6px, 1vw, 12px);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .casa-mega-product-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+  }
+
+  .casa-mega-product-badge {
+    position: absolute;
+    top: clamp(4px, 0.6vw, 8px);
+    left: clamp(4px, 0.6vw, 8px);
+    font-size: clamp(7px, 0.7vw, 9px);
+    font-weight: 600;
+    padding: clamp(2px, 0.4vw, 4px) clamp(6px, 0.8vw, 10px);
+    border-radius: 20px;
+    text-transform: uppercase;
+    color: white;
+  }
+  .casa-mega-product-badge--bestseller { background: var(--mega-accent-1, #9333ea); }
+  .casa-mega-product-badge--new { background: var(--casa-green, #22c55e); }
+  .casa-mega-product-badge--sale { background: var(--casa-red, #ef4444); }
+
+  .casa-mega-product-name {
+    font-size: clamp(10px, 1vw, 13px);
+    font-weight: 500;
+    margin-bottom: clamp(3px, 0.5vw, 6px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  .casa-mega-product-price {
+    display: flex;
+    align-items: center;
+    gap: clamp(4px, 0.5vw, 8px);
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+  .casa-mega-product-price-current { font-size: clamp(11px, 1vw, 14px); font-weight: 600; color: var(--theme-text, white); }
+  .casa-mega-product-price-original { font-size: clamp(9px, 0.8vw, 12px); color: var(--theme-text-muted, rgba(255, 255, 255, 0.4)); text-decoration: line-through; }
+
+  /* ═══════════════════════════════════════════════════════
+     CENTER COLUMN: FAQ CARDS (Support variant)
+     ═══════════════════════════════════════════════════════ */
+
+  .casa-mega-faq-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .casa-mega-faq-card {
+    background: var(--theme-card-bg, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--theme-card-border, rgba(255, 255, 255, 0.06));
+    border-radius: 16px;
+    padding: 20px;
+    text-decoration: none;
+    color: var(--theme-text, white);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: all 0.3s;
+  }
+
+  .casa-mega-faq-card:hover {
+    background: var(--theme-card-hover-bg, rgba(255, 255, 255, 0.06));
+    border-color: var(--mega-card-hover-border, rgba(6, 182, 212, 0.3));
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .casa-mega-faq-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--mega-cat-icon-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+    transition: all 0.3s;
+  }
+
+  .casa-mega-faq-card:hover .casa-mega-faq-icon {
+    background: var(--mega-cat-icon-hover);
+    box-shadow: 0 8px 24px rgba(var(--mega-accent-1-rgb, 6, 182, 212), 0.3);
+  }
+
+  .casa-mega-faq-title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .casa-mega-faq-desc {
+    font-size: 12px;
+    color: var(--theme-text-muted, rgba(255, 255, 255, 0.4));
+    line-height: 1.5;
+  }
+
+  .casa-mega-faq-arrow {
+    color: var(--mega-link-color, #06b6d4);
+    margin-top: auto;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: all 0.2s;
+  }
+  .casa-mega-faq-card:hover .casa-mega-faq-arrow {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RIGHT COLUMN: FEATURED CARD (all variants)
+     ═══════════════════════════════════════════════════════ */
+
+  /* Right column container */
+  .casa-mega-featured {
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    width: 100%;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    scrollbar-width: none;
+  }
+  .casa-mega-featured::-webkit-scrollbar {
+    display: none;
+  }
+
+  .casa-mega-featured-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    background: var(--mega-featured-bg);
+    border: 1px solid var(--theme-card-border, rgba(255, 255, 255, 0.1));
+    border-radius: clamp(14px, 1.5vw, 20px);
+    padding: clamp(12px, 1.5vw, 20px);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Fix backdrop-filter text ghosting */
+    isolation: isolate;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  .casa-mega-featured-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--mega-featured-top-bar);
+  }
+
+  .casa-mega-featured-label {
+    display: inline-flex;
+    align-items: center;
+    gap: clamp(4px, 0.5vw, 6px);
+    font-size: clamp(8px, 0.8vw, 10px);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: clamp(1px, 0.12vw, 1.5px);
+    color: var(--mega-featured-label-color, #ec4899);
+    margin-bottom: clamp(6px, 1vw, 16px);
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .casa-mega-featured-title {
+    font-size: clamp(14px, 1.4vw, 22px);
+    font-weight: 600;
+    margin-bottom: clamp(4px, 0.6vw, 8px);
+    line-height: 1.3;
+    color: var(--theme-text, white);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    /* Fix backdrop-filter text ghosting */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    position: relative;
+    z-index: 1;
+  }
+
+  .casa-mega-featured-desc {
+    font-size: clamp(10px, 0.9vw, 13px);
+    color: var(--theme-text-muted, rgba(255, 255, 255, 0.5));
+    line-height: 1.5;
+    margin-bottom: clamp(8px, 1.2vw, 16px);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    /* Fix backdrop-filter text ghosting */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    position: relative;
+    z-index: 1;
+  }
+
+  .casa-mega-featured-visual {
+    flex: 1 1 auto;
+    min-height: 100px;
+    border-radius: clamp(10px, 1.2vw, 16px);
+    background: linear-gradient(135deg, #1a1a2e, #0a0a0f);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin-bottom: clamp(10px, 1.5vw, 20px);
+    overflow: hidden;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .casa-mega-featured-visual::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.3), transparent 70%);
+  }
+  .casa-mega-featured-visual img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .casa-mega-featured-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Lifestyle placeholder */
+  .casa-mega-featured-lifestyle-placeholder {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.1));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.3);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Contact Methods (Support variant) ── */
+  .casa-mega-contact-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex: 1;
+  }
+
+  .casa-mega-contact-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--theme-card-bg, rgba(255, 255, 255, 0.04));
+    border: 1px solid var(--theme-card-border, rgba(255, 255, 255, 0.08));
+    border-radius: 12px;
+    color: var(--theme-text, white);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+
+  .casa-mega-contact-item:hover {
+    background: rgba(var(--mega-accent-1-rgb, 6, 182, 212), 0.1);
+    border-color: rgba(var(--mega-accent-1-rgb, 6, 182, 212), 0.3);
+  }
+
+  .casa-mega-contact-item svg {
+    color: var(--mega-accent-1, #06b6d4);
+    flex-shrink: 0;
+  }
+
+  /* ── CTA Buttons ── */
+  .casa-mega-featured-cta {
+    display: flex;
+    gap: clamp(6px, 0.6vw, 8px);
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
+    margin-top: auto;
+    box-sizing: border-box;
+  }
+
+  .casa-mega-featured-btn {
+    flex: 1 1 45%;
+    min-width: 0;
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(4px, 0.5vw, 6px);
+    padding: clamp(8px, 0.9vw, 12px) clamp(10px, 1.2vw, 16px);
+    border-radius: clamp(8px, 0.9vw, 12px);
+    font-size: clamp(10px, 0.9vw, 13px);
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+  }
+  .casa-mega-featured-btn--primary {
+    background: var(--theme-btn-primary-bg, white);
+    color: var(--theme-btn-primary-text, #0a0a0f);
+  }
+  .casa-mega-featured-btn--primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(var(--mega-accent-1-rgb, 255, 255, 255), 0.2);
+  }
+  .casa-mega-featured-btn--secondary {
+    background: var(--theme-btn-secondary-bg, rgba(255, 255, 255, 0.1));
+    color: var(--theme-btn-secondary-text, white);
+    border: 1px solid var(--theme-btn-secondary-border, rgba(255, 255, 255, 0.2));
+  }
+  .casa-mega-featured-btn--secondary:hover {
+    background: var(--theme-card-hover-bg, rgba(255, 255, 255, 0.15));
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     BOTTOM: QUICK LINKS
+     ═══════════════════════════════════════════════════════ */
+
+  .casa-mega-quick {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(6px, 0.9vw, 12px);
+    padding-top: clamp(10px, 1.5vw, 20px);
+    padding-bottom: clamp(8px, 1.5vw, 20px);
+    border-top: 1px solid var(--theme-divider, rgba(255, 255, 255, 0.08));
+    margin-top: clamp(4px, 0.8vw, 12px);
+    min-width: 0;
+  }
+
+  /* Hide quick links section if empty (whitespace-only content) */
+  .casa-mega-quick:empty {
+    display: none;
+  }
+
+  .casa-mega-quick-link {
+    display: flex;
+    align-items: center;
+    gap: clamp(4px, 0.6vw, 8px);
+    padding: clamp(6px, 0.8vw, 10px) clamp(10px, 1.4vw, 18px);
+    background: var(--theme-card-bg, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--theme-card-border, rgba(255, 255, 255, 0.08));
+    border-radius: 100px;
+    color: var(--theme-text-muted, rgba(255, 255, 255, 0.6));
+    text-decoration: none;
+    font-size: clamp(10px, 1vw, 13px);
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .casa-mega-quick-link:hover {
+    background: var(--theme-card-hover-bg, rgba(255, 255, 255, 0.08));
+    color: var(--theme-text, white);
+    border-color: var(--mega-card-hover-border, rgba(147, 51, 234, 0.3));
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: SUPPORT VARIANT (smaller screens)
+     Hide center column, go 2-column layout
+     ═══════════════════════════════════════════════════════ */
+
+  @media (max-width: 1200px) {
+    /* Support variant: hide center column, 2-column layout */
+    .casa-mega-menu--support .casa-mega-inner {
+      grid-template-columns: 280px 1fr;
+    }
+    .casa-mega-menu--support .casa-mega-products {
+      display: none;
+    }
+
+    /* Contact card adjustments */
+    .casa-mega-menu--support .casa-mega-contact-item span {
+      font-size: 13px;
+    }
+  }
+
+  /* Note: Below 1100px, mobile drawer shows instead of mega menu */
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: MEDIUM DESKTOP (1200px - 1400px)
+     Slightly compacted layout for mid-sized screens
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 1200px) and (max-width: 1400px) {
+    .casa-mega-menu {
+      width: calc(100vw - 40px);
+      max-height: min(78vh, 650px);
+    }
+
+    .casa-mega-inner {
+      padding: 28px;
+      grid-template-columns: minmax(0, 20%) minmax(0, 1fr) minmax(0, 24%);
+      gap: 24px;
+      max-height: calc(min(78vh, 650px) - 56px);
+    }
+
+    .casa-mega-cat-item {
+      padding: 10px 12px;
+    }
+
+    .casa-mega-cat-icon {
+      width: 36px;
+      height: 36px;
+    }
+
+    .casa-mega-cat-name {
+      font-size: 13px;
+    }
+
+    /* Products: 2x3 grid */
+    .casa-mega-products-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .casa-mega-product-img {
+      aspect-ratio: 1;
+      height: auto;
+    }
+
+    .casa-mega-product-name {
+      font-size: 12px;
+    }
+
+    /* Featured card */
+    .casa-mega-featured-card {
+      padding: 20px;
+    }
+
+    .casa-mega-featured-title {
+      font-size: 18px;
+    }
+
+    .casa-mega-featured-desc {
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+
+    .casa-mega-featured-visual {
+      min-height: 90px;
+    }
+
+    .casa-mega-featured-btn {
+      padding: 10px 16px;
+      font-size: 12px;
+    }
+
+    /* Quick links */
+    .casa-mega-quick {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .casa-mega-quick-link {
+      padding: 8px 14px;
+      font-size: 12px;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: COMPACT DESKTOP (1100px - 1200px)
+     Below 1100px, mobile header takes over
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 1100px) and (max-width: 1200px) {
+    .casa-mega-menu {
+      width: calc(100vw - 20px);
+      max-width: 100%;
+      max-height: min(75vh, 580px);
+    }
+
+    .casa-mega-inner {
+      padding: 20px;
+      grid-template-columns: minmax(0, 18%) minmax(0, 1fr) minmax(0, 22%);
+      gap: 16px;
+      max-height: calc(min(75vh, 580px) - 40px);
+    }
+
+    .casa-mega-section-title {
+      font-size: 9px;
+      margin-bottom: 14px;
+      padding-left: 10px;
+    }
+
+    .casa-mega-cat-item {
+      padding: 10px 12px;
+      gap: 10px;
+    }
+
+    .casa-mega-cat-icon {
+      width: 34px;
+      height: 34px;
+    }
+
+    .casa-mega-cat-name {
+      font-size: 12px;
+    }
+
+    .casa-mega-cat-count {
+      font-size: 10px;
+    }
+
+    .casa-mega-cat-arrow {
+      display: none;
+    }
+
+    /* Products: keep center column padding */
+    .casa-mega-products {
+      padding: 0 20px;
+    }
+
+    /* Products grid: 2 columns */
+    .casa-mega-products-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .casa-mega-product-card {
+      padding: 10px;
+    }
+
+    .casa-mega-product-img {
+      aspect-ratio: 1;
+      height: auto;
+    }
+
+    .casa-mega-product-name {
+      font-size: 11px;
+    }
+
+    .casa-mega-product-price-current {
+      font-size: 12px;
+    }
+
+    .casa-mega-product-badge {
+      font-size: 8px;
+      padding: 3px 6px;
+    }
+
+    /* Featured card */
+    .casa-mega-featured-card {
+      padding: 18px;
+    }
+
+    .casa-mega-featured-label {
+      font-size: 9px;
+      margin-bottom: 12px;
+    }
+
+    .casa-mega-featured-title {
+      font-size: 17px;
+      margin-bottom: 6px;
+    }
+
+    .casa-mega-featured-desc {
+      font-size: 11px;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    .casa-mega-featured-visual {
+      flex: 1 1 auto;
+      min-height: 80px;
+      margin-bottom: 14px;
+    }
+
+    .casa-mega-featured-cta {
+      gap: 8px;
+    }
+
+    .casa-mega-featured-btn {
+      padding: 10px 14px;
+      font-size: 11px;
+    }
+
+    /* Contact methods */
+    .casa-mega-contact-methods {
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .casa-mega-contact-item {
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+
+    /* Quick links: wrap */
+    .casa-mega-quick {
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: 16px;
+    }
+
+    .casa-mega-quick-link {
+      padding: 7px 12px;
+      font-size: 11px;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: SMALL DESKTOP (900px - 1100px)
+     Very compact layout for small desktop screens
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 900px) and (max-width: 1100px) {
+    .casa-mega-menu {
+      width: calc(100vw - 16px);
+      max-width: 100%;
+      max-height: min(72vh, 520px);
+      border-radius: 0 0 12px 12px;
+    }
+
+    .casa-mega-inner {
+      padding: 16px;
+      grid-template-columns: minmax(0, 22%) minmax(0, 1fr) minmax(0, 28%);
+      gap: 12px;
+      max-height: calc(min(72vh, 520px) - 32px);
+    }
+
+    .casa-mega-section-title {
+      font-size: 8px;
+      margin-bottom: 10px;
+      padding-left: 8px;
+      letter-spacing: 1.5px;
+    }
+
+    .casa-mega-cat-item {
+      padding: 8px 10px;
+      gap: 8px;
+      border-radius: 8px;
+    }
+
+    .casa-mega-cat-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+    }
+
+    .casa-mega-cat-icon svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .casa-mega-cat-name {
+      font-size: 11px;
+    }
+
+    .casa-mega-cat-count {
+      font-size: 9px;
+    }
+
+    .casa-mega-cat-arrow,
+    .casa-mega-cat-badge {
+      display: none;
+    }
+
+    /* Products */
+    .casa-mega-products {
+      padding: 0 12px;
+    }
+
+    .casa-mega-products-header {
+      margin-bottom: 10px;
+    }
+
+    .casa-mega-products-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .casa-mega-product-card {
+      padding: 8px;
+      border-radius: 10px;
+    }
+
+    .casa-mega-product-img {
+      border-radius: 8px;
+      margin-bottom: 6px;
+    }
+
+    .casa-mega-product-name {
+      font-size: 10px;
+      margin-bottom: 3px;
+    }
+
+    .casa-mega-product-price-current {
+      font-size: 11px;
+    }
+
+    .casa-mega-product-price-original {
+      font-size: 9px;
+    }
+
+    .casa-mega-product-badge {
+      font-size: 7px;
+      padding: 2px 5px;
+      top: 3px;
+      left: 3px;
+    }
+
+    /* Featured card */
+    .casa-mega-featured-card {
+      padding: 14px;
+      border-radius: 12px;
+    }
+
+    .casa-mega-featured-label {
+      font-size: 8px;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+
+    .casa-mega-featured-title {
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .casa-mega-featured-desc {
+      font-size: 10px;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .casa-mega-featured-visual {
+      min-height: 70px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+    }
+
+    .casa-mega-featured-cta {
+      gap: 6px;
+    }
+
+    .casa-mega-featured-btn {
+      padding: 8px 10px;
+      font-size: 10px;
+      border-radius: 6px;
+    }
+
+    /* Contact methods */
+    .casa-mega-contact-methods {
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .casa-mega-contact-item {
+      padding: 8px 10px;
+      font-size: 11px;
+      border-radius: 8px;
+      gap: 8px;
+    }
+
+    .casa-mega-contact-item svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* FAQ cards */
+    .casa-mega-faq-grid {
+      gap: 8px;
+    }
+
+    .casa-mega-faq-card {
+      padding: 12px;
+      border-radius: 10px;
+      gap: 6px;
+    }
+
+    .casa-mega-faq-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+    }
+
+    .casa-mega-faq-icon svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .casa-mega-faq-title {
+      font-size: 11px;
+    }
+
+    .casa-mega-faq-desc {
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    /* Quick links */
+    .casa-mega-quick {
+      gap: 6px;
+      padding-top: 12px;
+      padding-bottom: 4px;
+      margin-top: 8px;
+    }
+
+    .casa-mega-quick-link {
+      padding: 6px 10px;
+      font-size: 10px;
+    }
+
+    /* Ambient glow - reduce on smaller screens */
+    .casa-mega-menu::before {
+      width: 300px;
+      height: 200px;
+      opacity: 0.7;
+    }
+
+    .casa-mega-menu::after {
+      width: 200px;
+      height: 150px;
+      opacity: 0.7;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: TABLET LANDSCAPE (750px - 900px)
+     Super compact, hide less essential elements
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 750px) and (max-width: 900px) {
+    .casa-mega-menu {
+      width: calc(100vw - 12px);
+      max-width: 100%;
+      max-height: min(68vh, 460px);
+      border-radius: 0 0 10px 10px;
+    }
+
+    .casa-mega-inner {
+      padding: 12px;
+      grid-template-columns: minmax(0, 25%) minmax(0, 1fr) minmax(0, 30%);
+      gap: 10px;
+      max-height: calc(min(68vh, 460px) - 24px);
+    }
+
+    .casa-mega-section-title {
+      font-size: 7px;
+      margin-bottom: 8px;
+      padding-left: 6px;
+      letter-spacing: 1px;
+    }
+
+    .casa-mega-cat-item {
+      padding: 6px 8px;
+      gap: 6px;
+      border-radius: 6px;
+    }
+
+    .casa-mega-cat-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 5px;
+    }
+
+    .casa-mega-cat-icon svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .casa-mega-cat-name {
+      font-size: 10px;
+    }
+
+    .casa-mega-cat-count,
+    .casa-mega-cat-arrow,
+    .casa-mega-cat-badge {
+      display: none;
+    }
+
+    /* Products */
+    .casa-mega-products {
+      padding: 0 8px;
+    }
+
+    .casa-mega-products-header {
+      margin-bottom: 8px;
+    }
+
+    .casa-mega-products-link {
+      font-size: 9px;
+    }
+
+    .casa-mega-products-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .casa-mega-product-card {
+      padding: 6px;
+      border-radius: 8px;
+    }
+
+    .casa-mega-product-img {
+      border-radius: 6px;
+      margin-bottom: 4px;
+    }
+
+    .casa-mega-product-name {
+      font-size: 9px;
+      margin-bottom: 2px;
+    }
+
+    .casa-mega-product-price-current {
+      font-size: 10px;
+    }
+
+    .casa-mega-product-price-original {
+      display: none;
+    }
+
+    .casa-mega-product-badge {
+      font-size: 6px;
+      padding: 2px 4px;
+      top: 2px;
+      left: 2px;
+    }
+
+    /* Featured card */
+    .casa-mega-featured-card {
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    .casa-mega-featured-label {
+      font-size: 7px;
+      margin-bottom: 6px;
+    }
+
+    .casa-mega-featured-title {
+      font-size: 12px;
+      margin-bottom: 3px;
+    }
+
+    .casa-mega-featured-desc {
+      font-size: 9px;
+      margin-bottom: 8px;
+      line-height: 1.3;
+      /* Limit to 2 lines */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .casa-mega-featured-visual {
+      min-height: 60px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+    }
+
+    .casa-mega-featured-cta {
+      gap: 4px;
+      flex-direction: column;
+    }
+
+    .casa-mega-featured-btn {
+      padding: 6px 8px;
+      font-size: 9px;
+      border-radius: 5px;
+    }
+
+    /* Contact methods */
+    .casa-mega-contact-methods {
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .casa-mega-contact-item {
+      padding: 6px 8px;
+      font-size: 9px;
+      border-radius: 6px;
+      gap: 6px;
+    }
+
+    .casa-mega-contact-item svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* FAQ cards */
+    .casa-mega-faq-grid {
+      gap: 6px;
+    }
+
+    .casa-mega-faq-card {
+      padding: 8px;
+      border-radius: 8px;
+      gap: 4px;
+    }
+
+    .casa-mega-faq-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+    }
+
+    .casa-mega-faq-icon svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .casa-mega-faq-title {
+      font-size: 10px;
+    }
+
+    .casa-mega-faq-desc {
+      font-size: 9px;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .casa-mega-faq-arrow {
+      display: none;
+    }
+
+    /* Quick links - hide on very small screens */
+    .casa-mega-quick {
+      display: none;
+    }
+
+    /* Ambient glow - minimal on smaller screens */
+    .casa-mega-menu::before,
+    .casa-mega-menu::after {
+      opacity: 0.5;
+    }
+  }
+
+  /* Note: Below 750px, the mobile drawer takes over - no need for
+     more responsive styles. The mega menu is only shown on desktop. */
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: LARGE DESKTOP (1440px+)
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 1440px) {
+    .casa-mega-inner {
+      padding: 40px;
+      grid-template-columns: minmax(0, 20%) minmax(0, 1fr) minmax(0, 26%);
+      gap: 40px;
+    }
+
+    .casa-mega-products-grid {
+      gap: 20px;
+    }
+
+    .casa-mega-product-img {
+      aspect-ratio: 1;
+      height: auto;
+    }
+
+    .casa-mega-featured-visual {
+      min-height: 140px;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: EXTRA LARGE DESKTOP (1600px+)
+     Only show 3 product columns on very wide screens (auto mode)
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 1600px) {
+    .casa-mega-inner {
+      grid-template-columns: minmax(0, 18%) minmax(0, 1fr) minmax(0, 24%);
+    }
+
+    /* Auto mode: switch to 3 columns on extra-large screens */
+    .casa-mega-products-grid[data-columns="auto"] {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    /* Explicit 2 or 3 columns override auto behavior */
+    .casa-mega-products-grid[data-columns="2"] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .casa-mega-products-grid[data-columns="3"] {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: EXTRA LARGE DESKTOP (1920px+)
+     Expanded layout for larger monitors
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 1920px) {
+    .casa-mega-menu {
+      max-width: 1600px;
+      max-height: min(85vh, 800px);
+    }
+
+    .casa-mega-inner {
+      padding: 48px;
+      gap: 48px;
+      max-height: calc(min(85vh, 800px) - 96px);
+    }
+
+    .casa-mega-section-title {
+      font-size: 11px;
+      margin-bottom: 24px;
+    }
+
+    .casa-mega-cat-item {
+      padding: 16px 18px;
+    }
+
+    .casa-mega-cat-icon {
+      width: 48px;
+      height: 48px;
+    }
+
+    .casa-mega-cat-name {
+      font-size: 15px;
+    }
+
+    .casa-mega-cat-count {
+      font-size: 13px;
+    }
+
+    .casa-mega-products-grid {
+      gap: 24px;
+    }
+
+    .casa-mega-product-card {
+      padding: 18px;
+    }
+
+    .casa-mega-product-name {
+      font-size: 14px;
+    }
+
+    .casa-mega-product-price-current {
+      font-size: 15px;
+    }
+
+    .casa-mega-featured-card {
+      padding: 28px;
+    }
+
+    .casa-mega-featured-title {
+      font-size: 24px;
+    }
+
+    .casa-mega-featured-desc {
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .casa-mega-featured-visual {
+      min-height: 160px;
+    }
+
+    .casa-mega-featured-btn {
+      padding: 14px 20px;
+      font-size: 14px;
+    }
+
+    .casa-mega-quick-link {
+      padding: 12px 20px;
+      font-size: 14px;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: ULTRAWIDE (2560px+ / QHD & 4K)
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 2560px) {
+    .casa-mega-menu {
+      max-width: 2000px;
+      max-height: min(80vh, 900px);
+      border-radius: 0 0 28px 28px;
+    }
+
+    .casa-mega-inner {
+      padding: 56px;
+      gap: 56px;
+      grid-template-columns: minmax(0, 16%) minmax(0, 1fr) minmax(0, 22%);
+      max-height: calc(min(80vh, 900px) - 112px);
+    }
+
+    .casa-mega-section-title {
+      font-size: 12px;
+      letter-spacing: 2px;
+      margin-bottom: 28px;
+    }
+
+    .casa-mega-cat-item {
+      padding: 18px 20px;
+      border-radius: 16px;
+    }
+
+    .casa-mega-cat-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+    }
+
+    .casa-mega-cat-icon svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    .casa-mega-cat-name {
+      font-size: 16px;
+    }
+
+    .casa-mega-cat-count {
+      font-size: 14px;
+    }
+
+    /* 4 columns for products on ultrawide */
+    .casa-mega-products-grid,
+    .casa-mega-products-grid[data-columns="auto"] {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 28px;
+    }
+
+    .casa-mega-products-grid[data-columns="2"] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .casa-mega-products-grid[data-columns="3"] {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .casa-mega-product-card {
+      padding: 20px;
+      border-radius: 18px;
+    }
+
+    .casa-mega-product-img {
+      border-radius: 14px;
+      margin-bottom: 14px;
+    }
+
+    .casa-mega-product-name {
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .casa-mega-product-price-current {
+      font-size: 16px;
+    }
+
+    .casa-mega-product-badge {
+      font-size: 10px;
+      padding: 5px 12px;
+    }
+
+    .casa-mega-featured-card {
+      padding: 32px;
+      border-radius: 24px;
+    }
+
+    .casa-mega-featured-label {
+      font-size: 11px;
+      margin-bottom: 20px;
+    }
+
+    .casa-mega-featured-title {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .casa-mega-featured-desc {
+      font-size: 15px;
+      margin-bottom: 24px;
+    }
+
+    .casa-mega-featured-visual {
+      min-height: 180px;
+      border-radius: 18px;
+      margin-bottom: 24px;
+    }
+
+    .casa-mega-featured-cta {
+      gap: 12px;
+    }
+
+    .casa-mega-featured-btn {
+      padding: 16px 24px;
+      font-size: 15px;
+      border-radius: 14px;
+    }
+
+    .casa-mega-quick {
+      padding-top: 28px;
+      gap: 16px;
+    }
+
+    .casa-mega-quick-link {
+      padding: 14px 24px;
+      font-size: 15px;
+    }
+
+    /* Contact methods */
+    .casa-mega-contact-item {
+      padding: 18px 20px;
+      font-size: 15px;
+      border-radius: 14px;
+    }
+
+    .casa-mega-contact-item svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    /* FAQ cards */
+    .casa-mega-faq-grid {
+      gap: 20px;
+    }
+
+    .casa-mega-faq-card {
+      padding: 24px;
+      border-radius: 18px;
+    }
+
+    .casa-mega-faq-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+    }
+
+    .casa-mega-faq-title {
+      font-size: 16px;
+    }
+
+    .casa-mega-faq-desc {
+      font-size: 14px;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: SUPER ULTRAWIDE (3440px+ / 34" Ultrawide)
+     ═══════════════════════════════════════════════════════ */
+
+  @media (min-width: 3440px) {
+    .casa-mega-menu {
+      max-width: 2600px;
+      max-height: min(75vh, 1000px);
+      border-radius: 0 0 32px 32px;
+    }
+
+    .casa-mega-inner {
+      padding: 64px;
+      gap: 64px;
+      grid-template-columns: minmax(0, 14%) minmax(0, 1fr) minmax(0, 20%);
+      max-height: calc(min(75vh, 1000px) - 128px);
+    }
+
+    .casa-mega-section-title {
+      font-size: 13px;
+      letter-spacing: 2.5px;
+      margin-bottom: 32px;
+    }
+
+    .casa-mega-cat-item {
+      padding: 20px 24px;
+      border-radius: 18px;
+      gap: 18px;
+    }
+
+    .casa-mega-cat-icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+    }
+
+    .casa-mega-cat-icon svg {
+      width: 30px;
+      height: 30px;
+    }
+
+    .casa-mega-cat-name {
+      font-size: 18px;
+    }
+
+    .casa-mega-cat-count {
+      font-size: 15px;
+    }
+
+    .casa-mega-cat-arrow svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    /* 5 columns for products on super ultrawide */
+    .casa-mega-products-grid,
+    .casa-mega-products-grid[data-columns="auto"] {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 32px;
+    }
+
+    .casa-mega-products-grid[data-columns="2"] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .casa-mega-products-grid[data-columns="3"] {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .casa-mega-product-card {
+      padding: 24px;
+      border-radius: 20px;
+    }
+
+    .casa-mega-product-img {
+      border-radius: 16px;
+      margin-bottom: 16px;
+    }
+
+    .casa-mega-product-name {
+      font-size: 17px;
+      margin-bottom: 10px;
+    }
+
+    .casa-mega-product-price-current {
+      font-size: 18px;
+    }
+
+    .casa-mega-product-price-original {
+      font-size: 14px;
+    }
+
+    .casa-mega-product-badge {
+      font-size: 11px;
+      padding: 6px 14px;
+    }
+
+    .casa-mega-featured-card {
+      padding: 40px;
+      border-radius: 28px;
+    }
+
+    .casa-mega-featured-label {
+      font-size: 12px;
+      margin-bottom: 24px;
+    }
+
+    .casa-mega-featured-title {
+      font-size: 32px;
+      margin-bottom: 16px;
+    }
+
+    .casa-mega-featured-desc {
+      font-size: 17px;
+      margin-bottom: 28px;
+    }
+
+    .casa-mega-featured-visual {
+      min-height: 220px;
+      border-radius: 20px;
+      margin-bottom: 28px;
+    }
+
+    .casa-mega-featured-cta {
+      gap: 14px;
+    }
+
+    .casa-mega-featured-btn {
+      padding: 18px 28px;
+      font-size: 16px;
+      border-radius: 16px;
+    }
+
+    .casa-mega-quick {
+      padding-top: 32px;
+      gap: 18px;
+    }
+
+    .casa-mega-quick-link {
+      padding: 16px 28px;
+      font-size: 16px;
+    }
+
+    /* Contact methods */
+    .casa-mega-contact-item {
+      padding: 20px 24px;
+      font-size: 16px;
+      border-radius: 16px;
+    }
+
+    .casa-mega-contact-item svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    /* FAQ cards */
+    .casa-mega-faq-grid {
+      gap: 24px;
+    }
+
+    .casa-mega-faq-card {
+      padding: 28px;
+      border-radius: 20px;
+    }
+
+    .casa-mega-faq-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+    }
+
+    .casa-mega-faq-icon svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    .casa-mega-faq-title {
+      font-size: 18px;
+    }
+
+    .casa-mega-faq-desc {
+      font-size: 15px;
+    }
+
+    /* Ambient glow - larger on big screens */
+    .casa-mega-menu::before {
+      width: 800px;
+      height: 500px;
+    }
+
+    .casa-mega-menu::after {
+      width: 600px;
+      height: 400px;
+    }
+  }
+{% endstylesheet %}

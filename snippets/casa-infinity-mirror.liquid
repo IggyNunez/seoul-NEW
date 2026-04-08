@@ -1,0 +1,183 @@
+{%- comment -%}
+  Seoul Glow Lab - Animated Infinity Mirror Component
+  Usage: {% render 'casa-infinity-mirror', size: 'xl', animate: true, shape: 'octagon' %}
+  Params:
+    - size: 'sm' (60px) | 'md' (100px) | 'lg' (150px) | 'xl' (220px) | 'hero' (500px)
+    - animate: true | false (default: true)
+    - shape: 'octagon' | 'hexagon' | 'circle' (default: 'octagon')
+{%- endcomment -%}
+
+{%- liquid
+  unless size
+    assign size = 'md'
+  endunless
+
+  unless shape
+    assign shape = 'octagon'
+  endunless
+
+  unless animate == false
+    assign animate = true
+  endunless
+
+  case size
+    when 'sm'
+      assign px = '60px'
+    when 'md'
+      assign px = '100px'
+    when 'lg'
+      assign px = '150px'
+    when 'xl'
+      assign px = '220px'
+    when 'hero'
+      assign px = '500px'
+    else
+      assign px = '100px'
+  endcase
+
+  assign shape_class = 'casa-octagon'
+  case shape
+    when 'hexagon'
+      assign shape_class = 'casa-hexagon'
+    when 'circle'
+      assign shape_class = 'casa-circle'
+  endcase
+-%}
+
+<div class="casa-infinity-mirror casa-infinity-mirror--{{ size }}{% if animate %} casa-infinity-mirror--animated{% endif %}" style="width: {{ px }}; height: {{ px }};">
+  {%- if size == 'hero' or size == 'xl' -%}
+    <div class="casa-infinity-mirror__glow-bg"></div>
+  {%- endif -%}
+  <div class="casa-infinity-mirror__wrapper{% if animate %} casa-infinity-mirror__wrapper--float{% endif %}">
+    <div class="casa-infinity-mirror__frame {{ shape_class }}">
+      <div class="casa-infinity-mirror__glow {{ shape_class }}"></div>
+      <div class="casa-infinity-mirror__inner {{ shape_class }}">
+        <div class="casa-infinity-mirror__depth {{ shape_class }}">
+          <div class="casa-infinity-mirror__center {{ shape_class }}"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{%- stylesheet -%}
+  .casa-infinity-mirror {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Outer ambient glow (hero/xl only) */
+  .casa-infinity-mirror__glow-bg {
+    position: absolute;
+    inset: -50px;
+    background: conic-gradient(from var(--angle, 0deg), #9333ea, #ec4899, #06b6d4, #9333ea);
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.5;
+  }
+
+  .casa-infinity-mirror--animated .casa-infinity-mirror__glow-bg {
+    animation: casa-rotate 6s linear infinite, casa-glow 3s ease-in-out infinite;
+  }
+
+  /* Float wrapper */
+  .casa-infinity-mirror__wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .casa-infinity-mirror__wrapper--float {
+    animation: casa-float-slow 8s ease-in-out infinite;
+  }
+
+  /* Outer frame */
+  .casa-infinity-mirror__frame {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Rotating glow ring */
+  .casa-infinity-mirror__glow {
+    width: 94%;
+    height: 94%;
+    background: conic-gradient(from var(--angle, 0deg), #9333ea, #ec4899, #06b6d4, #9333ea);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .casa-infinity-mirror--animated .casa-infinity-mirror__glow {
+    animation: casa-rotate 4s linear infinite;
+  }
+
+  /* Dark inner layer */
+  .casa-infinity-mirror__inner {
+    width: 92%;
+    height: 92%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Depth ring (reverse rotation) */
+  .casa-infinity-mirror__depth {
+    width: 85%;
+    height: 85%;
+    background: conic-gradient(from var(--angle, 0deg), rgba(147, 51, 234, 0.5), rgba(236, 72, 153, 0.5), rgba(6, 182, 212, 0.5), rgba(147, 51, 234, 0.5));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .casa-infinity-mirror--animated .casa-infinity-mirror__depth {
+    animation: casa-rotate 6s linear infinite reverse;
+  }
+
+  /* Dark center */
+  .casa-infinity-mirror__center {
+    width: 80%;
+    height: 80%;
+    background: rgba(0, 0, 0, 0.9);
+  }
+
+  /* Static fallback for non-animated mirrors */
+  .casa-infinity-mirror:not(.casa-infinity-mirror--animated) .casa-infinity-mirror__glow,
+  .casa-infinity-mirror:not(.casa-infinity-mirror--animated) .casa-infinity-mirror__depth {
+    background: linear-gradient(135deg, #9333ea, #ec4899, #06b6d4);
+  }
+
+  /* Size-specific adjustments */
+  .casa-infinity-mirror--sm .casa-infinity-mirror__frame {
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
+  }
+
+  .casa-infinity-mirror--sm .casa-infinity-mirror__glow-bg {
+    display: none;
+  }
+
+  .casa-infinity-mirror--hero {
+    width: 500px;
+    height: 500px;
+  }
+
+  @media (max-width: 749px) {
+    .casa-infinity-mirror--hero {
+      width: 220px;
+      height: 220px;
+    }
+
+    .casa-infinity-mirror--xl {
+      width: 150px;
+      height: 150px;
+    }
+  }
+{%- endstylesheet -%}

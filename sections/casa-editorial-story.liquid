@@ -1,0 +1,835 @@
+{%- comment -%}
+  Seoul Glow Lab — Editorial Story Section
+  Premium magazine-style editorial layout with large hero image,
+  elegant text overlay, character/product name row, and CTA.
+  Supports overlay, split, and stacked layout modes.
+{%- endcomment -%}
+
+{%- liquid
+  assign layout        = section.settings.layout_style | default: 'overlay'
+  assign image_pos     = section.settings.image_position | default: 'left'
+  assign overlay_op    = section.settings.overlay_opacity | default: 40
+  assign min_h         = section.settings.min_height | default: 500
+  assign names_raw     = section.settings.character_names | default: ''
+  assign names_fs      = section.settings.names_font_size | default: 14
+  assign names_ls      = section.settings.names_letter_spacing | default: 8
+  assign names_color   = section.settings.names_color | default: ''
+  assign heading       = section.settings.heading | default: ''
+  assign heading_size  = section.settings.heading_size | default: 'large'
+  assign body_text     = section.settings.body_text
+  assign align         = section.settings.content_alignment | default: 'center'
+  assign max_w         = section.settings.content_max_width | default: 680
+  assign glass         = section.settings.show_glassmorphic_card
+  assign divider       = section.settings.show_divider
+  assign btn_text      = section.settings.button_text | default: ''
+  assign btn_url       = section.settings.button_url | default: ''
+  assign btn_style     = section.settings.button_style | default: 'gradient'
+  assign bg_color      = section.settings.bg_color | default: '#0a0a0a'
+  assign text_color    = section.settings.text_color | default: '#f5f5f5'
+  assign heading_color = section.settings.heading_color | default: '#ffffff'
+  assign body_color    = section.settings.body_color | default: '#d4d4d4'
+  assign accent_color  = section.settings.accent_color | default: '#c8956c'
+  assign pad_top       = section.settings.padding_top | default: 80
+  assign pad_bottom    = section.settings.padding_bottom | default: 80
+
+  assign overlay_dec = overlay_op | times: 1.0 | divided_by: 100.0
+
+  assign flex_dir = 'row'
+  if image_pos == 'right'
+    assign flex_dir = 'row-reverse'
+  endif
+
+  assign names_arr = names_raw | split: ','
+-%}
+
+<section
+  id="casa-edit-{{ section.id }}"
+  class="casa-edit casa-edit--{{ layout }}{% if image_pos == 'right' %} casa-edit--img-right{% endif %}"
+  style="
+    --ce-bg: {{ bg_color }};
+    --ce-text: {{ text_color }};
+    --ce-heading: {{ heading_color }};
+    --ce-body: {{ body_color }};
+    --ce-accent: {{ accent_color }};
+    --ce-names-color: {{ names_color | default: accent_color }};
+    --ce-overlay: {{ overlay_dec }};
+    --ce-min-h: {{ min_h }}px;
+    --ce-names-fs: {{ names_fs }}px;
+    --ce-names-ls: {{ names_ls }}px;
+    --ce-max-w: {{ max_w }}px;
+    --ce-align: {{ align }};
+    --ce-pad-top: {{ pad_top }}px;
+    --ce-pad-bottom: {{ pad_bottom }}px;
+    --ce-flex-dir: {{ flex_dir }};
+  "
+>
+
+  {%- comment -%} ── OVERLAY LAYOUT ── {%- endcomment -%}
+  {%- if layout == 'overlay' -%}
+    <div class="casa-edit__overlay-wrap">
+      {%- if section.settings.image != blank -%}
+        <picture class="casa-edit__picture">
+          {%- if section.settings.mobile_image != blank -%}
+            <source
+              media="(max-width: 749px)"
+              srcset="{{ section.settings.mobile_image | image_url: width: 900 }} 900w,
+                      {{ section.settings.mobile_image | image_url: width: 600 }} 600w"
+              sizes="100vw"
+            >
+          {%- endif -%}
+          <img
+            src="{{ section.settings.image | image_url: width: 1920 }}"
+            srcset="{{ section.settings.image | image_url: width: 1920 }} 1920w,
+                    {{ section.settings.image | image_url: width: 1400 }} 1400w,
+                    {{ section.settings.image | image_url: width: 1000 }} 1000w"
+            sizes="100vw"
+            alt="{{ section.settings.image.alt | escape }}"
+            loading="lazy"
+            width="{{ section.settings.image.width }}"
+            height="{{ section.settings.image.height }}"
+            class="casa-edit__bg-img"
+          >
+        </picture>
+      {%- endif -%}
+      <div class="casa-edit__overlay-dim"></div>
+      <div class="casa-edit__overlay-content casa-edit__content-zone" data-ce-animate>
+        {%- if glass -%}<div class="casa-edit__glass">{%- endif -%}
+          {%- render 'casa-edit-content',
+            names_arr: names_arr,
+            heading: heading,
+            heading_size: heading_size,
+            body_text: body_text,
+            divider: divider,
+            btn_text: btn_text,
+            btn_url: btn_url,
+            btn_style: btn_style,
+            accent_color: accent_color,
+            section_id: section.id
+          -%}
+        {%- if glass -%}</div>{%- endif -%}
+      </div>
+    </div>
+
+  {%- comment -%} ── SPLIT LAYOUT ── {%- endcomment -%}
+  {%- elsif layout == 'split' -%}
+    <div class="casa-edit__split-wrap">
+      <div class="casa-edit__split-image">
+        {%- if section.settings.image != blank -%}
+          <picture>
+            {%- if section.settings.mobile_image != blank -%}
+              <source
+                media="(max-width: 749px)"
+                srcset="{{ section.settings.mobile_image | image_url: width: 800 }} 800w,
+                        {{ section.settings.mobile_image | image_url: width: 600 }} 600w"
+                sizes="100vw"
+              >
+            {%- endif -%}
+            <img
+              src="{{ section.settings.image | image_url: width: 1200 }}"
+              srcset="{{ section.settings.image | image_url: width: 1200 }} 1200w,
+                      {{ section.settings.image | image_url: width: 900 }} 900w,
+                      {{ section.settings.image | image_url: width: 600 }} 600w"
+              sizes="(min-width: 750px) 55vw, 100vw"
+              alt="{{ section.settings.image.alt | escape }}"
+              loading="lazy"
+              width="{{ section.settings.image.width }}"
+              height="{{ section.settings.image.height }}"
+              class="casa-edit__split-img"
+            >
+          </picture>
+        {%- endif -%}
+      </div>
+      <div class="casa-edit__split-content casa-edit__content-zone" data-ce-animate>
+        {%- if glass -%}<div class="casa-edit__glass">{%- endif -%}
+          {%- render 'casa-edit-content',
+            names_arr: names_arr,
+            heading: heading,
+            heading_size: heading_size,
+            body_text: body_text,
+            divider: divider,
+            btn_text: btn_text,
+            btn_url: btn_url,
+            btn_style: btn_style,
+            accent_color: accent_color,
+            section_id: section.id
+          -%}
+        {%- if glass -%}</div>{%- endif -%}
+      </div>
+    </div>
+
+  {%- comment -%} ── STACKED LAYOUT ── {%- endcomment -%}
+  {%- elsif layout == 'stacked' -%}
+    <div class="casa-edit__stacked-wrap">
+      <div class="casa-edit__stacked-image">
+        {%- if section.settings.image != blank -%}
+          <picture>
+            {%- if section.settings.mobile_image != blank -%}
+              <source
+                media="(max-width: 749px)"
+                srcset="{{ section.settings.mobile_image | image_url: width: 900 }} 900w,
+                        {{ section.settings.mobile_image | image_url: width: 600 }} 600w"
+                sizes="100vw"
+              >
+            {%- endif -%}
+            <img
+              src="{{ section.settings.image | image_url: width: 1920 }}"
+              srcset="{{ section.settings.image | image_url: width: 1920 }} 1920w,
+                      {{ section.settings.image | image_url: width: 1400 }} 1400w,
+                      {{ section.settings.image | image_url: width: 1000 }} 1000w"
+              sizes="100vw"
+              alt="{{ section.settings.image.alt | escape }}"
+              loading="lazy"
+              width="{{ section.settings.image.width }}"
+              height="{{ section.settings.image.height }}"
+              class="casa-edit__stacked-img"
+            >
+          </picture>
+        {%- endif -%}
+      </div>
+      <div class="casa-edit__stacked-content casa-edit__content-zone" data-ce-animate>
+        {%- if glass -%}<div class="casa-edit__glass">{%- endif -%}
+          {%- render 'casa-edit-content',
+            names_arr: names_arr,
+            heading: heading,
+            heading_size: heading_size,
+            body_text: body_text,
+            divider: divider,
+            btn_text: btn_text,
+            btn_url: btn_url,
+            btn_style: btn_style,
+            accent_color: accent_color,
+            section_id: section.id
+          -%}
+        {%- if glass -%}</div>{%- endif -%}
+      </div>
+    </div>
+  {%- endif -%}
+</section>
+
+{%- comment -%} ════════════════════  STYLES  ════════════════════ {%- endcomment -%}
+<style>
+  /* ── Base ── */
+  .casa-edit {
+    position: relative;
+    width: 100%;
+    color: var(--ce-text);
+    background: var(--ce-bg);
+    overflow: hidden;
+  }
+
+  /* ── Content zone shared ── */
+  .casa-edit__content-zone {
+    text-align: var(--ce-align);
+    max-width: var(--ce-max-w);
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity .9s cubic-bezier(.22,1,.36,1), transform .9s cubic-bezier(.22,1,.36,1);
+  }
+  .casa-edit__content-zone.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .casa-edit__content-zone[style*="--ce-align: center"],
+  .casa-edit .casa-edit__content-zone {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .casa-edit--overlay .casa-edit__content-zone,
+  .casa-edit--stacked .casa-edit__content-zone {
+    margin-inline: auto;
+  }
+
+  /* align helper */
+  .casa-edit[style*="--ce-align: left"] .casa-edit__content-zone {
+    margin-left: 0;
+    margin-right: auto;
+  }
+  .casa-edit[style*="--ce-align: right"] .casa-edit__content-zone {
+    margin-left: auto;
+    margin-right: 0;
+  }
+
+  /* ── Glassmorphic card ── */
+  .casa-edit__glass {
+    background: rgba(10, 10, 10, .35);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    padding: 48px 40px;
+  }
+
+  /* ══════════════════════════════════════
+     OVERLAY LAYOUT
+     ══════════════════════════════════════ */
+  .casa-edit__overlay-wrap {
+    position: relative;
+    min-height: var(--ce-min-h);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--ce-pad-top) 24px var(--ce-pad-bottom);
+  }
+  .casa-edit__picture {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+  .casa-edit__bg-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .casa-edit__overlay-dim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: rgba(0,0,0, var(--ce-overlay));
+    pointer-events: none;
+  }
+  .casa-edit__overlay-content {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ══════════════════════════════════════
+     SPLIT LAYOUT
+     ══════════════════════════════════════ */
+  .casa-edit__split-wrap {
+    display: grid;
+    grid-template-columns: 55% 45%;
+    min-height: var(--ce-min-h);
+    gap: 0;
+    align-items: center;
+  }
+  .casa-edit--img-right .casa-edit__split-wrap {
+    grid-template-columns: 45% 55%;
+  }
+  .casa-edit--img-right .casa-edit__split-image {
+    order: 2;
+  }
+  .casa-edit--img-right .casa-edit__split-content {
+    order: 1;
+  }
+  .casa-edit__split-image {
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+  }
+  .casa-edit__split-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .casa-edit__split-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: var(--ce-pad-top) 48px var(--ce-pad-bottom);
+    background: var(--ce-bg);
+  }
+
+  /* ══════════════════════════════════════
+     STACKED LAYOUT
+     ══════════════════════════════════════ */
+  .casa-edit__stacked-wrap {}
+  .casa-edit__stacked-image {
+    position: relative;
+    width: 100%;
+    max-height: 520px;
+    overflow: hidden;
+  }
+  .casa-edit__stacked-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    max-height: 520px;
+  }
+  .casa-edit__stacked-content {
+    padding: var(--ce-pad-top) 24px var(--ce-pad-bottom);
+    background: var(--ce-bg);
+  }
+
+  /* ══════════════════════════════════════
+     NAMES ROW
+     ══════════════════════════════════════ */
+  .casa-edit__names {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    margin-bottom: 20px;
+  }
+  .casa-edit[style*="--ce-align: center"] .casa-edit__names { justify-content: center; }
+  .casa-edit[style*="--ce-align: right"] .casa-edit__names { justify-content: flex-end; }
+  .casa-edit__name {
+    font-size: var(--ce-names-fs);
+    letter-spacing: var(--ce-names-ls);
+    text-transform: uppercase;
+    color: var(--ce-names-color);
+    font-weight: 400;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+  .casa-edit__name-sep {
+    color: var(--ce-names-color);
+    opacity: .35;
+    font-size: var(--ce-names-fs);
+    user-select: none;
+  }
+
+  /* ══════════════════════════════════════
+     DIVIDER
+     ══════════════════════════════════════ */
+  .casa-edit__divider {
+    width: 80px;
+    height: 1px;
+    margin: 16px 0 20px;
+    border: none;
+    background: linear-gradient(90deg, transparent, var(--ce-accent), transparent);
+  }
+  .casa-edit[style*="--ce-align: center"] .casa-edit__divider { margin-inline: auto; }
+  .casa-edit[style*="--ce-align: right"] .casa-edit__divider { margin-left: auto; margin-right: 0; }
+
+  /* ══════════════════════════════════════
+     HEADING
+     ══════════════════════════════════════ */
+  .casa-edit__heading {
+    font-weight: 300;
+    line-height: 1.05;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ce-heading);
+    margin: 0 0 24px;
+  }
+  .casa-edit__heading--small  { font-size: clamp(1.5rem, 3vw, 2.25rem); }
+  .casa-edit__heading--medium { font-size: clamp(2rem, 4.5vw, 3.25rem); }
+  .casa-edit__heading--large  { font-size: clamp(2.5rem, 5.5vw, 4.5rem); }
+  .casa-edit__heading--extra-large { font-size: clamp(3rem, 7vw, 6rem); }
+
+  /* ══════════════════════════════════════
+     BODY TEXT
+     ══════════════════════════════════════ */
+  .casa-edit__body {
+    color: var(--ce-body);
+    font-size: 16px;
+    line-height: 1.7;
+    font-weight: 400;
+  }
+  .casa-edit__body p {
+    margin: 0 0 16px;
+  }
+  .casa-edit__body p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* ══════════════════════════════════════
+     CTA BUTTON
+     ══════════════════════════════════════ */
+  .casa-edit__btn-wrap {
+    margin-top: 32px;
+  }
+  .casa-edit__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 36px;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all .35s cubic-bezier(.22,1,.36,1);
+    cursor: pointer;
+    line-height: 1.2;
+  }
+  .casa-edit__btn--gradient {
+    background: linear-gradient(135deg, var(--ce-accent), #e0b98a);
+    color: #0a0a0a;
+    border: none;
+  }
+  .casa-edit__btn--gradient:hover {
+    filter: brightness(1.12);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(200,149,108,.3);
+  }
+  .casa-edit__btn--solid {
+    background: var(--ce-accent);
+    color: #0a0a0a;
+    border: none;
+  }
+  .casa-edit__btn--solid:hover {
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(200,149,108,.25);
+  }
+  .casa-edit__btn--outline {
+    background: transparent;
+    color: var(--ce-text);
+    border: 1px solid rgba(255,255,255,.2);
+  }
+  .casa-edit__btn--outline:hover {
+    border-color: var(--ce-accent);
+    color: var(--ce-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(200,149,108,.15);
+  }
+
+  /* ── Arrow icon in button ── */
+  .casa-edit__btn-arrow {
+    width: 14px;
+    height: 14px;
+    transition: transform .3s ease;
+  }
+  .casa-edit__btn:hover .casa-edit__btn-arrow {
+    transform: translateX(3px);
+  }
+
+  /* ══════════════════════════════════════
+     WARM GLOW — ambient light effect
+     ══════════════════════════════════════ */
+  .casa-edit--overlay .casa-edit__overlay-wrap::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 45%;
+    background: radial-gradient(ellipse at center bottom, rgba(200,149,108,.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* ══════════════════════════════════════
+     RESPONSIVE
+     ══════════════════════════════════════ */
+  @media (max-width: 749px) {
+    .casa-edit__split-wrap {
+      grid-template-columns: 1fr !important;
+      direction: ltr !important;
+    }
+    .casa-edit__split-image {
+      max-height: 380px;
+    }
+    .casa-edit__split-content {
+      padding: 40px 20px 48px;
+    }
+    .casa-edit__overlay-wrap {
+      min-height: 420px;
+      padding: 48px 20px;
+    }
+    .casa-edit__glass {
+      padding: 32px 24px;
+      border-radius: 12px;
+    }
+    .casa-edit__heading--large { font-size: clamp(2rem, 8vw, 3rem); }
+    .casa-edit__heading--extra-large { font-size: clamp(2.2rem, 9vw, 3.5rem); }
+    .casa-edit__stacked-content {
+      padding: 40px 20px 48px;
+    }
+    .casa-edit__names {
+      gap: 4px 14px;
+    }
+  }
+</style>
+
+{%- comment -%} ════════════════════  SCRIPT  ════════════════════ {%- endcomment -%}
+<script>
+  (function () {
+    var zones = document.querySelectorAll('#casa-edit-{{ section.id }} [data-ce-animate]');
+    if (!zones.length) return;
+
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) {
+            e.target.classList.add('is-visible');
+            io.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.15 });
+      zones.forEach(function (z) { io.observe(z); });
+    } else {
+      zones.forEach(function (z) { z.classList.add('is-visible'); });
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Casa Editorial Story",
+  "tag": "section",
+  "class": "casa-editorial-story-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "layout_style",
+      "label": "Layout style",
+      "options": [
+        { "value": "overlay", "label": "Overlay (image + text)" },
+        { "value": "split", "label": "Split (image beside text)" },
+        { "value": "stacked", "label": "Stacked (image above text)" }
+      ],
+      "default": "overlay"
+    },
+    {
+      "type": "select",
+      "id": "image_position",
+      "label": "Image position (split mode)",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "range",
+      "id": "min_height",
+      "label": "Minimum height (px)",
+      "min": 300,
+      "max": 800,
+      "step": 10,
+      "default": 500,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Background image"
+    },
+    {
+      "type": "image_picker",
+      "id": "mobile_image",
+      "label": "Mobile image (optional)"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "label": "Overlay darkness",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 40,
+      "unit": "%",
+      "info": "Overlay mode only"
+    },
+    {
+      "type": "header",
+      "content": "Character / Product Names"
+    },
+    {
+      "type": "text",
+      "id": "character_names",
+      "label": "Names (comma-separated)",
+      "placeholder": "AVA, DAISY, LILY, MIA",
+      "info": "Displayed as a stylish uppercase row"
+    },
+    {
+      "type": "range",
+      "id": "names_font_size",
+      "label": "Names font size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "default": 14,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "names_letter_spacing",
+      "label": "Names letter spacing",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "default": 8,
+      "unit": "px"
+    },
+    {
+      "type": "color",
+      "id": "names_color",
+      "label": "Names color",
+      "info": "Defaults to accent color if empty"
+    },
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "VINTAGE NOSTALGIA"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "Heading size",
+      "options": [
+        { "value": "small", "label": "Small" },
+        { "value": "medium", "label": "Medium" },
+        { "value": "large", "label": "Large" },
+        { "value": "extra-large", "label": "Extra Large" }
+      ],
+      "default": "large"
+    },
+    {
+      "type": "richtext",
+      "id": "body_text",
+      "label": "Body text"
+    },
+    {
+      "type": "select",
+      "id": "content_alignment",
+      "label": "Content alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "content_max_width",
+      "label": "Content max width",
+      "min": 400,
+      "max": 1000,
+      "step": 20,
+      "default": 680,
+      "unit": "px"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_glassmorphic_card",
+      "label": "Show glassmorphic card",
+      "default": false,
+      "info": "Frosted-glass card behind content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_divider",
+      "label": "Show decorative divider",
+      "default": true,
+      "info": "Gradient line between names and heading"
+    },
+    {
+      "type": "header",
+      "content": "Button"
+    },
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button text"
+    },
+    {
+      "type": "url",
+      "id": "button_url",
+      "label": "Button link"
+    },
+    {
+      "type": "select",
+      "id": "button_style",
+      "label": "Button style",
+      "options": [
+        { "value": "gradient", "label": "Gradient" },
+        { "value": "solid", "label": "Solid" },
+        { "value": "outline", "label": "Outline" }
+      ],
+      "default": "gradient"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#f5f5f5"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Heading color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "body_color",
+      "label": "Body text color",
+      "default": "#d4d4d4"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "default": "#c8956c",
+      "info": "Divider, button gradient, warm glow"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "default": 80,
+      "unit": "px"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Editorial Story",
+      "settings": {
+        "layout_style": "overlay",
+        "heading": "VINTAGE NOSTALGIA",
+        "heading_size": "large",
+        "character_names": "AVA, DAISY, LILY, MIA",
+        "names_font_size": 14,
+        "names_letter_spacing": 8,
+        "body_text": "<p>The intricate designs, inspired by classic aesthetics, transport you back to an era of elegance and simplicity. Yet, with modern touch-control technology, they offer the convenience and functionality of contemporary lighting.<\/p><p>Illuminate your world with the captivating charm of the Bubble Girls. Their presence adds warmth and a unique touch, transforming your space into a welcoming and delightful haven.<\/p>",
+        "content_alignment": "center",
+        "show_divider": true,
+        "overlay_opacity": 40,
+        "bg_color": "#0a0a0a",
+        "text_color": "#f5f5f5",
+        "heading_color": "#ffffff",
+        "body_color": "#d4d4d4",
+        "accent_color": "#c8956c"
+      }
+    }
+  ]
+}
+{% endschema %}

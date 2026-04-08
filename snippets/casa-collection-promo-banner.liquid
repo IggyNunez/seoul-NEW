@@ -1,0 +1,94 @@
+{%- doc -%}
+  Seoul Glow Lab - Unified Collection Banner
+  Renders a promotional/media banner within the product grid.
+  Supports: image, mobile image, video, overlay, text content, CTA button.
+  All content is optional — can be pure media or full promo.
+{%- enddoc -%}
+
+{%- liquid
+  assign tag_text = block.settings.tag | default: ''
+  assign title = block.settings.title | default: ''
+  assign subtitle = block.settings.subtitle | default: ''
+  assign cta_text = block.settings.cta_text | default: ''
+  assign link = block.settings.link | default: ''
+  assign image = block.settings.image
+  assign mobile_image = block.settings.mobile_image
+  assign video_url = block.settings.video_url | default: ''
+  assign image_position = block.settings.image_position | default: 'center'
+  assign banner_height = block.settings.banner_height | default: 280
+  assign border_radius = block.settings.border_radius | default: 12
+  assign overlay_opacity = block.settings.overlay_opacity | default: 40
+  assign content_position = block.settings.content_position | default: 'bottom-left'
+
+  assign bg_color = block.settings.bg_color | default: '#0f0f18'
+  assign text_color = block.settings.text_color | default: '#ffffff'
+  assign tag_bg = block.settings.tag_bg | default: '#9333ea'
+  assign btn_bg = block.settings.btn_bg | default: '#9333ea'
+  assign btn_text = block.settings.btn_text | default: '#ffffff'
+
+  assign has_media = false
+  if image != blank or video_url != blank
+    assign has_media = true
+  endif
+
+  assign has_content = false
+  if title != blank or cta_text != blank or tag_text != blank
+    assign has_content = true
+  endif
+-%}
+
+<div
+  class="casa-col-banner{% if has_media %} casa-col-banner--has-media{% endif %}"
+  style="
+    --cb-height: {{ banner_height }}px;
+    --cb-radius: {{ border_radius }}px;
+    --cb-overlay: {{ overlay_opacity | divided_by: 100.0 }};
+    --cb-bg: {{ bg_color }};
+    --cb-text: {{ text_color }};
+    --cb-tag-bg: {{ tag_bg }};
+    --cb-btn-bg: {{ btn_bg }};
+    --cb-btn-text: {{ btn_text }};
+  "
+>
+  {%- comment -%} Media layer {%- endcomment -%}
+  {%- if video_url != blank -%}
+    <video class="casa-col-banner__media" autoplay loop muted playsinline>
+      <source src="{{ video_url }}" type="video/mp4">
+    </video>
+  {%- elsif image != blank -%}
+    {%- if mobile_image != blank -%}
+      <img class="casa-col-banner__media casa-col-banner__media--desktop" src="{{ image | image_url: width: 1600 }}" alt="{{ title | escape }}" loading="lazy" style="object-position: {{ image_position }};">
+      <img class="casa-col-banner__media casa-col-banner__media--mobile" src="{{ mobile_image | image_url: width: 800 }}" alt="{{ title | escape }}" loading="lazy" style="object-position: {{ image_position }};">
+    {%- else -%}
+      <img class="casa-col-banner__media" src="{{ image | image_url: width: 1600 }}" alt="{{ title | escape }}" loading="lazy" style="object-position: {{ image_position }};">
+    {%- endif -%}
+  {%- endif -%}
+
+  {%- comment -%} Overlay {%- endcomment -%}
+  {%- if has_media and overlay_opacity > 0 -%}
+    <div class="casa-col-banner__overlay"></div>
+  {%- endif -%}
+
+  {%- comment -%} Content {%- endcomment -%}
+  {%- if has_content -%}
+    <div class="casa-col-banner__content casa-col-banner__content--{{ content_position }}">
+      {%- if tag_text != blank -%}
+        <span class="casa-col-banner__tag">{{ tag_text }}</span>
+      {%- endif -%}
+      {%- if title != blank -%}
+        <h3 class="casa-col-banner__title">{{ title }}</h3>
+      {%- endif -%}
+      {%- if subtitle != blank -%}
+        <p class="casa-col-banner__subtitle">{{ subtitle }}</p>
+      {%- endif -%}
+      {%- if cta_text != blank -%}
+        <a href="{{ link | default: '#' }}" class="casa-col-banner__cta">{{ cta_text }}</a>
+      {%- endif -%}
+    </div>
+  {%- endif -%}
+
+  {%- comment -%} Full-banner link (when no CTA button but link is set) {%- endcomment -%}
+  {%- if link != blank and cta_text == blank -%}
+    <a href="{{ link }}" class="casa-col-banner__link" aria-label="{{ title | default: 'Banner' | escape }}"></a>
+  {%- endif -%}
+</div>

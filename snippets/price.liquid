@@ -9,7 +9,7 @@
 
 {%- liquid
   assign show_unit_price = show_unit_price | default: false
-  assign show_sale_price_first = show_sale_price_first | default: false
+  assign show_sale_price_first = show_sale_price_first | default: true
   assign selected_variant = product_resource.selected_or_first_available_variant
   assign price = selected_variant.price
   assign compare_at_price = selected_variant.compare_at_price
@@ -83,7 +83,7 @@
     {% endif %}
     <span role="group">
       <span class="visually-hidden">{{ 'content.price_range' | t }}&nbsp;</span>
-      <span class="price price-range price--large">{{ price_min }} - {{ price_max }}</span>
+      <span class="price">{{ price_min }} - {{ price_max }}</span>
     </span>
   {% else %}
     {% comment %} Standard pricing display {% endcomment %}
@@ -108,6 +108,10 @@
         <span class="visually-hidden">{{ 'content.price_regular' | t }}&nbsp;</span>
         <span class="compare-at-price">{{- compare_at_price -}}</span>
       </span>
+      {%- assign savings_raw = selected_variant.compare_at_price | minus: selected_variant.price -%}
+      {%- if savings_raw > 0 -%}
+        <span class="price-save-badge">Save {{ savings_raw | money }}</span>
+      {%- endif -%}
     {% endif %}
   {% endif %}
   {%- if selected_variant.unit_price and show_unit_price %}
@@ -121,6 +125,14 @@
     {% render 'unit-price', price: unit_price, measurement: selected_variant.unit_price_measurement %}
   {%- endif -%}
 </div>
+{%- comment -%} Installments display — uses Shopify's native payment terms {%- endcomment -%}
+{%- if template.name == 'product' and hide_installments != true -%}
+  <div class="price-installments" ref="installments">
+    {%- form 'product', product_resource, id: 'installments-form' -%}
+      {{ form | payment_terms }}
+    {%- endform -%}
+  </div>
+{%- endif -%}
 {%- if has_volume_pricing -%}
   <small class="volume-pricing-note">{{ 'content.volume_pricing_available' | t }}</small>
 {%- endif -%}

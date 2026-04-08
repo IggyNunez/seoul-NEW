@@ -26,6 +26,69 @@
   [data-section-id] {section.id} - used to fetch the product recommendations from the Section Rendering API
 {% endcomment %}
 
+{%- comment -%} Casa overrides for product recommendation cards {%- endcomment -%}
+<style>
+  {%- if block.settings.hide_sale_badge -%}
+  #product-recommendations-{{ block.id }} .price-save-badge,
+  #product-recommendations-{{ block.id }} .badge--sale,
+  #product-recommendations-{{ block.id }} [class*="badge"][class*="sale"] {
+    display: none !important;
+  }
+  {%- endif -%}
+  {%- if block.settings.hide_save_amount -%}
+  #product-recommendations-{{ block.id }} .price__save,
+  #product-recommendations-{{ block.id }} .price-save-badge,
+  #product-recommendations-{{ block.id }} [class*="save"] {
+    display: none !important;
+  }
+  {%- endif -%}
+  {%- if block.settings.center_text -%}
+  #product-recommendations-{{ block.id }} .product-card__info,
+  #product-recommendations-{{ block.id }} .product-card__title,
+  #product-recommendations-{{ block.id }} .price,
+  #product-recommendations-{{ block.id }} [class*="product-card"] [class*="title"],
+  #product-recommendations-{{ block.id }} [class*="product-card"] [class*="price"] {
+    text-align: center !important;
+    justify-content: center !important;
+  }
+  {%- endif -%}
+  {%- if block.settings.price_color != blank -%}
+  #product-recommendations-{{ block.id }} .price .price__current,
+  #product-recommendations-{{ block.id }} .price .money,
+  #product-recommendations-{{ block.id }} .price__sale {
+    color: {{ block.settings.price_color }} !important;
+  }
+  {%- endif -%}
+  {%- if block.settings.compare_price_color != blank -%}
+  #product-recommendations-{{ block.id }} .price .price__was,
+  #product-recommendations-{{ block.id }} .price s,
+  #product-recommendations-{{ block.id }} .price del,
+  #product-recommendations-{{ block.id }} .price__compare {
+    color: {{ block.settings.compare_price_color }} !important;
+  }
+  {%- endif -%}
+  {%- if block.settings.save_color != blank -%}
+  #product-recommendations-{{ block.id }} .price-save-badge,
+  #product-recommendations-{{ block.id }} .price__save {
+    color: {{ block.settings.save_color }} !important;
+  }
+  {%- endif -%}
+  {%- if block.settings.title_color != blank -%}
+  #product-recommendations-{{ block.id }} .product-card__title,
+  #product-recommendations-{{ block.id }} [class*="product-card"] [class*="title"] a,
+  #product-recommendations-{{ block.id }} [class*="product-card"] [class*="title"] {
+    color: {{ block.settings.title_color }} !important;
+  }
+  {%- endif -%}
+  {%- if block.settings.reviews_color != blank -%}
+  #product-recommendations-{{ block.id }} .stamped-badge,
+  #product-recommendations-{{ block.id }} [class*="review"],
+  #product-recommendations-{{ block.id }} [class*="rating"] {
+    color: {{ block.settings.reviews_color }} !important;
+  }
+  {%- endif -%}
+</style>
+
 <product-recommendations
   id="product-recommendations-{{ block.id }}"
   class="product-recommendations"
@@ -171,27 +234,23 @@
 </product-recommendations>
 
 {% stylesheet %}
+  .block-resource-list {
+    display: flex;
+    flex-direction: column;
+    row-gap: var(--gap);
+    min-width: 0;
+    min-height: 0;
+    container-type: inline-size;
+    container-name: resource-list;
+    border-radius: var(--border-radius, 0);
+  }
+
   .product-recommendations-wrapper {
     width: 100%;
   }
 
   .product-recommendations-wrapper:has(product-recommendations[data-shopify-editor-preview]) {
     width: 100vw;
-  }
-
-  .product-recommendations {
-    display: block;
-  }
-
-  .block-resource-list {
-    border-radius: var(--border-radius, 0);
-  }
-
-  .product-recommendations__skeleton-item {
-    aspect-ratio: 3 / 4;
-    background-color: var(--color-foreground);
-    opacity: var(--skeleton-opacity);
-    border-radius: 4px;
   }
 {% endstylesheet %}
 
@@ -425,6 +484,67 @@
       "step": 1,
       "unit": "px",
       "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Card display overrides"
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_sale_badge",
+      "label": "Hide sale badge",
+      "info": "Hides the discount % badge on product images",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_save_amount",
+      "label": "Hide save amount",
+      "info": "Hides the 'Save $XX' text",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "center_text",
+      "label": "Center text",
+      "info": "Center align title, price, and reviews",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_reviews",
+      "label": "Show reviews",
+      "info": "Display star ratings on cards",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Price colors"
+    },
+    {
+      "type": "color",
+      "id": "price_color",
+      "label": "Price color"
+    },
+    {
+      "type": "color",
+      "id": "compare_price_color",
+      "label": "Compare-at price color"
+    },
+    {
+      "type": "color",
+      "id": "save_color",
+      "label": "Save badge color"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Title color"
+    },
+    {
+      "type": "color",
+      "id": "reviews_color",
+      "label": "Reviews color"
     }
   ],
   "presets": [

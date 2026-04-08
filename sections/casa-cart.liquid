@@ -1,0 +1,867 @@
+{% doc %}
+  Casa Cart Section
+
+  Premium dark-themed cart page section that replaces main-cart.
+  Maintains full JS compatibility with cart-items-component for AJAX updates.
+  Uses Casa design system tokens for consistent brand styling.
+{% enddoc %}
+
+<cart-items-component
+  class="cart-items-component"
+  data-section-id="{{ section.id }}"
+>
+  {%- comment -%} ═══ Empty Cart Template (for JS morphing when cart empties) ═══ {%- endcomment -%}
+  <template id="empty-cart-template">
+    <div class="casa-cart">
+      <div class="casa-cart__bg-orbs">
+        <div class="casa-cart__orb casa-cart__orb--1"></div>
+        <div class="casa-cart__orb casa-cart__orb--2"></div>
+      </div>
+      <div class="casa-cart__container">
+        {%- render 'casa-cart-items', force_empty: true -%}
+      </div>
+    </div>
+  </template>
+
+  {%- comment -%} ═══ Color Settings ═══ {%- endcomment -%}
+  {%- liquid
+    assign bg_color = section.settings.bg_color | default: '#0a0a0a'
+    assign bg_secondary = section.settings.bg_secondary | default: '#141414'
+    assign text_primary = section.settings.text_primary | default: '#ffffff'
+    assign text_secondary = section.settings.text_secondary | default: '#a1a1aa'
+    assign accent_primary = section.settings.accent_primary | default: '#9333ea'
+    assign accent_secondary = section.settings.accent_secondary | default: '#ec4899'
+    assign price_color = section.settings.price_color | default: '#ffffff'
+    assign compare_price_color = section.settings.compare_price_color | default: '#71717a'
+    assign sale_price_color = section.settings.sale_price_color | default: '#ec4899'
+    assign savings_color = section.settings.savings_color | default: '#22c55e'
+    assign checkout_btn_bg = section.settings.checkout_btn_bg | default: '#9333ea'
+    assign checkout_btn_text = section.settings.checkout_btn_text | default: '#ffffff'
+    assign quantity_btn_bg = section.settings.quantity_btn_bg | default: '#9333ea'
+    assign quantity_btn_text = section.settings.quantity_btn_text | default: '#ffffff'
+    assign title_size = section.settings.title_size | default: 16
+    assign body_size = section.settings.body_size | default: 13
+  -%}
+
+  {%- comment -%} ═══ Main Cart Content ═══ {%- endcomment -%}
+  <div class="casa-cart" style="
+    --cart-bg: {{ bg_color }};
+    --cart-bg-secondary: {{ bg_secondary }};
+    --cart-text: {{ text_primary }};
+    --cart-text-muted: {{ text_secondary }};
+    --cart-accent-1: {{ accent_primary }};
+    --cart-accent-2: {{ accent_secondary }};
+    --cart-price-color: {{ price_color }};
+    --cart-compare-price-color: {{ compare_price_color }};
+    --cart-sale-price-color: {{ sale_price_color }};
+    --cart-savings-color: {{ savings_color }};
+    --cart-checkout-btn-bg: {{ checkout_btn_bg }};
+    --cart-checkout-btn-text: {{ checkout_btn_text }};
+    --cart-quantity-btn-bg: {{ quantity_btn_bg }};
+    --cart-quantity-btn-text: {{ quantity_btn_text }};
+    --cart-title-size: {{ title_size }}px;
+    --cart-body-size: {{ body_size }}px;
+    {%- if section.settings.border_color != blank %}--cart-border: {{ section.settings.border_color }};{% endif -%}
+    {%- if section.settings.shipping_bar_bg != blank %}--cart-ship-bar-bg: {{ section.settings.shipping_bar_bg }};{% endif -%}
+    {%- if section.settings.shipping_bar_fill != blank %}--cart-ship-bar-fill: {{ section.settings.shipping_bar_fill }};{% endif -%}
+    {%- if section.settings.shipping_bar_text != blank %}--cart-ship-bar-text: {{ section.settings.shipping_bar_text }};{% endif -%}
+    {%- if section.settings.checkout_btn_bg_2 != blank %}--cart-checkout-btn-bg-2: {{ section.settings.checkout_btn_bg_2 }};{% endif -%}
+    {%- if section.settings.continue_btn_bg != blank %}--cart-continue-btn-bg: {{ section.settings.continue_btn_bg }};{% endif -%}
+    {%- if section.settings.continue_btn_text != blank %}--cart-continue-btn-text: {{ section.settings.continue_btn_text }};{% endif -%}
+    {%- if section.settings.remove_btn_color != blank %}--cart-remove-btn: {{ section.settings.remove_btn_color }};{% endif -%}
+    {%- if section.settings.summary_bg != blank %}--cart-summary-bg: {{ section.settings.summary_bg }};{% endif -%}
+    {%- if section.settings.summary_border != blank %}--cart-summary-border: {{ section.settings.summary_border }};{% endif -%}
+    {%- if section.settings.summary_text != blank %}--cart-summary-text: {{ section.settings.summary_text }};{% endif -%}
+    {%- if section.settings.subtotal_color != blank %}--cart-subtotal: {{ section.settings.subtotal_color }};{% endif -%}
+    {%- if section.settings.upsell_bg != blank %}--cart-upsell-bg: {{ section.settings.upsell_bg }};{% endif -%}
+    {%- if section.settings.upsell_title_color != blank %}--cart-upsell-title: {{ section.settings.upsell_title_color }};{% endif -%}
+    {%- if section.settings.upsell_card_bg != blank %}--cart-upsell-card-bg: {{ section.settings.upsell_card_bg }};{% endif -%}
+  ">
+    {%- comment -%} Ambient glow orbs {%- endcomment -%}
+    {%- if section.settings.show_orbs != false -%}
+    <div class="casa-cart__bg-orbs" aria-hidden="true">
+      <div class="casa-cart__orb casa-cart__orb--1"></div>
+      <div class="casa-cart__orb casa-cart__orb--2"></div>
+      <div class="casa-cart__orb casa-cart__orb--3"></div>
+    </div>
+
+    <div class="casa-cart__container">
+    {%- endif -%}
+
+      {%- if cart.empty? -%}
+        {%- render 'casa-cart-items', force_empty: true -%}
+      {%- else -%}
+        {%- comment -%} ═══ Cart Header ═══ {%- endcomment -%}
+        {%- if section.settings.show_header != false -%}
+        <div class="casa-cart__header">
+          <span class="casa-cart__header-tag">{{ section.settings.header_tag | default: 'YOUR CART' }}</span>
+          <h1 class="casa-cart__header-title">
+            {{ section.settings.header_title | default: 'Shopping Bag' }}
+            <span class="casa-cart__header-count">({{ cart.item_count }})</span>
+          </h1>
+        </div>
+        {%- endif -%}
+
+        {%- comment -%} ═══ Free Shipping Progress Bar ═══ {%- endcomment -%}
+        {%- if section.settings.show_shipping_bar != false -%}
+          {%- render 'casa-cart-progress-bar' -%}
+        {%- endif -%}
+
+        {%- comment -%} ═══ Grid: Items + Summary ═══ {%- endcomment -%}
+        <div class="casa-cart__grid">
+          <div class="casa-cart__main">
+            {%- render 'casa-cart-items' -%}
+          </div>
+
+          <div class="casa-cart__sidebar">
+            {%- render 'casa-cart-summary', section_id: section.id -%}
+          </div>
+        </div>
+
+        {%- comment -%} ═══ Upsell Section ═══ {%- endcomment -%}
+        {%- if settings.cart_show_upsell and section.settings.show_upsell != false -%}
+          {%- liquid
+            assign upsell_collection = collections[settings.cart_upsell_collection]
+            assign upsell_limit = settings.cart_upsell_limit | default: 4
+            assign upsell_title = settings.cart_upsell_title | default: 'Complete Your Setup'
+          -%}
+          {%- if upsell_collection != blank and upsell_collection.products.size > 0 -%}
+            <div class="casa-cart__upsell">
+              <div class="casa-cart__upsell-header">
+                <div>
+                  <span class="casa-cart__upsell-tag">RECOMMENDED</span>
+                  <h2 class="casa-cart__upsell-title">{{ upsell_title }}</h2>
+                </div>
+                <div class="casa-cart__upsell-nav">
+                  <button type="button" class="casa-cart__upsell-arrow casa-cart__upsell-arrow--prev" aria-label="Previous" disabled>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  </button>
+                  <button type="button" class="casa-cart__upsell-arrow casa-cart__upsell-arrow--next" aria-label="Next">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="casa-cart__upsell-track">
+                {%- assign cart_product_ids = cart.items | map: 'product_id' -%}
+                {%- assign shown = 0 -%}
+                {%- for product in upsell_collection.products -%}
+                  {%- if cart_product_ids contains product.id -%}{%- continue -%}{%- endif -%}
+                  {%- if shown >= upsell_limit -%}{%- break -%}{%- endif -%}
+                  <div class="casa-cart__upsell-card">
+                    {%- render 'casa-product-card',
+                      product: product,
+                      index: shown,
+                      show_quick_add: true,
+                      show_variant_swatches: false,
+                      show_wishlist: false,
+                      show_stock_urgency: false,
+                      show_installment: false,
+                      show_quick_view: false,
+                      show_hover_video: false,
+                      card_variant: 'minimal'
+                    -%}
+                  </div>
+                  {%- assign shown = shown | plus: 1 -%}
+                {%- endfor -%}
+              </div>
+            </div>
+          {%- endif -%}
+        {%- endif -%}
+
+        {%- comment -%} ═══ Gift Wrap ═══ {%- endcomment -%}
+        {%- if settings.cart_show_gift_options and section.settings.show_gift_wrap != false -%}
+          <div class="casa-cart__gift-wrap">
+            <label class="casa-cart__gift-label">
+              <input type="checkbox" class="casa-cart__gift-checkbox" name="attributes[gift_wrap]" value="true"
+                {% if cart.attributes.gift_wrap == 'true' %}checked{% endif %}
+              >
+              <span class="casa-cart__gift-icon">{%- render 'casa-icon', icon: 'gift', size: 16 -%}</span>
+              <span class="casa-cart__gift-text">
+                {{ settings.cart_gift_wrap_text | default: 'Add gift wrapping' }}
+                {%- assign _gift_price = settings.cart_gift_wrap_price | plus: 0 -%}
+                {%- if _gift_price > 0 -%}
+                  <span class="casa-cart__gift-price">(+{{ settings.cart_gift_wrap_price | money }})</span>
+                {%- endif -%}
+              </span>
+            </label>
+          </div>
+        {%- endif -%}
+      {%- endif -%}
+    </div>
+  </div>
+</cart-items-component>
+
+<script>
+  (function() {
+    function initCartUpsellCarousel() {
+      var upsell = document.querySelector('.casa-cart__upsell');
+      if (!upsell) return;
+      var track = upsell.querySelector('.casa-cart__upsell-track');
+      var prev = upsell.querySelector('.casa-cart__upsell-arrow--prev');
+      var next = upsell.querySelector('.casa-cart__upsell-arrow--next');
+      if (!track || !prev || !next) return;
+
+      function updateArrows() {
+        prev.disabled = track.scrollLeft <= 2;
+        next.disabled = track.scrollLeft + track.offsetWidth >= track.scrollWidth - 2;
+      }
+
+      prev.addEventListener('click', function() {
+        var card = track.querySelector('.casa-cart__upsell-card');
+        if (card) track.scrollBy({ left: -(card.offsetWidth + 16), behavior: 'smooth' });
+      });
+
+      next.addEventListener('click', function() {
+        var card = track.querySelector('.casa-cart__upsell-card');
+        if (card) track.scrollBy({ left: card.offsetWidth + 16, behavior: 'smooth' });
+      });
+
+      track.addEventListener('scroll', updateArrows, { passive: true });
+      updateArrows();
+    }
+
+    if (document.readyState !== 'loading') initCartUpsellCarousel();
+    else document.addEventListener('DOMContentLoaded', initCartUpsellCarousel);
+  })();
+</script>
+
+{% stylesheet %}
+  /* ══════════════════════════════════════════════
+     Casa Cart — Main Layout
+     ══════════════════════════════════════════════ */
+
+  .casa-cart {
+    background: var(--cart-bg, var(--casa-bg-dark));
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+    color: var(--cart-text, var(--casa-text-primary));
+  }
+
+  .casa-cart__container {
+    max-width: var(--page-width, 1200px);
+    margin: 0 auto;
+    padding: var(--casa-space-10) var(--casa-section-px);
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (max-width: 749px) {
+    .casa-cart__container {
+      padding: var(--casa-space-6) var(--casa-section-px-mobile);
+    }
+  }
+
+  /* ── Ambient Glow Orbs ── */
+  .casa-cart__bg-orbs {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+
+  .casa-cart__orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    animation: casa-cart-orb-float 8s ease-in-out infinite;
+  }
+
+  .casa-cart__orb--1 {
+    width: 400px;
+    height: 400px;
+    background: var(--cart-accent-1, var(--casa-purple));
+    opacity: 0.08;
+    top: 5%;
+    left: 5%;
+  }
+
+  .casa-cart__orb--2 {
+    width: 300px;
+    height: 300px;
+    background: var(--cart-accent-2, var(--casa-pink));
+    opacity: 0.06;
+    top: 30%;
+    right: 10%;
+    animation-delay: -2s;
+  }
+
+  .casa-cart__orb--3 {
+    width: 350px;
+    height: 350px;
+    background: var(--cart-accent-1, var(--casa-cyan));
+    opacity: 0.04;
+    bottom: 10%;
+    left: 25%;
+    animation-delay: -4s;
+  }
+
+  @keyframes casa-cart-orb-float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(30px, -20px) scale(1.05); }
+    50% { transform: translate(-20px, 30px) scale(0.95); }
+    75% { transform: translate(20px, 20px) scale(1.02); }
+  }
+
+  /* ── Cart Header ── */
+  .casa-cart__header {
+    margin-bottom: var(--casa-space-6);
+    animation: casa-fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .casa-cart__header-tag {
+    display: block;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--cart-text-muted, var(--casa-text-secondary));
+    margin-bottom: var(--casa-space-2);
+    font-weight: 500;
+  }
+
+  .casa-cart__header-title {
+    font-size: 36px;
+    font-weight: 300;
+    color: var(--cart-text, var(--casa-text-primary));
+    margin: 0;
+    line-height: 1.2;
+    animation: casa-fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+  }
+
+  @media (max-width: 749px) {
+    .casa-cart__header-title {
+      font-size: 28px;
+    }
+  }
+
+  .casa-cart__header-count {
+    background: var(--casa-gradient-text);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 400;
+  }
+
+  /* ── Grid Layout ── */
+  .casa-cart__grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: var(--casa-space-10);
+    align-items: start;
+  }
+
+  @media (max-width: 1199px) and (min-width: 1000px) {
+    .casa-cart__grid {
+      grid-template-columns: 1fr 320px;
+      gap: var(--casa-space-6);
+    }
+  }
+
+  @media (max-width: 999px) {
+    .casa-cart__grid {
+      grid-template-columns: 1fr;
+      gap: var(--casa-space-6);
+    }
+  }
+
+  .casa-cart__main {
+    min-width: 0;
+  }
+
+  .casa-cart__sidebar {
+    min-width: 0;
+  }
+
+  /* ── Upsell Section ── */
+  .casa-cart__upsell {
+    margin-top: var(--casa-space-16);
+    padding-top: var(--casa-space-10);
+    border-top: 1px solid var(--casa-border-subtle);
+  }
+
+  .casa-cart__upsell-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: var(--casa-space-6);
+  }
+
+  .casa-cart__upsell-tag {
+    display: block;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--cart-text-muted, var(--casa-text-secondary));
+    margin-bottom: var(--casa-space-2);
+    font-weight: 500;
+  }
+
+  .casa-cart__upsell-title {
+    font-size: 24px;
+    font-weight: 300;
+    color: var(--cart-text, var(--casa-text-primary));
+    margin: 0;
+  }
+
+  .casa-cart__upsell-nav {
+    display: flex;
+    gap: 8px;
+  }
+
+  .casa-cart__upsell-arrow {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--casa-border-subtle);
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--cart-text-muted, var(--casa-text-secondary));
+    transition: all 0.2s;
+    padding: 0;
+  }
+
+  .casa-cart__upsell-arrow:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--cart-accent-1, var(--casa-purple));
+    color: var(--cart-text, var(--casa-text-primary));
+  }
+
+  .casa-cart__upsell-arrow:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .casa-cart__upsell-track {
+    display: flex;
+    gap: var(--casa-space-4);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+  }
+
+  .casa-cart__upsell-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .casa-cart__upsell-card {
+    flex: 0 0 calc(25% - var(--casa-space-4) * 3 / 4);
+    scroll-snap-align: start;
+    min-width: 0;
+  }
+
+  @media (max-width: 1199px) {
+    .casa-cart__upsell-card {
+      flex: 0 0 calc(33.33% - var(--casa-space-4) * 2 / 3);
+    }
+  }
+
+  @media (max-width: 749px) {
+    .casa-cart__upsell-card {
+      flex: 0 0 200px;
+    }
+  }
+
+  /* ── Gift Wrap ── */
+  .casa-cart__gift-wrap {
+    margin-top: var(--casa-space-6);
+    padding: var(--casa-space-4) var(--casa-space-5);
+    background: var(--casa-glass-bg);
+    border: 1px solid var(--casa-border-subtle);
+    border-radius: var(--casa-radius-lg);
+  }
+
+  .casa-cart__gift-label {
+    display: flex;
+    align-items: center;
+    gap: var(--casa-space-3);
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--cart-text-muted, var(--casa-text-secondary));
+  }
+
+  .casa-cart__gift-checkbox {
+    accent-color: var(--cart-accent-1, var(--casa-purple));
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  }
+
+  .casa-cart__gift-icon {
+    display: flex;
+    align-items: center;
+    color: var(--cart-text-muted, var(--casa-text-muted));
+  }
+
+  .casa-cart__gift-text {
+    flex: 1;
+    color: var(--cart-text, var(--casa-text-primary));
+  }
+
+  .casa-cart__gift-price {
+    color: var(--cart-text-muted, var(--casa-text-muted));
+    font-size: 13px;
+  }
+
+  /* ── View Transition (empty cart) ── */
+  html:active-view-transition-type(empty-cart-page) {
+    .cart-items-component {
+      view-transition-name: cart-page-content;
+    }
+  }
+
+  ::view-transition-old(cart-page-content) {
+    animation: casa-cart-fade-out 0.3s ease forwards;
+  }
+
+  @keyframes casa-cart-fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; filter: blur(4px); }
+  }
+
+  /* ── Reduced Motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    .casa-cart__orb {
+      animation: none;
+    }
+    .casa-cart__header,
+    .casa-cart__header-title {
+      animation: none;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Cart",
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  },
+  "settings": [
+    {
+      "type": "header",
+      "content": "Visibility toggles"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_header",
+      "label": "Show cart header",
+      "info": "Shopping Bag title + item count",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_shipping_bar",
+      "label": "Show free shipping progress bar",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_upsell",
+      "label": "Show upsell products",
+      "info": "Controlled via Theme Settings > Cart Drawer",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_gift_wrap",
+      "label": "Show gift wrap option",
+      "info": "Controlled via Theme Settings > Cart Drawer",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_orbs",
+      "label": "Show ambient glow orbs",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_product_image",
+      "label": "Show product images",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_variant_info",
+      "label": "Show variant info",
+      "info": "Size, color, etc. under product title",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_compare_price",
+      "label": "Show compare-at price",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_savings",
+      "label": "Show savings amount",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_remove_btn",
+      "label": "Show remove button",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Header"
+    },
+    {
+      "type": "text",
+      "id": "header_tag",
+      "label": "Header tag text",
+      "default": "YOUR CART"
+    },
+    {
+      "type": "text",
+      "id": "header_title",
+      "label": "Header title",
+      "default": "Shopping Bag"
+    },
+    {
+      "type": "header",
+      "content": "Shipping bar"
+    },
+    {
+      "type": "color",
+      "id": "shipping_bar_bg",
+      "label": "Shipping bar background"
+    },
+    {
+      "type": "color",
+      "id": "shipping_bar_fill",
+      "label": "Shipping bar fill color"
+    },
+    {
+      "type": "color",
+      "id": "shipping_bar_text",
+      "label": "Shipping bar text color"
+    },
+    {
+      "type": "header",
+      "content": "Page colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "bg_secondary",
+      "label": "Card background",
+      "default": "#141414"
+    },
+    {
+      "type": "color",
+      "id": "text_primary",
+      "label": "Text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "text_secondary",
+      "label": "Text muted",
+      "default": "#a1a1aa"
+    },
+    {
+      "type": "color",
+      "id": "accent_primary",
+      "label": "Accent primary",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "accent_secondary",
+      "label": "Accent secondary",
+      "default": "#ec4899"
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Border / divider color",
+      "default": "#27272a"
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "label": "Product title size",
+      "min": 12,
+      "max": 22,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "body_size",
+      "label": "Body text size",
+      "min": 10,
+      "max": 16,
+      "step": 1,
+      "unit": "px",
+      "default": 13
+    },
+    {
+      "type": "header",
+      "content": "Prices"
+    },
+    {
+      "type": "color",
+      "id": "price_color",
+      "label": "Price color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "compare_price_color",
+      "label": "Compare-at price color",
+      "default": "#71717a"
+    },
+    {
+      "type": "color",
+      "id": "sale_price_color",
+      "label": "Sale price color",
+      "default": "#ec4899"
+    },
+    {
+      "type": "color",
+      "id": "savings_color",
+      "label": "Savings text color",
+      "default": "#22c55e"
+    },
+    {
+      "type": "header",
+      "content": "Buttons"
+    },
+    {
+      "type": "color",
+      "id": "checkout_btn_bg",
+      "label": "Checkout button background",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "checkout_btn_text",
+      "label": "Checkout button text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "checkout_btn_bg_2",
+      "label": "Checkout button gradient end",
+      "info": "Leave blank for solid color"
+    },
+    {
+      "type": "color",
+      "id": "continue_btn_bg",
+      "label": "Continue shopping button bg"
+    },
+    {
+      "type": "color",
+      "id": "continue_btn_text",
+      "label": "Continue shopping button text"
+    },
+    {
+      "type": "color",
+      "id": "quantity_btn_bg",
+      "label": "Quantity button background",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "quantity_btn_text",
+      "label": "Quantity button text",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "remove_btn_color",
+      "label": "Remove button color",
+      "default": "#ef4444"
+    },
+    {
+      "type": "header",
+      "content": "Summary sidebar"
+    },
+    {
+      "type": "color",
+      "id": "summary_bg",
+      "label": "Summary background"
+    },
+    {
+      "type": "color",
+      "id": "summary_border",
+      "label": "Summary border"
+    },
+    {
+      "type": "color",
+      "id": "summary_text",
+      "label": "Summary text color"
+    },
+    {
+      "type": "color",
+      "id": "subtotal_color",
+      "label": "Subtotal price color"
+    },
+    {
+      "type": "header",
+      "content": "Upsell section"
+    },
+    {
+      "type": "color",
+      "id": "upsell_bg",
+      "label": "Upsell background"
+    },
+    {
+      "type": "color",
+      "id": "upsell_title_color",
+      "label": "Upsell title color"
+    },
+    {
+      "type": "color",
+      "id": "upsell_card_bg",
+      "label": "Upsell card background"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "Top padding",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "Bottom padding",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    }
+  ]
+}
+{% endschema %}

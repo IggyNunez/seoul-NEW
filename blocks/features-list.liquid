@@ -1,0 +1,486 @@
+{%- doc -%}
+  Features List Block
+  Displays product features as pill badges with checkmark icons.
+  Pill style presets: minimal, gradient, glow, pulse, shimmer, neon-border.
+  Per-pill color overrides. Separate desktop / mobile layout controls.
+{%- enddoc -%}
+
+{%- assign s = block.settings -%}
+{%- assign feature_ids = "1,2,3,4,5,6,7,8" | split: "," -%}
+{%- assign show_desktop = s.show_count_desktop | default: 8 -%}
+{%- assign show_mobile  = s.show_count_mobile  | default: 4 -%}
+
+{%- assign use_grid = false -%}
+{%- if s.per_row_desktop > 0 or s.per_row_mobile > 0 -%}{%- assign use_grid = true -%}{%- endif -%}
+
+<link rel="stylesheet" href="{{ 'casa-features-list.css' | asset_url }}" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="{{ 'casa-features-list.css' | asset_url }}"></noscript>
+<style>
+  .fl-block-{{ block.id }} .casa-features-list__text,
+  .fl-block-{{ block.id }} .casa-features-list__pill {
+    font-size: {{ s.font_size_desktop }}px !important;
+  }
+  .fl-block-{{ block.id }} .casa-features-list__icon svg {
+    width: {{ s.icon_size_desktop }}px !important;
+    height: {{ s.icon_size_desktop }}px !important;
+  }
+  @media (max-width: 749px) {
+    .fl-block-{{ block.id }} .casa-features-list__text,
+    .fl-block-{{ block.id }} .casa-features-list__pill {
+      font-size: {{ s.font_size_mobile }}px !important;
+    }
+    .fl-block-{{ block.id }} .casa-features-list__icon svg {
+      width: {{ s.icon_size_mobile }}px !important;
+      height: {{ s.icon_size_mobile }}px !important;
+    }
+  }
+  {%- if s.color_mode == 'light' -%}
+  .fl-block-{{ block.id }} .casa-features-list__pill {
+    color: #1a1a2e !important;
+  }
+  .fl-block-{{ block.id }} .fl-style-minimal {
+    background-color: rgba(0,0,0,0.04) !important;
+    border-color: rgba(0,0,0,0.15) !important;
+  }
+  .fl-block-{{ block.id }} .fl-style-solid {
+    background-color: rgba(0,0,0,0.06) !important;
+    border-color: rgba(0,0,0,0.1) !important;
+  }
+  .fl-block-{{ block.id }} .fl-style-glow {
+    background-color: rgba(147,51,234,0.08) !important;
+    border-color: rgba(147,51,234,0.3) !important;
+    box-shadow: 0 0 10px rgba(147,51,234,0.15) !important;
+  }
+  .fl-block-{{ block.id }} .fl-style-glass {
+    background-color: rgba(255,255,255,0.7) !important;
+    border-color: rgba(0,0,0,0.1) !important;
+  }
+  .fl-block-{{ block.id }} .fl-style-shimmer {
+    background-color: rgba(0,0,0,0.04) !important;
+    border-color: rgba(0,0,0,0.1) !important;
+  }
+  .fl-block-{{ block.id }} .fl-style-neon-border {
+    background-color: rgba(255,255,255,0.8) !important;
+    color: #1a1a2e !important;
+  }
+  .fl-block-{{ block.id }} .fl-style-pulse {
+    background-color: rgba(147,51,234,0.06) !important;
+    border-color: rgba(147,51,234,0.25) !important;
+  }
+  {%- elsif s.color_mode == 'custom' -%}
+  .fl-block-{{ block.id }} .casa-features-list__pill {
+    {%- if s.custom_text_color != blank %}color: {{ s.custom_text_color }} !important;{% endif -%}
+    {%- if s.custom_pill_bg != blank %}background: {{ s.custom_pill_bg }} !important;{% endif -%}
+    {%- if s.custom_pill_border != blank %}border-color: {{ s.custom_pill_border }} !important;{% endif -%}
+  }
+  {%- endif -%}
+</style>
+
+<div
+  class="casa-features-list fl-block-{{ block.id }} fl-mode-{{ s.color_mode | default: 'dark' }}{% if use_grid %} casa-features-list--grid{% endif %} spacing-style"
+  style="
+    {% render 'spacing-style', settings: s %}
+    --fl-gap-desktop: {{ s.gap_desktop }}px;
+    --fl-gap-mobile: {{ s.gap_mobile }}px;
+    --fl-font-size-desktop: {{ s.font_size_desktop }}px;
+    --fl-font-size-mobile: {{ s.font_size_mobile }}px;
+    --fl-icon-size-desktop: {{ s.icon_size_desktop }}px;
+    --fl-icon-size-mobile: {{ s.icon_size_mobile }}px;
+    --fl-pill-radius: {{ s.pill_radius }}px;
+    --fl-pill-padding-v: {{ s.pill_padding_v }}px;
+    --fl-pill-padding-h: {{ s.pill_padding_h }}px;
+    --fl-per-row-desktop: {{ s.per_row_desktop }};
+    --fl-per-row-mobile: {{ s.per_row_mobile }};
+    {%- if s.custom_text_color != blank %}--fl-text: {{ s.custom_text_color }};{% endif -%}
+    {%- if s.custom_pill_bg != blank %}--fl-bg: {{ s.custom_pill_bg }};{% endif -%}
+    {%- if s.custom_pill_border != blank %}--fl-border: {{ s.custom_pill_border }};{% endif -%}
+  "
+  {{ block.shopify_attributes }}
+>
+  <div class="casa-features-list__pills">
+    {%- assign pill_index = 0 -%}
+    {%- for fid in feature_ids -%}
+      {%- assign text_key  = "feature_"   | append: fid -%}
+      {%- assign color_key = "pill_color_" | append: fid -%}
+      {%- assign text_val  = s[text_key] -%}
+      {%- if text_val != blank -%}
+        {%- assign pill_index = pill_index | plus: 1 -%}
+
+        {%- assign hide_class = "" -%}
+        {%- if pill_index > show_desktop -%}{%- assign hide_class = hide_class | append: " fl-hide-desktop" -%}{%- endif -%}
+        {%- if pill_index > show_mobile  -%}{%- assign hide_class = hide_class | append: " fl-hide-mobile"  -%}{%- endif -%}
+
+        {%- assign pill_color = s[color_key] -%}
+        {%- assign has_custom_color = false -%}
+        {%- if pill_color != blank and pill_color != "#000000" -%}{%- assign has_custom_color = true -%}{%- endif -%}
+
+        <div
+          class="casa-features-list__pill fl-style-{{ s.pill_style }}{{ hide_class }}{% if has_custom_color %} fl-custom-color{% endif %}"
+          style="{% if has_custom_color %}--fl-pill-custom: {{ pill_color }};{% endif %}"
+        >
+          <span class="casa-features-list__icon" aria-hidden="true">
+            <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M4.5 7L6.25 8.75L9.5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="casa-features-list__text">{{ text_val }}</span>
+        </div>
+      {%- endif -%}
+    {%- endfor -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Features list",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Features"
+    },
+    {
+      "type": "text",
+      "id": "feature_1",
+      "label": "Feature 1",
+      "default": "16M Colors"
+    },
+    {
+      "type": "text",
+      "id": "feature_2",
+      "label": "Feature 2",
+      "default": "App Control"
+    },
+    {
+      "type": "text",
+      "id": "feature_3",
+      "label": "Feature 3",
+      "default": "Music Sync"
+    },
+    {
+      "type": "text",
+      "id": "feature_4",
+      "label": "Feature 4",
+      "default": "Voice Control"
+    },
+    {
+      "type": "text",
+      "id": "feature_5",
+      "label": "Feature 5"
+    },
+    {
+      "type": "text",
+      "id": "feature_6",
+      "label": "Feature 6"
+    },
+    {
+      "type": "text",
+      "id": "feature_7",
+      "label": "Feature 7"
+    },
+    {
+      "type": "text",
+      "id": "feature_8",
+      "label": "Feature 8"
+    },
+    {
+      "type": "header",
+      "content": "Pill Style"
+    },
+    {
+      "type": "select",
+      "id": "pill_style",
+      "label": "Style preset",
+      "info": "Per-pill colors below override the background on any preset",
+      "options": [
+        { "value": "minimal",      "label": "Minimal — subtle border" },
+        { "value": "solid",        "label": "Solid — filled background" },
+        { "value": "gradient",     "label": "Gradient — purple → pink" },
+        { "value": "glow",         "label": "Glow — static purple glow" },
+        { "value": "pulse",        "label": "Pulse — breathing glow" },
+        { "value": "shimmer",      "label": "Shimmer — light sweep" },
+        { "value": "neon-border",  "label": "Neon border — animated border" },
+        { "value": "glass",        "label": "Glass — frosted blur" }
+      ],
+      "default": "minimal"
+    },
+    {
+      "type": "select",
+      "id": "color_mode",
+      "label": "Color mode",
+      "info": "Controls pill colors for light or dark backgrounds",
+      "options": [
+        { "value": "dark", "label": "Dark background (light pills)" },
+        { "value": "light", "label": "Light background (dark pills)" },
+        { "value": "custom", "label": "Custom colors" }
+      ],
+      "default": "dark"
+    },
+    {
+      "type": "color",
+      "id": "custom_text_color",
+      "label": "Text / icon color",
+      "info": "Only used in Custom color mode"
+    },
+    {
+      "type": "color",
+      "id": "custom_pill_bg",
+      "label": "Pill background",
+      "info": "Only used in Custom color mode"
+    },
+    {
+      "type": "color",
+      "id": "custom_pill_border",
+      "label": "Pill border",
+      "info": "Only used in Custom color mode"
+    },
+    {
+      "type": "header",
+      "content": "Per-pill Color Override"
+    },
+    {
+      "type": "paragraph",
+      "content": "Black = use preset style. Any other color overrides the pill background."
+    },
+    {
+      "type": "color",
+      "id": "pill_color_1",
+      "label": "Feature 1",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "pill_color_2",
+      "label": "Feature 2",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "pill_color_3",
+      "label": "Feature 3",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "pill_color_4",
+      "label": "Feature 4",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "pill_color_5",
+      "label": "Feature 5",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "pill_color_6",
+      "label": "Feature 6",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "pill_color_7",
+      "label": "Feature 7",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "pill_color_8",
+      "label": "Feature 8",
+      "default": "#000000"
+    },
+    {
+      "type": "header",
+      "content": "Desktop Layout"
+    },
+    {
+      "type": "range",
+      "id": "show_count_desktop",
+      "label": "Max pills to show",
+      "min": 1,
+      "max": 8,
+      "step": 1,
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "per_row_desktop",
+      "label": "Per row (0 = auto wrap)",
+      "info": "0 = flexible wrapping",
+      "min": 0,
+      "max": 8,
+      "step": 1,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "gap_desktop",
+      "label": "Gap",
+      "min": 0,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "font_size_desktop",
+      "label": "Font size",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 13
+    },
+    {
+      "type": "range",
+      "id": "icon_size_desktop",
+      "label": "Icon size",
+      "min": 8,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Mobile Layout"
+    },
+    {
+      "type": "range",
+      "id": "show_count_mobile",
+      "label": "Max pills to show",
+      "min": 1,
+      "max": 8,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "per_row_mobile",
+      "label": "Per row (0 = auto wrap)",
+      "info": "0 = flexible wrapping",
+      "min": 0,
+      "max": 8,
+      "step": 1,
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "gap_mobile",
+      "label": "Gap",
+      "min": 0,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "default": 6
+    },
+    {
+      "type": "range",
+      "id": "font_size_mobile",
+      "label": "Font size",
+      "min": 10,
+      "max": 22,
+      "step": 1,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "icon_size_mobile",
+      "label": "Icon size",
+      "min": 8,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "Pill Shape"
+    },
+    {
+      "type": "range",
+      "id": "pill_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "unit": "px",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "pill_padding_v",
+      "label": "Vertical padding",
+      "min": 2,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 6
+    },
+    {
+      "type": "range",
+      "id": "pill_padding_h",
+      "label": "Horizontal padding",
+      "min": 4,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "t:content.padding"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "t:settings.top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "t:settings.bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "padding-inline-start",
+      "label": "t:settings.left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-inline-end",
+      "label": "t:settings.right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "Features list",
+      "category": "t:categories.product"
+    }
+  ]
+}
+{% endschema %}

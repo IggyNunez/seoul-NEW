@@ -1,0 +1,103 @@
+{%- comment -%}
+  Casa PDP Urgency Block
+  Shows stock urgency indicator and real-time viewer count to create purchase urgency
+{%- endcomment -%}
+
+{%- liquid
+  assign selected_variant = product.selected_or_first_available_variant
+-%}
+
+<div class="casa-urgency">
+  {%- if block.settings.show_stock_count and selected_variant.inventory_management == 'shopify' and selected_variant.inventory_policy == 'deny' -%}
+    {%- if selected_variant.inventory_quantity > 0 and selected_variant.inventory_quantity <= 10 -%}
+      <div class="casa-urgency__stock">
+        <span class="casa-urgency__dot" aria-hidden="true"></span>
+        <span class="casa-urgency__stock-text">
+          Only {{ selected_variant.inventory_quantity }} left
+        </span>
+      </div>
+    {%- endif -%}
+  {%- endif -%}
+
+  {%- if block.settings.viewers_text != blank -%}
+    <div class="casa-urgency__viewers">
+      <span class="casa-urgency__eye-icon" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M1 8C1 8 3.5 3 8 3C12.5 3 15 8 15 8C15 8 12.5 13 8 13C3.5 13 1 8 1 8Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.2"/>
+        </svg>
+      </span>
+      <span class="casa-urgency__viewers-text">{{ block.settings.viewers_text }}</span>
+    </div>
+  {%- endif -%}
+</div>
+
+<style>
+.casa-urgency {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.casa-urgency__stock {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #ef4444;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.casa-urgency__dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: urgency-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes urgency-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.75);
+  }
+}
+
+.casa-urgency__viewers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #757575;
+  font-size: 14px;
+}
+
+.casa-urgency__eye-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .casa-urgency {
+    gap: 10px;
+  }
+
+  .casa-urgency__stock,
+  .casa-urgency__viewers {
+    font-size: 12px;
+  }
+
+  .casa-urgency__eye-icon svg,
+  .casa-urgency__dot {
+    width: 7px;
+    height: 7px;
+  }
+}
+</style>

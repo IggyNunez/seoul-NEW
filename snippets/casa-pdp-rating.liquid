@@ -1,0 +1,159 @@
+{%- comment -%}
+  Casa PDP Rating
+  Displays product rating stars and review count
+
+  Parameters:
+  - product: The product object
+  - block: The block object with settings
+{%- endcomment -%}
+
+{%- liquid
+  assign show_count = block.settings.show_count | default: true
+  assign rating_value = product.metafields.reviews.rating.value | default: 0
+  assign rating_count = product.metafields.reviews.rating_count | default: 0
+  assign sold_count = block.settings.sold_count | default: ''
+-%}
+
+{%- if rating_value > 0 -%}
+  <div class="casa-pdp-rating">
+    <div class="casa-pdp-rating__stars">
+      {%- assign full_stars = rating_value | floor -%}
+      {%- assign partial = rating_value | modulo: 1 -%}
+      {%- assign empty_stars = 5 | minus: full_stars -%}
+      {%- if partial > 0 -%}
+        {%- assign empty_stars = empty_stars | minus: 1 -%}
+      {%- endif -%}
+
+      {%- comment -%} Full stars {%- endcomment -%}
+      {%- for i in (1..full_stars) -%}
+        <span class="casa-pdp-rating__star casa-pdp-rating__star--filled">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </span>
+      {%- endfor -%}
+
+      {%- comment -%} Partial star {%- endcomment -%}
+      {%- if partial > 0 -%}
+        <span class="casa-pdp-rating__star casa-pdp-rating__star--partial" style="--fill: {{ partial | times: 100 }}%;">
+          <svg width="16" height="16" viewBox="0 0 24 24">
+            <defs>
+              <linearGradient id="partial-fill-{{ section.id }}">
+                <stop offset="{{ partial | times: 100 }}%" stop-color="currentColor"/>
+                <stop offset="{{ partial | times: 100 }}%" stop-color="#e5e7eb"/>
+              </linearGradient>
+            </defs>
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="url(#partial-fill-{{ section.id }})"/>
+          </svg>
+        </span>
+      {%- endif -%}
+
+      {%- comment -%} Empty stars {%- endcomment -%}
+      {%- for i in (1..empty_stars) -%}
+        <span class="casa-pdp-rating__star">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#e5e7eb">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </span>
+      {%- endfor -%}
+    </div>
+
+    {%- if show_count and rating_count > 0 -%}
+      <a href="#reviews" class="casa-pdp-rating__count">
+        {{ rating_value }} · <span class="casa-pdp-rating__count-num">{{ rating_count }}</span> reviews
+      </a>
+    {%- endif -%}
+
+    {%- if sold_count != blank -%}
+      <span class="casa-pdp-rating__sold-pill">{{ sold_count }} sold</span>
+    {%- endif -%}
+  </div>
+{%- else -%}
+  {%- comment -%} Show empty state with link to write review {%- endcomment -%}
+  <div class="casa-pdp-rating casa-pdp-rating--empty">
+    <div class="casa-pdp-rating__stars">
+      {%- for i in (1..5) -%}
+        <span class="casa-pdp-rating__star">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#e5e7eb">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </span>
+      {%- endfor -%}
+    </div>
+    <a href="#reviews" class="casa-pdp-rating__count">Write a review</a>
+  </div>
+{%- endif -%}
+
+<style>
+.casa-pdp-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.casa-pdp-rating__stars {
+  display: flex;
+  gap: 1px;
+}
+
+.casa-pdp-rating__star {
+  display: flex;
+}
+
+.casa-pdp-rating__star--filled {
+  color: #fbbf24;
+}
+
+.casa-pdp-rating__count {
+  font-size: 14px;
+  color: #757575;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.casa-pdp-rating__count .casa-pdp-rating__count-num {
+  text-decoration: underline;
+}
+
+.casa-pdp-rating__count:hover {
+  color: var(--cpm-accent-1, #9333ea);
+}
+
+.casa-pdp-rating__sold-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  background: #f5f5f5;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #555;
+}
+
+@media (max-width: 480px) {
+  .casa-pdp-rating {
+    gap: 6px;
+  }
+
+  .casa-pdp-rating__count {
+    font-size: 12px;
+  }
+
+  .casa-pdp-rating__sold-pill {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+}
+
+@media (max-width: 375px) {
+  .casa-pdp-rating__star svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .casa-pdp-rating__count {
+    font-size: 11px;
+  }
+}
+</style>

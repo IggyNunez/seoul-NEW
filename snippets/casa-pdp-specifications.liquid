@@ -1,0 +1,133 @@
+{%- comment -%}
+  Casa PDP Specifications
+  Clean accordion with 2-column spec grid
+
+  Parameters:
+  - block: The block object with settings
+  - product: The product object
+{%- endcomment -%}
+
+{%- liquid
+  assign title = block.settings.title | default: 'Specifications'
+  assign open_by_default = block.settings.open_by_default
+  assign specs_content = block.settings.specs_content
+-%}
+
+<details class="casa-pdp-accordion"{% if open_by_default %} open{% endif %}>
+  <summary class="casa-pdp-accordion__header">
+    <span class="casa-pdp-accordion__title">{{ title }}</span>
+    <span class="casa-pdp-accordion__chevron">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </span>
+  </summary>
+  <div class="casa-pdp-accordion__body">
+    <div class="casa-pdp-specs-grid">
+      {%- assign specs_lines = specs_content | split: '
+' -%}
+      {%- for line in specs_lines -%}
+        {%- assign parts = line | split: ' | ' -%}
+        {%- if parts.size == 2 -%}
+          <div class="casa-pdp-specs-grid__item">
+            <span class="casa-pdp-specs-grid__label">{{ parts[0] }}</span>
+            <span class="casa-pdp-specs-grid__value">{{ parts[1] }}</span>
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+  </div>
+</details>
+
+<style>
+/* Shared PDP accordion styles */
+.casa-pdp-accordion {
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.casa-pdp-accordion__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.casa-pdp-accordion__header::-webkit-details-marker {
+  display: none;
+}
+
+.casa-pdp-accordion__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0a0a0a;
+}
+
+.casa-pdp-accordion__chevron {
+  display: flex;
+  color: #999;
+  transition: transform 0.2s ease;
+}
+
+.casa-pdp-accordion[open] .casa-pdp-accordion__chevron {
+  transform: rotate(180deg);
+}
+
+.casa-pdp-accordion__body {
+  padding: 0 0 20px 0;
+}
+
+/* Specs grid — 2 specs per row, label left + value right */
+.casa-pdp-specs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.casa-pdp-specs-grid__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 8px 10px 0;
+  min-width: 0;
+  gap: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.casa-pdp-specs-grid__item:nth-last-child(-n+2) {
+  border-bottom: none;
+}
+
+.casa-pdp-specs-grid__label {
+  font-size: 12px;
+  color: #999;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.casa-pdp-specs-grid__value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0a0a0a;
+  min-width: 0;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .casa-pdp-accordion__title {
+    font-size: 14px;
+  }
+
+  .casa-pdp-specs-grid__label {
+    font-size: 11px;
+  }
+
+  .casa-pdp-specs-grid__value {
+    font-size: 12px;
+  }
+}
+</style>

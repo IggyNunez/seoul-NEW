@@ -1,0 +1,438 @@
+{%- liquid
+  assign title = section.settings.title | default: 'Recently Viewed'
+  assign max_products = section.settings.max_products | default: 4
+  assign show_view_all = section.settings.show_view_all | default: false
+  assign padding_top = section.settings.padding_top | default: 60
+  assign padding_bottom = section.settings.padding_bottom | default: 60
+-%}
+
+<section
+  class="casa-col-rv"
+  id="casa-recently-viewed"
+  data-section-id="{{ section.id }}"
+  data-max-products="{{ max_products }}"
+  style="--ccrv-pt: {{ padding_top }}px; --ccrv-pb: {{ padding_bottom }}px; display: none;"
+>
+  <div class="casa-col-rv__container">
+    {%- comment -%} Header {%- endcomment -%}
+    <div class="casa-col-rv__header">
+      <h2 class="casa-col-rv__title">{{ title }}</h2>
+      {%- if show_view_all -%}
+        <a href="/collections/all" class="casa-col-rv__view-all">
+          View All
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </a>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} Skeleton placeholders (shown while loading) {%- endcomment -%}
+    <div class="casa-col-rv__grid casa-col-rv__skeletons" data-rv-skeletons>
+      {%- for i in (1..4) -%}
+        <div class="casa-col-rv__skeleton">
+          <div class="casa-col-rv__skeleton-image"></div>
+          <div class="casa-col-rv__skeleton-text">
+            <div class="casa-col-rv__skeleton-line casa-col-rv__skeleton-line--short"></div>
+            <div class="casa-col-rv__skeleton-line"></div>
+            <div class="casa-col-rv__skeleton-line casa-col-rv__skeleton-line--price"></div>
+          </div>
+        </div>
+      {%- endfor -%}
+    </div>
+
+    {%- comment -%} Product cards (populated via JS) {%- endcomment -%}
+    <div class="casa-col-rv__grid casa-col-rv__products" data-rv-products style="display: none;"></div>
+  </div>
+</section>
+
+{%- comment -%}
+  Search results template — rendered server-side when fetched via Section Rendering API.
+  When the JS fetches /search?section_id=..., Shopify renders this section with search.results.
+  We output product cards that the JS extracts and injects into data-rv-products.
+{%- endcomment -%}
+{%- if search -%}
+  <div data-rv-search-results>
+    {%- for product in search.results -%}
+      {%- if product.object_type == 'product' -%}
+        <div class="casa-col-rv__grid-item">
+          {%- render 'casa-product-card',
+            product: product,
+            variant: 'collection',
+            show_quick_add: false,
+            show_variant_swatches: false,
+            show_wishlist: false,
+            show_rating: false,
+            show_quick_view: false,
+            show_stock_urgency: false,
+            show_installment: false,
+            show_savings_highlight: false,
+            show_social_proof: false,
+            lazy: true
+          -%}
+        </div>
+      {%- endif -%}
+    {%- endfor -%}
+  </div>
+{%- endif -%}
+
+<script>
+  (function() {
+    'use strict';
+
+    const STORAGE_KEY = 'viewedProducts';
+    const section = document.getElementById('casa-recently-viewed');
+    if (!section) return;
+
+    const maxProducts = parseInt(section.dataset.maxProducts, 10) || 4;
+    const sectionId = section.dataset.sectionId;
+    const skeletonContainer = section.querySelector('[data-rv-skeletons]');
+    const productsContainer = section.querySelector('[data-rv-products]');
+
+    function getViewedProducts() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+
+    async function loadRecentlyViewed() {
+      const productIds = getViewedProducts().slice(0, maxProducts);
+      if (productIds.length === 0) return;
+
+      /* Show section with skeletons */
+      section.style.display = '';
+      skeletonContainer.style.display = '';
+      productsContainer.style.display = 'none';
+
+      try {
+        /* Build search query: id:123 OR id:456 OR id:789 */
+        const query = productIds.map(function(id) { return 'id:' + id; }).join(' OR ');
+        const searchUrl = new URL('/search', window.location.origin);
+        searchUrl.searchParams.set('q', query);
+        searchUrl.searchParams.set('type', 'product');
+        searchUrl.searchParams.set('section_id', 'casa-collection-recently-viewed');
+
+        const response = await fetch(searchUrl.toString());
+        if (!response.ok) throw new Error('Search failed');
+
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const resultsContainer = doc.querySelector('[data-rv-search-results]');
+
+        if (!resultsContainer || resultsContainer.children.length === 0) {
+          section.style.display = 'none';
+          return;
+        }
+
+        /* Reorder cards to match the localStorage order (most recent first) */
+        const cards = Array.from(resultsContainer.children);
+        const orderedCards = [];
+        productIds.forEach(function(id) {
+          const card = cards.find(function(el) {
+            /* Match by product ID in the card's data attribute or link */
+            const cardLink = el.querySelector('a[href*="/products/"]');
+            const cardEl = el.querySelector('[data-product-id]');
+            if (cardEl && cardEl.dataset.productId === String(id)) return true;
+            return false;
+          });
+          if (card) orderedCards.push(card);
+        });
+
+        /* If ordering didn't match all, fall back to whatever we got */
+        const finalCards = orderedCards.length > 0 ? orderedCards : cards;
+
+        /* Insert into the live DOM */
+        productsContainer.innerHTML = '';
+        finalCards.forEach(function(card) {
+          productsContainer.appendChild(card);
+        });
+
+        /* Swap visibility */
+        skeletonContainer.style.display = 'none';
+        productsContainer.style.display = '';
+
+        /* Entrance animation */
+        var items = productsContainer.querySelectorAll('.casa-col-rv__grid-item');
+        items.forEach(function(item, i) {
+          item.style.opacity = '0';
+          item.style.transform = 'translateY(20px)';
+          setTimeout(function() {
+            item.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            item.style.opacity = '1';
+            item.style.transform = 'translateY(0)';
+          }, i * 80);
+        });
+
+      } catch (err) {
+        /* On error, hide the section entirely */
+        section.style.display = 'none';
+      }
+    }
+
+    /* Lazy-load: only fetch when the section is near the viewport */
+    if ('IntersectionObserver' in window) {
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            observer.disconnect();
+            loadRecentlyViewed();
+          }
+        });
+      }, { rootMargin: '400px 0px' });
+
+      /* Observe a sentinel above the section so we prefetch before it scrolls into view */
+      observer.observe(section);
+    } else {
+      loadRecentlyViewed();
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Casa Recently Viewed",
+  "tag": "section",
+  "class": "casa-collection-recently-viewed-section",
+  "settings": [
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Recently Viewed"
+    },
+    {
+      "type": "range",
+      "id": "max_products",
+      "label": "Max products to show",
+      "min": 2,
+      "max": 8,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "checkbox",
+      "id": "show_view_all",
+      "label": "Show 'View All' link",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 60,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 60,
+      "unit": "px"
+    }
+  ]
+}
+{% endschema %}
+
+{% stylesheet %}
+/* ═══════════════════════════════════════════
+   RECENTLY VIEWED — Section
+   ═══════════════════════════════════════════ */
+.casa-col-rv {
+  background: #0a0a0f;
+  padding: var(--ccrv-pt) 60px var(--ccrv-pb);
+  overflow: hidden;
+}
+
+.casa-col-rv__container {
+  max-width: 1800px;
+  margin: 0 auto;
+}
+
+/* ─── Header ─── */
+.casa-col-rv__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.casa-col-rv__title {
+  font-size: 28px;
+  font-weight: 300;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.casa-col-rv__view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.casa-col-rv__view-all:hover {
+  color: #ffffff;
+}
+
+.casa-col-rv__view-all svg {
+  transition: transform 0.2s ease;
+}
+
+.casa-col-rv__view-all:hover svg {
+  transform: translateX(3px);
+}
+
+/* ─── Product Grid ─── */
+.casa-col-rv__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+.casa-col-rv__grid-item {
+  min-width: 0;
+}
+
+/* ─── Skeleton Placeholders ─── */
+.casa-col-rv__skeleton {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.casa-col-rv__skeleton-image {
+  aspect-ratio: 3 / 4;
+  background: linear-gradient(
+    110deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.08) 40%,
+    rgba(255, 255, 255, 0.04) 60%
+  );
+  background-size: 200% 100%;
+  animation: casaRvShimmer 1.5s ease-in-out infinite;
+}
+
+.casa-col-rv__skeleton-text {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.casa-col-rv__skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  width: 80%;
+}
+
+.casa-col-rv__skeleton-line--short {
+  width: 40%;
+  height: 10px;
+}
+
+.casa-col-rv__skeleton-line--price {
+  width: 30%;
+  height: 14px;
+  margin-top: 4px;
+}
+
+@keyframes casaRvShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 1200px) {
+  .casa-col-rv__grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 900px) {
+  .casa-col-rv {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .casa-col-rv__title {
+    font-size: 24px;
+  }
+
+  /* Switch to horizontal scroll on mobile */
+  .casa-col-rv__grid {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+
+  .casa-col-rv__grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .casa-col-rv__grid-item,
+  .casa-col-rv__skeleton {
+    flex: 0 0 calc(50% - 8px);
+    min-width: calc(50% - 8px);
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 480px) {
+  .casa-col-rv {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .casa-col-rv__title {
+    font-size: 22px;
+  }
+
+  .casa-col-rv__header {
+    margin-bottom: 24px;
+  }
+
+  .casa-col-rv__grid {
+    gap: 12px;
+  }
+
+  .casa-col-rv__grid-item,
+  .casa-col-rv__skeleton {
+    flex: 0 0 calc(55% - 6px);
+    min-width: calc(55% - 6px);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .casa-col-rv__skeleton-image {
+    animation: none;
+  }
+}
+{% endstylesheet %}

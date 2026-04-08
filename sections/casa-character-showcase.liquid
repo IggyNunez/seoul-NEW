@@ -1,0 +1,1162 @@
+{%- comment -%}
+  Seoul Glow Lab — Character / Product Showcase
+  Premium section for named product collections (Bubble Girls, etc.)
+  Layout modes: spotlight, grid-reveal, scroll-story
+{%- endcomment -%}
+
+{%- liquid
+  assign layout = section.settings.layout_style | default: 'spotlight'
+  assign cols = section.settings.grid_columns | default: 3
+  assign ratio = section.settings.image_ratio | default: '3:4'
+  assign anim = section.settings.enable_animations
+  assign auto_rotate = section.settings.auto_rotate
+  assign rotate_speed = section.settings.rotate_speed | default: 5
+  assign chars = section.blocks
+  assign sid = section.id
+
+  case ratio
+    when '1:1'
+      assign ratio_css = '1 / 1'
+    when '3:4'
+      assign ratio_css = '3 / 4'
+    when '4:5'
+      assign ratio_css = '4 / 5'
+    else
+      assign ratio_css = 'auto'
+  endcase
+-%}
+
+<section
+  id="casa-char-{{ sid }}"
+  class="casa-char casa-char--{{ layout }}{% if anim %} casa-char--animated{% endif %}"
+  data-layout="{{ layout }}"
+  data-auto-rotate="{{ auto_rotate }}"
+  data-rotate-speed="{{ rotate_speed }}"
+  style="
+    --cc-bg: {{ section.settings.bg_color | default: '#0a0a0a' }};
+    --cc-text: {{ section.settings.text_color | default: '#f5f0eb' }};
+    --cc-title-color: {{ section.settings.title_color | default: '#ffffff' }};
+    --cc-name-color: {{ section.settings.name_color | default: '#ffffff' }};
+    --cc-desc-color: {{ section.settings.description_color | default: 'rgba(245,240,235,0.8)' }};
+    --cc-tag-bg: {{ section.settings.tag_bg | default: 'rgba(255,255,255,0.1)' }};
+    --cc-tag-text: {{ section.settings.tag_text | default: '#f5f0eb' }};
+    --cc-card-bg: {{ section.settings.card_bg | default: 'rgba(255,255,255,0.04)' }};
+    --cc-card-border: {{ section.settings.card_border | default: 'rgba(255,255,255,0.08)' }};
+    --cc-card-radius: {{ section.settings.card_radius | default: 16 }}px;
+    --cc-accent: {{ section.settings.accent_color | default: '#c49b63' }};
+    --cc-ratio: {{ ratio_css }};
+    --cc-cols: {{ cols }};
+    --cc-pt: {{ section.settings.padding_top | default: 80 }}px;
+    --cc-pb: {{ section.settings.padding_bottom | default: 80 }}px;
+  "
+>
+  {%- comment -%} ── Section header ── {%- endcomment -%}
+  {%- if section.settings.title != blank or section.settings.subtitle != blank -%}
+    <div class="casa-char__header">
+      {%- if section.settings.badge != blank -%}
+        <span class="casa-char__badge">{{ section.settings.badge }}</span>
+      {%- endif -%}
+      {%- if section.settings.title != blank -%}
+        <h2 class="casa-char__section-title">{{ section.settings.title }}</h2>
+      {%- endif -%}
+      {%- if section.settings.subtitle != blank -%}
+        <p class="casa-char__section-sub">{{ section.settings.subtitle }}</p>
+      {%- endif -%}
+    </div>
+  {%- endif -%}
+
+  {%- comment -%} ══════════════════════ SPOTLIGHT ══════════════════════ {%- endcomment -%}
+  {%- if layout == 'spotlight' -%}
+    <div class="casa-char__spotlight-wrap">
+      {%- for block in chars -%}
+        {%- assign accent = block.settings.accent_color | default: section.settings.accent_color | default: '#c49b63' -%}
+        <div
+          class="casa-char__spotlight-panel{% if forloop.first %} is-active{% endif %}"
+          data-index="{{ forloop.index0 }}"
+          {{ block.shopify_attributes }}
+          style="--cc-block-accent: {{ accent }};"
+        >
+          <div class="casa-char__spotlight-img-wrap">
+            <div class="casa-char__spotlight-glow" style="background: radial-gradient(circle, {{ accent }}33 0%, transparent 70%);"></div>
+            {%- if block.settings.image != blank -%}
+              <img
+                src="{{ block.settings.image | image_url: width: 1200 }}"
+                srcset="{{ block.settings.image | image_url: width: 600 }} 600w, {{ block.settings.image | image_url: width: 900 }} 900w, {{ block.settings.image | image_url: width: 1200 }} 1200w"
+                sizes="(max-width: 749px) 100vw, 60vw"
+                alt="{{ block.settings.name | escape }}"
+                class="casa-char__spotlight-img"
+                loading="lazy"
+                width="{{ block.settings.image.width }}"
+                height="{{ block.settings.image.height }}"
+              >
+            {%- else -%}
+              <div class="casa-char__placeholder">{{ block.settings.name | default: 'Character' | slice: 0 }}</div>
+            {%- endif -%}
+            {%- if block.settings.badge_text != blank -%}
+              <span class="casa-char__card-badge">{{ block.settings.badge_text }}</span>
+            {%- endif -%}
+          </div>
+
+          <div class="casa-char__spotlight-info">
+            <h3 class="casa-char__name" style="color: {{ accent }};">{{ block.settings.name }}</h3>
+            {%- if block.settings.description != blank -%}
+              <p class="casa-char__desc">{{ block.settings.description }}</p>
+            {%- endif -%}
+            {%- if block.settings.personality_tags != blank -%}
+              <div class="casa-char__tags">
+                {%- assign tags = block.settings.personality_tags | split: ',' -%}
+                {%- for tag in tags -%}
+                  <span class="casa-char__tag">{{ tag | strip }}</span>
+                {%- endfor -%}
+              </div>
+            {%- endif -%}
+            {%- if block.settings.link != blank -%}
+              <a href="{{ block.settings.link }}" class="casa-char__cta" style="background: {{ accent }}; color: #0a0a0a;">
+                Shop {{ block.settings.name }}
+              </a>
+            {%- endif -%}
+          </div>
+        </div>
+      {%- endfor -%}
+
+      {%- comment -%} Thumbnail strip {%- endcomment -%}
+      <div class="casa-char__thumbs">
+        {%- for block in chars -%}
+          {%- assign accent = block.settings.accent_color | default: section.settings.accent_color | default: '#c49b63' -%}
+          <button
+            class="casa-char__thumb{% if forloop.first %} is-active{% endif %}"
+            data-index="{{ forloop.index0 }}"
+            aria-label="Show {{ block.settings.name }}"
+            style="--cc-thumb-accent: {{ accent }};"
+          >
+            {%- if block.settings.image != blank -%}
+              <img src="{{ block.settings.image | image_url: width: 120, height: 120, crop: 'center' }}" alt="{{ block.settings.name | escape }}" loading="lazy" width="120" height="120">
+            {%- else -%}
+              <span class="casa-char__thumb-letter">{{ block.settings.name | default: '?' | slice: 0 }}</span>
+            {%- endif -%}
+            <span class="casa-char__thumb-name">{{ block.settings.name }}</span>
+          </button>
+        {%- endfor -%}
+      </div>
+    </div>
+
+  {%- comment -%} ══════════════════════ GRID-REVEAL ══════════════════════ {%- endcomment -%}
+  {%- elsif layout == 'grid-reveal' -%}
+    <div class="casa-char__grid">
+      {%- for block in chars -%}
+        {%- assign accent = block.settings.accent_color | default: section.settings.accent_color | default: '#c49b63' -%}
+        <div
+          class="casa-char__card"
+          {{ block.shopify_attributes }}
+          style="--cc-block-accent: {{ accent }};"
+        >
+          <div class="casa-char__card-img-wrap">
+            {%- if block.settings.image != blank -%}
+              <img
+                src="{{ block.settings.image | image_url: width: 800 }}"
+                srcset="{{ block.settings.image | image_url: width: 400 }} 400w, {{ block.settings.image | image_url: width: 600 }} 600w, {{ block.settings.image | image_url: width: 800 }} 800w"
+                sizes="(max-width: 749px) 50vw, calc(100vw / {{ cols }})"
+                alt="{{ block.settings.name | escape }}"
+                class="casa-char__card-img"
+                loading="lazy"
+                width="{{ block.settings.image.width }}"
+                height="{{ block.settings.image.height }}"
+              >
+            {%- else -%}
+              <div class="casa-char__placeholder">{{ block.settings.name | default: 'Character' | slice: 0 }}</div>
+            {%- endif -%}
+            {%- if block.settings.badge_text != blank -%}
+              <span class="casa-char__card-badge">{{ block.settings.badge_text }}</span>
+            {%- endif -%}
+          </div>
+
+          <div class="casa-char__card-overlay">
+            <h3 class="casa-char__card-name" style="color: {{ accent }};">{{ block.settings.name }}</h3>
+          </div>
+
+          <div class="casa-char__card-reveal">
+            <h3 class="casa-char__card-name casa-char__card-name--reveal" style="color: {{ accent }};">{{ block.settings.name }}</h3>
+            {%- if block.settings.description != blank -%}
+              <p class="casa-char__card-desc">{{ block.settings.description }}</p>
+            {%- endif -%}
+            {%- if block.settings.personality_tags != blank -%}
+              <div class="casa-char__tags">
+                {%- assign tags = block.settings.personality_tags | split: ',' -%}
+                {%- for tag in tags -%}
+                  <span class="casa-char__tag">{{ tag | strip }}</span>
+                {%- endfor -%}
+              </div>
+            {%- endif -%}
+            {%- if block.settings.link != blank -%}
+              <a href="{{ block.settings.link }}" class="casa-char__card-btn" style="border-color: {{ accent }}; color: {{ accent }};">
+                Shop {{ block.settings.name }}
+              </a>
+            {%- endif -%}
+          </div>
+        </div>
+      {%- endfor -%}
+    </div>
+
+  {%- comment -%} ══════════════════════ SCROLL-STORY ══════════════════════ {%- endcomment -%}
+  {%- elsif layout == 'scroll-story' -%}
+    <div class="casa-char__story-track" id="casa-char-track-{{ sid }}">
+      {%- for block in chars -%}
+        {%- assign accent = block.settings.accent_color | default: section.settings.accent_color | default: '#c49b63' -%}
+        {%- assign _is_alt = forloop.index0 | modulo: 2 -%}
+        <div
+          class="casa-char__story-panel{% if _is_alt == 1 %} casa-char__story-panel--alt{% endif %}"
+          {{ block.shopify_attributes }}
+          style="--cc-block-accent: {{ accent }};"
+        >
+          <div class="casa-char__story-img-wrap">
+            <div class="casa-char__story-glow" style="background: radial-gradient(circle, {{ accent }}22 0%, transparent 70%);"></div>
+            {%- if block.settings.image != blank -%}
+              <img
+                src="{{ block.settings.image | image_url: width: 1000 }}"
+                srcset="{{ block.settings.image | image_url: width: 500 }} 500w, {{ block.settings.image | image_url: width: 750 }} 750w, {{ block.settings.image | image_url: width: 1000 }} 1000w"
+                sizes="(max-width: 749px) 100vw, 50vw"
+                alt="{{ block.settings.name | escape }}"
+                class="casa-char__story-img"
+                loading="lazy"
+                width="{{ block.settings.image.width }}"
+                height="{{ block.settings.image.height }}"
+              >
+            {%- else -%}
+              <div class="casa-char__placeholder casa-char__placeholder--large">{{ block.settings.name | default: 'Character' | slice: 0 }}</div>
+            {%- endif -%}
+            {%- if block.settings.badge_text != blank -%}
+              <span class="casa-char__card-badge">{{ block.settings.badge_text }}</span>
+            {%- endif -%}
+          </div>
+
+          <div class="casa-char__story-content">
+            <h3 class="casa-char__story-name" style="color: {{ accent }};">{{ block.settings.name }}</h3>
+            {%- if block.settings.description != blank -%}
+              <p class="casa-char__story-desc">{{ block.settings.description }}</p>
+            {%- endif -%}
+            {%- if block.settings.personality_tags != blank -%}
+              <div class="casa-char__tags">
+                {%- assign tags = block.settings.personality_tags | split: ',' -%}
+                {%- for tag in tags -%}
+                  <span class="casa-char__tag">{{ tag | strip }}</span>
+                {%- endfor -%}
+              </div>
+            {%- endif -%}
+            {%- if block.settings.link != blank -%}
+              <a href="{{ block.settings.link }}" class="casa-char__cta" style="background: {{ accent }}; color: #0a0a0a;">
+                Shop {{ block.settings.name }}
+              </a>
+            {%- endif -%}
+          </div>
+        </div>
+      {%- endfor -%}
+    </div>
+    {%- comment -%} Progress dots {%- endcomment -%}
+    <div class="casa-char__story-dots" id="casa-char-dots-{{ sid }}">
+      {%- for block in chars -%}
+        {%- assign accent = block.settings.accent_color | default: section.settings.accent_color | default: '#c49b63' -%}
+        <button
+          class="casa-char__story-dot{% if forloop.first %} is-active{% endif %}"
+          data-index="{{ forloop.index0 }}"
+          aria-label="Go to {{ block.settings.name }}"
+          style="--cc-dot-accent: {{ accent }};"
+        ></button>
+      {%- endfor -%}
+    </div>
+  {%- endif -%}
+</section>
+
+{%- comment -%} ═══════════════════════════ STYLES ═══════════════════════════ {%- endcomment -%}
+<style>
+  /* ── Base ── */
+  .casa-char {
+    position: relative;
+    background: var(--cc-bg);
+    color: var(--cc-text);
+    padding: var(--cc-pt) 0 var(--cc-pb);
+    overflow: hidden;
+  }
+  .casa-char *,
+  .casa-char *::before,
+  .casa-char *::after { box-sizing: border-box; }
+
+  /* ── Section header ── */
+  .casa-char__header {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 56px;
+    padding: 0 24px;
+  }
+  .casa-char__badge {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cc-accent);
+    border: 1px solid var(--cc-accent);
+    border-radius: 100px;
+    padding: 6px 20px;
+    margin-bottom: 20px;
+    font-weight: 600;
+  }
+  .casa-char__section-title {
+    font-size: clamp(28px, 4.5vw, 48px);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--cc-title-color);
+    margin: 0 0 16px;
+  }
+  .casa-char__section-sub {
+    font-size: clamp(14px, 1.6vw, 17px);
+    line-height: 1.6;
+    color: var(--cc-desc-color);
+    margin: 0;
+  }
+
+  /* ── Shared elements ── */
+  .casa-char__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .casa-char__tag {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 100px;
+    background: var(--cc-tag-bg);
+    color: var(--cc-tag-text);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-weight: 500;
+    white-space: nowrap;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .casa-char__cta {
+    display: inline-block;
+    margin-top: 24px;
+    padding: 14px 36px;
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .casa-char__cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+  }
+  .casa-char__card-badge {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    background: var(--cc-accent);
+    color: #0a0a0a;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 100px;
+    z-index: 5;
+  }
+  .casa-char__placeholder {
+    width: 100%;
+    aspect-ratio: var(--cc-ratio, 3/4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 64px;
+    font-weight: 200;
+    color: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.03);
+    border-radius: var(--cc-card-radius);
+  }
+  .casa-char__placeholder--large { font-size: 120px; }
+
+  /* ════════════════════ SPOTLIGHT MODE ════════════════════ */
+  .casa-char__spotlight-wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  .casa-char__spotlight-panel {
+    display: none;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 48px;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .casa-char__spotlight-panel.is-active {
+    display: grid;
+    opacity: 1;
+  }
+  .casa-char__spotlight-img-wrap {
+    position: relative;
+    border-radius: var(--cc-card-radius);
+    overflow: hidden;
+  }
+  .casa-char__spotlight-glow {
+    position: absolute;
+    inset: -20%;
+    z-index: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  .casa-char__spotlight-img {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    display: block;
+    aspect-ratio: var(--cc-ratio, 3/4);
+    object-fit: cover;
+    border-radius: var(--cc-card-radius);
+  }
+  .casa-char__spotlight-info {
+    padding: 24px 0;
+  }
+  .casa-char__name {
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin: 0 0 16px;
+  }
+  .casa-char__desc {
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--cc-desc-color);
+    margin: 0;
+    max-width: 440px;
+  }
+
+  /* Thumbnails */
+  .casa-char__thumbs {
+    display: flex;
+    gap: 16px;
+    margin-top: 48px;
+    padding-top: 32px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .casa-char__thumbs::-webkit-scrollbar { display: none; }
+  .casa-char__thumb {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0.45;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .casa-char__thumb:hover { opacity: 0.8; }
+  .casa-char__thumb.is-active { opacity: 1; }
+  .casa-char__thumb img {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid transparent;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .casa-char__thumb.is-active img {
+    border-color: var(--cc-thumb-accent);
+    box-shadow: 0 0 20px var(--cc-thumb-accent), 0 0 0 4px rgba(255,255,255,0.04);
+  }
+  .casa-char__thumb-letter {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 300;
+    color: var(--cc-text);
+    background: rgba(255,255,255,0.05);
+    border: 2px solid transparent;
+    transition: border-color 0.3s ease;
+  }
+  .casa-char__thumb.is-active .casa-char__thumb-letter {
+    border-color: var(--cc-thumb-accent);
+  }
+  .casa-char__thumb-name {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--cc-text);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* Spotlight mobile */
+  @media (max-width: 749px) {
+    .casa-char__spotlight-panel {
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+    .casa-char__spotlight-info { padding: 0 4px; }
+    .casa-char__thumb img,
+    .casa-char__thumb-letter { width: 56px; height: 56px; }
+    .casa-char__thumbs { gap: 12px; }
+  }
+
+  /* ════════════════════ GRID-REVEAL MODE ════════════════════ */
+  .casa-char__grid {
+    display: grid;
+    grid-template-columns: repeat(var(--cc-cols, 3), 1fr);
+    gap: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  .casa-char__card {
+    position: relative;
+    border-radius: var(--cc-card-radius);
+    overflow: hidden;
+    background: var(--cc-card-bg);
+    border: 1px solid var(--cc-card-border);
+    cursor: pointer;
+    transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.4s ease;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .casa-char__card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.3), 0 0 40px var(--cc-block-accent, rgba(196,155,99,0.1));
+  }
+  .casa-char__card-img-wrap {
+    position: relative;
+    overflow: hidden;
+  }
+  .casa-char__card-img {
+    width: 100%;
+    display: block;
+    aspect-ratio: var(--cc-ratio, 3/4);
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .casa-char__card:hover .casa-char__card-img {
+    transform: scale(1.04);
+  }
+
+  /* Name overlay at bottom (default state) */
+  .casa-char__card-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 40px 24px 24px;
+    background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%);
+    z-index: 2;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+  .casa-char__card:hover .casa-char__card-overlay {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  .casa-char__card-name {
+    font-size: clamp(20px, 2.5vw, 28px);
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  /* Reveal panel (on hover) */
+  .casa-char__card-reveal {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 28px 24px;
+    background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.7) 60%, transparent 100%);
+    z-index: 3;
+    transform: translateY(100%);
+    opacity: 0;
+    transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.35s ease;
+  }
+  .casa-char__card:hover .casa-char__card-reveal {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  .casa-char__card-name--reveal {
+    font-size: clamp(18px, 2vw, 24px);
+    margin-bottom: 8px;
+  }
+  .casa-char__card-desc {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--cc-desc-color);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .casa-char__card-btn {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 8px 22px;
+    border: 1px solid;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+  .casa-char__card-btn:hover {
+    background: var(--cc-block-accent);
+    color: #0a0a0a !important;
+  }
+
+  /* Grid mobile */
+  @media (max-width: 749px) {
+    .casa-char__grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      padding: 0 16px;
+    }
+    .casa-char__card-overlay { padding: 24px 16px 16px; }
+    .casa-char__card-reveal { padding: 20px 16px; }
+  }
+  @media (max-width: 449px) {
+    .casa-char__grid { grid-template-columns: 1fr; }
+  }
+
+  /* ════════════════════ SCROLL-STORY MODE ════════════════════ */
+  .casa-char__story-track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .casa-char__story-track::-webkit-scrollbar { display: none; }
+  .casa-char__story-panel {
+    flex: 0 0 100%;
+    min-height: 70vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    scroll-snap-align: start;
+  }
+  .casa-char__story-panel--alt {
+    direction: rtl;
+  }
+  .casa-char__story-panel--alt > * {
+    direction: ltr;
+  }
+  .casa-char__story-img-wrap {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+  }
+  .casa-char__story-glow {
+    position: absolute;
+    inset: -10%;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .casa-char__story-img {
+    position: relative;
+    z-index: 1;
+    max-width: 100%;
+    max-height: 65vh;
+    object-fit: contain;
+    border-radius: var(--cc-card-radius);
+  }
+  .casa-char__story-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 48px 56px;
+  }
+  .casa-char__story-name {
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin: 0 0 20px;
+  }
+  .casa-char__story-desc {
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--cc-desc-color);
+    margin: 0;
+    max-width: 440px;
+  }
+
+  /* Story dots */
+  .casa-char__story-dots {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 32px;
+  }
+  .casa-char__story-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.25);
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+  }
+  .casa-char__story-dot.is-active {
+    background: var(--cc-dot-accent);
+    border-color: var(--cc-dot-accent);
+    transform: scale(1.25);
+  }
+
+  /* Scroll-story mobile: vertical */
+  @media (max-width: 749px) {
+    .casa-char__story-track {
+      display: block;
+      overflow-x: visible;
+      scroll-snap-type: none;
+    }
+    .casa-char__story-panel,
+    .casa-char__story-panel--alt {
+      grid-template-columns: 1fr;
+      min-height: auto;
+      direction: ltr;
+    }
+    .casa-char__story-img-wrap { padding: 24px; }
+    .casa-char__story-content { padding: 24px 24px 48px; }
+    .casa-char__story-dots { display: none; }
+  }
+
+  /* ════════════════════ ANIMATIONS ════════════════════ */
+  .casa-char--animated .casa-char__spotlight-panel.is-active {
+    animation: ccFadeUp 0.55s cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+  .casa-char--animated .casa-char__card {
+    opacity: 0;
+    animation: ccFadeUp 0.6s cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+  .casa-char--animated .casa-char__card:nth-child(1) { animation-delay: 0s; }
+  .casa-char--animated .casa-char__card:nth-child(2) { animation-delay: 0.08s; }
+  .casa-char--animated .casa-char__card:nth-child(3) { animation-delay: 0.16s; }
+  .casa-char--animated .casa-char__card:nth-child(4) { animation-delay: 0.24s; }
+  .casa-char--animated .casa-char__card:nth-child(5) { animation-delay: 0.32s; }
+  .casa-char--animated .casa-char__card:nth-child(6) { animation-delay: 0.40s; }
+  .casa-char--animated .casa-char__card:nth-child(7) { animation-delay: 0.48s; }
+  .casa-char--animated .casa-char__card:nth-child(8) { animation-delay: 0.56s; }
+  .casa-char--animated .casa-char__card:nth-child(9) { animation-delay: 0.64s; }
+
+  .casa-char--animated .casa-char__story-panel {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .casa-char--animated .casa-char__story-panel.is-visible {
+    opacity: 1;
+  }
+
+  @keyframes ccFadeUp {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Hover glow pulse (spotlight / scroll-story) ── */
+  .casa-char--animated .casa-char__spotlight-img-wrap:hover .casa-char__spotlight-glow,
+  .casa-char--animated .casa-char__story-img-wrap:hover .casa-char__story-glow {
+    animation: ccGlowPulse 2.5s ease-in-out infinite;
+  }
+  @keyframes ccGlowPulse {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50%      { opacity: 1;   transform: scale(1.06); }
+  }
+</style>
+
+{%- comment -%} ═══════════════════════════ SCRIPT ═══════════════════════════ {%- endcomment -%}
+<script>
+(function() {
+  var root = document.getElementById('casa-char-{{ sid }}');
+  if (!root) return;
+  var layout = root.dataset.layout;
+
+  /* ── Spotlight ── */
+  if (layout === 'spotlight') {
+    var panels = root.querySelectorAll('.casa-char__spotlight-panel');
+    var thumbs = root.querySelectorAll('.casa-char__thumb');
+    var current = 0;
+    var autoTimer = null;
+    var autoRotate = root.dataset.autoRotate === 'true';
+    var speed = parseInt(root.dataset.rotateSpeed, 10) * 1000 || 5000;
+
+    function goTo(i) {
+      if (i === current && panels[i].classList.contains('is-active')) return;
+      panels[current].classList.remove('is-active');
+      thumbs[current].classList.remove('is-active');
+      current = i;
+      panels[current].classList.add('is-active');
+      thumbs[current].classList.add('is-active');
+    }
+
+    thumbs.forEach(function(t) {
+      t.addEventListener('click', function() {
+        goTo(parseInt(this.dataset.index, 10));
+        stopAuto();
+      });
+    });
+
+    function startAuto() {
+      if (!autoRotate || panels.length < 2) return;
+      autoTimer = setInterval(function() {
+        goTo((current + 1) % panels.length);
+      }, speed);
+    }
+    function stopAuto() {
+      clearInterval(autoTimer);
+      autoTimer = null;
+    }
+    startAuto();
+  }
+
+  /* ── Scroll-story dots ── */
+  if (layout === 'scroll-story') {
+    var track = document.getElementById('casa-char-track-{{ sid }}');
+    var dotsWrap = document.getElementById('casa-char-dots-{{ sid }}');
+    if (track && dotsWrap) {
+      var storyPanels = track.querySelectorAll('.casa-char__story-panel');
+      var dots = dotsWrap.querySelectorAll('.casa-char__story-dot');
+
+      dots.forEach(function(d) {
+        d.addEventListener('click', function() {
+          var idx = parseInt(this.dataset.index, 10);
+          storyPanels[idx].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+        });
+      });
+
+      if ('IntersectionObserver' in window) {
+        var storyObs = new IntersectionObserver(function(entries) {
+          entries.forEach(function(e) {
+            if (e.isIntersecting) {
+              var idx = Array.prototype.indexOf.call(storyPanels, e.target);
+              dots.forEach(function(d) { d.classList.remove('is-active'); });
+              if (dots[idx]) dots[idx].classList.add('is-active');
+              e.target.classList.add('is-visible');
+            }
+          });
+        }, { root: track, threshold: 0.5 });
+        storyPanels.forEach(function(p) { storyObs.observe(p); });
+      }
+    }
+  }
+
+  /* ── Grid-reveal: stagger animation on scroll ── */
+  if (layout === 'grid-reveal' && root.classList.contains('casa-char--animated')) {
+    if ('IntersectionObserver' in window) {
+      var cards = root.querySelectorAll('.casa-char__card');
+      var gridObs = new IntersectionObserver(function(entries, obs) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) {
+            e.target.style.animationPlayState = 'running';
+            obs.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.15 });
+      cards.forEach(function(c) {
+        c.style.animationPlayState = 'paused';
+        gridObs.observe(c);
+      });
+    }
+  }
+
+  /* ── Scroll-story vertical visibility (mobile) ── */
+  if (layout === 'scroll-story' && root.classList.contains('casa-char--animated')) {
+    if ('IntersectionObserver' in window && window.innerWidth < 750) {
+      var vPanels = root.querySelectorAll('.casa-char__story-panel');
+      var vObs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) e.target.classList.add('is-visible');
+        });
+      }, { threshold: 0.2 });
+      vPanels.forEach(function(p) { vObs.observe(p); });
+    }
+  }
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Character Showcase",
+  "class": "casa-char-section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "layout_style",
+      "label": "Layout style",
+      "options": [
+        { "value": "spotlight", "label": "Spotlight" },
+        { "value": "grid-reveal", "label": "Grid reveal" },
+        { "value": "scroll-story", "label": "Scroll story" }
+      ],
+      "default": "spotlight"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Section title",
+      "default": "Meet the Collection"
+    },
+    {
+      "type": "textarea",
+      "id": "subtitle",
+      "label": "Section subtitle",
+      "default": "Each piece carries its own personality, story, and warmth."
+    },
+    {
+      "type": "text",
+      "id": "badge",
+      "label": "Badge text",
+      "default": "The Characters"
+    },
+    {
+      "type": "range",
+      "id": "grid_columns",
+      "label": "Grid columns (grid mode)",
+      "min": 2,
+      "max": 4,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "label": "Image aspect ratio",
+      "options": [
+        { "value": "1:1", "label": "Square (1:1)" },
+        { "value": "3:4", "label": "Portrait (3:4)" },
+        { "value": "4:5", "label": "Tall portrait (4:5)" },
+        { "value": "auto", "label": "Auto (original)" }
+      ],
+      "default": "3:4"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_animations",
+      "label": "Enable animations",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "auto_rotate",
+      "label": "Auto-rotate spotlight",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "rotate_speed",
+      "label": "Auto-rotate interval (sec)",
+      "min": 3,
+      "max": 12,
+      "step": 1,
+      "default": 5
+    },
+    { "type": "header", "content": "Colors" },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#f5f0eb"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Title color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "name_color",
+      "label": "Name color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "description_color",
+      "label": "Description color"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "default": "#c49b63"
+    },
+    {
+      "type": "color",
+      "id": "tag_bg",
+      "label": "Tag background"
+    },
+    {
+      "type": "color",
+      "id": "tag_text",
+      "label": "Tag text"
+    },
+    { "type": "header", "content": "Card appearance" },
+    {
+      "type": "color",
+      "id": "card_bg",
+      "label": "Card background"
+    },
+    {
+      "type": "color",
+      "id": "card_border",
+      "label": "Card border"
+    },
+    {
+      "type": "range",
+      "id": "card_radius",
+      "label": "Card border radius",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "default": 16,
+      "unit": "px"
+    },
+    { "type": "header", "content": "Spacing" },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 160,
+      "step": 8,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 160,
+      "step": 8,
+      "default": 80,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "character",
+      "name": "Character",
+      "limit": 12,
+      "settings": [
+        {
+          "type": "text",
+          "id": "name",
+          "label": "Name",
+          "default": "Character"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "textarea",
+          "id": "description",
+          "label": "Description"
+        },
+        {
+          "type": "text",
+          "id": "personality_tags",
+          "label": "Personality tags",
+          "info": "Comma-separated, e.g. Vintage, Elegant, Bold"
+        },
+        {
+          "type": "color",
+          "id": "accent_color",
+          "label": "Accent color",
+          "info": "Overrides section accent for this character"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link"
+        },
+        {
+          "type": "text",
+          "id": "badge_text",
+          "label": "Badge text",
+          "info": "e.g. Most Popular, New"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Character Showcase",
+      "settings": {
+        "layout_style": "spotlight",
+        "title": "Meet the Bubble Girls",
+        "subtitle": "Each piece carries its own personality, story, and warmth.",
+        "badge": "The Collection"
+      },
+      "blocks": [
+        {
+          "type": "character",
+          "settings": {
+            "name": "Ava",
+            "description": "Timeless elegance meets modern sensibility. Ava carries the grace of old-world artistry with a quiet confidence that transforms any room she enters.",
+            "personality_tags": "Vintage, Elegant, Timeless",
+            "accent_color": "#d4a574"
+          }
+        },
+        {
+          "type": "character",
+          "settings": {
+            "name": "Daisy",
+            "description": "A refined spirit with a playful heart. Daisy brings warmth and lightness wherever she goes, blending sophistication with effortless charm.",
+            "personality_tags": "Refined, Playful, Warm",
+            "accent_color": "#e8c4a0"
+          }
+        },
+        {
+          "type": "character",
+          "settings": {
+            "name": "Mia",
+            "description": "Bold strokes and vivid expression define Mia. She is unapologetically creative, a statement piece that sparks conversation and inspires wonder.",
+            "personality_tags": "Bold, Expressive, Creative",
+            "accent_color": "#c47a5a"
+          }
+        },
+        {
+          "type": "character",
+          "settings": {
+            "name": "Lily",
+            "description": "Gentle as morning light, Lily speaks to the dreamer in all of us. Her soft presence invites imagination and fills spaces with quiet beauty.",
+            "personality_tags": "Soft, Imaginative, Gentle",
+            "accent_color": "#b8a088"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

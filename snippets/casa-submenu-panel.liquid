@@ -1,0 +1,740 @@
+{%- comment -%}
+  Seoul Glow Lab - Submenu Panel (Slide-from-right nested panel)
+  Usage: {% render 'casa-submenu-panel', link: link, panel_id: 'infinity-mirrors' %}
+  Params:
+    - link: parent nav link object (with .links children)
+    - panel_id: unique string for the panel ID
+{%- endcomment -%}
+
+{%- comment -%} Try link.object first (auto-resolved by Shopify), then fallback to handle lookup {%- endcomment -%}
+{%- liquid
+  assign panel_collection = nil
+  if link.type == 'collection_link'
+    assign panel_collection = link.object
+  endif
+  if panel_collection == blank
+    assign panel_collection = collections[link.handle]
+  endif
+-%}
+
+{%- comment -%} ── Variant detection (same logic as mega menu) ── {%- endcomment -%}
+{%- liquid
+  assign submenu_variant = 'glow'
+  assign _title_handle = link.title | downcase | handle
+
+  case _title_handle
+    when 'lighting', 'mirrors', 'shop', 'shop-all', 'infinity-mirrors', 'lamps', 'best-sellers'
+      assign submenu_variant = 'glow'
+    when 'home-decor', 'new-arrivals', 'collections', 'decor', 'furniture', 'inspiration'
+      assign submenu_variant = 'lifestyle'
+    when 'customer-care', 'customer-service', 'support', 'help', 'faq', 'contact', 'about'
+      assign submenu_variant = 'support'
+  endcase
+
+  if panel_collection and panel_collection.metafields.sgl.menu_style != blank
+    assign submenu_variant = panel_collection.metafields.sgl.menu_style
+  endif
+-%}
+
+<div class="casa-submenu-panel casa-submenu-panel--{{ submenu_variant }}{% if drawer_glassmorphic %} casa-submenu-panel--glass{% endif %}" id="casa-submenu-{{ panel_id }}" role="dialog" aria-modal="true" aria-label="{{ link.title }} submenu">
+
+  {%- comment -%} Header with back button {%- endcomment -%}
+  <div class="casa-submenu__header">
+    <button class="casa-submenu-back" data-casa-submenu-close="{{ panel_id }}" aria-label="Back to main menu">
+      {%- render 'casa-icon', icon: 'chevron-left', size: 20 -%}
+    </button>
+    <div class="casa-submenu__title-group">
+      <span class="casa-submenu__label">Browse</span>
+      <h3 class="casa-submenu__title">{{ link.title }}</h3>
+    </div>
+  </div>
+
+  {%- comment -%} Scrollable content {%- endcomment -%}
+  <div class="casa-submenu__content">
+
+    {%- comment -%} Featured banner with mirror visual {%- endcomment -%}
+    <div class="casa-submenu__featured-img">
+      {%- if panel_collection.image != blank -%}
+        {{ panel_collection.image | image_url: width: 600 | image_tag: loading: 'lazy', class: 'casa-submenu__featured-photo' }}
+      {%- else -%}
+        <div class="casa-submenu__mirror">
+          {%- render 'casa-infinity-mirror', size: 'md', animate: true, shape: 'octagon' -%}
+        </div>
+      {%- endif -%}
+      <span class="casa-submenu__featured-badge">{{ link.title }}</span>
+    </div>
+
+    {%- comment -%} Product or subcategory list {%- endcomment -%}
+    {%- assign _has_products = false -%}
+    {%- if panel_collection and panel_collection.products.size > 0 -%}
+      {%- assign _has_products = true -%}
+    {%- endif -%}
+
+    <div class="casa-submenu__section-title">
+      {%- if _has_products -%}
+        Popular in {{ link.title }}
+      {%- elsif link.links.size > 0 -%}
+        Browse {{ link.title }}
+      {%- else -%}
+        {{ link.title }}
+      {%- endif -%}
+    </div>
+
+    <div class="casa-submenu__list">
+      {%- if _has_products -%}
+        {%- comment -%} Show products from this collection {%- endcomment -%}
+        {%- assign _product_limit = submenu_product_limit | default: 6 -%}
+        {%- for product in panel_collection.products limit: _product_limit -%}
+          <a href="{{ product.url }}" class="casa-submenu__item">
+            <div class="casa-submenu__item-img">
+              {%- if product.featured_image != blank -%}
+                {{ product.featured_image | image_url: width: 112 | image_tag: loading: 'lazy', class: 'casa-submenu__item-photo' }}
+              {%- else -%}
+                <div class="casa-submenu__item-shape casa-octagon" style="width:32px;height:32px;background:conic-gradient(from var(--angle),var(--submenu-accent-1),var(--submenu-accent-2),var(--submenu-accent-1));animation:casa-rotate 8s linear infinite;"></div>
+              {%- endif -%}
+            </div>
+            <div class="casa-submenu__item-content">
+              <span class="casa-submenu__item-name">{{ product.title }}</span>
+              <div class="casa-submenu__item-meta">
+                <span class="casa-submenu__item-price">{{ product.price | money }}</span>
+                {%- if product.compare_at_price > product.price -%}
+                  <span class="casa-submenu__item-price-old">{{ product.compare_at_price | money }}</span>
+                {%- endif -%}
+                {%- if product.tags contains 'bestseller' -%}
+                  <span class="casa-submenu__item-badge casa-submenu__item-badge--bestseller">Bestseller</span>
+                {%- elsif product.tags contains 'new' -%}
+                  <span class="casa-submenu__item-badge casa-submenu__item-badge--new">New</span>
+                {%- endif -%}
+              </div>
+            </div>
+            <div class="casa-submenu__item-arrow">
+              {%- render 'casa-icon', icon: 'chevron-right', size: 16 -%}
+            </div>
+          </a>
+        {%- endfor -%}
+      {%- elsif link.links.size > 0 -%}
+        {%- comment -%} Show child links as subcategories {%- endcomment -%}
+        {%- for child_link in link.links -%}
+          <a href="{{ child_link.url }}" class="casa-submenu__item">
+            <div class="casa-submenu__item-img">
+              <div class="casa-submenu__item-icon">
+                {%- render 'casa-icon', icon: 'chevron-right', size: 20 -%}
+              </div>
+            </div>
+            <div class="casa-submenu__item-content">
+              <span class="casa-submenu__item-name">{{ child_link.title }}</span>
+              {%- assign _child_collection = collections[child_link.handle] -%}
+              {%- if _child_collection != blank -%}
+                {%- assign _child_count = _child_collection.products_count | plus: 0 -%}
+                {%- if _child_count > 0 -%}
+                  <span class="casa-submenu__item-count">{{ _child_count }} items</span>
+                {%- endif -%}
+              {%- endif -%}
+            </div>
+            <div class="casa-submenu__item-arrow">
+              {%- render 'casa-icon', icon: 'chevron-right', size: 16 -%}
+            </div>
+          </a>
+        {%- endfor -%}
+      {%- else -%}
+        {%- comment -%} No products and no child links - show empty state {%- endcomment -%}
+        <div class="casa-submenu__empty">
+          <div class="casa-submenu__empty-icon">
+            {%- render 'casa-icon', icon: 'sparkles', size: 24 -%}
+          </div>
+          <p class="casa-submenu__empty-text">Coming soon!</p>
+        </div>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} View All CTA {%- endcomment -%}
+    <a href="{{ link.url | default: '#' }}" class="casa-submenu__view-all">
+      View All {{ link.title }}
+      {%- render 'casa-icon', icon: 'arrow-right', size: 16 -%}
+    </a>
+  </div>
+</div>
+
+{% stylesheet %}
+  /* ═══════════════════════════════════════════════════════
+     SUBMENU VARIANT COLOR SYSTEM
+     Colors inherited from parent .casa-header-section CSS vars
+     ═══════════════════════════════════════════════════════ */
+
+  /* ── Glow (default): Purple + Pink ── */
+  .casa-submenu-panel--glow {
+    --submenu-accent-1: var(--casa-glow-primary, #9333ea);
+    --submenu-accent-2: var(--casa-glow-secondary, #ec4899);
+    --submenu-accent-1-rgb: var(--casa-glow-primary-rgb, 147, 51, 234);
+    --submenu-accent-2-rgb: var(--casa-glow-secondary-rgb, 236, 72, 153);
+    --submenu-glow: rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.12);
+    --submenu-banner-bg: linear-gradient(135deg, #1a1a2e, #2d1b4e);
+    --submenu-banner-glow-1: rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.4);
+    --submenu-banner-glow-2: rgba(var(--casa-glow-secondary-rgb, 236, 72, 153), 0.3);
+  }
+
+  /* ── Lifestyle: Gold + Amber ── */
+  .casa-submenu-panel--lifestyle {
+    --submenu-accent-1: var(--casa-lifestyle-primary, #f59e0b);
+    --submenu-accent-2: var(--casa-lifestyle-secondary, #d97706);
+    --submenu-accent-1-rgb: var(--casa-lifestyle-primary-rgb, 245, 158, 11);
+    --submenu-accent-2-rgb: var(--casa-lifestyle-secondary-rgb, 217, 119, 6);
+    --submenu-glow: rgba(var(--casa-lifestyle-primary-rgb, 245, 158, 11), 0.1);
+    --submenu-banner-bg: linear-gradient(135deg, #1a1a18, #2d2a1b);
+    --submenu-banner-glow-1: rgba(var(--casa-lifestyle-primary-rgb, 245, 158, 11), 0.35);
+    --submenu-banner-glow-2: rgba(var(--casa-lifestyle-secondary-rgb, 217, 119, 6), 0.25);
+  }
+
+  /* ── Support: Teal + Cyan ── */
+  .casa-submenu-panel--support {
+    --submenu-accent-1: var(--casa-support-primary, #06b6d4);
+    --submenu-accent-2: var(--casa-support-secondary, #0891b2);
+    --submenu-accent-1-rgb: var(--casa-support-primary-rgb, 6, 182, 212);
+    --submenu-accent-2-rgb: var(--casa-support-secondary-rgb, 8, 145, 178);
+    --submenu-glow: rgba(var(--casa-support-primary-rgb, 6, 182, 212), 0.1);
+    --submenu-banner-bg: linear-gradient(135deg, #0f1a1a, #1b2d2d);
+    --submenu-banner-glow-1: rgba(var(--casa-support-primary-rgb, 6, 182, 212), 0.35);
+    --submenu-banner-glow-2: rgba(var(--casa-support-secondary-rgb, 8, 145, 178), 0.25);
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     SUBMENU PANEL STYLES
+     ═══════════════════════════════════════════════════════ */
+
+  /* ── Submenu Panel ── */
+  .casa-submenu-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: 340px;
+    height: 100%;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--casa-drawer-bg, #0a0a0f) 100%, white 5%) 0%, var(--casa-drawer-bg, #0a0a0f) 100%);
+    z-index: 1300;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0.35s;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: white;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .casa-submenu-panel.active {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0s;
+  }
+
+  /* Ambient glow - uses variant accent color */
+  .casa-submenu-panel::before {
+    content: '';
+    position: absolute;
+    top: 100px;
+    right: 0;
+    width: 200px;
+    height: 400px;
+    background: radial-gradient(ellipse, var(--submenu-glow, rgba(147, 51, 234, 0.12)) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* ── Header ── */
+  .casa-submenu__header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+    z-index: 1;
+  }
+  .casa-submenu-back {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: white;
+    flex-shrink: 0;
+  }
+  .casa-submenu-back:active { background: rgba(255, 255, 255, 0.1); }
+  .casa-submenu__title-group { flex: 1; }
+  .casa-submenu__label {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: block;
+  }
+  .casa-submenu__title {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  /* ── Content (scrollable) ── */
+  .casa-submenu__content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Featured Banner ── */
+  .casa-submenu__featured-img {
+    margin: 0 16px 20px;
+    height: 140px;
+    border-radius: 16px;
+    background: var(--submenu-banner-bg, linear-gradient(135deg, #1a1a2e, #2d1b4e));
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .casa-submenu__featured-img::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 50%, var(--submenu-banner-glow-1, rgba(147, 51, 234, 0.4)), transparent 60%);
+  }
+  .casa-submenu__featured-img::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 70% 50%, var(--submenu-banner-glow-2, rgba(236, 72, 153, 0.3)), transparent 60%);
+  }
+  .casa-submenu__featured-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 16px;
+    position: relative;
+    z-index: 1;
+  }
+  .casa-submenu__mirror {
+    position: relative;
+    z-index: 1;
+  }
+  .casa-submenu__featured-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    z-index: 2;
+    color: white;
+  }
+
+  /* ── Section Title ── */
+  .casa-submenu__section-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: rgba(255, 255, 255, 0.3);
+    padding: 8px 20px;
+  }
+
+  /* ── Item List ── */
+  .casa-submenu__list { padding: 0 12px; }
+  .casa-submenu__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 12px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: white;
+    transition: all 0.2s;
+  }
+  .casa-submenu__item:active {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .casa-submenu__item-img {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .casa-submenu__item-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+  }
+  .casa-submenu__item-content { flex: 1; }
+  .casa-submenu__item-name { font-size: 14px; font-weight: 500; display: block; margin-bottom: 2px; }
+  .casa-submenu__item-meta { display: flex; align-items: center; gap: 8px; }
+  .casa-submenu__item-price { font-size: 13px; font-weight: 600; color: white; }
+  .casa-submenu__item-price-old { font-size: 11px; color: rgba(255, 255, 255, 0.4); text-decoration: line-through; }
+  .casa-submenu__item-badge {
+    font-size: 8px;
+    font-weight: 600;
+    padding: 3px 6px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    color: white;
+  }
+  .casa-submenu__item-badge--bestseller { background: var(--submenu-accent-1, #9333ea); }
+  .casa-submenu__item-badge--new { background: var(--casa-green, #22c55e); }
+  .casa-submenu__item-badge--sale { background: var(--casa-red, #ef4444); }
+  .casa-submenu__item-arrow {
+    color: rgba(255, 255, 255, 0.3);
+    flex-shrink: 0;
+  }
+
+  /* ── Child Link Items ── */
+  .casa-submenu__item-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(var(--submenu-accent-1-rgb, 147, 51, 234), 0.15), rgba(var(--submenu-accent-2-rgb, 236, 72, 153), 0.1));
+    border: 1px solid rgba(var(--submenu-accent-1-rgb, 147, 51, 234), 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--submenu-accent-1, #9333ea);
+  }
+  .casa-submenu__item-count {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* ── Empty State ── */
+  .casa-submenu__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+  }
+  .casa-submenu__empty-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(var(--submenu-accent-1-rgb, 147, 51, 234), 0.15), rgba(var(--submenu-accent-2-rgb, 236, 72, 153), 0.1));
+    border: 1px solid rgba(var(--submenu-accent-1-rgb, 147, 51, 234), 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--submenu-accent-1, #9333ea);
+    margin-bottom: 16px;
+  }
+  .casa-submenu__empty-text {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+  }
+
+  /* ── View All CTA ── */
+  .casa-submenu__view-all {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 16px;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--submenu-accent-1, #9333ea), var(--submenu-accent-2, #ec4899));
+    border-radius: 12px;
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s;
+    box-shadow: 0 4px 16px rgba(var(--submenu-accent-1-rgb, 147, 51, 234), 0.3);
+  }
+  .casa-submenu__view-all:active {
+    transform: scale(0.98);
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: VERY SMALL MOBILE (375px and below)
+     ═══════════════════════════════════════════════════════ */
+  @media (max-width: 375px) {
+    .casa-submenu__header {
+      padding: 16px;
+    }
+
+    .casa-submenu__back {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+    }
+
+    .casa-submenu__title {
+      font-size: 14px;
+    }
+
+    .casa-submenu__close {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+    }
+
+    .casa-submenu__categories {
+      padding: 12px;
+      gap: 6px;
+    }
+
+    .casa-submenu__cat-item {
+      padding: 10px 12px;
+      gap: 10px;
+      border-radius: 10px;
+    }
+
+    .casa-submenu__cat-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+    }
+
+    .casa-submenu__cat-name {
+      font-size: 13px;
+    }
+
+    .casa-submenu__cat-count {
+      font-size: 11px;
+    }
+
+    .casa-submenu__products-title {
+      padding: 10px 16px;
+      font-size: 9px;
+    }
+
+    .casa-submenu__products-grid {
+      padding: 12px;
+      gap: 10px;
+    }
+
+    .casa-submenu__product-card {
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    .casa-submenu__product-img {
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .casa-submenu__product-name {
+      font-size: 12px;
+    }
+
+    .casa-submenu__product-price {
+      font-size: 12px;
+    }
+
+    .casa-submenu__view-all {
+      margin: 12px;
+      padding: 12px;
+      font-size: 13px;
+      border-radius: 10px;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     RESPONSIVE: EXTRA SMALL MOBILE (320px and below)
+     ═══════════════════════════════════════════════════════ */
+  @media (max-width: 320px) {
+    .casa-submenu__header {
+      padding: 12px;
+    }
+
+    .casa-submenu__back,
+    .casa-submenu__close {
+      width: 32px;
+      height: 32px;
+    }
+
+    .casa-submenu__title {
+      font-size: 13px;
+    }
+
+    .casa-submenu__categories {
+      padding: 10px;
+    }
+
+    .casa-submenu__cat-item {
+      padding: 8px 10px;
+    }
+
+    .casa-submenu__cat-icon {
+      width: 30px;
+      height: 30px;
+    }
+
+    .casa-submenu__cat-name {
+      font-size: 12px;
+    }
+
+    .casa-submenu__products-grid {
+      padding: 10px;
+      gap: 8px;
+    }
+
+    .casa-submenu__product-card {
+      padding: 8px;
+    }
+
+    .casa-submenu__product-name {
+      font-size: 11px;
+    }
+
+    .casa-submenu__view-all {
+      margin: 10px;
+      padding: 10px;
+      font-size: 12px;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
+     GLASSMORPHIC SUBMENU PANEL
+     Inherits --casa-glass-* variables from :root
+     Overrides every white-based color in the base panel.
+     ═══════════════════════════════════════════════════════ */
+
+  /* ── Panel background & base color ── */
+  .casa-submenu-panel--glass {
+    background: rgba(var(--casa-glass-tint-rgb), var(--casa-glass-opacity));
+    backdrop-filter: blur(var(--casa-glass-blur)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--casa-glass-blur)) saturate(180%);
+    color: var(--casa-glass-text);
+  }
+  .casa-submenu-panel--glass::before,
+  .casa-submenu-panel--glass::after { display: none; }
+
+  /* ── Header ── */
+  .casa-submenu-panel--glass .casa-submenu__header {
+    border-bottom-color: rgba(var(--casa-glass-border-rgb), 0.25);
+  }
+  .casa-submenu-panel--glass .casa-submenu-back {
+    background: rgba(var(--casa-glass-icon-bg-rgb), 0.35);
+    border-color: rgba(var(--casa-glass-border-rgb), 0.3);
+    color: var(--casa-glass-text);
+  }
+  .casa-submenu-panel--glass .casa-submenu-back:active {
+    background: rgba(var(--casa-glass-icon-bg-rgb), 0.55);
+  }
+  .casa-submenu-panel--glass .casa-submenu__title {
+    color: var(--casa-glass-text);
+  }
+  .casa-submenu-panel--glass .casa-submenu__label {
+    color: var(--casa-glass-text-muted);
+  }
+
+  /* ── Section title ("POPULAR IN LIGHTING") ── */
+  .casa-submenu-panel--glass .casa-submenu__section-title {
+    color: var(--casa-glass-text-muted);
+  }
+
+  /* ── Item rows (product items & child links) ── */
+  .casa-submenu-panel--glass .casa-submenu__item {
+    color: var(--casa-glass-text);
+  }
+  .casa-submenu-panel--glass .casa-submenu__item:active {
+    background: rgba(var(--casa-glass-icon-bg-rgb), 0.3);
+  }
+  .casa-submenu-panel--glass .casa-submenu__item-img {
+    background: rgba(var(--casa-glass-card-bg-rgb), 0.5);
+  }
+  .casa-submenu-panel--glass .casa-submenu__item-name {
+    color: var(--casa-glass-text);
+  }
+  .casa-submenu-panel--glass .casa-submenu__item-price {
+    color: var(--casa-glass-text);
+  }
+  .casa-submenu-panel--glass .casa-submenu__item-price-old {
+    color: var(--casa-glass-text-muted);
+  }
+  .casa-submenu-panel--glass .casa-submenu__item-count {
+    color: var(--casa-glass-text-muted);
+  }
+  .casa-submenu-panel--glass .casa-submenu__item-arrow {
+    color: var(--casa-glass-text-muted);
+  }
+
+  /* ── Child link icon circles ── */
+  .casa-submenu-panel--glass .casa-submenu__item-icon {
+    background: rgba(var(--casa-glass-icon-bg-rgb), 0.4);
+    border-color: rgba(var(--casa-glass-border-rgb), 0.3);
+    color: var(--casa-glass-icon-active);
+  }
+  .casa-submenu-panel--glass .casa-submenu__item:active .casa-submenu__item-icon {
+    background: var(--casa-glass-icon-active);
+    color: var(--casa-glass-card-bg);
+  }
+
+  /* ── Featured banner ── */
+  .casa-submenu-panel--glass .casa-submenu__featured-img {
+    background: rgba(var(--casa-glass-card-bg-rgb), 0.3);
+  }
+  .casa-submenu-panel--glass .casa-submenu__featured-img::before,
+  .casa-submenu-panel--glass .casa-submenu__featured-img::after {
+    display: none;
+  }
+  .casa-submenu-panel--glass .casa-submenu__featured-badge {
+    background: rgba(var(--casa-glass-text-rgb), 0.6);
+    color: var(--casa-glass-card-bg);
+  }
+
+  /* ── Product cards (if present) ── */
+  .casa-submenu-panel--glass .casa-submenu__product-card {
+    background: rgba(var(--casa-glass-card-bg-rgb), 0.4);
+    border-color: rgba(var(--casa-glass-border-rgb), 0.25);
+  }
+  .casa-submenu-panel--glass .casa-submenu__product-name {
+    color: var(--casa-glass-text);
+  }
+  .casa-submenu-panel--glass .casa-submenu__product-price {
+    color: var(--casa-glass-text-muted);
+  }
+
+  /* ── Empty state ── */
+  .casa-submenu-panel--glass .casa-submenu__empty-icon {
+    background: rgba(var(--casa-glass-icon-bg-rgb), 0.4);
+    border-color: rgba(var(--casa-glass-border-rgb), 0.3);
+    color: var(--casa-glass-icon-active);
+  }
+  .casa-submenu-panel--glass .casa-submenu__empty-text {
+    color: var(--casa-glass-text-muted);
+  }
+
+  /* ── View All CTA ── */
+  .casa-submenu-panel--glass .casa-submenu__view-all {
+    background: var(--casa-glass-btn-bg, var(--casa-glass-icon-active));
+    color: var(--casa-glass-btn-text, var(--casa-glass-card-bg));
+    box-shadow: 0 4px 16px rgba(var(--casa-glass-text-rgb), 0.15);
+  }
+  .casa-submenu-panel--glass .casa-submenu__view-all:active {
+    opacity: 0.85;
+  }
+
+  /* ── Scrollbar ── */
+  .casa-submenu-panel--glass .casa-submenu__content::-webkit-scrollbar-thumb {
+    background: rgba(var(--casa-glass-border-rgb), 0.3);
+  }
+{% endstylesheet %}

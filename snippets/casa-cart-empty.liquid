@@ -1,0 +1,175 @@
+{% doc %}
+  Casa Cart Empty State
+
+  Renders a premium empty cart state with gradient text, ambient glows,
+  and a CTA button to continue shopping.
+{% enddoc %}
+
+<div class="casa-cart-empty">
+  <div class="casa-cart-empty__orb casa-cart-empty__orb--1"></div>
+  <div class="casa-cart-empty__orb casa-cart-empty__orb--2"></div>
+
+  <div class="casa-cart-empty__content">
+    <span class="casa-cart-empty__tag">YOUR CART</span>
+    <h1 class="casa-cart-empty__title">Your cart is empty</h1>
+    <p class="casa-cart-empty__subtitle">
+      Discover our collections and find the perfect piece for your space.
+    </p>
+    <a
+      class="casa-cart-empty__cta"
+      href="{{ settings.empty_cart_button_link | default: routes.all_products_collection_url }}"
+    >
+      <span>Start Shopping</span>
+    </a>
+
+    {%- if shop.customer_accounts_enabled and customer == null -%}
+      <p class="casa-cart-empty__login">
+        {{ 'actions.log_in_html' | t: link: routes.account_login_url }}
+      </p>
+    {%- endif -%}
+  </div>
+</div>
+
+{% stylesheet %}
+  .casa-cart-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    padding: var(--casa-space-16) var(--casa-section-px);
+  }
+
+  @media (max-width: 749px) {
+    .casa-cart-empty {
+      padding: var(--casa-space-10) var(--casa-section-px-mobile);
+    }
+  }
+
+  .casa-cart-empty__orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    animation: casa-cart-orb-float 8s ease-in-out infinite;
+  }
+
+  .casa-cart-empty__orb--1 {
+    width: 300px;
+    height: 300px;
+    background: var(--casa-purple);
+    opacity: 0.15;
+    top: 20%;
+    left: 20%;
+  }
+
+  .casa-cart-empty__orb--2 {
+    width: 250px;
+    height: 250px;
+    background: var(--casa-pink);
+    opacity: 0.1;
+    bottom: 20%;
+    right: 20%;
+    animation-delay: -3s;
+  }
+
+  @keyframes casa-cart-orb-float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(20px, -15px) scale(1.05); }
+    50% { transform: translate(-15px, 20px) scale(0.95); }
+    75% { transform: translate(15px, 10px) scale(1.02); }
+  }
+
+  .casa-cart-empty__content {
+    position: relative;
+    z-index: 1;
+    animation: casa-fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .casa-cart-empty__tag {
+    display: inline-block;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--casa-text-secondary);
+    margin-bottom: var(--casa-space-4);
+  }
+
+  .casa-cart-empty__title {
+    font-size: 36px;
+    font-weight: 300;
+    background: var(--casa-gradient-text);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0 0 var(--casa-space-4) 0;
+    line-height: 1.2;
+  }
+
+  @media (max-width: 749px) {
+    .casa-cart-empty__title {
+      font-size: 28px;
+    }
+  }
+
+  .casa-cart-empty__subtitle {
+    font-size: 16px;
+    color: var(--casa-text-secondary);
+    max-width: 400px;
+    margin: 0 auto var(--casa-space-8) auto;
+    line-height: 1.6;
+  }
+
+  .casa-cart-empty__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--casa-gradient-primary);
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: var(--casa-space-4) var(--casa-space-10);
+    border-radius: var(--casa-radius-full);
+    text-decoration: none;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .casa-cart-empty__cta:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--casa-glow-purple);
+  }
+
+  .casa-cart-empty__login {
+    margin-top: var(--casa-space-6);
+    font-size: 14px;
+    color: var(--casa-text-muted);
+  }
+
+  .casa-cart-empty__login a {
+    color: var(--casa-text-secondary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color var(--casa-transition-fast);
+  }
+
+  .casa-cart-empty__login a:hover {
+    color: var(--casa-text-primary);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .casa-cart-empty__orb {
+      animation: none;
+    }
+    .casa-cart-empty__content {
+      animation: none;
+    }
+    .casa-cart-empty__cta {
+      transition: none;
+    }
+  }
+{% endstylesheet %}

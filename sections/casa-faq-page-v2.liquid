@@ -1,0 +1,1162 @@
+{% comment %}
+  Seoul Glow Lab — Premium FAQ Page v2
+  Layouts: two-column | tabs-top | cards
+{% endcomment %}
+
+{%- comment -%} Auto-hide when no question blocks exist {%- endcomment -%}
+{%- assign _has_questions = false -%}
+{%- for block in section.blocks -%}
+  {%- if block.type == 'question' and block.settings.question != blank -%}
+    {%- assign _has_questions = true -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if _has_questions == false and section.settings.auto_hide and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
+{%- liquid
+  assign layout = section.settings.layout_style
+  assign content_align = section.settings.content_align | default: 'left'
+  assign show_search = section.settings.show_search
+  assign badge = section.settings.badge_text
+  assign title = section.settings.title
+  assign subtitle = section.settings.subtitle
+  assign bg = section.settings.color_bg
+  assign text_color = section.settings.color_text
+  assign muted = section.settings.color_muted
+  assign accent1 = section.settings.color_accent_primary
+  assign accent2 = section.settings.color_accent_secondary
+  assign card_bg = section.settings.color_card_bg
+  assign card_border = section.settings.color_card_border
+  assign pt = section.settings.padding_top
+  assign pb = section.settings.padding_bottom
+  assign contact_title = section.settings.contact_title
+  assign contact_text = section.settings.contact_text
+  assign contact_email = section.settings.contact_email
+  assign contact_page_url = section.settings.contact_page_url
+  assign contact_page_label = section.settings.contact_page_label
+
+  assign categories = ""
+  assign cat_index = -1
+  assign cats_array = ""
+-%}
+
+{%- comment %} Build categories and questions arrays {% endcomment -%}
+{%- for block in section.blocks -%}
+  {%- if block.type == 'category' -%}
+    {%- assign cat_index = cat_index | plus: 1 -%}
+  {%- endif -%}
+{%- endfor -%}
+
+<section
+  id="casa-faq2-{{ section.id }}"
+  class="casa-faq2"
+  data-layout="{{ layout }}"
+  data-section-id="{{ section.id }}"
+  style="
+    --faq2-bg: {{ bg }};
+    --faq2-text: {{ text_color }};
+    --faq2-muted: {{ muted }};
+    --faq2-accent1: {{ accent1 }};
+    --faq2-accent2: {{ accent2 }};
+    --faq2-card-bg: {{ card_bg }};
+    --faq2-card-border: {{ card_border }};
+    --faq2-pt: {{ pt }}px;
+    --faq2-pb: {{ pb }}px;
+    --faq2-content-align: {{ content_align }};
+    {%- if section.settings.color_hero_title != blank %}--faq2-hero-title: {{ section.settings.color_hero_title }};{% endif -%}
+    {%- if section.settings.color_hero_subtitle != blank %}--faq2-hero-subtitle: {{ section.settings.color_hero_subtitle }};{% endif -%}
+    {%- if section.settings.color_hero_badge_bg != blank %}--faq2-badge-bg: {{ section.settings.color_hero_badge_bg }};{% endif -%}
+    {%- if section.settings.color_hero_badge_text != blank %}--faq2-badge-text: {{ section.settings.color_hero_badge_text }};{% endif -%}
+    {%- if section.settings.color_nav_bg != blank %}--faq2-nav-bg: {{ section.settings.color_nav_bg }};{% endif -%}
+    {%- if section.settings.color_nav_text != blank %}--faq2-nav-text: {{ section.settings.color_nav_text }};{% endif -%}
+    {%- if section.settings.color_nav_active_bg != blank %}--faq2-nav-active-bg: {{ section.settings.color_nav_active_bg }};{% endif -%}
+    {%- if section.settings.color_nav_active_text != blank %}--faq2-nav-active-text: {{ section.settings.color_nav_active_text }};{% endif -%}
+    {%- if section.settings.color_question_text != blank %}--faq2-q-text: {{ section.settings.color_question_text }};{% endif -%}
+    {%- if section.settings.color_answer_text != blank %}--faq2-a-text: {{ section.settings.color_answer_text }};{% endif -%}
+    {%- if section.settings.color_chevron != blank %}--faq2-chevron: {{ section.settings.color_chevron }};{% endif -%}
+    {%- if section.settings.color_category_title != blank %}--faq2-cat-title: {{ section.settings.color_category_title }};{% endif -%}
+    {%- if section.settings.color_icon != blank %}--faq2-icon: {{ section.settings.color_icon }};{% endif -%}
+    {%- if section.settings.color_stats_number != blank %}--faq2-stats-num: {{ section.settings.color_stats_number }};{% endif -%}
+    {%- if section.settings.color_stats_label != blank %}--faq2-stats-label: {{ section.settings.color_stats_label }};{% endif -%}
+    {%- if section.settings.color_stats_star != blank %}--faq2-stats-star: {{ section.settings.color_stats_star }};{% endif -%}
+    {%- if section.settings.color_cta_bg != blank %}--faq2-cta-bg: {{ section.settings.color_cta_bg }};{% endif -%}
+    {%- if section.settings.color_cta_text != blank %}--faq2-cta-text: {{ section.settings.color_cta_text }};{% endif -%}
+    {%- if section.settings.color_cta_btn_bg != blank %}--faq2-cta-btn-bg: {{ section.settings.color_cta_btn_bg }};{% endif -%}
+    {%- if section.settings.color_cta_btn_text != blank %}--faq2-cta-btn-text: {{ section.settings.color_cta_btn_text }};{% endif -%}
+  "
+>
+  <!-- Hero -->
+  <div class="casa-faq2__hero">
+    <div class="casa-faq2__hero-inner">
+      {%- if badge != blank -%}
+        <span class="casa-faq2__badge casa-faq2__anim" data-anim="fade-up">{{ badge }}</span>
+      {%- endif -%}
+      {%- if title != blank -%}
+        <h1 class="casa-faq2__title casa-faq2__anim" data-anim="fade-up" data-delay="1">{{ title }}</h1>
+      {%- endif -%}
+      {%- if subtitle != blank -%}
+        <p class="casa-faq2__subtitle casa-faq2__anim" data-anim="fade-up" data-delay="2">{{ subtitle }}</p>
+      {%- endif -%}
+      {%- if show_search -%}
+        <div class="casa-faq2__search-wrap casa-faq2__anim" data-anim="fade-up" data-delay="3">
+          <div class="casa-faq2__search">
+            <svg class="casa-faq2__search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" class="casa-faq2__search-input" placeholder="Search questions..." aria-label="Search FAQ">
+            <button class="casa-faq2__search-clear" aria-label="Clear search" style="display:none">&times;</button>
+          </div>
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="casa-faq2__body casa-faq2__body--{{ layout }}">
+    {%- comment %} ========== TWO-COLUMN LAYOUT ========== {% endcomment -%}
+    {%- if layout == 'two-column' -%}
+      <div class="casa-faq2__two-col">
+        <aside class="casa-faq2__sidebar">
+          <nav class="casa-faq2__nav" aria-label="FAQ categories">
+            {%- assign ci = 0 -%}
+            {%- for block in section.blocks -%}
+              {%- if block.type == 'category' -%}
+                <a href="#casa-faq2-cat-{{ ci }}-{{ section.id }}" class="casa-faq2__nav-item{% if ci == 0 %} is-active{% endif %}" data-cat-nav="{{ ci }}">
+                  <span class="casa-faq2__nav-icon">{%- render 'casa-faq2-icon', icon: block.settings.icon -%}</span>
+                  <span class="casa-faq2__nav-label">{{ block.settings.title }}</span>
+                </a>
+                {%- assign ci = ci | plus: 1 -%}
+              {%- endif -%}
+            {%- endfor -%}
+          </nav>
+        </aside>
+        <div class="casa-faq2__content">
+          {%- assign ci = -1 -%}
+          {%- assign open_cat = false -%}
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'category' -%}
+              {%- if open_cat -%}</div>{%- endif -%}
+              {%- assign ci = ci | plus: 1 -%}
+              {%- assign open_cat = true -%}
+              <div class="casa-faq2__category casa-faq2__anim" data-anim="fade-up" id="casa-faq2-cat-{{ ci }}-{{ section.id }}" data-cat-idx="{{ ci }}" {{ block.shopify_attributes }}>
+                <h2 class="casa-faq2__cat-title">
+                  <span class="casa-faq2__cat-icon">{%- render 'casa-faq2-icon', icon: block.settings.icon -%}</span>
+                  {{ block.settings.title }}
+                </h2>
+                {%- if block.settings.description != blank -%}
+                  <p class="casa-faq2__cat-desc">{{ block.settings.description }}</p>
+                {%- endif -%}
+            {%- elsif block.type == 'question' -%}
+              <div class="casa-faq2__item casa-faq2__anim" data-anim="fade-up" data-question="{{ block.settings.question | escape }}" {{ block.shopify_attributes }}>
+                <button class="casa-faq2__q" aria-expanded="false">
+                  {%- if block.settings.icon != blank and block.settings.icon != 'none' -%}<span class="casa-faq2__q-icon">{%- render 'casa-faq2-icon', icon: block.settings.icon -%}</span>{%- endif -%}<span class="casa-faq2__q-text">{{ block.settings.question }}</span>
+                  <span class="casa-faq2__chevron">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </span>
+                </button>
+                <div class="casa-faq2__a" aria-hidden="true">
+                  <div class="casa-faq2__a-inner">{{ block.settings.answer }}</div>
+                </div>
+              </div>
+            {%- endif -%}
+          {%- endfor -%}
+          {%- if open_cat -%}</div>{%- endif -%}
+
+          <div class="casa-faq2__no-results" style="display:none">
+            <p class="casa-faq2__no-results-text">No matching questions found.</p>
+            <p class="casa-faq2__no-results-sub">Try a different search term or <a href="{{ contact_page_url }}">contact our support team</a>.</p>
+          </div>
+        </div>
+      </div>
+
+    {%- comment %} ========== TABS-TOP LAYOUT ========== {% endcomment -%}
+    {%- elsif layout == 'tabs-top' -%}
+      <div class="casa-faq2__tabs-wrap">
+        <div class="casa-faq2__tabs-bar casa-faq2__anim" data-anim="fade-up">
+          {%- assign ci = 0 -%}
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'category' -%}
+              <button class="casa-faq2__tab{% if ci == 0 %} is-active{% endif %}" data-tab="{{ ci }}">
+                <span class="casa-faq2__tab-icon">{%- render 'casa-faq2-icon', icon: block.settings.icon -%}</span>
+                <span>{{ block.settings.title }}</span>
+              </button>
+              {%- assign ci = ci | plus: 1 -%}
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+        <div class="casa-faq2__tabs-content">
+          {%- assign ci = -1 -%}
+          {%- assign open_cat = false -%}
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'category' -%}
+              {%- if open_cat -%}</div>{%- endif -%}
+              {%- assign ci = ci | plus: 1 -%}
+              {%- assign open_cat = true -%}
+              <div class="casa-faq2__tab-panel{% if ci == 0 %} is-active{% endif %}" data-tab-panel="{{ ci }}" data-cat-idx="{{ ci }}" {{ block.shopify_attributes }}>
+            {%- elsif block.type == 'question' -%}
+              <div class="casa-faq2__item casa-faq2__anim" data-anim="fade-up" data-question="{{ block.settings.question | escape }}" {{ block.shopify_attributes }}>
+                <button class="casa-faq2__q" aria-expanded="false">
+                  {%- if block.settings.icon != blank and block.settings.icon != 'none' -%}<span class="casa-faq2__q-icon">{%- render 'casa-faq2-icon', icon: block.settings.icon -%}</span>{%- endif -%}<span class="casa-faq2__q-text">{{ block.settings.question }}</span>
+                  <span class="casa-faq2__chevron">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </span>
+                </button>
+                <div class="casa-faq2__a" aria-hidden="true">
+                  <div class="casa-faq2__a-inner">{{ block.settings.answer }}</div>
+                </div>
+              </div>
+            {%- endif -%}
+          {%- endfor -%}
+          {%- if open_cat -%}</div>{%- endif -%}
+
+          <div class="casa-faq2__no-results" style="display:none">
+            <p class="casa-faq2__no-results-text">No matching questions found.</p>
+            <p class="casa-faq2__no-results-sub">Try a different search term or <a href="{{ contact_page_url }}">contact our support team</a>.</p>
+          </div>
+        </div>
+      </div>
+
+    {%- comment %} ========== CARDS LAYOUT ========== {% endcomment -%}
+    {%- elsif layout == 'cards' -%}
+      <div class="casa-faq2__cards-grid">
+        {%- assign ci = -1 -%}
+        {%- assign open_cat = false -%}
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'category' -%}
+            {%- if open_cat -%}
+                  </div>
+                </div>
+              </div>
+            {%- endif -%}
+            {%- assign ci = ci | plus: 1 -%}
+            {%- assign open_cat = true -%}
+            {%- comment %} Count questions in this category {% endcomment -%}
+            {%- assign q_count = 0 -%}
+            {%- assign counting = true -%}
+            {%- for b2 in section.blocks -%}
+              {%- if b2.id == block.id -%}
+                {%- assign counting = true -%}
+                {%- continue -%}
+              {%- endif -%}
+              {%- if counting and b2.type == 'category' -%}
+                {%- break -%}
+              {%- endif -%}
+              {%- if counting and b2.type == 'question' -%}
+                {%- assign q_count = q_count | plus: 1 -%}
+              {%- endif -%}
+            {%- endfor -%}
+            <div class="casa-faq2__card casa-faq2__anim" data-anim="fade-up" data-cat-idx="{{ ci }}" {{ block.shopify_attributes }}>
+              <button class="casa-faq2__card-header" aria-expanded="false" data-card-toggle="{{ ci }}">
+                <span class="casa-faq2__card-icon">{%- render 'casa-faq2-icon', icon: block.settings.icon -%}</span>
+                <span class="casa-faq2__card-title">{{ block.settings.title }}</span>
+                <span class="casa-faq2__card-count">{{ q_count }}</span>
+                <span class="casa-faq2__card-arrow">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </span>
+              </button>
+              <div class="casa-faq2__card-body" aria-hidden="true">
+                <div class="casa-faq2__card-body-inner">
+          {%- elsif block.type == 'question' -%}
+            <div class="casa-faq2__item" data-question="{{ block.settings.question | escape }}" {{ block.shopify_attributes }}>
+              <button class="casa-faq2__q" aria-expanded="false">
+                {%- if block.settings.icon != blank and block.settings.icon != 'none' -%}<span class="casa-faq2__q-icon">{%- render 'casa-faq2-icon', icon: block.settings.icon -%}</span>{%- endif -%}<span class="casa-faq2__q-text">{{ block.settings.question }}</span>
+                <span class="casa-faq2__chevron">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </span>
+              </button>
+              <div class="casa-faq2__a" aria-hidden="true">
+                <div class="casa-faq2__a-inner">{{ block.settings.answer }}</div>
+              </div>
+            </div>
+          {%- endif -%}
+        {%- endfor -%}
+        {%- if open_cat -%}
+              </div>
+            </div>
+          </div>
+        {%- endif -%}
+      </div>
+      <div class="casa-faq2__no-results" style="display:none">
+        <p class="casa-faq2__no-results-text">No matching questions found.</p>
+        <p class="casa-faq2__no-results-sub">Try a different search term or <a href="{{ contact_page_url }}">contact our support team</a>.</p>
+      </div>
+    {%- endif -%}
+  </div>
+
+  <!-- Contact CTA -->
+  {%- if contact_title != blank -%}
+    <div class="casa-faq2__cta-wrap casa-faq2__anim" data-anim="fade-up">
+      <div class="casa-faq2__cta">
+        <h3 class="casa-faq2__cta-title">{{ contact_title }}</h3>
+        {%- if contact_text != blank -%}
+          <p class="casa-faq2__cta-text">{{ contact_text }}</p>
+        {%- endif -%}
+        <div class="casa-faq2__cta-btns">
+          {%- if contact_email != blank -%}
+            <a href="mailto:{{ contact_email }}" class="casa-faq2__cta-btn casa-faq2__cta-btn--email">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              Email Support
+            </a>
+          {%- endif -%}
+          {%- if contact_page_url != blank -%}
+            <a href="{{ contact_page_url }}" class="casa-faq2__cta-btn casa-faq2__cta-btn--page">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              {{ contact_page_label | default: 'Contact Us' }}
+            </a>
+          {%- endif -%}
+        </div>
+      </div>
+    </div>
+  {%- endif -%}
+</section>
+
+<style>
+/* ========== CASA FAQ v2 — Core ========== */
+.casa-faq2 {
+  background: var(--faq2-bg);
+  color: var(--faq2-text);
+  padding-top: var(--faq2-pt);
+  padding-bottom: var(--faq2-pb);
+  font-family: inherit;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+.casa-faq2 *, .casa-faq2 *::before, .casa-faq2 *::after { box-sizing: border-box; }
+
+/* ========== Hero ========== */
+.casa-faq2__hero {
+  text-align: center;
+  padding: 60px 24px 48px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+.casa-faq2__badge {
+  display: inline-block;
+  padding: 6px 18px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, var(--faq2-accent1), var(--faq2-accent2));
+  color: #fff;
+  margin-bottom: 20px;
+}
+.casa-faq2__title {
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0 0 16px;
+  background: linear-gradient(135deg, var(--faq2-text), var(--faq2-muted));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.casa-faq2__subtitle {
+  font-size: clamp(16px, 2vw, 20px);
+  color: var(--faq2-muted);
+  margin: 0 0 32px;
+  line-height: 1.6;
+}
+
+/* Search */
+.casa-faq2__search-wrap { max-width: 520px; margin: 0 auto; }
+.casa-faq2__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--faq2-card-bg);
+  border: 1px solid var(--faq2-card-border);
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: border-color .3s, box-shadow .3s;
+}
+.casa-faq2__search:focus-within {
+  border-color: var(--faq2-accent1);
+  box-shadow: 0 0 0 3px rgba(147,51,234,.15);
+}
+.casa-faq2__search-icon { flex-shrink: 0; margin-left: 16px; color: var(--faq2-muted); }
+.casa-faq2__search-input {
+  flex: 1;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  outline: none;
+  padding: 14px 16px;
+  font-size: 16px;
+  color: var(--faq2-text);
+  font-family: inherit;
+  box-shadow: none !important;
+}
+.casa-faq2__search-input::placeholder { color: var(--faq2-muted); opacity: .6; }
+.casa-faq2__search-clear {
+  background: none; border: none; color: var(--faq2-muted); font-size: 22px; cursor: pointer;
+  padding: 8px 14px; line-height: 1; transition: color .2s;
+}
+.casa-faq2__search-clear:hover { color: var(--faq2-text); }
+
+/* ========== Body Wrapper ========== */
+.casa-faq2__body { max-width: 1400px; margin: 0 auto; padding: 0 24px; }
+.casa-faq2__body--tabs-top { max-width: 1200px; }
+
+/* ========== TWO-COLUMN ========== */
+.casa-faq2__two-col { display: flex; gap: 48px; align-items: flex-start; }
+.casa-faq2__sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 120px;
+}
+.casa-faq2__nav { display: flex; flex-direction: column; gap: 4px; }
+.casa-faq2__nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--faq2-muted);
+  font-size: 15px;
+  font-weight: 500;
+  transition: all .25s;
+  border-left: 3px solid transparent;
+}
+.casa-faq2__nav-item:hover { color: var(--faq2-text); background: rgba(255,255,255,.03); }
+.casa-faq2__nav-item.is-active {
+  color: transparent;
+  background: rgba(147,51,234,.08);
+  border-image: linear-gradient(180deg, var(--faq2-accent1), var(--faq2-accent2)) 1;
+  border-left-width: 3px;
+  border-left-style: solid;
+}
+.casa-faq2__nav-item.is-active .casa-faq2__nav-label {
+  background: linear-gradient(135deg, var(--faq2-accent1), var(--faq2-accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.casa-faq2__nav-item.is-active .casa-faq2__nav-icon svg { stroke: var(--faq2-accent1); }
+.casa-faq2__nav-icon svg { width: 18px; height: 18px; stroke: currentColor; transition: stroke .25s; }
+.casa-faq2__content { flex: 1; min-width: 0; }
+
+/* Category Title */
+.casa-faq2__category { margin-bottom: 40px; }
+.casa-faq2__cat-title {
+  display: flex;
+  align-items: center;
+  justify-content: var(--faq2-content-align, flex-start);
+  gap: 12px;
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 8px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--faq2-card-border);
+}
+.casa-faq2__cat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, rgba(var(--faq2-accent1-rgb, 147,51,234), 0.15), rgba(var(--faq2-accent1-rgb, 147,51,234), 0.05));
+  border-radius: 8px;
+}
+.casa-faq2__cat-icon svg { width: 18px; height: 18px; stroke: var(--faq2-accent1); }
+.casa-faq2__cat-desc { font-size: 14px; color: var(--faq2-muted); margin: 0 0 20px; text-align: var(--faq2-content-align, left); }
+
+/* ========== TABS-TOP ========== */
+.casa-faq2__tabs-bar {
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background: var(--faq2-card-bg);
+  border: 1px solid var(--faq2-card-border);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  margin-bottom: 40px;
+}
+.casa-faq2__tabs-bar::-webkit-scrollbar { display: none; }
+.casa-faq2__tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--faq2-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .25s;
+  font-family: inherit;
+}
+.casa-faq2__tab:hover { color: var(--faq2-text); background: rgba(255,255,255,.05); }
+.casa-faq2__tab.is-active {
+  background: linear-gradient(135deg, var(--faq2-accent1), var(--faq2-accent2));
+  color: #fff;
+}
+.casa-faq2__tab-icon svg { width: 16px; height: 16px; }
+.casa-faq2__tab-panel { display: none; }
+.casa-faq2__tab-panel.is-active { display: block; }
+
+/* ========== CARDS ========== */
+.casa-faq2__cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 20px;
+}
+.casa-faq2__card {
+  background: var(--faq2-card-bg);
+  border: 1px solid var(--faq2-card-border);
+  border-radius: 20px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  overflow: hidden;
+  transition: transform .3s, box-shadow .3s, border-color .3s;
+}
+.casa-faq2__card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(147,51,234,.12);
+  border-color: var(--faq2-accent1);
+}
+.casa-faq2__card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 24px;
+  border: none;
+  background: none;
+  color: var(--faq2-text);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.casa-faq2__card-icon svg { width: 28px; height: 28px; stroke: var(--faq2-accent1); flex-shrink: 0; }
+.casa-faq2__card-title { flex: 1; font-size: 18px; font-weight: 600; }
+.casa-faq2__card-count {
+  background: linear-gradient(135deg, var(--faq2-accent1), var(--faq2-accent2));
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.casa-faq2__card-arrow {
+  color: var(--faq2-muted);
+  transition: transform .35s cubic-bezier(.4,0,.2,1);
+}
+.casa-faq2__card[data-expanded="true"] .casa-faq2__card-arrow { transform: rotate(180deg); }
+.casa-faq2__card-body { max-height: 0; overflow: hidden; transition: max-height .45s cubic-bezier(.4,0,.2,1); }
+.casa-faq2__card-body-inner { padding: 0 24px 24px; }
+
+/* ========== Accordion Item (Shared) ========== */
+.casa-faq2__item {
+  background: var(--faq2-card-bg);
+  border: 1px solid var(--faq2-card-border);
+  border-radius: 14px;
+  margin-bottom: 10px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: border-color .3s, box-shadow .3s;
+  overflow: hidden;
+}
+/* Inside cards layout, no extra bg */
+.casa-faq2__card-body .casa-faq2__item {
+  background: rgba(255,255,255,.02);
+  border-color: rgba(255,255,255,.06);
+}
+.casa-faq2__item:hover {
+  border-color: rgba(147,51,234,.3);
+  box-shadow: 0 2px 16px rgba(147,51,234,.06);
+}
+.casa-faq2__q {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 18px 20px;
+  border: none;
+  background: none;
+  color: var(--faq2-text);
+  font-size: 16px;
+  font-weight: 500;
+  text-align: var(--faq2-content-align, left);
+  cursor: pointer;
+  gap: 12px;
+  font-family: inherit;
+}
+.casa-faq2__q-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  color: var(--faq2-accent);
+  opacity: 0.7;
+}
+.casa-faq2__q-icon svg {
+  width: 100%;
+  height: 100%;
+}
+.casa-faq2__q-text {
+  flex: 1;
+}
+.casa-faq2__chevron {
+  flex-shrink: 0;
+  margin-left: auto;
+  line-height: 1.5;
+}
+.casa-faq2__q span:first-child { flex: 1; }
+.casa-faq2__chevron {
+  flex-shrink: 0;
+  color: var(--faq2-accent1);
+  transition: transform .35s cubic-bezier(.4,0,.2,1);
+}
+.casa-faq2__q[aria-expanded="true"] .casa-faq2__chevron { transform: rotate(180deg); }
+.casa-faq2__a {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .4s cubic-bezier(.4,0,.2,1);
+}
+.casa-faq2__a-inner {
+  padding: 0 20px 20px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--faq2-muted);
+  text-align: var(--faq2-content-align, left);
+}
+.casa-faq2__a-inner a {
+  color: var(--faq2-accent1);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.casa-faq2__a-inner ul, .casa-faq2__a-inner ol { padding-left: 20px; margin: 8px 0; }
+.casa-faq2__a-inner strong { color: var(--faq2-text); }
+.casa-faq2__a-inner mark {
+  background: linear-gradient(135deg, rgba(147,51,234,.25), rgba(236,72,153,.25));
+  color: var(--faq2-text);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* No Results */
+.casa-faq2__no-results { text-align: center; padding: 48px 24px; }
+.casa-faq2__no-results-text { font-size: 18px; font-weight: 600; margin: 0 0 8px; }
+.casa-faq2__no-results-sub { font-size: 15px; color: var(--faq2-muted); margin: 0; }
+.casa-faq2__no-results-sub a { color: var(--faq2-accent1); }
+
+/* ========== Contact CTA ========== */
+.casa-faq2__cta-wrap {
+  max-width: 720px;
+  margin: 60px auto 0;
+  padding: 0 24px;
+}
+.casa-faq2__cta {
+  text-align: center;
+  padding: 40px;
+  background: var(--faq2-card-bg);
+  border: 1px solid transparent;
+  border-radius: 24px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  position: relative;
+}
+.casa-faq2__cta::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 25px;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--faq2-accent1), var(--faq2-accent2));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+.casa-faq2__cta-title { font-size: 24px; font-weight: 600; margin: 0 0 8px; }
+.casa-faq2__cta-text { font-size: 15px; color: var(--faq2-muted); margin: 0 0 24px; }
+.casa-faq2__cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.casa-faq2__cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all .25s;
+}
+.casa-faq2__cta-btn--email {
+  background: linear-gradient(135deg, var(--faq2-accent1), var(--faq2-accent2));
+  color: #fff;
+}
+.casa-faq2__cta-btn--email:hover { opacity: .9; transform: translateY(-2px); }
+.casa-faq2__cta-btn--page {
+  border: 1px solid var(--faq2-card-border);
+  color: var(--faq2-text);
+  background: var(--faq2-card-bg);
+}
+.casa-faq2__cta-btn--page:hover { border-color: var(--faq2-accent1); }
+
+/* ========== Animations ========== */
+.casa-faq2__anim { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+.casa-faq2__anim[data-delay="1"] { transition-delay: .1s; }
+.casa-faq2__anim[data-delay="2"] { transition-delay: .2s; }
+.casa-faq2__anim[data-delay="3"] { transition-delay: .3s; }
+.casa-faq2__anim.is-visible { opacity: 1; transform: translateY(0); }
+
+/* ========== Mobile ========== */
+@media (max-width: 900px) {
+  .casa-faq2__two-col { flex-direction: column; gap: 0; }
+  .casa-faq2__sidebar {
+    position: relative;
+    top: 0;
+    width: 100%;
+    margin-bottom: 24px;
+  }
+  .casa-faq2__nav {
+    flex-direction: row;
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 6px;
+    padding: 6px;
+    background: var(--faq2-card-bg);
+    border: 1px solid var(--faq2-card-border);
+    border-radius: 14px;
+  }
+  .casa-faq2__nav::-webkit-scrollbar { display: none; }
+  .casa-faq2__nav-item {
+    white-space: nowrap;
+    border-left: none !important;
+    border-bottom: 2px solid transparent;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+  }
+  .casa-faq2__nav-item.is-active {
+    border-image: none;
+    border-bottom: 2px solid var(--faq2-accent1);
+    background: rgba(147,51,234,.12);
+  }
+  .casa-faq2__cards-grid { grid-template-columns: 1fr; }
+  .casa-faq2__hero { padding: 40px 16px 32px; }
+  .casa-faq2__cat-title { font-size: 18px; }
+  .casa-faq2__cta-wrap { margin-top: 40px; }
+  .casa-faq2__cta { padding: 28px 20px; }
+}
+@media (max-width: 480px) {
+  .casa-faq2__q { padding: 14px 16px; font-size: 14px; }
+  .casa-faq2__a-inner { padding: 0 16px 16px; font-size: 14px; }
+}
+
+/* ── Granular color overrides via CSS variables ── */
+.casa-faq2__hero-title { color: var(--faq2-hero-title, var(--faq2-text)); }
+.casa-faq2__hero-subtitle { color: var(--faq2-hero-subtitle, var(--faq2-muted)); }
+.casa-faq2__badge { background: var(--faq2-badge-bg, linear-gradient(135deg, rgba(147,51,234,0.15), rgba(236,72,153,0.1))); color: var(--faq2-badge-text, var(--faq2-accent1)); }
+.casa-faq2__nav-item { color: var(--faq2-nav-text, var(--faq2-muted)); }
+.casa-faq2__nav-item.is-active { background: var(--faq2-nav-active-bg, rgba(147,51,234,0.1)); color: var(--faq2-nav-active-text, var(--faq2-accent1)); }
+.casa-faq2__tab { color: var(--faq2-nav-text, var(--faq2-muted)); }
+.casa-faq2__tab.is-active { background: var(--faq2-nav-active-bg, linear-gradient(135deg, var(--faq2-accent1), var(--faq2-accent2))); color: var(--faq2-nav-active-text, #fff); }
+.casa-faq2__q { color: var(--faq2-q-text, var(--faq2-text)); }
+.casa-faq2__answer { color: var(--faq2-a-text, var(--faq2-muted)); }
+.casa-faq2__chevron { color: var(--faq2-chevron, var(--faq2-muted)); }
+.casa-faq2__item[open] .casa-faq2__chevron { color: var(--faq2-chevron, var(--faq2-accent1)); }
+.casa-faq2__cat-title { color: var(--faq2-cat-title, var(--faq2-text)); }
+.casa-faq2__cat-icon svg { stroke: var(--faq2-icon, var(--faq2-accent1)); }
+.casa-faq2__q-icon svg { stroke: var(--faq2-icon, var(--faq2-accent1)); }
+.casa-faq2__nav-icon svg { stroke: var(--faq2-icon, currentColor); }
+.casa-faq2__stats-number { color: var(--faq2-stats-num, var(--faq2-text)); }
+.casa-faq2__stats-label { color: var(--faq2-stats-label, var(--faq2-muted)); }
+.casa-faq2__stats-stars { color: var(--faq2-stats-star, #fbbf24); }
+.casa-faq2__contact-card { background: var(--faq2-cta-bg, rgba(147,51,234,0.05)); color: var(--faq2-cta-text, var(--faq2-text)); }
+.casa-faq2__contact-btn--primary { background: var(--faq2-cta-btn-bg, linear-gradient(135deg, var(--faq2-accent1), var(--faq2-accent2))); color: var(--faq2-cta-btn-text, #fff); }
+</style>
+
+<script>
+(function(){
+  const SEC = document.getElementById('casa-faq2-{{ section.id }}');
+  if (!SEC) return;
+  const LAYOUT = SEC.dataset.layout;
+
+  /* ===== Scroll Animations ===== */
+  const animEls = SEC.querySelectorAll('.casa-faq2__anim');
+  const animObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting) { e.target.classList.add('is-visible'); animObs.unobserve(e.target); }
+    });
+  }, { threshold: 0.1 });
+  animEls.forEach(function(el){ animObs.observe(el); });
+
+  /* ===== Accordion ===== */
+  SEC.querySelectorAll('.casa-faq2__q').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      const ans = btn.nextElementSibling;
+      if (expanded) {
+        ans.style.maxHeight = '0';
+        ans.setAttribute('aria-hidden', 'true');
+        btn.setAttribute('aria-expanded', 'false');
+      } else {
+        ans.style.maxHeight = ans.scrollHeight + 'px';
+        ans.setAttribute('aria-hidden', 'false');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+
+  /* ===== Card Toggles (cards layout) ===== */
+  if (LAYOUT === 'cards') {
+    SEC.querySelectorAll('[data-card-toggle]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var card = btn.closest('.casa-faq2__card');
+        var body = card.querySelector('.casa-faq2__card-body');
+        var exp = card.dataset.expanded === 'true';
+        if (exp) {
+          body.style.maxHeight = '0';
+          card.dataset.expanded = 'false';
+          btn.setAttribute('aria-expanded', 'false');
+        } else {
+          body.style.maxHeight = body.scrollHeight + 'px';
+          card.dataset.expanded = 'true';
+          btn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+  }
+
+  /* ===== Tabs (tabs-top layout) ===== */
+  if (LAYOUT === 'tabs-top') {
+    var tabs = SEC.querySelectorAll('.casa-faq2__tab');
+    var panels = SEC.querySelectorAll('.casa-faq2__tab-panel');
+    tabs.forEach(function(tab){
+      tab.addEventListener('click', function(){
+        var idx = tab.dataset.tab;
+        tabs.forEach(function(t){ t.classList.remove('is-active'); });
+        panels.forEach(function(p){ p.classList.remove('is-active'); });
+        tab.classList.add('is-active');
+        var target = SEC.querySelector('[data-tab-panel="' + idx + '"]');
+        if (target) target.classList.add('is-active');
+      });
+    });
+  }
+
+  /* ===== Two-column scroll spy ===== */
+  if (LAYOUT === 'two-column') {
+    var catSections = SEC.querySelectorAll('.casa-faq2__category');
+    var navItems = SEC.querySelectorAll('.casa-faq2__nav-item');
+    if (catSections.length && navItems.length) {
+      var spyObs = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){
+          if (e.isIntersecting) {
+            var idx = e.target.dataset.catIdx;
+            navItems.forEach(function(n){ n.classList.remove('is-active'); });
+            var active = SEC.querySelector('[data-cat-nav="' + idx + '"]');
+            if (active) active.classList.add('is-active');
+          }
+        });
+      }, { rootMargin: '-30% 0px -60% 0px' });
+      catSections.forEach(function(s){ spyObs.observe(s); });
+    }
+    /* Smooth scroll nav */
+    SEC.querySelectorAll('.casa-faq2__nav-item').forEach(function(a){
+      a.addEventListener('click', function(ev){
+        ev.preventDefault();
+        var target = SEC.querySelector(a.getAttribute('href'));
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+
+  /* ===== Search ===== */
+  var searchInput = SEC.querySelector('.casa-faq2__search-input');
+  var clearBtn = SEC.querySelector('.casa-faq2__search-clear');
+  if (!searchInput) return;
+
+  function doSearch(query){
+    query = query.toLowerCase().trim();
+    clearBtn.style.display = query ? 'block' : 'none';
+    var items = SEC.querySelectorAll('.casa-faq2__item');
+    var noResults = SEC.querySelectorAll('.casa-faq2__no-results');
+    var anyMatch = false;
+
+    /* Reset highlight */
+    items.forEach(function(item){
+      var qText = item.querySelector('.casa-faq2__q-text');
+      qText.innerHTML = qText.textContent;
+    });
+
+    if (!query) {
+      items.forEach(function(item){ item.style.display = ''; });
+      SEC.querySelectorAll('.casa-faq2__category, .casa-faq2__tab-panel, .casa-faq2__card').forEach(function(c){ c.style.display = ''; });
+      noResults.forEach(function(n){ n.style.display = 'none'; });
+      /* Tabs: re-activate first */
+      if (LAYOUT === 'tabs-top') {
+        SEC.querySelectorAll('.casa-faq2__tab')[0] && SEC.querySelectorAll('.casa-faq2__tab')[0].click();
+      }
+      return;
+    }
+
+    items.forEach(function(item){
+      var qVal = (item.dataset.question || '').toLowerCase();
+      var aVal = (item.querySelector('.casa-faq2__a-inner') || {}).textContent || '';
+      aVal = aVal.toLowerCase();
+      var match = qVal.indexOf(query) !== -1 || aVal.indexOf(query) !== -1;
+      item.style.display = match ? '' : 'none';
+      if (match) {
+        anyMatch = true;
+        /* Highlight in question text */
+        var qText = item.querySelector('.casa-faq2__q-text');
+        var raw = qText.textContent;
+        var re = new RegExp('(' + query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+        qText.innerHTML = raw.replace(re, '<mark>$1</mark>');
+      }
+    });
+
+    /* Show/hide category containers */
+    if (LAYOUT === 'two-column') {
+      SEC.querySelectorAll('.casa-faq2__category').forEach(function(cat){
+        var hasVisible = cat.querySelector('.casa-faq2__item[style=""], .casa-faq2__item:not([style])');
+        /* check any item not hidden */
+        var vis = false;
+        cat.querySelectorAll('.casa-faq2__item').forEach(function(i){ if (i.style.display !== 'none') vis = true; });
+        cat.style.display = vis ? '' : 'none';
+      });
+    } else if (LAYOUT === 'tabs-top') {
+      /* Show all panels during search */
+      SEC.querySelectorAll('.casa-faq2__tab-panel').forEach(function(p){
+        var vis = false;
+        p.querySelectorAll('.casa-faq2__item').forEach(function(i){ if (i.style.display !== 'none') vis = true; });
+        p.style.display = vis ? 'block' : 'none';
+        p.classList.toggle('is-active', vis);
+      });
+    } else if (LAYOUT === 'cards') {
+      SEC.querySelectorAll('.casa-faq2__card').forEach(function(card){
+        var vis = false;
+        card.querySelectorAll('.casa-faq2__item').forEach(function(i){ if (i.style.display !== 'none') vis = true; });
+        card.style.display = vis ? '' : 'none';
+        if (vis) {
+          card.dataset.expanded = 'true';
+          card.querySelector('.casa-faq2__card-header').setAttribute('aria-expanded', 'true');
+          var body = card.querySelector('.casa-faq2__card-body');
+          body.style.maxHeight = body.scrollHeight + 'px';
+        }
+      });
+    }
+
+    noResults.forEach(function(n){ n.style.display = anyMatch ? 'none' : 'block'; });
+  }
+
+  searchInput.addEventListener('input', function(){ doSearch(this.value); });
+  if (clearBtn) clearBtn.addEventListener('click', function(){
+    searchInput.value = '';
+    doSearch('');
+    searchInput.focus();
+  });
+})();
+</script>
+
+{% schema %}
+{
+  "name": "FAQ Page v2",
+  "tag": "section",
+  "class": "casa-faq2-section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "auto_hide",
+      "label": "Auto-hide when empty",
+      "info": "Hides this section when no question blocks exist",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "layout_style",
+      "label": "Layout Style",
+      "options": [
+        { "value": "two-column", "label": "Two Column (sidebar nav)" },
+        { "value": "tabs-top", "label": "Tabs Top" },
+        { "value": "cards", "label": "Category Cards" }
+      ],
+      "default": "two-column"
+    },
+    {
+      "type": "select",
+      "id": "content_align",
+      "label": "Content alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" }
+      ],
+      "default": "left"
+    },
+    { "type": "text", "id": "title", "label": "Title", "default": "Frequently Asked Questions" },
+    { "type": "text", "id": "subtitle", "label": "Subtitle", "default": "Everything you need to know about our premium lighting collection" },
+    { "type": "text", "id": "badge_text", "label": "Badge Text", "default": "Support" },
+    { "type": "checkbox", "id": "show_search", "label": "Show search bar", "default": true },
+    { "type": "header", "content": "Contact CTA" },
+    { "type": "text", "id": "contact_title", "label": "Contact title", "default": "Still have questions?" },
+    { "type": "text", "id": "contact_text", "label": "Contact description", "default": "Our team is here to help you find the perfect lighting solution." },
+    { "type": "text", "id": "contact_email", "label": "Support email", "default": "hello@seoulglow.com" },
+    { "type": "url", "id": "contact_page_url", "label": "Contact page URL" },
+    { "type": "text", "id": "contact_page_label", "label": "Contact button label", "default": "Contact Us" },
+    { "type": "header", "content": "Colors" },
+    { "type": "header", "content": "Page colors" },
+    { "type": "color", "id": "color_bg", "label": "Background", "default": "#050505" },
+    { "type": "color", "id": "color_text", "label": "Text", "default": "#f5f5f5" },
+    { "type": "color", "id": "color_muted", "label": "Muted text", "default": "#a3a3a3" },
+    { "type": "color", "id": "color_accent_primary", "label": "Accent primary", "default": "#9333ea" },
+    { "type": "color", "id": "color_accent_secondary", "label": "Accent secondary", "default": "#ec4899" },
+    { "type": "header", "content": "Hero colors" },
+    { "type": "color", "id": "color_hero_title", "label": "Hero title color" },
+    { "type": "color", "id": "color_hero_subtitle", "label": "Hero subtitle color" },
+    { "type": "color", "id": "color_hero_badge_bg", "label": "Hero badge background" },
+    { "type": "color", "id": "color_hero_badge_text", "label": "Hero badge text" },
+    { "type": "header", "content": "Sidebar / Tabs" },
+    { "type": "color", "id": "color_nav_bg", "label": "Sidebar / tab background" },
+    { "type": "color", "id": "color_nav_text", "label": "Sidebar / tab text" },
+    { "type": "color", "id": "color_nav_active_bg", "label": "Active tab background" },
+    { "type": "color", "id": "color_nav_active_text", "label": "Active tab text" },
+    { "type": "header", "content": "Cards & Questions" },
+    { "type": "color", "id": "color_card_bg", "label": "Card background", "default": "rgba(255,255,255,0.04)" },
+    { "type": "color", "id": "color_card_border", "label": "Card border", "default": "rgba(255,255,255,0.08)" },
+    { "type": "color", "id": "color_question_text", "label": "Question text color" },
+    { "type": "color", "id": "color_answer_text", "label": "Answer text color" },
+    { "type": "color", "id": "color_chevron", "label": "Chevron / arrow color" },
+    { "type": "color", "id": "color_category_title", "label": "Category title color" },
+    { "type": "color", "id": "color_icon", "label": "Icon color" },
+    { "type": "header", "content": "Stats bar" },
+    { "type": "color", "id": "color_stats_number", "label": "Stats number color" },
+    { "type": "color", "id": "color_stats_label", "label": "Stats label color" },
+    { "type": "color", "id": "color_stats_star", "label": "Stats star color", "default": "#fbbf24" },
+    { "type": "header", "content": "Contact CTA" },
+    { "type": "color", "id": "color_cta_bg", "label": "CTA card background" },
+    { "type": "color", "id": "color_cta_text", "label": "CTA card text" },
+    { "type": "color", "id": "color_cta_btn_bg", "label": "CTA button background" },
+    { "type": "color", "id": "color_cta_btn_text", "label": "CTA button text", "default": "#ffffff" },
+    { "type": "header", "content": "Spacing" },
+    { "type": "range", "id": "padding_top", "label": "Padding top", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 20 },
+    { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 60 }
+  ],
+  "blocks": [
+    {
+      "type": "category",
+      "name": "Category",
+      "settings": [
+        { "type": "text", "id": "title", "label": "Category title", "default": "General" },
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icon",
+          "options": [
+            { "value": "box", "label": "Box / Package" },
+            { "value": "truck", "label": "Truck / Shipping" },
+            { "value": "star", "label": "Star" },
+            { "value": "info", "label": "Info Circle" },
+            { "value": "shield", "label": "Shield" },
+            { "value": "credit-card", "label": "Credit Card" },
+            { "value": "globe", "label": "Globe" },
+            { "value": "clock", "label": "Clock" },
+            { "value": "heart", "label": "Heart" },
+            { "value": "lamp", "label": "Lamp / Lightbulb" },
+            { "value": "tag", "label": "Tag" },
+            { "value": "refresh", "label": "Refresh / Return" },
+            { "value": "mail", "label": "Mail" },
+            { "value": "phone", "label": "Phone" },
+            { "value": "help", "label": "Help / Question" },
+            { "value": "zap", "label": "Zap / Lightning" },
+            { "value": "award", "label": "Award / Warranty" }
+          ],
+          "default": "help"
+        },
+        { "type": "text", "id": "description", "label": "Description (optional)" }
+      ]
+    },
+    {
+      "type": "question",
+      "name": "Question",
+      "settings": [
+        { "type": "text", "id": "question", "label": "Question", "default": "Question goes here" },
+        { "type": "richtext", "id": "answer", "label": "Answer", "default": "<p>Answer goes here.</p>" },
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icon (optional)",
+          "options": [
+            { "value": "none", "label": "None" },
+            { "value": "box", "label": "Box / Package" },
+            { "value": "truck", "label": "Truck / Shipping" },
+            { "value": "star", "label": "Star" },
+            { "value": "info", "label": "Info Circle" },
+            { "value": "shield", "label": "Shield" },
+            { "value": "credit-card", "label": "Credit Card" },
+            { "value": "globe", "label": "Globe" },
+            { "value": "clock", "label": "Clock" },
+            { "value": "heart", "label": "Heart" },
+            { "value": "lamp", "label": "Lamp / Lightbulb" },
+            { "value": "tag", "label": "Tag" },
+            { "value": "refresh", "label": "Refresh / Return" },
+            { "value": "mail", "label": "Mail" },
+            { "value": "phone", "label": "Phone" },
+            { "value": "help", "label": "Help / Question" },
+            { "value": "zap", "label": "Zap / Lightning" },
+            { "value": "award", "label": "Award / Warranty" }
+          ],
+          "default": "none"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "FAQ Page v2",
+      "settings": {
+        "layout_style": "two-column",
+        "title": "Frequently Asked Questions",
+        "subtitle": "Everything you need to know about our premium lighting collection",
+        "badge_text": "Support",
+        "show_search": true,
+        "contact_title": "Still have questions?",
+        "contact_text": "Our team is here to help you find the perfect lighting solution.",
+        "contact_email": "hello@seoulglow.com",
+        "contact_page_label": "Contact Us"
+      },
+      "blocks": [
+        { "type": "category", "settings": { "title": "Order Information", "icon": "box" } },
+        { "type": "question", "settings": { "question": "I received a wrong item. What should I do?", "answer": "<p>We sincerely apologize for the mix-up. Please contact us at <strong>hello@seoulglow.com</strong> with your order number, details of the item you received versus what you ordered, and a photo of the incorrect item. Our team will arrange for the correct item to be sent to you as quickly as possible.</p>" } },
+        { "type": "question", "settings": { "question": "I received a damaged item. What should I do?", "answer": "<p>We're sorry to hear that. Please report any damage to <strong>hello@seoulglow.com</strong> within 48 hours of receiving your order. Include photos of the damaged item and packaging. We will arrange a <strong>free replacement or full refund</strong> — whichever you prefer.</p>" } },
+        { "type": "question", "settings": { "question": "Can I change my order after placing it?", "answer": "<p>Yes, changes may be possible if your order has not yet shipped. Please contact our support team with your <strong>order number</strong> and the modification you'd like. We'll do our best to accommodate your request.</p>" } },
+        { "type": "question", "settings": { "question": "What currency are orders processed in?", "answer": "<p>All orders are processed in your <strong>local currency</strong>. No currency conversion is needed — what you see at checkout is what you pay.</p>" } },
+        { "type": "question", "settings": { "question": "Can I track my order?", "answer": "<p>Absolutely! Once your order ships, you'll receive a <strong>confirmation email with a tracking ID</strong>. Please allow 1–3 business days for tracking information to become active in the carrier's system.</p>" } },
+        { "type": "question", "settings": { "question": "Can I return my order?", "answer": "<p>Yes. Email our support team within <strong>30 days</strong> of receiving your order to initiate a return. During holiday sales, we offer an extended <strong>60-day return window</strong> for your convenience.</p>" } },
+
+        { "type": "category", "settings": { "title": "Shipping", "icon": "truck" } },
+        { "type": "question", "settings": { "question": "Do you ship internationally?", "answer": "<p>Yes! We offer <strong>free worldwide shipping</strong> via DHL, FedEx, and UPS. No matter where you are, we'll deliver your order to your doorstep.</p>" } },
+        { "type": "question", "settings": { "question": "Will multiple products be shipped separately?", "answer": "<p>For larger products, items may ship in <strong>separate packages</strong> to ensure safe delivery. If you receive one package before the other, please allow a few additional days for the remaining items to arrive.</p>" } },
+        { "type": "question", "settings": { "question": "How long will it take to receive my order?", "answer": "<p>Most orders arrive within <strong>3–7 business days</strong> via our express delivery service. Delivery times may vary slightly based on your location.</p>" } },
+        { "type": "question", "settings": { "question": "What shipping carriers do you use?", "answer": "<p>We partner with <strong>DHL, FedEx, and UPS</strong>. The carrier is selected automatically based on your delivery address to ensure the fastest and most reliable service.</p>" } },
+        { "type": "question", "settings": { "question": "What if my package is lost or stolen?", "answer": "<p>Please first file a report with the shipping carrier. Then contact us at <strong>hello@seoulglow.com</strong> and we'll work together to resolve the situation and ensure you receive your order.</p>" } },
+
+        { "type": "category", "settings": { "title": "Products", "icon": "lamp" } },
+        { "type": "question", "settings": { "question": "What warranty do your products come with?", "answer": "<p>All Seoul Glow Lab products include a <strong>2-Year Warranty</strong> covering manufacturing defects and malfunctions. If an issue arises, we'll provide a full replacement or refund.</p>" } },
+        { "type": "question", "settings": { "question": "How long will the product last?", "answer": "<p>Our LED lighting is rated for <strong>50,000+ hours</strong> of use. That's over <strong>13 years</strong> at 10 hours of daily use — exceptional longevity for premium lighting.</p>" } },
+        { "type": "question", "settings": { "question": "Do your products come with a plug?", "answer": "<p>Yes. All products include a <strong>UL-listed plug</strong> that is compatible worldwide with any standard outlet (100V–240V). No adapters needed.</p>" } },
+
+        { "type": "category", "settings": { "title": "Additional Info", "icon": "info" } },
+        { "type": "question", "settings": { "question": "My question isn't listed here. How can I get help?", "answer": "<p>We're happy to help! Please visit our <strong>Contact page</strong> or email us directly at <strong>hello@seoulglow.com</strong>. Our team typically responds within 24 hours.</p>" } }
+      ]
+    }
+  ],
+  "templates": ["page", "product", "collection"]
+}
+{% endschema %}

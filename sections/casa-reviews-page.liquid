@@ -1,0 +1,521 @@
+{%- liquid
+  assign badge_text   = section.settings.badge_text
+  assign hero_title   = section.settings.hero_title
+  assign hero_sub     = section.settings.hero_subtitle
+  assign avg_rating   = section.settings.avg_rating
+  assign review_count = section.settings.review_count
+  assign recommend    = section.settings.recommend_pct
+  assign accent_1     = section.settings.accent_primary
+  assign accent_2     = section.settings.accent_secondary
+  assign bg_color     = section.settings.bg_color
+  assign pad_top      = section.settings.padding_top
+  assign pad_bot      = section.settings.padding_bottom
+-%}
+
+<style>
+  /* ── Casa Reviews Page ── */
+  .casa-reviewsp {
+    --crp-accent1: {{ accent_1 }};
+    --crp-accent2: {{ accent_2 }};
+    --crp-bg: {{ bg_color }};
+    background: var(--crp-bg);
+    color: #f0f0f5;
+    padding-top: {{ pad_top }}px;
+    padding-bottom: {{ pad_bot }}px;
+    font-family: inherit;
+  }
+
+  /* ── Hero ── */
+  .casa-reviewsp__hero {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto 48px;
+    padding: 0 20px;
+  }
+  .casa-reviewsp__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 18px;
+    border-radius: 100px;
+    background: rgba(147, 51, 234, .12);
+    border: 1px solid rgba(147, 51, 234, .25);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--crp-accent1);
+    margin-bottom: 20px;
+  }
+  .casa-reviewsp__badge svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+  .casa-reviewsp__title {
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 700;
+    line-height: 1.1;
+    margin: 0 0 16px;
+    background: linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .casa-reviewsp__subtitle {
+    font-size: clamp(16px, 2vw, 20px);
+    color: rgba(255, 255, 255, .55);
+    line-height: 1.6;
+    margin: 0;
+    max-width: 600px;
+    margin-inline: auto;
+  }
+
+  /* ── Stats Bar ── */
+  .casa-reviewsp__stats {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    max-width: 760px;
+    margin: 0 auto 56px;
+    padding: 0 20px;
+    flex-wrap: wrap;
+  }
+  .casa-reviewsp__stat {
+    flex: 1 1 200px;
+    text-align: center;
+    padding: 28px 24px;
+    position: relative;
+  }
+  .casa-reviewsp__stat:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 48px;
+    background: linear-gradient(180deg, transparent, rgba(255,255,255,.1), transparent);
+  }
+  .casa-reviewsp__stat-value {
+    display: block;
+    font-size: clamp(36px, 5vw, 52px);
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, var(--crp-accent1), var(--crp-accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .casa-reviewsp__stat-label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, .45);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ── Glass Card (reviews embed wrapper) ── */
+  .casa-reviewsp__embed-wrap {
+    max-width: 1000px;
+    margin: 0 auto 56px;
+    padding: 0 20px;
+  }
+  .casa-reviewsp__embed-card {
+    background: rgba(255, 255, 255, .03);
+    border: 1px solid rgba(255, 255, 255, .06);
+    border-radius: 20px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .casa-reviewsp__embed-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(147,51,234,.15), transparent 60%, rgba(236,72,153,.1));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  .casa-reviewsp__embed-placeholder {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(255,255,255,.3);
+    font-size: 15px;
+  }
+
+  /* ── Trust Badges ── */
+  .casa-reviewsp__trust {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    flex-wrap: wrap;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px 0;
+    border-top: 1px solid rgba(255,255,255,.06);
+  }
+  .casa-reviewsp__trust-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 0 0 auto;
+  }
+  .casa-reviewsp__trust-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .casa-reviewsp__trust-icon svg {
+    width: 20px;
+    height: 20px;
+    color: var(--crp-accent1);
+  }
+  .casa-reviewsp__trust-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f0f0f5;
+    line-height: 1.3;
+  }
+  .casa-reviewsp__trust-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,.4);
+    line-height: 1.3;
+    margin-top: 2px;
+  }
+
+  /* ── Stars ── */
+  .casa-reviewsp__stars {
+    display: inline-flex;
+    gap: 3px;
+    margin-bottom: 4px;
+  }
+  .casa-reviewsp__stars svg {
+    width: 18px;
+    height: 18px;
+    color: #facc15;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .casa-reviewsp__stats {
+      flex-direction: column;
+      gap: 0;
+    }
+    .casa-reviewsp__stat:not(:last-child)::after {
+      width: 48px;
+      height: 1px;
+      right: auto;
+      left: 50%;
+      top: auto;
+      bottom: 0;
+      transform: translateX(-50%);
+    }
+    .casa-reviewsp__stat {
+      padding: 20px 16px;
+    }
+    .casa-reviewsp__embed-card {
+      padding: 24px 16px;
+      border-radius: 16px;
+    }
+    .casa-reviewsp__trust {
+      gap: 24px;
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+</style>
+
+<section class="casa-reviewsp" data-section-id="{{ section.id }}">
+  {%- comment -%} ── Hero ── {%- endcomment -%}
+  <div class="casa-reviewsp__hero">
+    {%- if badge_text != blank -%}
+      <div class="casa-reviewsp__badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        {{ badge_text }}
+      </div>
+    {%- endif -%}
+
+    {%- if hero_title != blank -%}
+      <h1 class="casa-reviewsp__title">{{ hero_title }}</h1>
+    {%- endif -%}
+
+    {%- if hero_sub != blank -%}
+      <p class="casa-reviewsp__subtitle">{{ hero_sub }}</p>
+    {%- endif -%}
+  </div>
+
+  {%- comment -%} ── Stats Bar ── {%- endcomment -%}
+  <div class="casa-reviewsp__stats">
+    {%- if avg_rating != blank -%}
+      <div class="casa-reviewsp__stat">
+        <div class="casa-reviewsp__stars">
+          {%- for i in (1..5) -%}
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          {%- endfor -%}
+        </div>
+        <span class="casa-reviewsp__stat-value">{{ avg_rating }}</span>
+        <span class="casa-reviewsp__stat-label">Average Rating</span>
+      </div>
+    {%- endif -%}
+
+    {%- if review_count != blank -%}
+      <div class="casa-reviewsp__stat">
+        <span class="casa-reviewsp__stat-value">{{ review_count }}</span>
+        <span class="casa-reviewsp__stat-label">Verified Reviews</span>
+      </div>
+    {%- endif -%}
+
+    {%- if recommend != blank -%}
+      <div class="casa-reviewsp__stat">
+        <span class="casa-reviewsp__stat-value">{{ recommend }}%</span>
+        <span class="casa-reviewsp__stat-label">Recommend Us</span>
+      </div>
+    {%- endif -%}
+  </div>
+
+  {%- comment -%} ── Review Embed Blocks ── {%- endcomment -%}
+  {%- for block in section.blocks -%}
+    {%- case block.type -%}
+
+      {%- when 'review_embed' -%}
+        <div class="casa-reviewsp__embed-wrap" {{ block.shopify_attributes }}>
+          <div class="casa-reviewsp__embed-card">
+            {%- if block.settings.custom_liquid != blank -%}
+              {{ block.settings.custom_liquid }}
+            {%- else -%}
+              <div class="casa-reviewsp__embed-placeholder">
+                <p>Review widget will appear here.</p>
+                <p>Paste your Stamped.io embed code in the block settings.</p>
+              </div>
+            {%- endif -%}
+          </div>
+        </div>
+
+      {%- when 'trust_badge' -%}
+        {%- comment -%} Collected below {%- endcomment -%}
+
+    {%- endcase -%}
+  {%- endfor -%}
+
+  {%- comment -%} ── Trust Badges ── {%- endcomment -%}
+  {%- assign trust_blocks = section.blocks | where: 'type', 'trust_badge' -%}
+  {%- if trust_blocks.size > 0 -%}
+    <div class="casa-reviewsp__trust">
+      {%- for block in trust_blocks -%}
+        <div class="casa-reviewsp__trust-item" {{ block.shopify_attributes }}>
+          <div class="casa-reviewsp__trust-icon">
+            {%- case block.settings.icon -%}
+              {%- when 'shield' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              {%- when 'truck' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              {%- when 'lock' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              {%- when 'star' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              {%- when 'heart' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              {%- when 'check' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              {%- else -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            {%- endcase -%}
+          </div>
+          <div>
+            {%- if block.settings.title != blank -%}
+              <div class="casa-reviewsp__trust-title">{{ block.settings.title }}</div>
+            {%- endif -%}
+            {%- if block.settings.subtitle != blank -%}
+              <div class="casa-reviewsp__trust-sub">{{ block.settings.subtitle }}</div>
+            {%- endif -%}
+          </div>
+        </div>
+      {%- endfor -%}
+    </div>
+  {%- endif -%}
+
+  {%- comment -%} App blocks {%- endcomment -%}
+  {%- for block in section.blocks -%}
+    {%- if block.type == '@app' -%}
+      <div class="casa-app-block" {{ block.shopify_attributes }}>
+        {% render block %}
+      </div>
+    {%- endif -%}
+  {%- endfor -%}
+</section>
+
+{% schema %}
+{
+  "name": "Casa Reviews Page",
+  "tag": "section",
+  "class": "casa-reviews-page-section",
+  "templates": ["page"],
+  "settings": [
+    {
+      "type": "header",
+      "content": "Hero"
+    },
+    {
+      "type": "text",
+      "id": "badge_text",
+      "label": "Badge text",
+      "default": "Customer Love"
+    },
+    {
+      "type": "text",
+      "id": "hero_title",
+      "label": "Title",
+      "default": "What Our Customers Say"
+    },
+    {
+      "type": "textarea",
+      "id": "hero_subtitle",
+      "label": "Subtitle",
+      "default": "Real reviews from real people who have experienced the Seoul Glow Lab difference."
+    },
+    {
+      "type": "header",
+      "content": "Stats"
+    },
+    {
+      "type": "text",
+      "id": "avg_rating",
+      "label": "Average rating",
+      "default": "4.9"
+    },
+    {
+      "type": "text",
+      "id": "review_count",
+      "label": "Review count",
+      "default": "10,000+"
+    },
+    {
+      "type": "text",
+      "id": "recommend_pct",
+      "label": "Recommend %",
+      "default": "98"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "accent_primary",
+      "label": "Accent primary",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "accent_secondary",
+      "label": "Accent secondary",
+      "default": "#ec4899"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#0a0a0f"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "default": 80,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "review_embed",
+      "name": "Review Widget Embed",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "liquid",
+          "id": "custom_liquid",
+          "label": "Review widget code",
+          "info": "Paste your Stamped.io full-page reviews widget code here. Example: <div id=\"stamped-main-widget\" data-product-id=\"\" data-name=\"\" data-url=\"\"></div>"
+        }
+      ]
+    },
+    {
+      "type": "trust_badge",
+      "name": "Trust Badge",
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icon",
+          "options": [
+            { "value": "shield", "label": "Shield" },
+            { "value": "truck", "label": "Truck" },
+            { "value": "lock", "label": "Lock" },
+            { "value": "star", "label": "Star" },
+            { "value": "heart", "label": "Heart" },
+            { "value": "check", "label": "Check" }
+          ],
+          "default": "shield"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Verified Reviews"
+        },
+        {
+          "type": "text",
+          "id": "subtitle",
+          "label": "Subtitle",
+          "default": "All reviews are authentic"
+        }
+      ]
+    },
+    {
+      "type": "@app"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Reviews Page",
+      "blocks": [
+        {
+          "type": "review_embed"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

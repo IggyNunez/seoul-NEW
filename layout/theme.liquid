@@ -1,10 +1,11 @@
 <!doctype html>
 <html
-  class="no-js{% if request.design_mode %} shopify-design-mode{% endif %}"
+  {% if request.design_mode %}
+    class="shopify-design-mode"
+  {% endif %}
   lang="{{ request.locale.iso_code }}"
 >
   <head>
-    
     {%- if settings.favicon != blank -%}
       <link
         rel="icon"
@@ -14,25 +15,21 @@
     {%- endif -%}
 
     {% comment %} This a way to wait for main content to load when navigating to a new page so that the view transitions can work consistently {% endcomment %}
-    <link
-      rel="expect"
-      href="#MainContent"
-      blocking="render"
-      id="view-transition-render-blocker"
-    >
+    {% if settings.transition_to_main_product or settings.page_transition_enabled %}
+      <link
+        rel="expect"
+        href="#MainContent"
+        blocking="render"
+        id="view-transition-render-blocker"
+      >
+    {% endif %}
 
     {%- render 'meta-tags' -%}
     {%- render 'stylesheets' -%}
-    {{ 'sgl-drawer.css' | asset_url | stylesheet_tag }}
-    {{ 'sgl-cart-drawer.css' | asset_url | stylesheet_tag }}
-    {{ 'sgl-base.css' | asset_url | stylesheet_tag }}
-    <script src="{{ 'sgl-navigation.js' | asset_url }}" defer="defer"></script>
     {%- render 'fonts' -%}
     {%- render 'scripts' -%}
-    {%- render 'sgl-hero-gsap' -%}
     {%- render 'theme-styles-variables' -%}
     {%- render 'color-schemes' -%}
-    {%- render 'sgl-brand-styles' -%}
 
     {% if request.design_mode %}
       {%- render 'theme-editor' -%}
@@ -48,8 +45,8 @@
     </div>
 
     <script>
-      // Inline header height calculation to prevent layout shift
-      // Note: Updates in calculateHeaderGroupHeight() and updateTransparentHeaderOffset()utilities.js should be kept in sync with this function
+      // Inline header height and menu style calculations to prevent layout shift
+      // Note: Updates in calculateHeaderGroupHeight(), updateTransparentHeaderOffset() and setHeaderMenuStyle() utilities.js should be kept in sync with this function
       (function setHeaderHeighCustomProperties() {
         /*
          * Header calculation functions for maintaining CSS variables
@@ -96,6 +93,16 @@
         const shouldApplyOffset = !hasImmediateSection ? '1' : '0';
         document.body.style.setProperty('--transparent-header-offset-boolean', shouldApplyOffset);
       })();
+
+      (function setHeaderMenuStyle() {
+        const headerComponent = document.querySelector('#header-component');
+        if (headerComponent) {
+          const isTouchDevice = 'ontouchstart' in window && navigator.maxTouchPoints > 0;
+          const overflowList = headerComponent?.querySelector('overflow-list');
+          const hasReachedMinimum = overflowList && overflowList.hasAttribute('minimum-reached');
+          headerComponent.dataset.menuStyle = isTouchDevice || hasReachedMinimum ? 'drawer' : 'menu';
+        }
+      })();
     </script>
 
     <main
@@ -116,5 +123,32 @@
     {% if settings.quick_add or settings.mobile_quick_add %}
       {% render 'quick-add-modal' %}
     {% endif %}
+  {%- comment -%} ── Casa: Track recently viewed products globally ── {%- endcomment -%}
+  {%- if request.page_type == 'product' -%}
+    <script>
+    (function(){
+      try {
+        var KEY = 'casa_recently_viewed';
+        var rvData = JSON.parse(localStorage.getItem(KEY) || '[]');
+        var current = {
+          id: {{ product.id }},
+          handle: {{ product.handle | json }},
+          title: {{ product.title | json }},
+          url: {{ product.url | json }},
+          image: {{ product.featured_image | image_url: width: 600 | json }},
+          price: {{ product.price }},
+          compare_at_price: {{ product.compare_at_price | default: 0 }},
+          available: {{ product.available }},
+          vendor: {{ product.vendor | json }},
+          type: {{ product.type | json }}
+        };
+        rvData = rvData.filter(function(p){ return p.id !== current.id && p.handle !== current.handle; });
+        rvData.unshift(current);
+        if (rvData.length > 20) rvData = rvData.slice(0, 20);
+        localStorage.setItem(KEY, JSON.stringify(rvData));
+      } catch(e){}
+    })();
+    </script>
+  {%- endif -%}
   </body>
 </html>

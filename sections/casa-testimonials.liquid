@@ -1,0 +1,1456 @@
+{%- comment -%}
+  Seoul Glow Lab — Premium Testimonials Section
+  3 layout modes: carousel, masonry, marquee
+  Glassmorphic cards, accent word support, stats row
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign layout = s.layout_style | default: 'carousel'
+  assign sid = section.id
+
+  # Header
+  assign tag_text = s.tag_text | default: ''
+  assign title = s.title | default: ''
+  assign subtitle = s.subtitle | default: ''
+  assign accent_word = s.accent_word
+  assign accent_style = s.accent_style | default: 'gradient'
+  assign accent_color = s.accent_color | default: '#9333ea'
+  assign accent_color_2 = s.accent_color_2 | default: '#ec4899'
+
+  # Stats
+  assign show_stats = s.show_stats
+  assign avg_rating = s.avg_rating | default: '4.9'
+  assign total_reviews = s.total_reviews | default: '2,847'
+  assign recommend_pct = s.recommend_pct | default: '98'
+
+  # Carousel
+  assign auto_play = s.auto_play
+  assign auto_play_speed = s.auto_play_speed | default: 5
+  assign cards_visible = s.cards_visible | default: 3
+
+  # Marquee
+  assign scroll_speed = s.scroll_speed | default: 'medium'
+  assign pause_on_hover = s.pause_on_hover
+
+  # Colors
+  assign bg_color = s.bg_color | default: '#0a0a0f'
+  assign text_color = s.text_color | default: '#ffffff'
+  assign card_bg = s.card_bg | default: 'rgba(255,255,255,0.05)'
+  assign card_border = s.card_border | default: 'rgba(255,255,255,0.1)'
+  assign star_color = s.star_color | default: '#fbbf24'
+  assign author_color = s.author_color | default: 'rgba(255,255,255,0.5)'
+  assign quote_color = s.quote_color | default: 'rgba(255,255,255,0.75)'
+
+  # Spacing
+  assign padding_top = s.padding_top | default: 100
+  assign padding_bottom = s.padding_bottom | default: 100
+  assign card_gap = s.card_gap | default: 20
+
+  # Marquee speed mapping
+  assign marquee_duration = '40s'
+  if scroll_speed == 'slow'
+    assign marquee_duration = '60s'
+  elsif scroll_speed == 'fast'
+    assign marquee_duration = '25s'
+  endif
+
+  # Build accent title
+  assign display_title = title
+  if accent_word != blank and title != blank
+    assign accent_html = '<span class="casa-test__accent casa-test__accent--' | append: accent_style | append: '">' | append: accent_word | append: '</span>'
+    assign display_title = title | replace: accent_word, accent_html
+  endif
+
+  # Check if header has content
+  assign header_visible = false
+  if tag_text != blank or title != blank or subtitle != blank or show_stats
+    assign header_visible = true
+  endif
+-%}
+
+<section
+  class="casa-test casa-test--{{ layout }}"
+  id="casa-test-{{ sid }}"
+  data-layout="{{ layout }}"
+  data-auto-play="{{ auto_play }}"
+  data-auto-play-speed="{{ auto_play_speed }}"
+  data-cards-visible="{{ cards_visible }}"
+  style="
+    --ct-bg: {{ bg_color }};
+    --ct-text: {{ text_color }};
+    --ct-card-bg: {{ card_bg }};
+    --ct-card-border: {{ card_border }};
+    --ct-star: {{ star_color }};
+    --ct-accent-1: {{ accent_color }};
+    --ct-accent-2: {{ accent_color_2 }};
+    --ct-author: {{ author_color }};
+    --ct-quote: {{ quote_color }};
+    --ct-pad-top: {{ padding_top }}px;
+    --ct-pad-bottom: {{ padding_bottom }}px;
+    --ct-gap: {{ card_gap }}px;
+    --ct-cards: {{ cards_visible }};
+    --ct-marquee-dur: {{ marquee_duration }};
+    --ct-max-w: {% case section.settings.section_width %}{% when 'full' %}100%{% when 'wide' %}1600px{% when 'narrow' %}1200px{% else %}1400px{% endcase %};
+  "
+>
+  <div class="casa-test__inner">
+
+    {%- comment -%} ═══ HEADER ═══ {%- endcomment -%}
+    {%- if header_visible -%}
+    <div class="casa-test__header">
+      {%- if tag_text != blank -%}
+        <span class="casa-test__tag">{{ tag_text }}</span>
+      {%- endif -%}
+      {%- if title != blank -%}
+        <h2 class="casa-test__title">{{ display_title }}</h2>
+      {%- endif -%}
+      {%- if subtitle != blank -%}
+        <p class="casa-test__subtitle">{{ subtitle }}</p>
+      {%- endif -%}
+
+      {%- if show_stats -%}
+      <div class="casa-test__stats">
+        <div class="casa-test__stat">
+          <span class="casa-test__stat-value">{{ avg_rating }}</span>
+          <div class="casa-test__stat-stars">
+            {%- for i in (1..5) -%}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--ct-star)"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01z"/></svg>
+            {%- endfor -%}
+          </div>
+          <span class="casa-test__stat-label">Average Rating</span>
+        </div>
+        <div class="casa-test__stat-divider"></div>
+        <div class="casa-test__stat">
+          <span class="casa-test__stat-value">{{ total_reviews }}</span>
+          <span class="casa-test__stat-label">Total Reviews</span>
+        </div>
+        <div class="casa-test__stat-divider"></div>
+        <div class="casa-test__stat">
+          <span class="casa-test__stat-value">{{ recommend_pct }}%</span>
+          <span class="casa-test__stat-label">Recommend</span>
+        </div>
+      </div>
+      {%- endif -%}
+    </div>
+    {%- endif -%}
+
+    {%- comment -%} ═══ CAROUSEL LAYOUT ═══ {%- endcomment -%}
+    {%- if layout == 'carousel' -%}
+    <div class="casa-test__carousel-wrap">
+      <div class="casa-test__carousel" id="casa-test-carousel-{{ sid }}">
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'review' -%}
+            {%- render 'casa-test-card', block: block, star_color: star_color -%}
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+      <button class="casa-test__arrow casa-test__arrow--prev" aria-label="Previous review" data-dir="prev">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <button class="casa-test__arrow casa-test__arrow--next" aria-label="Next review" data-dir="next">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+    {%- endif -%}
+
+    {%- comment -%} ═══ MASONRY LAYOUT ═══ {%- endcomment -%}
+    {%- if layout == 'masonry' -%}
+    <div class="casa-test__masonry" id="casa-test-masonry-{{ sid }}">
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'review' -%}
+          <div class="casa-test__masonry-item" {{ block.shopify_attributes }}>
+            {%- render 'casa-test-card', block: block, star_color: star_color -%}
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+    {%- endif -%}
+
+    {%- comment -%} ═══ MARQUEE LAYOUT ═══ {%- endcomment -%}
+    {%- if layout == 'marquee' -%}
+    <div class="casa-test__marquee{% if pause_on_hover %} casa-test__marquee--pausable{% endif %}">
+      {%- comment -%} Row 1 — scrolls left {%- endcomment -%}
+      <div class="casa-test__marquee-row casa-test__marquee-row--left">
+        <div class="casa-test__marquee-track">
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'review' -%}
+              {%- render 'casa-test-card', block: block, star_color: star_color, compact: true -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {%- comment -%} Duplicate for seamless loop {%- endcomment -%}
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'review' -%}
+              {%- render 'casa-test-card', block: block, star_color: star_color, compact: true -%}
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+      </div>
+      {%- comment -%} Row 2 — scrolls right {%- endcomment -%}
+      <div class="casa-test__marquee-row casa-test__marquee-row--right">
+        <div class="casa-test__marquee-track">
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'review' -%}
+              {%- render 'casa-test-card', block: block, star_color: star_color, compact: true -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'review' -%}
+              {%- render 'casa-test-card', block: block, star_color: star_color, compact: true -%}
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+      </div>
+    </div>
+    {%- endif -%}
+
+  </div>
+</section>
+
+{%- comment -%} ═══════════════════════════════════════════════════════════════
+   STYLES
+   ═══════════════════════════════════════════════════════════════ {%- endcomment -%}
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   CASA TESTIMONIALS — Premium Section
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Base ── */
+.casa-test {
+  background: var(--ct-bg, #0a0a0f);
+  color: var(--ct-text, #fff);
+  padding: var(--ct-pad-top, 100px) 0 var(--ct-pad-bottom, 100px);
+  overflow: hidden;
+  position: relative;
+}
+
+.casa-test__inner {
+  max-width: var(--ct-max-w, 100%);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ── Header ── */
+.casa-test__header {
+  text-align: center;
+  margin-bottom: 56px;
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.casa-test__tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  background: linear-gradient(135deg, var(--ct-accent-1, #9333ea), var(--ct-accent-2, #ec4899));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 16px;
+}
+
+.casa-test__title {
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0 0 16px;
+  color: var(--ct-text, #fff);
+}
+
+.casa-test__subtitle {
+  font-size: clamp(15px, 1.5vw, 18px);
+  color: var(--ct-author, rgba(255,255,255,0.5));
+  line-height: 1.6;
+  margin: 0 0 32px;
+  font-weight: 400;
+}
+
+/* ── Accent word styles ── */
+.casa-test__accent--gradient {
+  background: linear-gradient(135deg, var(--ct-accent-1, #9333ea), var(--ct-accent-2, #ec4899));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.casa-test__accent--solid {
+  color: var(--ct-accent-1, #9333ea);
+}
+.casa-test__accent--underline {
+  text-decoration: underline;
+  text-decoration-color: var(--ct-accent-1, #9333ea);
+  text-underline-offset: 6px;
+  text-decoration-thickness: 3px;
+}
+.casa-test__accent--glow {
+  color: var(--ct-accent-1, #9333ea);
+  text-shadow: 0 0 20px var(--ct-accent-1, #9333ea), 0 0 40px rgba(147, 51, 234, 0.3);
+}
+.casa-test__accent--shimmer {
+  background: linear-gradient(90deg, var(--ct-accent-1, #9333ea) 0%, var(--ct-accent-2, #ec4899) 50%, var(--ct-accent-1, #9333ea) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: casa-test-shimmer 3s ease-in-out infinite;
+}
+@keyframes casa-test-shimmer {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+/* ── Stats row ── */
+.casa-test__stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.casa-test__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.casa-test__stat-value {
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: var(--ct-text, #fff);
+}
+
+.casa-test__stat-stars {
+  display: flex;
+  gap: 2px;
+}
+
+.casa-test__stat-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--ct-author, rgba(255,255,255,0.5));
+  font-weight: 500;
+}
+
+.casa-test__stat-divider {
+  width: 1px;
+  height: 48px;
+  background: rgba(255,255,255,0.1);
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REVIEW CARD — Glassmorphic
+   ══════════════════════════════════════════════════════════════ */
+.casa-test__card {
+  background: var(--ct-card-bg, rgba(255,255,255,0.05));
+  border: 1px solid var(--ct-card-border, rgba(255,255,255,0.1));
+  border-radius: 16px;
+  padding: 28px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              border-color 0.35s ease,
+              box-shadow 0.35s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.casa-test__card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.casa-test__card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255,255,255,0.2);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+}
+
+.casa-test__card:hover::before {
+  opacity: 1;
+}
+
+/* Card: Stars */
+.casa-test__card-stars {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 16px;
+}
+
+.casa-test__card-stars svg {
+  flex-shrink: 0;
+}
+
+/* Card: Quote */
+.casa-test__card-quote {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ct-quote, rgba(255,255,255,0.75));
+  margin: 0 0 20px;
+  font-weight: 400;
+}
+
+/* Card: Footer (author row) */
+.casa-test__card-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.casa-test__card-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--ct-accent-1, #9333ea), var(--ct-accent-2, #ec4899));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.casa-test__card-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.casa-test__card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.casa-test__card-author {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ct-text, #fff);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.casa-test__card-verified {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: #22c55e;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.casa-test__card-verified svg {
+  width: 10px;
+  height: 10px;
+  color: #fff;
+}
+
+.casa-test__card-meta {
+  font-size: 12px;
+  color: var(--ct-author, rgba(255,255,255,0.5));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.casa-test__card-product {
+  color: var(--ct-accent-1, #9333ea);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.casa-test__card-product:hover {
+  color: var(--ct-accent-2, #ec4899);
+}
+
+.casa-test__card-dot {
+  opacity: 0.4;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CAROUSEL
+   ══════════════════════════════════════════════════════════════ */
+.casa-test__carousel-wrap {
+  position: relative;
+}
+
+.casa-test__carousel {
+  display: flex;
+  gap: var(--ct-gap, 20px);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 8px 0 16px;
+}
+
+.casa-test__carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.casa-test__carousel > .casa-test__card {
+  flex: 0 0 calc((100% - var(--ct-gap, 20px) * (var(--ct-cards, 3) - 1)) / var(--ct-cards, 3));
+  scroll-snap-align: start;
+  min-width: 280px;
+}
+
+/* Arrows */
+.casa-test__arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--ct-text, #fff);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+.casa-test__arrow:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.3);
+  transform: translateY(-50%) scale(1.05);
+}
+
+.casa-test__arrow--prev {
+  left: -8px;
+}
+
+.casa-test__arrow--next {
+  right: -8px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MASONRY
+   ══════════════════════════════════════════════════════════════ */
+.casa-test__masonry {
+  columns: 3;
+  column-gap: var(--ct-gap, 20px);
+}
+
+.casa-test__masonry-item {
+  break-inside: avoid;
+  margin-bottom: var(--ct-gap, 20px);
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.casa-test__masonry-item.casa-test--revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MARQUEE
+   ══════════════════════════════════════════════════════════════ */
+.casa-test__marquee {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ct-gap, 20px);
+  overflow: hidden;
+}
+
+.casa-test__marquee-row {
+  overflow: hidden;
+  position: relative;
+}
+
+/* Fade edges */
+.casa-test__marquee-row::before,
+.casa-test__marquee-row::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.casa-test__marquee-row::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--ct-bg, #0a0a0f), transparent);
+}
+
+.casa-test__marquee-row::after {
+  right: 0;
+  background: linear-gradient(270deg, var(--ct-bg, #0a0a0f), transparent);
+}
+
+.casa-test__marquee-track {
+  display: flex;
+  gap: var(--ct-gap, 20px);
+  width: max-content;
+}
+
+.casa-test__marquee-row--left .casa-test__marquee-track {
+  animation: casa-test-scroll-left var(--ct-marquee-dur, 40s) linear infinite;
+}
+
+.casa-test__marquee-row--right .casa-test__marquee-track {
+  animation: casa-test-scroll-right var(--ct-marquee-dur, 40s) linear infinite;
+}
+
+.casa-test__marquee--pausable:hover .casa-test__marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes casa-test-scroll-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes casa-test-scroll-right {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+/* Marquee cards: slightly compact */
+.casa-test__marquee .casa-test__card {
+  width: 340px;
+  flex-shrink: 0;
+  padding: 22px;
+}
+
+.casa-test__marquee .casa-test__card-quote {
+  font-size: 14px;
+  -webkit-line-clamp: 4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Compact variant for marquee */
+.casa-test__card--compact {
+  padding: 22px;
+}
+
+.casa-test__card--compact .casa-test__card-quote {
+  font-size: 14px;
+  -webkit-line-clamp: 4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .casa-test__carousel > .casa-test__card {
+    flex: 0 0 calc((100% - var(--ct-gap, 20px)) / 2);
+  }
+
+  .casa-test__masonry {
+    columns: 2;
+  }
+
+  .casa-test__arrow--prev { left: 4px; }
+  .casa-test__arrow--next { right: 4px; }
+}
+
+@media (max-width: 768px) {
+  .casa-test {
+    padding: clamp(48px, 10vw, 80px) 0;
+  }
+
+  .casa-test__inner {
+    padding: 0 16px;
+  }
+
+  .casa-test__header {
+    margin-bottom: 36px;
+  }
+
+  .casa-test__stats {
+    gap: 20px;
+  }
+
+  .casa-test__stat-value {
+    font-size: 28px;
+  }
+
+  .casa-test__stat-divider {
+    height: 36px;
+  }
+
+  .casa-test__carousel > .casa-test__card {
+    flex: 0 0 calc(100% - 24px);
+    min-width: unset;
+  }
+
+  .casa-test__masonry {
+    columns: 1;
+  }
+
+  .casa-test__arrow {
+    width: 36px;
+    height: 36px;
+  }
+
+  .casa-test__arrow--prev { left: 0; }
+  .casa-test__arrow--next { right: 0; }
+
+  .casa-test__marquee .casa-test__card {
+    width: 280px;
+  }
+
+  .casa-test__card {
+    padding: 20px;
+  }
+
+  .casa-test__card-quote {
+    font-size: 14px;
+  }
+
+  .casa-test__marquee-row::before,
+  .casa-test__marquee-row::after {
+    width: 40px;
+  }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .casa-test__marquee-track {
+    animation: none !important;
+  }
+
+  .casa-test__accent--shimmer {
+    animation: none !important;
+  }
+
+  .casa-test__masonry-item {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .casa-test__card {
+    transition: none;
+  }
+
+  .casa-test__carousel {
+    scroll-behavior: auto;
+  }
+}
+</style>
+
+{%- comment -%} ═══════════════════════════════════════════════════════════════
+   JAVASCRIPT — Carousel + Masonry reveal
+   ═══════════════════════════════════════════════════════════════ {%- endcomment -%}
+<script>
+(function() {
+  const section = document.getElementById('casa-test-{{ sid }}');
+  if (!section) return;
+
+  const layout = section.dataset.layout;
+
+  /* ── Carousel ── */
+  if (layout === 'carousel') {
+    const track = section.querySelector('.casa-test__carousel');
+    const prevBtn = section.querySelector('.casa-test__arrow--prev');
+    const nextBtn = section.querySelector('.casa-test__arrow--next');
+    if (!track) return;
+
+    const getScrollAmount = () => {
+      const card = track.querySelector('.casa-test__card');
+      if (!card) return 300;
+      return card.offsetWidth + parseInt(getComputedStyle(track).gap || '20');
+    };
+
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        track.scrollBy({ left: -getScrollAmount(), behavior: 'smooth' });
+      });
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        track.scrollBy({ left: getScrollAmount(), behavior: 'smooth' });
+      });
+    }
+
+    /* Auto-play */
+    const autoPlay = section.dataset.autoPlay === 'true';
+    const speed = parseInt(section.dataset.autoPlaySpeed || '5') * 1000;
+
+    if (autoPlay && speed > 0) {
+      let timer = setInterval(() => {
+        const maxScroll = track.scrollWidth - track.clientWidth;
+        if (track.scrollLeft >= maxScroll - 10) {
+          track.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          track.scrollBy({ left: getScrollAmount(), behavior: 'smooth' });
+        }
+      }, speed);
+
+      track.addEventListener('mouseenter', () => clearInterval(timer));
+      track.addEventListener('mouseleave', () => {
+        timer = setInterval(() => {
+          const maxScroll = track.scrollWidth - track.clientWidth;
+          if (track.scrollLeft >= maxScroll - 10) {
+            track.scrollTo({ left: 0, behavior: 'smooth' });
+          } else {
+            track.scrollBy({ left: getScrollAmount(), behavior: 'smooth' });
+          }
+        }, speed);
+      });
+    }
+  }
+
+  /* ── Masonry reveal ── */
+  if (layout === 'masonry') {
+    const items = section.querySelectorAll('.casa-test__masonry-item');
+    if (!items.length) return;
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      items.forEach(item => item.classList.add('casa-test--revealed'));
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            entry.target.classList.add('casa-test--revealed');
+          }, i * 80);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    items.forEach(item => observer.observe(item));
+  }
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Casa Testimonials",
+  "tag": "section",
+  "class": "casa-testimonials-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "Section width",
+      "options": [
+        { "value": "full", "label": "Full width" },
+        { "value": "wide", "label": "Wide (1600px)" },
+        { "value": "contained", "label": "Contained (1400px)" },
+        { "value": "narrow", "label": "Narrow (1200px)" }
+      ],
+      "default": "full"
+    },
+    {
+      "type": "select",
+      "id": "layout_style",
+      "label": "Layout style",
+      "options": [
+        { "value": "carousel", "label": "Carousel" },
+        { "value": "masonry", "label": "Masonry grid" },
+        { "value": "marquee", "label": "Marquee scroll" }
+      ],
+      "default": "carousel"
+    },
+    {
+      "type": "header",
+      "content": "Header"
+    },
+    {
+      "type": "text",
+      "id": "tag_text",
+      "label": "Tag / badge text",
+      "default": "CUSTOMER LOVE"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "What Our Customers Say"
+    },
+    {
+      "type": "text",
+      "id": "accent_word",
+      "label": "Accent word (in title)",
+      "info": "Exact word from title to highlight"
+    },
+    {
+      "type": "select",
+      "id": "accent_style",
+      "label": "Accent style",
+      "options": [
+        { "value": "gradient", "label": "Gradient" },
+        { "value": "solid", "label": "Solid color" },
+        { "value": "underline", "label": "Underline" },
+        { "value": "glow", "label": "Glow" },
+        { "value": "shimmer", "label": "Shimmer" }
+      ],
+      "default": "gradient"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color 1",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "accent_color_2",
+      "label": "Accent color 2",
+      "default": "#ec4899"
+    },
+    {
+      "type": "textarea",
+      "id": "subtitle",
+      "label": "Subtitle",
+      "default": "Real reviews from real customers who transformed their spaces with our lighting"
+    },
+    {
+      "type": "header",
+      "content": "Stats"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_stats",
+      "label": "Show stats row",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "avg_rating",
+      "label": "Average rating",
+      "default": "4.9"
+    },
+    {
+      "type": "text",
+      "id": "total_reviews",
+      "label": "Total reviews",
+      "default": "2,847"
+    },
+    {
+      "type": "text",
+      "id": "recommend_pct",
+      "label": "Recommend %",
+      "default": "98"
+    },
+    {
+      "type": "header",
+      "content": "Carousel settings"
+    },
+    {
+      "type": "checkbox",
+      "id": "auto_play",
+      "label": "Auto-play carousel",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "auto_play_speed",
+      "label": "Auto-play speed",
+      "min": 3,
+      "max": 10,
+      "step": 1,
+      "default": 5,
+      "unit": "s"
+    },
+    {
+      "type": "range",
+      "id": "cards_visible",
+      "label": "Cards visible (desktop)",
+      "min": 2,
+      "max": 5,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "header",
+      "content": "Marquee settings"
+    },
+    {
+      "type": "select",
+      "id": "scroll_speed",
+      "label": "Scroll speed",
+      "options": [
+        { "value": "slow", "label": "Slow" },
+        { "value": "medium", "label": "Medium" },
+        { "value": "fast", "label": "Fast" }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "checkbox",
+      "id": "pause_on_hover",
+      "label": "Pause on hover",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background",
+      "default": "#0a0a0f"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "text",
+      "id": "card_bg",
+      "label": "Card background (rgba)",
+      "default": "rgba(255,255,255,0.05)",
+      "info": "Supports rgba for glass effect"
+    },
+    {
+      "type": "text",
+      "id": "card_border",
+      "label": "Card border (rgba)",
+      "default": "rgba(255,255,255,0.1)"
+    },
+    {
+      "type": "color",
+      "id": "star_color",
+      "label": "Star color",
+      "default": "#fbbf24"
+    },
+    {
+      "type": "text",
+      "id": "author_color",
+      "label": "Author / muted text (rgba)",
+      "default": "rgba(255,255,255,0.5)"
+    },
+    {
+      "type": "text",
+      "id": "quote_color",
+      "label": "Quote text (rgba)",
+      "default": "rgba(255,255,255,0.75)"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 100,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 100,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "card_gap",
+      "label": "Card gap",
+      "min": 8,
+      "max": 40,
+      "step": 4,
+      "default": 20,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "review",
+      "name": "Review",
+      "limit": 20,
+      "settings": [
+        {
+          "type": "range",
+          "id": "rating",
+          "label": "Star rating",
+          "min": 1,
+          "max": 5,
+          "step": 1,
+          "default": 5
+        },
+        {
+          "type": "textarea",
+          "id": "quote",
+          "label": "Review text"
+        },
+        {
+          "type": "text",
+          "id": "author_name",
+          "label": "Author name",
+          "default": "Happy Customer"
+        },
+        {
+          "type": "image_picker",
+          "id": "author_image",
+          "label": "Author photo"
+        },
+        {
+          "type": "checkbox",
+          "id": "verified",
+          "label": "Verified purchase",
+          "default": true
+        },
+        {
+          "type": "text",
+          "id": "product_name",
+          "label": "Product name (optional)"
+        },
+        {
+          "type": "url",
+          "id": "product_url",
+          "label": "Product URL (optional)"
+        },
+        {
+          "type": "text",
+          "id": "date",
+          "label": "Date text (optional)",
+          "info": "e.g. '2 weeks ago'"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Testimonials",
+      "settings": {
+        "layout_style": "carousel",
+        "tag_text": "CUSTOMER LOVE",
+        "title": "What Our Customers Say",
+        "accent_word": "Customers",
+        "accent_style": "gradient",
+        "subtitle": "Real reviews from real customers who transformed their spaces with our lighting",
+        "show_stats": true,
+        "avg_rating": "4.9",
+        "total_reviews": "2,847",
+        "recommend_pct": "98"
+      },
+      "blocks": [
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "This is probably one of the most satisfying products I have ever bought. Top quality product that I seriously can't get enough of. Worth every penny.",
+                        "author_name": "Kerry C.",
+                        "verified": true,
+                        "product_name": "Infinity OctaMirror",
+                        "date": "Oct 2024"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "I was honestly worried the lighting wouldn't look as good as the images on the website but to my surprise, the remote control and lights worked amazingly!",
+                        "author_name": "Jenna S.",
+                        "verified": true,
+                        "product_name": "Infinity OctaMirror",
+                        "date": "Oct 2024"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "I LOVE these little lamps! Great show pieces and fit on most shelves. Charge lasted over 13 hours and so fun to mix and match.",
+                        "author_name": "Christian C.",
+                        "verified": true,
+                        "product_name": "Bubble Girls Collection",
+                        "date": "Oct 2024"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "I got the Ava Bubble Girl lamp for my girlfriend's birthday. She's into artsy decor and vintage aesthetics. She absolutely loved it!",
+                        "author_name": "Elie",
+                        "verified": true,
+                        "product_name": "Bubble Girls - Ava",
+                        "date": "May 2025"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "Amazing! It goes well with everything! I definitely recommend because it gives the table a very elegant touch.",
+                        "author_name": "Sofia",
+                        "verified": true,
+                        "product_name": "Monte Carlo Dining Set",
+                        "date": "Aug 2025"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "Worth every penny! Packing was awesome, arrived in completely perfect condition. I love the different dimmer settings and they add so much character!",
+                        "author_name": "Mina D.",
+                        "verified": true,
+                        "product_name": "Soulful Bubble Girls",
+                        "date": "Mar 2025"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "I love my purchase, I'm totally in love. Absolutely gorgeous, exactly as the pictures show and super easy to get her going.",
+                        "author_name": "Rachel T.",
+                        "verified": true,
+                        "product_name": "Bubble Girls - Ava",
+                        "date": "Jan 2025"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "I am so pleased with these lamps. Unique designs, great quality and fast shipping. Will be coming back for more from the other collections.",
+                        "author_name": "Tara L.",
+                        "verified": true,
+                        "product_name": "Bubble Girls Collection",
+                        "date": "Sep 2024"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "This mirror is way more than I bargained for. I keep changing the colors to match my mood. It's seriously next-level.",
+                        "author_name": "Brenda S.",
+                        "verified": true,
+                        "product_name": "Infinity OctaMirror",
+                        "date": "Sep 2024"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "This table is spectacular. Packaging was ridiculous but there was no chance it could be damaged in transit. I love it.",
+                        "author_name": "Mike",
+                        "verified": true,
+                        "product_name": "Ella End Table",
+                        "date": "Jan 2026"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "I was surprised by how much light this thing puts off, without being annoying to look at. Great ambient feel.",
+                        "author_name": "James",
+                        "verified": true,
+                        "product_name": "Nexus Smart Table Lamp",
+                        "date": "Dec 2025"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "I ordered this sign for our living room and honestly didn't expect it to look this good in person. The colors are bright and smooth.",
+                        "author_name": "Marion L.",
+                        "verified": true,
+                        "product_name": "LED Neon Sign",
+                        "date": "Nov 2025"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "It's perfect, I absolutely love it. I can't stop looking at how beautiful it is!",
+                        "author_name": "Roseann S.",
+                        "verified": true,
+                        "product_name": "Ostrich Feather Floor Lamp",
+                        "date": "Jan 2025"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "The light is adorable. It works exactly as shown on the website. Shipping was fast too!",
+                        "author_name": "MARJORIE S.",
+                        "verified": true,
+                        "product_name": "Melita Mushroom Lamp",
+                        "date": "Jan 2025"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "Got these for my daughters \u2013 each has a different Bubble Girl on their bedside table. It's so sweet seeing them lit up together at night.",
+                        "author_name": "Ciara M.",
+                        "verified": true,
+                        "product_name": "Bubble Girls Collection",
+                        "date": "Oct 2024"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "So thrilled! My Daisy and Mia girls have transformed my shelf into a little gallery. Love how each girl brings her own personality.",
+                        "author_name": "Tenisha T.",
+                        "verified": true,
+                        "product_name": "Bubble Girls Collection",
+                        "date": "Oct 2024"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "Absolutely worth it. The lighting effects are amazing. Every night I put on different colors. So many options. Highly recommend.",
+                        "author_name": "Nouf A.",
+                        "verified": true,
+                        "product_name": "Infinity OctaMirror",
+                        "date": "Oct 2024"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "Looks like a regular mirror during the day, but when you switch this thing on it's INSANE. My friends are always so surprised!",
+                        "author_name": "Olivia B.",
+                        "verified": true,
+                        "product_name": "Infinity OctaMirror",
+                        "date": "Sep 2024"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "Couldn't be happier with my Bubble Girls. They feel like tiny pieces of art, each with a story of its own.",
+                        "author_name": "Emilia F.",
+                        "verified": true,
+                        "product_name": "Bubble Girls Collection",
+                        "date": "Sep 2024"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "Totally in love with my bubble girls! Customer service was amazing and very accommodating. Will be ordering more for gifts!",
+                        "author_name": "Debbi",
+                        "verified": true,
+                        "product_name": "Bubble Girls - Lily",
+                        "date": "Jun 2025"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "They immediately sent a new one when there was an issue. Now we have the whole set! Great deals. Will buy any time.",
+                        "author_name": "Dan K.",
+                        "verified": true,
+                        "product_name": "Bubble Girls - Daisy",
+                        "date": "Aug 2025"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "I love my bubble girl lamp. It's bright and cheerful. It came quickly. It's nice and large and brings me joy.",
+                        "author_name": "Maryellen A.",
+                        "verified": true,
+                        "product_name": "Parisian Bubble Girls",
+                        "date": "Jan 2025"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "Got two of these as a birthday gift and I was in absolute awe by how gorgeous they are. One of the best gifts I've received by far.",
+                        "author_name": "Olivia A.",
+                        "verified": true,
+                        "product_name": "Bubble Girls Collection",
+                        "date": "Sep 2024"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "This is art. Well made, packed in a heavy wooden box. Beautiful piece that adds elegance to any room.",
+                        "author_name": "Susie B.",
+                        "verified": true,
+                        "product_name": "Ella End Table",
+                        "date": "Dec 2025"
+                }
+        },
+        {
+                "type": "review",
+                "settings": {
+                        "rating": 5,
+                        "quote": "I love this lamp. I have it at my coffee bar. Perfect ambient lighting and such a unique conversation starter.",
+                        "author_name": "Carla F.",
+                        "verified": true,
+                        "product_name": "Bubble Girls - Ava",
+                        "date": "Jan 2025"
+                }
+        }
+]
+    }
+  ]
+}
+{% endschema %}

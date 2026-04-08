@@ -1,0 +1,474 @@
+{% comment %}
+  Seoul Glow Lab — Lookbook Quote / Testimonial Section
+  Single quote per section instance. Add multiple sections for multiple quotes.
+{% endcomment %}
+
+{%- liquid
+  assign bg_style     = section.settings.bg_style
+  assign bg_color     = section.settings.bg_color
+  assign bg_image     = section.settings.bg_image
+  assign overlay_op   = section.settings.overlay_opacity
+  assign text_color   = section.settings.text_color
+  assign accent       = section.settings.accent_color
+  assign quote_size   = section.settings.quote_size
+  assign text_align   = section.settings.text_align
+  assign rating       = section.settings.rating
+  assign show_line    = section.settings.show_decorative_line
+  assign show_glass   = section.settings.show_glassmorphic_card
+  assign pt           = section.settings.padding_top
+  assign pb           = section.settings.padding_bottom
+  assign author_image = section.settings.author_image
+-%}
+
+<section
+  id="casa-lb-quote-{{ section.id }}"
+  class="casa-lb-quote"
+  style="
+    --clbq-bg: {{ bg_color }};
+    --clbq-text: {{ text_color }};
+    --clbq-accent: {{ accent }};
+    --clbq-pt: {{ pt }}px;
+    --clbq-pb: {{ pb }}px;
+    --clbq-overlay-op: {{ overlay_op | divided_by: 100.0 }};
+  "
+>
+  {%- if bg_style == 'image' and bg_image != blank -%}
+    <div class="casa-lb-quote__bg-image">
+      {{ bg_image | image_url: width: 1920 | image_tag: loading: 'lazy', class: 'casa-lb-quote__bg-img', sizes: '100vw' }}
+      <div class="casa-lb-quote__overlay"></div>
+    </div>
+  {%- endif -%}
+
+  <div class="casa-lb-quote__container">
+    <div class="casa-lb-quote__inner {% if show_glass %}casa-lb-quote__inner--glass{% endif %} casa-lb-quote__inner--{{ text_align }}">
+
+      {%- if show_line -%}
+        <div class="casa-lb-quote__deco-line"></div>
+      {%- endif -%}
+
+      {%- comment %} Decorative quotation mark {% endcomment -%}
+      <div class="casa-lb-quote__mark" aria-hidden="true">
+        <svg viewBox="0 0 80 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 60V36.8C0 28.267 1.6 21.067 4.8 15.2C8.133 9.2 13.333 4.133 20.4 0L28.8 8.4C23.2 11.867 19.2 15.867 16.8 20.4C14.533 24.8 13.4 29.6 13.4 34.8H28V60H0ZM44 60V36.8C44 28.267 45.6 21.067 48.8 15.2C52.133 9.2 57.333 4.133 64.4 0L72.8 8.4C67.2 11.867 63.2 15.867 60.8 20.4C58.533 24.8 57.4 29.6 57.4 34.8H72V60H44Z" fill="url(#clbq-grad-{{ section.id }})"/>
+          <defs>
+            <linearGradient id="clbq-grad-{{ section.id }}" x1="0" y1="0" x2="72" y2="60" gradientUnits="userSpaceOnUse">
+              <stop stop-color="{{ accent }}"/>
+              <stop offset="1" stop-color="#ec4899"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      {%- if section.settings.quote_text != blank -%}
+        <blockquote class="casa-lb-quote__text casa-lb-quote__text--{{ quote_size }}">
+          {{ section.settings.quote_text }}
+        </blockquote>
+      {%- endif -%}
+
+      {%- if rating > 0 -%}
+        <div class="casa-lb-quote__stars" aria-label="{{ rating }} out of 5 stars">
+          {%- for i in (1..5) -%}
+            <svg class="casa-lb-quote__star {% if i <= rating %}casa-lb-quote__star--filled{% endif %}" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 1.25L12.47 7.02L18.75 7.54L13.82 11.73L15.36 17.87L10 14.69L4.64 17.87L6.18 11.73L1.25 7.54L7.53 7.02L10 1.25Z"
+                {% if i <= rating %}fill="{{ accent }}"{% else %}fill="none" stroke="{{ text_color }}" stroke-opacity="0.25" stroke-width="1"{% endif %}
+              />
+            </svg>
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+
+      <div class="casa-lb-quote__author">
+        {%- if author_image != blank -%}
+          <div class="casa-lb-quote__author-photo">
+            {{ author_image | image_url: width: 120 | image_tag: loading: 'lazy', class: 'casa-lb-quote__author-img' }}
+          </div>
+        {%- endif -%}
+
+        <div class="casa-lb-quote__author-info">
+          {%- if section.settings.author_name != blank -%}
+            <cite class="casa-lb-quote__author-name">{{ section.settings.author_name }}</cite>
+          {%- endif -%}
+          {%- if section.settings.author_title != blank -%}
+            <span class="casa-lb-quote__author-title">{{ section.settings.author_title }}</span>
+          {%- endif -%}
+        </div>
+      </div>
+
+      {%- if show_line -%}
+        <div class="casa-lb-quote__deco-line casa-lb-quote__deco-line--bottom"></div>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+
+<style>
+  /* ===== Casa Lookbook Quote ===== */
+  .casa-lb-quote {
+    position: relative;
+    overflow: hidden;
+    padding-top: var(--clbq-pt);
+    padding-bottom: var(--clbq-pb);
+    background: var(--clbq-bg);
+    color: var(--clbq-text);
+  }
+  .casa-lb-quote[id] .casa-lb-quote__inner--glass {
+    background: var(--clbq-bg);
+  }
+  /* Gradient background option */
+  #casa-lb-quote-{{ section.id }}{% if bg_style == 'gradient' %} {
+    background: linear-gradient(135deg, var(--clbq-bg) 0%, color-mix(in srgb, var(--clbq-accent) 18%, var(--clbq-bg)) 50%, var(--clbq-bg) 100%);
+  }{% endif %}
+
+  /* ---- Background image ---- */
+  .casa-lb-quote__bg-image {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+  .casa-lb-quote__bg-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .casa-lb-quote__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, var(--clbq-overlay-op));
+  }
+
+  /* ---- Container ---- */
+  .casa-lb-quote__container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ---- Inner card ---- */
+  .casa-lb-quote__inner {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .casa-lb-quote__inner--center {
+    align-items: center;
+    text-align: center;
+  }
+  .casa-lb-quote__inner--left {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  /* Glassmorphic card */
+  .casa-lb-quote__inner--glass {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 48px 40px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* ---- Decorative quotation mark ---- */
+  .casa-lb-quote__mark {
+    width: 64px;
+    height: auto;
+    opacity: 0.15;
+    position: absolute;
+    top: -8px;
+    left: 0;
+    pointer-events: none;
+  }
+  .casa-lb-quote__inner--glass .casa-lb-quote__mark {
+    top: 24px;
+    left: 24px;
+  }
+  .casa-lb-quote__inner--center .casa-lb-quote__mark {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  @media (min-width: 750px) {
+    .casa-lb-quote__mark {
+      width: 80px;
+      opacity: 0.12;
+    }
+  }
+
+  /* ---- Decorative gradient line ---- */
+  .casa-lb-quote__deco-line {
+    width: 80px;
+    height: 3px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--clbq-accent), #ec4899);
+    flex-shrink: 0;
+  }
+  .casa-lb-quote__inner--center .casa-lb-quote__deco-line {
+    align-self: center;
+  }
+
+  /* ---- Quote text ---- */
+  .casa-lb-quote__text {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-style: italic;
+    line-height: 1.55;
+    font-weight: 300;
+    letter-spacing: 0.01em;
+    color: var(--clbq-text);
+    position: relative;
+    z-index: 1;
+  }
+  .casa-lb-quote__text--small   { font-size: clamp(1rem, 1.6vw, 1.125rem); }
+  .casa-lb-quote__text--medium  { font-size: clamp(1.125rem, 2vw, 1.5rem); }
+  .casa-lb-quote__text--large   { font-size: clamp(1.25rem, 2.6vw, 2rem); }
+  .casa-lb-quote__text--extra-large { font-size: clamp(1.5rem, 3.2vw, 2.75rem); line-height: 1.4; }
+
+  /* ---- Stars ---- */
+  .casa-lb-quote__stars {
+    display: flex;
+    gap: 4px;
+  }
+  .casa-lb-quote__star {
+    flex-shrink: 0;
+  }
+
+  /* ---- Author ---- */
+  .casa-lb-quote__author {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 8px;
+  }
+  .casa-lb-quote__inner--center .casa-lb-quote__author {
+    justify-content: center;
+  }
+  .casa-lb-quote__author-photo {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+  }
+  .casa-lb-quote__author-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .casa-lb-quote__author-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .casa-lb-quote__author-name {
+    font-style: normal;
+    font-weight: 500;
+    font-size: 1rem;
+    color: var(--clbq-text);
+  }
+  .casa-lb-quote__author-title {
+    font-size: 0.85rem;
+    opacity: 0.55;
+    color: var(--clbq-text);
+  }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 749px) {
+    .casa-lb-quote__container {
+      padding: 0 16px;
+    }
+    .casa-lb-quote__inner--glass {
+      padding: 32px 24px;
+    }
+    .casa-lb-quote__mark {
+      width: 48px;
+    }
+    .casa-lb-quote__inner--glass .casa-lb-quote__mark {
+      top: 16px;
+      left: 16px;
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "Lookbook Quote",
+  "tag": "section",
+  "class": "casa-lb-quote-section",
+  "limit": 2,
+  "templates": ["page"],
+  "settings": [
+    {
+      "type": "header",
+      "content": "Quote content"
+    },
+    {
+      "type": "textarea",
+      "id": "quote_text",
+      "label": "Quote text",
+      "default": "Light does not simply illuminate a room — it defines how you feel within it. Every luminaire we craft carries this truth."
+    },
+    {
+      "type": "text",
+      "id": "author_name",
+      "label": "Author name",
+      "default": "Isabella Marchetti"
+    },
+    {
+      "type": "text",
+      "id": "author_title",
+      "label": "Author title / role",
+      "default": "Creative Director, Seoul Glow Lab"
+    },
+    {
+      "type": "image_picker",
+      "id": "author_image",
+      "label": "Author photo"
+    },
+    {
+      "type": "range",
+      "id": "rating",
+      "label": "Star rating (0 = hidden)",
+      "min": 0,
+      "max": 5,
+      "step": 1,
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Background"
+    },
+    {
+      "type": "select",
+      "id": "bg_style",
+      "label": "Background style",
+      "options": [
+        { "value": "solid",    "label": "Solid color" },
+        { "value": "gradient", "label": "Gradient" },
+        { "value": "image",   "label": "Image with overlay" }
+      ],
+      "default": "solid"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#09090b"
+    },
+    {
+      "type": "image_picker",
+      "id": "bg_image",
+      "label": "Background image"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "label": "Image overlay opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 65,
+      "unit": "%"
+    },
+    {
+      "type": "header",
+      "content": "Typography & layout"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#fafafa"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "default": "#9333ea"
+    },
+    {
+      "type": "select",
+      "id": "quote_size",
+      "label": "Quote font size",
+      "options": [
+        { "value": "small",       "label": "Small" },
+        { "value": "medium",      "label": "Medium" },
+        { "value": "large",       "label": "Large" },
+        { "value": "extra-large", "label": "Extra large" }
+      ],
+      "default": "large"
+    },
+    {
+      "type": "select",
+      "id": "text_align",
+      "label": "Text alignment",
+      "options": [
+        { "value": "left",   "label": "Left" },
+        { "value": "center", "label": "Center" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_decorative_line",
+      "label": "Show decorative gradient line",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_glassmorphic_card",
+      "label": "Show glassmorphic card",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "default": 64,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "default": 64,
+      "unit": "px"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Lookbook Quote",
+      "settings": {
+        "quote_text": "Light does not simply illuminate a room — it defines how you feel within it. Every luminaire we craft carries this truth.",
+        "author_name": "Isabella Marchetti",
+        "author_title": "Creative Director, Seoul Glow Lab",
+        "rating": 0,
+        "bg_style": "solid",
+        "bg_color": "#09090b",
+        "text_color": "#fafafa",
+        "accent_color": "#9333ea",
+        "quote_size": "large",
+        "text_align": "center",
+        "show_decorative_line": true,
+        "show_glassmorphic_card": false,
+        "padding_top": 64,
+        "padding_bottom": 64
+      }
+    }
+  ]
+}
+{% endschema %}

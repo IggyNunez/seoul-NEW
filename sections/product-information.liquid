@@ -118,7 +118,7 @@
 
       <button
         type="button"
-        class="sticky-add-to-cart__button add-to-cart-button button button--primary"
+        class="sticky-add-to-cart__button add-to-cart-button button"
         ref="addToCartButton"
         on:click="/handleAddToCartClick"
         {% unless current_variant.available %}
@@ -144,7 +144,6 @@
               {%- endif -%}
             </span>
             <span
-              class="quantity-display"
               ref="quantityDisplay"
               {% if current_variant.available and initial_quantity > 1 %}
                 style="display: inline;"
@@ -186,7 +185,7 @@
     transform: translateX(-50%) translateY(calc(100% + 40px));
     z-index: calc(var(--layer-sticky) - 1); /* Below sticky header */
     display: block;
-    width: 600px;
+    width: min(860px, calc(100vw - 40px));
     border-radius: calc(
       var(--style-border-radius-buttons-primary) + min(var(--padding-sm), var(--style-border-radius-buttons-primary))
     );
@@ -284,41 +283,87 @@
     position: relative;
   }
 
-  /* Mobile adjustments */
+  /* Mobile adjustments — Casa Di Lumo PDP redesign */
   @media screen and (max-width: 749px) {
     .sticky-add-to-cart__bar {
       bottom: 0;
       width: 100%;
       max-width: none;
       border-radius: 0;
+      padding: var(--padding-sm) var(--padding-md);
+      gap: var(--gap-sm);
 
       &::before {
         --border: 1px;
       }
+    }
 
-      .add-to-cart-text__content {
-        display: none;
-      }
+    .sticky-add-to-cart__image {
+      display: block;
+      flex-shrink: 0;
+      height: 40px;
+      width: 40px;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .sticky-add-to-cart__info {
+      flex: 1;
+      min-width: 0;
     }
 
     .sticky-add-to-cart__info[data-has-image='false'] {
       padding-left: 0;
     }
 
+    /* Hide title + variant on mobile — just show price */
     .sticky-add-to-cart__title {
-      font-size: var(--font-paragraph--size);
+      display: none;
     }
 
-    .sticky-add-to-cart__button {
-      padding: var(--padding-lg);
+    .sticky-add-to-cart__variant {
+      display: none;
     }
 
     .sticky-add-to-cart__price {
       font-size: var(--font-paragraph-small--size);
+      font-weight: var(--font-weight-semibold);
+      white-space: nowrap;
+    }
+
+    .sticky-add-to-cart__price .compare-at-price {
+      display: none;
+    }
+
+    .sticky-add-to-cart__price .price-save-badge {
+      display: none;
     }
 
     .sticky-add-to-cart__button {
-      width: var(--height-buy-buttons);
+      background: #000;
+      color: #fff;
+      border: none;
+      border-radius: var(--casa-radius-md, 10px);
+      padding: var(--padding-md) var(--padding-lg);
+      height: auto;
+      min-height: 44px;
+      width: auto;
+      flex-shrink: 0;
+      font-size: var(--font-paragraph-small--size);
+      font-weight: var(--font-weight-semibold);
+    }
+
+    .sticky-add-to-cart__button:hover {
+      background: #222;
+    }
+
+    .sticky-add-to-cart__bar .add-to-cart-text__content {
+      display: inline;
+    }
+
+    .sticky-add-to-cart__bar .add-to-cart-icon {
+      display: inline-flex;
     }
 
     sticky-add-to-cart:not([data-variant-available='true']) .add-to-cart-text__content {
@@ -330,32 +375,10 @@
     }
   }
 
-  /* Small mobile - hide text content and compare price */
+  /* Small mobile adjustments */
   @media screen and (max-width: 389px) {
-    .sticky-add-to-cart__bar {
-      .compare-at-price {
-        display: none;
-      }
-    }
-
-    .sticky-add-to-cart__title {
+    .sticky-add-to-cart__variant {
       display: none;
-    }
-
-    /* For product with only default variant show title */
-    .sticky-add-to-cart__info[data-singleton='true'] .sticky-add-to-cart__title {
-      display: block;
-    }
-
-    /* For single variant show title and variant, truncate both. variant should be identifiable with truncation */
-    .sticky-add-to-cart__info[data-single-option='true'] .sticky-add-to-cart__title {
-      display: block;
-    }
-    .sticky-add-to-cart__info[data-single-option='true'] .sticky-add-to-cart__variant {
-      display: block;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
   }
 {% endstylesheet %}

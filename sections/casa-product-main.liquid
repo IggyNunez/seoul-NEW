@@ -1,0 +1,915 @@
+{%- comment -%}
+  Seoul Glow Lab — Main Product Section
+  Two-column PDP: flush gallery (left) + scrollable info blocks (right)
+  All blocks are editable/reorderable in the Theme Editor.
+{%- endcomment -%}
+
+<script type="application/ld+json">
+  {{ product | structured_data }}
+</script>
+
+{%- liquid
+  assign current_variant = product.selected_or_first_available_variant
+  assign initial_quantity = current_variant.quantity_rule.min | default: 1
+
+  assign layout = section.settings.layout | default: 'left-gallery'
+  assign enable_sticky_cart = section.settings.enable_sticky_cart
+  assign hide_sticky_when_cart_open = section.settings.hide_sticky_when_cart_open
+
+  assign accent_primary = section.settings.accent_primary | default: '#9333ea'
+  assign accent_secondary = section.settings.accent_secondary | default: '#ec4899'
+
+  assign gallery_bg = section.settings.gallery_bg | default: '#fafafa'
+  assign gallery_bg_end = section.settings.gallery_bg_end | default: '#ede8ff'
+  assign price_color = section.settings.price_color | default: '#0a0a0a'
+  assign compare_price_color = section.settings.compare_price_color | default: '#9ca3af'
+  assign text_color = section.settings.text_color | default: '#0a0a0a'
+  assign text_muted = section.settings.text_muted | default: '#6b7280'
+
+  assign padding_top = section.settings.padding_top | default: 0
+  assign padding_bottom = section.settings.padding_bottom | default: 0
+-%}
+
+<section
+  class="cpm cpm--{{ layout }}"
+  id="cpm-{{ section.id }}"
+  data-section-id="{{ section.id }}"
+  data-product-id="{{ product.id }}"
+  style="
+    --cpm-accent-1: {{ accent_primary }};
+    --cpm-accent-2: {{ accent_secondary }};
+    --cpm-gallery-bg: {{ gallery_bg }};
+    --cpm-gallery-bg-end: {{ gallery_bg_end }};
+    --cpm-price: {{ price_color }};
+    --cpm-compare-price: {{ compare_price_color }};
+    --cpm-text: {{ text_color }};
+    --cpm-text-muted: {{ text_muted }};
+    --cpm-pt: {{ padding_top }}px;
+    --cpm-pb: {{ padding_bottom }}px;
+  "
+>
+  {%- comment -%} Full-width wrapper — NO max-width so gallery can be flush {%- endcomment -%}
+  <div class="cpm__wrap">
+    <div class="cpm__grid">
+
+      {%- comment -%} ── GALLERY COLUMN (flush left, no padding) ── {%- endcomment -%}
+      <div class="cpm__gallery">
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'gallery' -%}
+            <div class="cpm__block" {{ block.shopify_attributes }}>
+              {%- render 'casa-pdp-gallery-content', product: product, block: block, section: section -%}
+            </div>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+
+      {%- comment -%} ── INFO COLUMN (all non-gallery blocks) ── {%- endcomment -%}
+      <div class="cpm__info">
+        {%- for block in section.blocks -%}
+          {%- case block.type -%}
+
+            {%- when 'gallery' -%}
+              {%- comment -%} skip — rendered in gallery column {%- endcomment -%}
+
+            {%- when 'breadcrumbs' -%}
+              <div class="cpm__block cpm__block--breadcrumbs" {{ block.shopify_attributes }}>
+                {%- render 'breadcrumbs' -%}
+              </div>
+
+            {%- when 'title' -%}
+              <div class="cpm__block cpm__block--title" {{ block.shopify_attributes }}>
+                <h1 class="cpm__title">{{ product.title }}</h1>
+                {%- if block.settings.subtitle != blank -%}
+                  <p class="cpm__subtitle">{{ block.settings.subtitle }}</p>
+                {%- endif -%}
+                {%- if block.settings.show_vendor and product.vendor != blank -%}
+                  <p class="cpm__vendor">{{ product.vendor }}</p>
+                {%- endif -%}
+              </div>
+
+            {%- when 'rating' -%}
+              <div class="cpm__block cpm__block--rating" {{ block.shopify_attributes }}>
+                {%- render 'casa-pdp-rating', product: product, block: block -%}
+              </div>
+
+            {%- when 'price' -%}
+              <div class="cpm__block cpm__block--price" {{ block.shopify_attributes }}>
+                {%- render 'price', product_resource: product, show_sale_price_first: true -%}
+              </div>
+
+            {%- when 'features-list' -%}
+              <div class="cpm__block cpm__block--features" {{ block.shopify_attributes }}>
+                {%- render 'casa-pdp-features-list', block: block -%}
+              </div>
+
+            {%- when 'stats-bar' -%}
+              <div class="cpm__block cpm__block--stats" {{ block.shopify_attributes }}>
+                {%- render 'casa-pdp-stats-bar', block: block -%}
+              </div>
+
+            {%- when 'variant-picker' -%}
+              <div class="cpm__block cpm__block--variants" {{ block.shopify_attributes }}>
+                {%- render 'variant-main-picker',
+                  product_resource: product,
+                  block: block,
+                  section_id: section.id,
+                  variant_style: block.settings.variant_style,
+                  show_swatches: block.settings.show_swatches
+                -%}
+              </div>
+
+            {%- when 'urgency' -%}
+              <div class="cpm__block cpm__block--urgency" {{ block.shopify_attributes }}>
+                {%- render 'casa-pdp-urgency', block: block, product: product -%}
+              </div>
+
+            {%- when 'buy-buttons' -%}
+              <div class="cpm__block cpm__block--buy buy-buttons-block" {{ block.shopify_attributes }}>
+                {%- render 'casa-pdp-buy-buttons', product: product, block: block, section: section -%}
+              </div>
+
+            {%- when 'trust-row' -%}
+              <div class="cpm__block cpm__block--trust" {{ block.shopify_attributes }}>
+                {%- render 'casa-pdp-trust-row', block: block -%}
+              </div>
+
+            {%- when 'delivery-estimate' -%}
+              <div class="cpm__block cpm__block--delivery" {{ block.shopify_attributes }}>
+                {%- render 'casa-pdp-delivery-estimate', block: block -%}
+              </div>
+
+            {%- when 'feature-highlights' -%}
+              <div class="cpm__block cpm__block--highlights" {{ block.shopify_attributes }}>
+                {%- render 'casa-pdp-feature-highlights', block: block -%}
+              </div>
+
+            {%- when 'specifications' -%}
+              <div class="cpm__block cpm__block--accordion" {{ block.shopify_attributes }}>
+                {%- render 'casa-pdp-specifications', block: block, product: product -%}
+              </div>
+
+            {%- when 'whats-included' -%}
+              <div class="cpm__block cpm__block--accordion" {{ block.shopify_attributes }}>
+                {%- render 'casa-pdp-whats-included', block: block -%}
+              </div>
+
+            {%- when 'installation' -%}
+              <div class="cpm__block cpm__block--accordion" {{ block.shopify_attributes }}>
+                {%- render 'casa-pdp-installation', block: block -%}
+              </div>
+
+            {%- when 'care' -%}
+              <div class="cpm__block cpm__block--accordion" {{ block.shopify_attributes }}>
+                {%- render 'casa-pdp-care', block: block -%}
+              </div>
+
+            {%- when 'reviews' -%}
+              <div class="cpm__block cpm__block--reviews" {{ block.shopify_attributes }}>
+                {%- render 'casa-pdp-reviews', block: block, product: product -%}
+              </div>
+
+            {%- when 'description' -%}
+              <div class="cpm__block cpm__block--description" {{ block.shopify_attributes }}>
+                <div class="cpm__description rte">
+                  {{ product.description }}
+                </div>
+              </div>
+
+            {%- when 'custom-liquid' -%}
+              <div class="cpm__block cpm__block--custom" {{ block.shopify_attributes }}>
+                {{ block.settings.custom_liquid }}
+              </div>
+
+            {%- when '@app' -%}
+              <div class="cpm__block cpm__block--app" {{ block.shopify_attributes }}>
+                {% render block %}
+              </div>
+
+          {%- endcase -%}
+        {%- endfor -%}
+      </div>
+    </div>
+  </div>
+
+  {%- comment -%} Sticky Add to Cart {%- endcomment -%}
+  {%- if enable_sticky_cart -%}
+    {%- render 'casa-sticky-cart',
+      product: product,
+      current_variant: current_variant,
+      initial_quantity: initial_quantity,
+      section_id: section.id,
+      hide_when_cart_open: hide_sticky_when_cart_open
+    -%}
+  {%- endif -%}
+</section>
+
+{% stylesheet %}
+/* ═══════════════════════════════════════════════════════════════
+   CASA PRODUCT MAIN — PDP Section
+   Gallery: flush-left, sticky | Info: right column, scrollable
+   ═══════════════════════════════════════════════════════════════ */
+
+.cpm {
+  --cpm-accent-1: #9333ea;
+  --cpm-accent-2: #ec4899;
+  --cpm-pt: 0px;
+  --cpm-pb: 0px;
+  --cpm-info-gap: 20px;
+
+  padding-top: var(--cpm-pt);
+  padding-bottom: var(--cpm-pb);
+  background: var(--color-background, #fff);
+  overflow-x: hidden;
+}
+
+/* ── Wrapper: full-width so gallery can be flush ── */
+.cpm__wrap {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* ── Two-column grid ── */
+.cpm__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+}
+
+.cpm--left-gallery .cpm__gallery  { order: 1; }
+.cpm--left-gallery .cpm__info     { order: 2; }
+.cpm--right-gallery .cpm__gallery { order: 2; }
+.cpm--right-gallery .cpm__info    { order: 1; }
+
+/* ── Gallery column: FLUSH, sticky, full viewport height ── */
+.cpm__gallery {
+  position: sticky;
+  top: var(--header-height, 0px);
+  height: calc(100vh - var(--header-height, 0px));
+  min-width: 0;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--cpm-gallery-bg, #fafafa) 0%, var(--cpm-gallery-bg-end, #ede8ff) 100%);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+/* Block wrapper inside gallery must fill the full height */
+.cpm__gallery > .cpm__block {
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Info column: padded, scrollable ── */
+.cpm__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cpm-info-gap);
+  padding: 32px 48px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ── Block base ── */
+.cpm__block {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* ── Breadcrumbs ── */
+.cpm__block--breadcrumbs {
+  font-size: 13px;
+  color: var(--cpm-text-muted, #6b7280);
+}
+.cpm__block--breadcrumbs a {
+  color: inherit;
+  text-decoration: none;
+}
+.cpm__block--breadcrumbs a:hover {
+  color: var(--cpm-accent-1);
+}
+
+/* ── Title ── */
+.cpm__title {
+  font-size: clamp(24px, 3vw, 42px);
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  margin: 0;
+  color: var(--color-foreground, #0a0a0a);
+}
+.cpm__subtitle {
+  font-size: 14px;
+  color: #757575;
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+.cpm__vendor {
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.5);
+  margin: 8px 0 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ── Price ── */
+.cpm__block--price { overflow: hidden; }
+
+.cpm__block--price [ref="priceContainer"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.cpm__block--price .price {
+  font-size: 36px;
+  font-weight: 600;
+  color: var(--cpm-price, #0a0a0a);
+  word-break: break-word;
+  line-height: 1.1;
+}
+.cpm__block--price .compare-at-price {
+  text-decoration: line-through;
+  color: var(--cpm-compare-price, #9ca3af);
+  font-weight: 400;
+  font-size: 20px;
+  word-break: break-word;
+}
+.cpm__block--price .price-badge-save {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  background: rgba(147, 51, 234, 0.1);
+  color: var(--cpm-accent-1, #9333ea);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+/* ── Variants — constrain overflow ── */
+.cpm__block--variants {
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cpm__block--variants .variant-option__button-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+
+/* Ensure variant-picker and its form never exceed their container */
+.cpm__block--variants variant-picker,
+.cpm__block--variants .variant-picker__form,
+.cpm__block--variants fieldset {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.cpm__block--variants .variant-option--dropdowns {
+  width: 100%;
+}
+
+.cpm__block--variants .variant-option__select-wrapper {
+  width: 100%;
+}
+
+.cpm__block--variants .variant-option__select {
+  width: 100%;
+}
+
+/* ── Description ── */
+.cpm__description {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--cpm-text-muted, #6b7280);
+}
+.cpm__description p { margin: 0 0 16px; }
+.cpm__description p:last-child { margin-bottom: 0; }
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Tablet/mobile: single column */
+@media (max-width: 999px) {
+  .cpm__grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .cpm__gallery {
+    position: relative;
+    top: auto;
+    height: auto;
+    overflow: visible;
+    display: block;
+    order: 1 !important;
+    padding: 0;
+    background: linear-gradient(160deg, var(--cpm-gallery-bg, #fafafa) 0%, var(--cpm-gallery-bg-end, #ede8ff) 100%);
+  }
+  /* On mobile block wrapper doesn't need to flex-fill */
+  .cpm__gallery > .cpm__block {
+    flex: none;
+    height: auto;
+    display: block;
+  }
+  .cpm__info {
+    order: 2 !important;
+    padding: 24px 16px;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .cpm__gallery { padding: 0; }
+  .cpm__info { padding: 20px 14px; }
+
+  .cpm__title {
+    font-size: 22px;
+    font-weight: 300;
+  }
+}
+
+@media (max-width: 480px) {
+  .cpm__gallery { padding: 0; }
+  .cpm__info { padding: 16px 12px; gap: 14px; }
+
+  .cpm__title {
+    font-size: 20px;
+    letter-spacing: -0.3px;
+  }
+  .cpm__subtitle {
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  .cpm__block--price .price { font-size: 28px; }
+  .cpm__block--price .compare-at-price { font-size: 17px; }
+  .cpm__description { font-size: 14px; }
+}
+
+@media (max-width: 375px) {
+  .cpm__title { font-size: 18px; }
+  .cpm__block--price .price { font-size: 24px; }
+  .cpm__block--price .compare-at-price { font-size: 15px; }
+}
+
+/* Large screens */
+@media (min-width: 1600px) {
+  .cpm__info { padding: 40px 64px; }
+}
+
+@media (min-width: 1800px) {
+  .cpm__wrap { max-width: 1800px; }
+  .cpm__info { padding: 40px 80px; }
+  .cpm__title { font-size: 42px; }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Product Main",
+  "tag": "section",
+  "class": "casa-product-main-section",
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "blocks": [
+    {
+      "type": "@app"
+    },
+    {
+      "type": "gallery",
+      "name": "Product Gallery",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "select",
+          "id": "layout",
+          "label": "Layout",
+          "options": [
+            { "value": "carousel", "label": "Carousel" },
+            { "value": "grid", "label": "Grid" },
+            { "value": "stacked", "label": "Stacked" }
+          ],
+          "default": "carousel"
+        },
+        {
+          "type": "select",
+          "id": "thumbnail_position",
+          "label": "Thumbnail position",
+          "options": [
+            { "value": "bottom", "label": "Bottom" },
+            { "value": "left", "label": "Left" }
+          ],
+          "default": "bottom"
+        },
+        {
+          "type": "checkbox",
+          "id": "enable_zoom",
+          "label": "Enable zoom on click",
+          "default": true
+        },
+        {
+          "type": "checkbox",
+          "id": "enable_video_loop",
+          "label": "Loop videos",
+          "default": true
+        },
+        {
+          "type": "range",
+          "id": "border_radius",
+          "label": "Image border radius",
+          "min": 0,
+          "max": 32,
+          "step": 2,
+          "unit": "px",
+          "default": 0
+        }
+      ]
+    },
+    {
+      "type": "breadcrumbs",
+      "name": "Breadcrumbs",
+      "limit": 1,
+      "settings": []
+    },
+    {
+      "type": "title",
+      "name": "Product Title",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "subtitle",
+          "label": "Subtitle",
+          "info": "Optional subtitle below title"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_vendor",
+          "label": "Show vendor",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "rating",
+      "name": "Rating",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "show_count",
+          "label": "Show review count",
+          "default": true
+        },
+        {
+          "type": "text",
+          "id": "sold_count",
+          "label": "Sold count text",
+          "placeholder": "10K+",
+          "info": "Displays as a pill next to stars"
+        }
+      ]
+    },
+    {
+      "type": "price",
+      "name": "Price",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "show_badges",
+          "label": "Show sale badge",
+          "default": true
+        },
+        {
+          "type": "checkbox",
+          "id": "show_installments",
+          "label": "Show installments",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "features-list",
+      "name": "Features List",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "feature_1", "label": "Feature 1", "default": "16M Colors" },
+        { "type": "text", "id": "feature_2", "label": "Feature 2", "default": "App Control" },
+        { "type": "text", "id": "feature_3", "label": "Feature 3", "default": "Music Sync" },
+        { "type": "text", "id": "feature_4", "label": "Feature 4", "default": "Voice Control" }
+      ]
+    },
+    {
+      "type": "stats-bar",
+      "name": "Stats Bar",
+      "limit": 1,
+      "settings": [
+        { "type": "header", "content": "Stat 1" },
+        { "type": "text", "id": "stat_1_value", "label": "Value", "default": "98%" },
+        { "type": "text", "id": "stat_1_label", "label": "Label", "default": "LOVE IT" },
+        { "type": "header", "content": "Stat 2" },
+        { "type": "text", "id": "stat_2_value", "label": "Value", "default": "50K" },
+        { "type": "text", "id": "stat_2_label", "label": "Label", "default": "HOUR LIFE" },
+        { "type": "header", "content": "Stat 3" },
+        { "type": "text", "id": "stat_3_value", "label": "Value", "default": "2 Yr" },
+        { "type": "text", "id": "stat_3_label", "label": "Label", "default": "WARRANTY" }
+      ]
+    },
+    {
+      "type": "variant-picker",
+      "name": "Variant Picker",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "select",
+          "id": "variant_style",
+          "label": "Style",
+          "options": [
+            { "value": "buttons", "label": "Buttons" },
+            { "value": "dropdown", "label": "Dropdown" }
+          ],
+          "default": "buttons"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_swatches",
+          "label": "Show color swatches",
+          "default": true
+        }
+      ]
+    },
+    {
+      "type": "urgency",
+      "name": "Urgency",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "show_stock_count",
+          "label": "Show low stock warning",
+          "info": "Shows when 10 or fewer items remain",
+          "default": true
+        },
+        {
+          "type": "text",
+          "id": "viewers_text",
+          "label": "Viewers text",
+          "default": "23 people are viewing this right now",
+          "info": "Leave blank to hide"
+        }
+      ]
+    },
+    {
+      "type": "buy-buttons",
+      "name": "Buy Buttons",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "show_quantity",
+          "label": "Show quantity selector",
+          "default": true
+        },
+        {
+          "type": "checkbox",
+          "id": "show_dynamic_checkout",
+          "label": "Show dynamic checkout buttons",
+          "default": true
+        }
+      ]
+    },
+    {
+      "type": "trust-row",
+      "name": "Trust Badges",
+      "limit": 1,
+      "settings": [
+        { "type": "header", "content": "Badge 1" },
+        {
+          "type": "select", "id": "badge_1_icon", "label": "Icon",
+          "options": [
+            { "value": "truck", "label": "Truck (Shipping)" },
+            { "value": "shield-check", "label": "Shield (Warranty)" },
+            { "value": "refresh", "label": "Refresh (Returns)" },
+            { "value": "lock", "label": "Lock (Secure)" },
+            { "value": "clock", "label": "Clock (Fast)" },
+            { "value": "gift", "label": "Gift" },
+            { "value": "star", "label": "Star" },
+            { "value": "check", "label": "Check" }
+          ],
+          "default": "truck"
+        },
+        { "type": "text", "id": "badge_1_text", "label": "Text", "default": "Free Shipping" },
+        { "type": "header", "content": "Badge 2" },
+        {
+          "type": "select", "id": "badge_2_icon", "label": "Icon",
+          "options": [
+            { "value": "truck", "label": "Truck (Shipping)" },
+            { "value": "shield-check", "label": "Shield (Warranty)" },
+            { "value": "refresh", "label": "Refresh (Returns)" },
+            { "value": "lock", "label": "Lock (Secure)" },
+            { "value": "clock", "label": "Clock (Fast)" },
+            { "value": "gift", "label": "Gift" },
+            { "value": "star", "label": "Star" },
+            { "value": "check", "label": "Check" }
+          ],
+          "default": "shield-check"
+        },
+        { "type": "text", "id": "badge_2_text", "label": "Text", "default": "2-Year Warranty" },
+        { "type": "header", "content": "Badge 3" },
+        {
+          "type": "select", "id": "badge_3_icon", "label": "Icon",
+          "options": [
+            { "value": "truck", "label": "Truck (Shipping)" },
+            { "value": "shield-check", "label": "Shield (Warranty)" },
+            { "value": "refresh", "label": "Refresh (Returns)" },
+            { "value": "lock", "label": "Lock (Secure)" },
+            { "value": "clock", "label": "Clock (Fast)" },
+            { "value": "gift", "label": "Gift" },
+            { "value": "star", "label": "Star" },
+            { "value": "check", "label": "Check" }
+          ],
+          "default": "refresh"
+        },
+        { "type": "text", "id": "badge_3_text", "label": "Text", "default": "30-Day Returns" },
+        { "type": "header", "content": "Badge 4" },
+        {
+          "type": "select", "id": "badge_4_icon", "label": "Icon",
+          "options": [
+            { "value": "truck", "label": "Truck (Shipping)" },
+            { "value": "shield-check", "label": "Shield (Warranty)" },
+            { "value": "refresh", "label": "Refresh (Returns)" },
+            { "value": "lock", "label": "Lock (Secure)" },
+            { "value": "clock", "label": "Clock (Fast)" },
+            { "value": "gift", "label": "Gift" },
+            { "value": "star", "label": "Star" },
+            { "value": "check", "label": "Check" }
+          ],
+          "default": "lock"
+        },
+        { "type": "text", "id": "badge_4_text", "label": "Text", "default": "Secure Checkout" }
+      ]
+    },
+    {
+      "type": "delivery-estimate",
+      "name": "Delivery Estimate",
+      "limit": 1,
+      "settings": [
+        { "type": "range", "id": "delivery_days_min", "label": "Min delivery days", "min": 1, "max": 14, "step": 1, "default": 5 },
+        { "type": "range", "id": "delivery_days_max", "label": "Max delivery days", "min": 3, "max": 21, "step": 1, "default": 8 },
+        { "type": "range", "id": "cutoff_hour", "label": "Order cutoff hour (24h)", "min": 8, "max": 23, "step": 1, "default": 17, "info": "Orders after this hour ship next business day" }
+      ]
+    },
+    {
+      "type": "feature-highlights",
+      "name": "Feature Highlights",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "highlight_1", "label": "Highlight 1", "default": "16+ Million RGB Colors" },
+        { "type": "text", "id": "highlight_2", "label": "Highlight 2", "default": "App & Voice Control" },
+        { "type": "text", "id": "highlight_3", "label": "Highlight 3", "default": "Mirror by Day, Portal by Night" },
+        { "type": "text", "id": "highlight_4", "label": "Highlight 4", "default": "50,000 Hour LED Lifespan" }
+      ]
+    },
+    {
+      "type": "specifications",
+      "name": "Specifications",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "title", "label": "Title", "default": "Specifications" },
+        { "type": "checkbox", "id": "open_by_default", "label": "Open by default", "default": false },
+        {
+          "type": "textarea", "id": "specs_content", "label": "Specifications (one per line: Label | Value)",
+          "default": "Dimensions | 20\" x 20\" x 2\"\nWeight | 8 lbs\nPower | 12V DC, 2A\nLED Count | 300+ LEDs\nControl | App, Remote, Voice"
+        }
+      ]
+    },
+    {
+      "type": "whats-included",
+      "name": "What's Included",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "title", "label": "Title", "default": "What's Included" },
+        {
+          "type": "textarea", "id": "items", "label": "Items (one per line)",
+          "default": "OctaMirror Unit\nRemote Control\nPower Adapter\nMounting Hardware\nUser Manual"
+        }
+      ]
+    },
+    {
+      "type": "installation",
+      "name": "Installation Guide",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "title", "label": "Title", "default": "Installation Guide" },
+        { "type": "checkbox", "id": "open_by_default", "label": "Open by default", "default": false },
+        {
+          "type": "richtext", "id": "content", "label": "Content",
+          "default": "<p><strong>Step 1:</strong> Choose your location and mark the mounting points.</p><p><strong>Step 2:</strong> Install the mounting bracket using the included hardware.</p><p><strong>Step 3:</strong> Hang the mirror on the bracket and secure.</p><p><strong>Step 4:</strong> Connect the power adapter and download the app.</p>"
+        }
+      ]
+    },
+    {
+      "type": "care",
+      "name": "Care & Maintenance",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "title", "label": "Title", "default": "Care & Maintenance" },
+        { "type": "checkbox", "id": "open_by_default", "label": "Open by default", "default": false },
+        {
+          "type": "richtext", "id": "content", "label": "Content",
+          "default": "<p><strong>Cleaning:</strong> Use a soft, dry microfiber cloth. Avoid harsh chemicals.</p><p><strong>Location:</strong> Keep away from direct sunlight and moisture.</p><p><strong>Power:</strong> Unplug during extended periods of non-use.</p>"
+        }
+      ]
+    },
+    {
+      "type": "reviews",
+      "name": "Customer Reviews",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "title", "label": "Title", "default": "Customer Reviews" },
+        { "type": "checkbox", "id": "show_write_review", "label": "Show write review button", "default": true }
+      ]
+    },
+    {
+      "type": "description",
+      "name": "Description",
+      "limit": 1,
+      "settings": []
+    },
+    {
+      "type": "custom-liquid",
+      "name": "Custom Liquid",
+      "settings": [
+        {
+          "type": "liquid",
+          "id": "custom_liquid",
+          "label": "Custom Liquid",
+          "info": "Add custom Liquid code (e.g., app blocks, metafields)"
+        }
+      ]
+    }
+  ],
+  "settings": [
+    { "type": "header", "content": "Layout" },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Gallery position",
+      "options": [
+        { "value": "left-gallery", "label": "Gallery on left" },
+        { "value": "right-gallery", "label": "Gallery on right" }
+      ],
+      "default": "left-gallery"
+    },
+    { "type": "header", "content": "Sticky Cart" },
+    { "type": "checkbox", "id": "enable_sticky_cart", "label": "Enable sticky add-to-cart", "default": true },
+    { "type": "checkbox", "id": "hide_sticky_when_cart_open", "label": "Hide when cart drawer is open", "default": true },
+    { "type": "header", "content": "Colors" },
+    { "type": "color", "id": "accent_primary", "label": "Primary accent", "default": "#9333ea" },
+    { "type": "color", "id": "accent_secondary", "label": "Secondary accent", "default": "#ec4899" },
+    { "type": "color", "id": "gallery_bg", "label": "Gallery background", "default": "#fafafa" },
+    { "type": "color", "id": "gallery_bg_end", "label": "Gallery background end", "default": "#ede8ff" },
+    { "type": "color", "id": "price_color", "label": "Price color", "default": "#0a0a0a" },
+    { "type": "color", "id": "compare_price_color", "label": "Compare-at price", "default": "#9ca3af" },
+    { "type": "color", "id": "text_color", "label": "Text color", "default": "#0a0a0a" },
+    { "type": "color", "id": "text_muted", "label": "Muted text", "default": "#6b7280" },
+    { "type": "header", "content": "Spacing" },
+    { "type": "range", "id": "padding_top", "label": "Padding top", "min": 0, "max": 100, "step": 4, "unit": "px", "default": 0 },
+    { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 100, "step": 4, "unit": "px", "default": 0 }
+  ],
+  "presets": [
+    {
+      "name": "Casa Product Main",
+      "blocks": [
+        { "type": "gallery" },
+        { "type": "breadcrumbs" },
+        { "type": "title" },
+        { "type": "rating" },
+        { "type": "price" },
+        { "type": "features-list" },
+        { "type": "stats-bar" },
+        { "type": "variant-picker" },
+        { "type": "urgency" },
+        { "type": "buy-buttons" },
+        { "type": "trust-row" },
+        { "type": "delivery-estimate" },
+        { "type": "feature-highlights" },
+        { "type": "specifications" },
+        { "type": "whats-included" },
+        { "type": "installation" },
+        { "type": "care" },
+        { "type": "reviews" }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,426 @@
+{%- comment -%}
+  Seoul Glow Lab Collection Section
+  "Complete Your Collection" — 4-column grid of product cards (light theme)
+{%- endcomment -%}
+
+{%- liquid
+  assign tag_text = section.settings.tag | default: 'COLLECTION'
+  assign title = section.settings.title | default: 'Complete Your Collection'
+  assign subtitle = section.settings.subtitle | default: 'Discover more stunning pieces from Seoul Glow Lab'
+
+  assign padding_top = section.settings.padding_top | default: 100
+  assign padding_bottom = section.settings.padding_bottom | default: 100
+  assign padding_mobile_top = section.settings.padding_mobile_top | default: 60
+  assign padding_mobile_bottom = section.settings.padding_mobile_bottom | default: 60
+-%}
+
+<section
+  class="casa-collection-scroll"
+  id="casa-collection-scroll-{{ section.id }}"
+  style="
+    --ccs-padding-top: {{ padding_top }}px;
+    --ccs-padding-bottom: {{ padding_bottom }}px;
+    --ccs-padding-mobile-top: {{ padding_mobile_top }}px;
+    --ccs-padding-mobile-bottom: {{ padding_mobile_bottom }}px;
+  "
+>
+  <div class="casa-collection-scroll__container">
+    <div class="casa-collection-scroll__header">
+      {%- if tag_text != blank -%}
+        <span class="casa-collection-scroll__tag">{{ tag_text }}</span>
+      {%- endif -%}
+      {%- if title != blank -%}
+        <h2 class="casa-collection-scroll__title">{{ title }}</h2>
+      {%- endif -%}
+      {%- if subtitle != blank -%}
+        <p class="casa-collection-scroll__subtitle">{{ subtitle }}</p>
+      {%- endif -%}
+    </div>
+
+    <div class="casa-collection-scroll__grid">
+      {%- assign collection = collections[section.settings.collection] -%}
+
+      {%- if collection != blank and collection.products.size > 0 -%}
+        {%- for product in collection.products limit: 8 -%}
+          <a href="{{ product.url }}" class="casa-collection-scroll__card">
+            <div class="casa-collection-scroll__image">
+              {%- if product.featured_image != blank -%}
+                <img
+                  src="{{ product.featured_image | image_url: width: 400 }}"
+                  alt="{{ product.title | escape }}"
+                  class="casa-collection-scroll__product-image"
+                  loading="lazy"
+                >
+              {%- else -%}
+                <div class="casa-collection-scroll__shape casa-collection-scroll__shape--{{ forloop.index0 | modulo: 4 | plus: 1 }}"></div>
+              {%- endif -%}
+            </div>
+            <div class="casa-collection-scroll__info">
+              <h3 class="casa-collection-scroll__name">{{ product.title }}</h3>
+              <p class="casa-collection-scroll__price">
+                {%- if product.price_varies -%}
+                  From <span>{{ product.price_min | money }}</span>
+                {%- else -%}
+                  <span>{{ product.price | money }}</span>
+                {%- endif -%}
+              </p>
+            </div>
+          </a>
+        {%- endfor -%}
+      {%- else -%}
+        {%- comment -%} Placeholder cards matching screenshot {%- endcomment -%}
+        <div class="casa-collection-scroll__card">
+          <div class="casa-collection-scroll__image">
+            <div class="casa-collection-scroll__shape casa-collection-scroll__shape--1"></div>
+          </div>
+          <div class="casa-collection-scroll__info">
+            <h3 class="casa-collection-scroll__name">Infinity HexaMirror</h3>
+            <p class="casa-collection-scroll__price">From <span>$249.99</span></p>
+          </div>
+        </div>
+        <div class="casa-collection-scroll__card">
+          <div class="casa-collection-scroll__image">
+            <div class="casa-collection-scroll__shape casa-collection-scroll__shape--2"></div>
+          </div>
+          <div class="casa-collection-scroll__info">
+            <h3 class="casa-collection-scroll__name">Infinity TriMirror</h3>
+            <p class="casa-collection-scroll__price">From <span>$249.99</span></p>
+          </div>
+        </div>
+        <div class="casa-collection-scroll__card">
+          <div class="casa-collection-scroll__image">
+            <div class="casa-collection-scroll__shape casa-collection-scroll__shape--3"></div>
+          </div>
+          <div class="casa-collection-scroll__info">
+            <h3 class="casa-collection-scroll__name">Infinity 360</h3>
+            <p class="casa-collection-scroll__price">From <span>$299.99</span></p>
+          </div>
+        </div>
+        <div class="casa-collection-scroll__card">
+          <div class="casa-collection-scroll__image">
+            <div class="casa-collection-scroll__shape casa-collection-scroll__shape--4"></div>
+          </div>
+          <div class="casa-collection-scroll__info">
+            <h3 class="casa-collection-scroll__name">Infinity Cube</h3>
+            <p class="casa-collection-scroll__price">From <span>$349.99</span></p>
+          </div>
+        </div>
+      {%- endif -%}
+    </div>
+
+    {%- for block in section.blocks -%}
+      {%- case block.type -%}
+        {%- when '@app' -%}
+          <div {{ block.shopify_attributes }}>
+            {%- render block -%}
+          </div>
+        {%- when 'custom-liquid' -%}
+          <div {{ block.shopify_attributes }}>
+            {{ block.settings.custom_liquid }}
+          </div>
+      {%- endcase -%}
+    {%- endfor -%}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Casa Collection",
+  "tag": "section",
+  "class": "casa-collection-scroll-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "tag",
+      "label": "Tag",
+      "default": "COLLECTION"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Complete Your Collection"
+    },
+    {
+      "type": "textarea",
+      "id": "subtitle",
+      "label": "Subtitle",
+      "default": "Discover more stunning pieces from Seoul Glow Lab"
+    },
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Collection"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 100,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 100,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile_top",
+      "label": "Padding top (mobile)",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "default": 60,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile_bottom",
+      "label": "Padding bottom (mobile)",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "default": 60,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "@app"
+    },
+    {
+      "type": "custom-liquid",
+      "name": "Custom Liquid",
+      "settings": [
+        {
+          "type": "liquid",
+          "id": "custom_liquid",
+          "label": "Custom Liquid"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Collection"
+    }
+  ]
+}
+{% endschema %}
+
+{% stylesheet %}
+/* ══════════════════════════════════════════════════════════════════════════
+   CASA COLLECTION
+   "Complete Your Collection" — light section with product grid
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.casa-collection-scroll {
+  --ccs-padding-top: 100px;
+  --ccs-padding-bottom: 100px;
+  --ccs-padding-mobile-top: 60px;
+  --ccs-padding-mobile-bottom: 60px;
+
+  background: #fafafa;
+  padding: var(--ccs-padding-top) 0 var(--ccs-padding-bottom);
+}
+
+.casa-collection-scroll__container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ── Header ── */
+.casa-collection-scroll__header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.casa-collection-scroll__tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9333ea;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+.casa-collection-scroll__title {
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 300;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.5px;
+  color: #0a0a0a;
+  line-height: 1.2;
+}
+
+.casa-collection-scroll__subtitle {
+  font-size: 16px;
+  color: #757575;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ── Product Grid ── */
+.casa-collection-scroll__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+/* ── Product Card ── */
+.casa-collection-scroll__card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.3s ease;
+}
+
+.casa-collection-scroll__card:hover {
+  transform: translateY(-4px);
+}
+
+/* ── Image Area ── */
+.casa-collection-scroll__image {
+  background: #f0f0f0;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+}
+
+.casa-collection-scroll__product-image {
+  width: 65%;
+  height: 65%;
+  object-fit: contain;
+}
+
+/* ── Gradient Shapes ── */
+.casa-collection-scroll__shape {
+  width: 55%;
+  aspect-ratio: 1 / 1;
+}
+
+/* Octagon — purple → pink */
+.casa-collection-scroll__shape--1 {
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+  background: linear-gradient(135deg, #9333ea, #ec4899);
+}
+
+/* Triangle — cyan → purple */
+.casa-collection-scroll__shape--2 {
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  background: linear-gradient(135deg, #06b6d4, #6366f1);
+}
+
+/* Circle — pink → purple */
+.casa-collection-scroll__shape--3 {
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ec4899, #9333ea);
+}
+
+/* Rounded square — green → teal */
+.casa-collection-scroll__shape--4 {
+  border-radius: 16%;
+  background: linear-gradient(135deg, #22c55e, #06b6d4);
+}
+
+/* ── Product Info ── */
+.casa-collection-scroll__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.casa-collection-scroll__name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #0a0a0a;
+  margin: 0;
+}
+
+.casa-collection-scroll__price {
+  font-size: 13px;
+  color: #757575;
+  margin: 0;
+}
+
+.casa-collection-scroll__price span {
+  font-weight: 700;
+  color: #757575;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+  .casa-collection-scroll__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .casa-collection-scroll {
+    padding: var(--ccs-padding-mobile-top) 0 var(--ccs-padding-mobile-bottom);
+  }
+
+  .casa-collection-scroll__container {
+    padding: 0 16px;
+  }
+
+  .casa-collection-scroll__header {
+    margin-bottom: 32px;
+  }
+
+  .casa-collection-scroll__tag {
+    font-size: 11px;
+  }
+
+  .casa-collection-scroll__subtitle {
+    font-size: 14px;
+  }
+
+  .casa-collection-scroll__grid {
+    gap: 16px;
+  }
+
+  .casa-collection-scroll__name {
+    font-size: 12px;
+  }
+
+  .casa-collection-scroll__price {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .casa-collection-scroll__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+{% endstylesheet %}

@@ -1,0 +1,145 @@
+{%- doc -%}
+  Seoul Glow Lab Review Card
+
+  @param rating {number} - Optional. Star rating 1-5 (default: 5)
+  @param quote {string} - Required. Review text
+  @param author {string} - Required. Author name
+  @param location {string} - Optional. Author location
+  @param avatar_initial {string} - Optional. Single letter for avatar (defaults to first letter of author)
+  @param verified {boolean} - Optional. Show verified badge (default: false)
+{%- enddoc -%}
+
+{%- liquid
+  assign _rating = rating | default: 5
+  assign _quote = quote | default: ''
+  assign _author = author | default: 'Anonymous'
+  assign _location = location | default: ''
+  assign _initial = avatar_initial | default: _author | slice: 0
+  assign _verified = verified | default: false
+-%}
+
+<div class="casa-review-card">
+  <div class="casa-review-card__stars">
+    {%- for i in (1..5) -%}
+      {%- if i <= _rating -%}★{%- else -%}☆{%- endif -%}
+    {%- endfor -%}
+  </div>
+
+  {%- if _quote != blank -%}
+    <p class="casa-review-card__text">"{{ _quote }}"</p>
+  {%- endif -%}
+
+  <div class="casa-review-card__author">
+    <div class="casa-review-card__avatar">
+      {{ _initial | upcase }}
+    </div>
+    <div class="casa-review-card__author-info">
+      <div class="casa-review-card__name">
+        {{ _author }}
+        {%- if _verified -%}
+          <span class="casa-review-card__verified" title="Verified Purchase">
+            {%- render 'casa-icon', icon: 'check', size: 12 -%}
+          </span>
+        {%- endif -%}
+      </div>
+      {%- if _location != blank -%}
+        <div class="casa-review-card__location">{{ _location }}</div>
+      {%- endif -%}
+    </div>
+  </div>
+</div>
+
+{% stylesheet %}
+.casa-review-card {
+  background: #fafafa;
+  border: 1px solid #e5e5e5;
+  border-radius: 20px;
+  padding: 32px;
+}
+
+.casa-review-card__stars {
+  color: #fbbf24;
+  font-size: 18px;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+.casa-review-card__text {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #0a0a0a;
+  margin: 0 0 24px 0;
+}
+
+.casa-review-card__author {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.casa-review-card__avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #9333ea, #ec4899);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.casa-review-card__author-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.casa-review-card__name {
+  font-weight: 600;
+  font-size: 15px;
+  color: #0a0a0a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.casa-review-card__verified {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: #22c55e;
+  border-radius: 50%;
+}
+
+.casa-review-card__verified svg {
+  stroke: #ffffff;
+}
+
+.casa-review-card__location {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Dark variant for use on dark backgrounds */
+.casa-review-card--dark {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.casa-review-card--dark .casa-review-card__text {
+  color: #ffffff;
+}
+
+.casa-review-card--dark .casa-review-card__name {
+  color: #ffffff;
+}
+
+.casa-review-card--dark .casa-review-card__location {
+  color: rgba(255, 255, 255, 0.6);
+}
+{% endstylesheet %}

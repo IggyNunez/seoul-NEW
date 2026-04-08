@@ -19,7 +19,7 @@
       {{ 'icon-cart.svg' | inline_asset_content }}
     </span>
 
-    {% render 'cart-bubble', limit: 100, live_region: true, test_id: test_id %}
+    {% render 'cart-bubble', limit: 100, live_region: true %}
   </cart-icon>
 {% endcapture %}
 
@@ -54,7 +54,7 @@
       {% render 'account-button', attributes: 'on:click="/showDialog"' %}
       <dialog
         ref="dialog"
-        class="color-{{ settings.popover_color_scheme }} dialog-modal dialog-drawer dialog-bottom-sheet account-drawer__dialog"
+        class="color-{{ settings.popover_color_scheme }} dialog-modal dialog-drawer account-drawer__dialog"
         scroll-lock
         aria-labelledby="account-drawer-heading"
       >
@@ -84,6 +84,37 @@
       fetchpriority="low"
     ></script>
 
+    {% capture empty_cart_drawer_content %}
+      <div class="cart-drawer__header">
+        <button
+          ref="closeButton"
+          on:click="cart-drawer-component/close"
+          class="button close-button cart-drawer__close-button button-unstyled"
+          aria-label="{{ 'actions.close_dialog' | t }}"
+        >
+          <span class="svg-wrapper">
+            {{- 'icon-close.svg' | inline_asset_content -}}
+          </span>
+        </button>
+      </div>
+
+      <div
+        class="cart-drawer__content"
+        aria-label="{{ 'accessibility.cart' | t }}"
+      >
+        <h2
+          class="cart-drawer__heading h4 cart-drawer__heading--empty"
+          id="cart-drawer-heading-empty"
+        >
+          {{ 'content.your_cart_is_empty' | t }}
+        </h2>
+
+        <div class="cart-drawer__items">
+          {% render 'cart-products', force_empty: true %}
+        </div>
+      </div>
+    {% endcapture %}
+
     <cart-drawer-component
       class="cart-drawer"
       {{ block.shopify_attributes }}
@@ -91,6 +122,9 @@
         auto-open
       {% endif %}
     >
+      <template id="empty-cart-template">
+        {{ empty_cart_drawer_content }}
+      </template>
       <button
         class="button header-actions__action button-unstyled"
         on:click="/open"
@@ -109,40 +143,17 @@
         scroll-lock
         cart-summary-sticky="true"
       >
-        <div class="cart-drawer__inner">
+        <div
+          class="cart-drawer__inner"
+          data-hydration-key="cart-drawer-inner"
+        >
           <cart-items-component
             class="cart-items-component"
+            data-drawer
             data-section-id="{{ section.id }}"
           >
             {%- if cart.empty? -%}
-              <div class="cart-drawer__header">
-                <button
-                  ref="closeButton"
-                  on:click="cart-drawer-component/close"
-                  class="button close-button cart-drawer__close-button button-unstyled"
-                  aria-label="{{ 'actions.close_dialog' | t }}"
-                >
-                  <span class="svg-wrapper">
-                    {{- 'icon-close.svg' | inline_asset_content -}}
-                  </span>
-                </button>
-              </div>
-
-              <div
-                class="cart-drawer__content motion-reduce"
-                aria-label="{{ 'accessibility.cart' | t }}"
-              >
-                <h2
-                  class="cart-drawer__heading h4 cart-drawer__heading--empty"
-                  id="cart-drawer-heading-empty"
-                >
-                  {{ 'content.your_cart_is_empty' | t }}
-                </h2>
-
-                <div class="cart-drawer__items">
-                  {% render 'cart-products', drawer_context: 'drawer' %}
-                </div>
-              </div>
+              {{ empty_cart_drawer_content }}
             {%- else -%}
               <div
                 class="cart-drawer__header"
@@ -168,8 +179,72 @@
                 </button>
               </div>
 
+              {%- comment -%} ═══ CRO: Cart Announcement Banner ═══ {%- endcomment -%}
+              {%- if settings.cart_show_announcement and settings.cart_announcement_text != blank -%}
+                <div class="cart-cro__announcement">
+                  {%- if settings.cart_announcement_link != blank -%}
+                    <a href="{{ settings.cart_announcement_link }}" class="cart-cro__announcement-link">
+                      {{ settings.cart_announcement_text }}
+                      {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}
+                    </a>
+                  {%- else -%}
+                    <span>{{ settings.cart_announcement_text }}</span>
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
+
+              {%- comment -%} ═══ CRO: Free Shipping Progress Bar ═══ {%- endcomment -%}
+              {%- liquid
+                assign free_shipping_threshold = settings.free_shipping_threshold | default: 0
+                if free_shipping_threshold > 0
+                  assign cart_total_cents = cart.total_price
+                  assign threshold_cents = free_shipping_threshold | times: 100
+                  assign remaining_cents = threshold_cents | minus: cart_total_cents
+                  assign progress_percent = cart_total_cents | times: 100 | divided_by: threshold_cents
+                  if progress_percent > 100
+                    assign progress_percent = 100
+                  endif
+                  assign remaining_amount = remaining_cents | money_without_trailing_zeros
+                endif
+              -%}
+              {%- if free_shipping_threshold > 0 -%}
+                <div class="cart-cro__shipping-bar">
+                  {%- if remaining_cents > 0 -%}
+                    <p class="cart-cro__shipping-text">
+                      {%- render 'casa-icon', icon: 'truck', size: 16 -%}
+                      <span>Add <strong>{{ remaining_amount }}</strong> more for <strong>FREE shipping!</strong></span>
+                    </p>
+                  {%- else -%}
+                    <p class="cart-cro__shipping-text cart-cro__shipping-text--success">
+                      {%- render 'casa-icon', icon: 'check', size: 16 -%}
+                      <span><strong>Congrats!</strong> You've unlocked <strong>FREE shipping!</strong></span>
+                    </p>
+                  {%- endif -%}
+                  <div class="cart-cro__shipping-track">
+                    <div class="cart-cro__shipping-progress" style="--progress: {{ progress_percent }}%;"></div>
+                  </div>
+                </div>
+              {%- endif -%}
+
+
+              {%- comment -%} ═══ CRO: Delivery Estimate ═══ {%- endcomment -%}
+              {%- if settings.cart_show_delivery_estimate -%}
+                {%- liquid
+                  assign processing_days = settings.cart_processing_days | default: 1
+                  assign shipping_days = settings.cart_shipping_days | default: 5
+                  assign cutoff_time = settings.cart_cutoff_time | default: '14:00'
+                  assign total_days = processing_days | plus: shipping_days
+                -%}
+                <div class="cart-cro__delivery">
+                  {%- render 'casa-icon', icon: 'calendar', size: 16 -%}
+                  <span class="cart-cro__delivery-text">
+                    Order now for delivery in <strong>{{ total_days }}-{{ total_days | plus: 2 }} business days</strong>
+                  </span>
+                </div>
+              {%- endif -%}
+
               <scroll-hint
-                class="cart-drawer__content motion-reduce"
+                class="cart-drawer__content"
                 aria-label="{{ 'accessibility.cart' | t }}"
                 style="--header-height: 60px;"
               >
@@ -179,10 +254,147 @@
                   {% render 'cart-products', drawer_context: 'drawer' %}
                 </scroll-hint>
 
+                {%- comment -%} ═══ CRO: Savings Display ═══ {%- endcomment -%}
+                {%- if settings.cart_show_savings -%}
+                  {%- liquid
+                    assign total_savings = 0
+
+                    # Calculate savings from discounts
+                    for discount in cart.cart_level_discount_applications
+                      assign total_savings = total_savings | plus: discount.total_allocated_amount
+                    endfor
+
+                    # Calculate savings from compare-at prices
+                    if settings.cart_show_compare_at_savings
+                      for item in cart.items
+                        if item.variant.compare_at_price > item.variant.price
+                          assign item_savings = item.variant.compare_at_price | minus: item.variant.price | times: item.quantity
+                          assign total_savings = total_savings | plus: item_savings
+                        endif
+                      endfor
+                    endif
+                  -%}
+                  {%- if total_savings > 0 -%}
+                    <div class="cart-cro__savings">
+                      {%- render 'casa-icon', icon: 'tag', size: 16 -%}
+                      <span>You're saving <strong>{{ total_savings | money }}</strong> on this order!</span>
+                    </div>
+                  {%- endif -%}
+                {%- endif -%}
+
+                {%- comment -%} ═══ CRO: Upsell Section ═══ {%- endcomment -%}
+                {%- if settings.cart_show_upsell and settings.cart_upsell_collection != blank -%}
+                  {%- assign upsell_collection = collections[settings.cart_upsell_collection] -%}
+                  {%- if upsell_collection.products.size > 0 -%}
+                    {%- liquid
+                      # Get product IDs in cart to exclude from upsell
+                      assign cart_product_ids = cart.items | map: 'product_id'
+                      assign upsell_limit = settings.cart_upsell_limit | default: 3
+                      assign upsell_count = 0
+                    -%}
+                    <div class="cart-cro__upsell">
+                      <h3 class="cart-cro__upsell-title">
+                        {%- render 'casa-icon', icon: 'sparkles', size: 16 -%}
+                        {{ settings.cart_upsell_title | default: 'Complete Your Setup' }}
+                      </h3>
+                      <div class="cart-cro__upsell-products">
+                        {%- for product in upsell_collection.products -%}
+                          {%- unless cart_product_ids contains product.id -%}
+                            {%- if upsell_count < upsell_limit -%}
+                              <div class="cart-cro__upsell-item">
+                                <a href="{{ product.url }}" class="cart-cro__upsell-image">
+                                  {%- if product.featured_image -%}
+                                    {{ product.featured_image | image_url: width: 80 | image_tag: loading: 'lazy', width: 80, height: 80 }}
+                                  {%- endif -%}
+                                </a>
+                                <div class="cart-cro__upsell-info">
+                                  <a href="{{ product.url }}" class="cart-cro__upsell-name">{{ product.title | truncate: 30 }}</a>
+                                  <span class="cart-cro__upsell-price">{{ product.price | money }}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  class="cart-cro__upsell-add"
+                                  data-product-id="{{ product.variants.first.id }}"
+                                  aria-label="Add {{ product.title }} to cart"
+                                >
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                </button>
+                              </div>
+                              {%- assign upsell_count = upsell_count | plus: 1 -%}
+                            {%- endif -%}
+                          {%- endunless -%}
+                        {%- endfor -%}
+                      </div>
+                    </div>
+                  {%- endif -%}
+                {%- endif -%}
+
+                {%- comment -%} ═══ CRO: Gift Options ═══ {%- endcomment -%}
+                {%- if settings.cart_show_gift_options -%}
+                  <div class="cart-cro__gift-options">
+                    <label class="cart-cro__gift-checkbox">
+                      <input type="checkbox" name="attributes[gift_wrap]" value="yes" {% if cart.attributes.gift_wrap == 'yes' %}checked{% endif %}>
+                      <span class="cart-cro__gift-label">
+                        {%- render 'casa-icon', icon: 'gift', size: 16 -%}
+                        {{ settings.cart_gift_wrap_text | default: 'Add gift wrapping' }}
+                        <span class="cart-cro__gift-price">{{ settings.cart_gift_wrap_price | default: '$5.00' }}</span>
+                      </span>
+                    </label>
+                    <div class="cart-cro__gift-message" style="display: none;">
+                      <label for="gift-message" class="visually-hidden">Gift message</label>
+                      <textarea
+                        id="gift-message"
+                        name="attributes[gift_message]"
+                        placeholder="Add a personalized message..."
+                        rows="2"
+                      >{{ cart.attributes.gift_message }}</textarea>
+                    </div>
+                  </div>
+                {%- endif -%}
+
                 <div
                   class="cart-drawer__summary"
                 >
-                  {% render 'cart-summary' %}
+                  {% render 'cart-summary', section_id: section.id %}
+
+                  {%- comment -%} ═══ CRO: Trust Badges ═══ {%- endcomment -%}
+                  {%- if settings.cart_show_trust_badges -%}
+                    <div class="cart-cro__trust-badges">
+                      {%- if settings.cart_trust_badge_1 != blank -%}
+                        <div class="cart-cro__trust-badge">
+                          {%- render 'casa-icon', icon: 'lock', size: 14 -%}
+                          <span>{{ settings.cart_trust_badge_1 }}</span>
+                        </div>
+                      {%- endif -%}
+                      {%- if settings.cart_trust_badge_2 != blank -%}
+                        <div class="cart-cro__trust-badge">
+                          {%- render 'casa-icon', icon: 'refresh', size: 14 -%}
+                          <span>{{ settings.cart_trust_badge_2 }}</span>
+                        </div>
+                      {%- endif -%}
+                      {%- if settings.cart_trust_badge_3 != blank -%}
+                        <div class="cart-cro__trust-badge">
+                          {%- render 'casa-icon', icon: 'shield-check', size: 14 -%}
+                          <span>{{ settings.cart_trust_badge_3 }}</span>
+                        </div>
+                      {%- endif -%}
+                    </div>
+                  {%- endif -%}
+
+                  {%- comment -%} ═══ CRO: Payment Icons ═══ {%- endcomment -%}
+                  {%- if settings.cart_show_payment_icons -%}
+                    <div class="cart-cro__payment-icons">
+                      <span class="cart-cro__payment-label">We accept</span>
+                      <div class="cart-cro__payment-list">
+                        {{ 'visa' | payment_type_svg_tag }}
+                        {{ 'master' | payment_type_svg_tag }}
+                        {{ 'american_express' | payment_type_svg_tag }}
+                        {{ 'paypal' | payment_type_svg_tag }}
+                        {{ 'apple_pay' | payment_type_svg_tag }}
+                        {{ 'google_pay' | payment_type_svg_tag }}
+                      </div>
+                    </div>
+                  {%- endif -%}
                 </div>
               </scroll-hint>
             {%- endif -%}
@@ -341,13 +553,6 @@
   .cart-drawer {
     --cart-drawer-padding: var(--padding-lg) var(--padding-xl);
     --cart-drawer-padding-desktop: var(--padding-xl) var(--padding-2xl);
-    --cart-font-size--2xs: var(--font-size--2xs);
-    --cart-font-size--xs: var(--font-size--xs);
-    --cart-font-size--sm: var(--font-size--sm);
-    --cart-font-size--md: var(--font-size--md);
-    --cart-font-size--lg: var(--font-size--lg);
-    --cart-font-size--xl: var(--font-size--xl);
-    --cart-font-size--2xl: var(--font-size--2xl);
   }
 
   .cart-drawer__dialog {
@@ -362,13 +567,6 @@
     border-left: var(--style-border-drawer);
     box-shadow: var(--shadow-drawer);
     background-color: var(--color-background);
-  }
-
-  .cart-items-component {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
   }
 
   /* Needed to ensure the drawer is full height */
@@ -396,11 +594,7 @@
     display: flex;
     align-items: center;
     gap: var(--gap-xs);
-    margin-bottom: var(--margin-lg);
-
-    @media screen and (max-width: 749px) {
-      margin-bottom: 0;
-    }
+    margin-bottom: 0;
   }
 
   .cart-drawer__close-button {
@@ -466,23 +660,11 @@
     overflow: unset;
   }
 
-  .cart-actions summary,
-  .cart-actions .disclosure-trigger {
+  .cart-actions summary {
     padding-inline: 0;
     padding-block: var(--padding-sm);
     line-height: 1.2;
     min-height: var(--minimum-touch-target);
-  }
-
-  .cart-drawer__summary .cart__summary-totals:not(:has(.cart__original-total-container:empty)) {
-    border-block-start: var(--style-border-width) solid var(--color-border);
-    padding-block-start: var(--padding-2xl);
-  }
-
-  .cart-drawer__summary .cart-note {
-    @media screen and (min-width: 750px) {
-      margin-block-start: var(--margin-3xs);
-    }
   }
 
   .cart-drawer__heading--empty {
@@ -553,14 +735,6 @@
     text-align: center;
   }
 
-  .cart-drawer:not(:has(.cart-form)) .cart-items__wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-  }
-
   header-actions {
     display: flex;
 
@@ -569,26 +743,12 @@
     }
   }
 
+  #header-component[data-menu-style='drawer'] header-actions {
+    justify-self: flex-end;
+  }
+
   .header__column--right header-actions {
     margin-inline-start: calc(var(--gap-md) * -1);
-  }
-
-  .header-actions__action {
-    --button-color: var(--color-foreground);
-
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-  }
-
-  .header-actions__action .svg-wrapper {
-    height: var(--button-size);
-    width: var(--button-size);
-  }
-
-  .header-actions__action svg {
-    width: var(--icon-size-md);
-    height: var(--icon-size-md);
   }
 
   .header-actions__cart-icon {
@@ -614,8 +774,8 @@
   }
 
   .cart-drawer__heading .cart-bubble[data-maintain-ratio] {
-    aspect-ratio: 1;
-    min-width: 26px;
+    width: min(1lh, 22px);
+    height: min(1lh, 22px);
   }
 
   .header-actions__cart-icon .cart-bubble__text,
@@ -640,7 +800,7 @@
 
   .cart-drawer__heading .cart-bubble__text {
     color: var(--color-foreground);
-    font-size: var(--font-size--xs);
+    font-size: clamp(var(--font-size--3xs), 0.75em, var(--font-size--xs));
   }
 
   .cart-bubble--animating .cart-bubble__background {
@@ -666,4 +826,590 @@
       --cart-bubble-right: 4px;
     }
   }
+
+  @media screen and (prefers-reduced-motion: no-preference) {
+    html:active-view-transition-type(empty-cart-drawer) {
+      .cart-drawer__close-button {
+        view-transition-name: cart-drawer-close-button;
+      }
+
+      .cart-items-component {
+        view-transition-name: cart-drawer-content;
+      }
+    }
+  }
+
+  :active-view-transition {
+    .cart-drawer__header,
+    .cart-drawer__content {
+      background: transparent;
+    }
+  }
+
+  ::view-transition-old(cart-drawer-content) {
+    transform-origin: 50% 33%;
+    animation: cart-contents-old var(--spring-d280-b0-duration) var(--spring-d280-b0-easing) forwards;
+  }
+
+  ::view-transition-new(cart-drawer-content) {
+    transform-origin: top center;
+    animation: cart-contents-new var(--spring-d280-b0-duration) var(--spring-d280-b0-easing) forwards;
+  }
+
+  @keyframes cart-contents-old {
+    to {
+      scale: 0.92;
+      opacity: 0;
+    }
+  }
+
+  @keyframes cart-contents-new {
+    from {
+      scale: 1.05;
+      translate: 0 128px;
+      filter: blur(1px);
+      opacity: 0;
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     CRO ELEMENTS - Conversion Rate Optimization for Cart Drawer
+     White background theme with Casa purple accents for trust
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  /* ── CRO CSS Custom Properties ── */
+  .cart-drawer {
+    --cro-accent: #9333ea;
+    --cro-accent-light: #a855f7;
+    --cro-accent-rgb: 147, 51, 234;
+    --cro-success: #10b981;
+    --cro-success-light: #34d399;
+    --cro-warning: #f59e0b;
+    --cro-text-primary: #1f2937;
+    --cro-text-secondary: #6b7280;
+    --cro-text-muted: #9ca3af;
+    --cro-border: #e5e7eb;
+    --cro-bg-light: #f9fafb;
+    --cro-bg-accent: rgba(147, 51, 234, 0.05);
+  }
+
+  /* ── Cart Announcement Banner ── */
+  .cart-cro__announcement {
+    background: linear-gradient(135deg, var(--cro-accent), var(--cro-accent-light));
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .cart-cro__announcement-link {
+    color: white;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: opacity 0.2s;
+  }
+
+  .cart-cro__announcement-link:hover {
+    opacity: 0.9;
+  }
+
+  /* ── Free Shipping Progress Bar ── */
+  .cart-cro__shipping-bar {
+    padding: 16px 20px;
+    background: var(--cro-bg-light);
+    border-bottom: 1px solid var(--cro-border);
+  }
+
+  .cart-cro__shipping-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px 0;
+    font-size: 13px;
+    color: var(--cro-text-primary);
+  }
+
+  .cart-cro__shipping-text svg {
+    color: var(--cro-accent);
+    flex-shrink: 0;
+  }
+
+  .cart-cro__shipping-text strong {
+    color: var(--cro-accent);
+    font-weight: 600;
+  }
+
+  .cart-cro__shipping-text--success {
+    color: var(--cro-success);
+  }
+
+  .cart-cro__shipping-text--success svg,
+  .cart-cro__shipping-text--success strong {
+    color: var(--cro-success);
+  }
+
+  .cart-cro__shipping-track {
+    height: 6px;
+    background: var(--cro-border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .cart-cro__shipping-progress {
+    height: 100%;
+    width: var(--progress, 0%);
+    background: linear-gradient(90deg, var(--cro-accent), var(--cro-success));
+    border-radius: 3px;
+    transition: width 0.5s ease;
+    position: relative;
+  }
+
+  .cart-cro__shipping-progress::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: cro-shimmer 2s infinite;
+  }
+
+  @keyframes cro-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* ── Delivery Estimate ── */
+  .cart-cro__delivery {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: white;
+    border-bottom: 1px solid var(--cro-border);
+    font-size: 13px;
+    color: var(--cro-text-secondary);
+  }
+
+  .cart-cro__delivery svg {
+    color: var(--cro-accent);
+    flex-shrink: 0;
+  }
+
+  .cart-cro__delivery strong {
+    color: var(--cro-text-primary);
+  }
+
+  /* ── Savings Display ── */
+  .cart-cro__savings {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    margin: 0 -20px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(52, 211, 153, 0.05));
+    border-top: 1px solid rgba(16, 185, 129, 0.2);
+    border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+    font-size: 13px;
+    color: var(--cro-success);
+    font-weight: 500;
+  }
+
+  .cart-cro__savings svg {
+    flex-shrink: 0;
+  }
+
+  .cart-cro__savings strong {
+    font-weight: 700;
+  }
+
+  @media screen and (min-width: 750px) {
+    .cart-cro__savings {
+      margin: 0 -32px;
+      padding: 12px 32px;
+    }
+  }
+
+  /* ── Upsell Section ── */
+  .cart-cro__upsell {
+    padding: 20px;
+    margin: 0 -20px;
+    background: var(--cro-bg-light);
+    border-top: 1px solid var(--cro-border);
+  }
+
+  @media screen and (min-width: 750px) {
+    .cart-cro__upsell {
+      margin: 0 -32px;
+      padding: 20px 32px;
+    }
+  }
+
+  .cart-cro__upsell-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cro-text-primary);
+    margin: 0 0 16px 0;
+  }
+
+  .cart-cro__upsell-title svg {
+    color: var(--cro-accent);
+  }
+
+  .cart-cro__upsell-products {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .cart-cro__upsell-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background: white;
+    border: 1px solid var(--cro-border);
+    border-radius: 10px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .cart-cro__upsell-item:hover {
+    border-color: var(--cro-accent);
+    box-shadow: 0 2px 8px rgba(var(--cro-accent-rgb), 0.1);
+  }
+
+  .cart-cro__upsell-image {
+    width: 56px;
+    height: 56px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--cro-bg-light);
+  }
+
+  .cart-cro__upsell-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .cart-cro__upsell-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .cart-cro__upsell-name {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--cro-text-primary);
+    text-decoration: none;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cart-cro__upsell-name:hover {
+    color: var(--cro-accent);
+  }
+
+  .cart-cro__upsell-price {
+    font-size: 12px;
+    color: var(--cro-text-secondary);
+    font-weight: 500;
+  }
+
+  .cart-cro__upsell-add {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--cro-accent, #9333ea);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+    flex-shrink: 0;
+  }
+
+  .cart-cro__upsell-add svg {
+    width: 16px;
+    height: 16px;
+    stroke: white;
+    stroke-width: 2;
+  }
+
+  .cart-cro__upsell-add:hover {
+    background: var(--cro-accent-light, #a855f7);
+    transform: scale(1.05);
+  }
+
+  .cart-cro__upsell-add:active {
+    transform: scale(0.95);
+  }
+
+  /* ── Gift Options ── */
+  .cart-cro__gift-options {
+    padding: 16px 20px;
+    margin: 0 -20px;
+    background: var(--cro-bg-accent);
+    border-top: 1px solid var(--cro-border);
+  }
+
+  @media screen and (min-width: 750px) {
+    .cart-cro__gift-options {
+      margin: 0 -32px;
+      padding: 16px 32px;
+    }
+  }
+
+  .cart-cro__gift-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+  }
+
+  .cart-cro__gift-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--cro-accent);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .cart-cro__gift-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--cro-text-primary);
+    flex-wrap: wrap;
+  }
+
+  .cart-cro__gift-label svg {
+    color: var(--cro-accent);
+  }
+
+  .cart-cro__gift-price {
+    color: var(--cro-text-secondary);
+    font-weight: 500;
+  }
+
+  .cart-cro__gift-message {
+    margin-top: 12px;
+  }
+
+  .cart-cro__gift-message textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--cro-border);
+    border-radius: 8px;
+    font-size: 13px;
+    resize: vertical;
+    min-height: 60px;
+    font-family: inherit;
+  }
+
+  .cart-cro__gift-message textarea:focus {
+    outline: none;
+    border-color: var(--cro-accent);
+    box-shadow: 0 0 0 3px rgba(var(--cro-accent-rgb), 0.1);
+  }
+
+  /* ── Trust Badges ── */
+  .cart-cro__trust-badges {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px 0;
+    margin-top: 16px;
+    border-top: 1px solid var(--cro-border);
+    flex-wrap: wrap;
+  }
+
+  .cart-cro__trust-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--cro-text-secondary);
+    font-weight: 500;
+  }
+
+  .cart-cro__trust-badge svg {
+    color: var(--cro-success);
+    flex-shrink: 0;
+  }
+
+  /* ── Payment Icons ── */
+  .cart-cro__payment-icons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0;
+  }
+
+  .cart-cro__payment-label {
+    font-size: 11px;
+    color: var(--cro-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .cart-cro__payment-list {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .cart-cro__payment-list svg {
+    height: 24px;
+    width: auto;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+
+  .cart-cro__payment-list svg:hover {
+    opacity: 1;
+  }
+
+  /* ── Low Stock Warning (for cart items) ── */
+  .cart-cro__low-stock {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    background: rgba(245, 158, 11, 0.1);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--cro-warning);
+    margin-top: 6px;
+  }
+
+  .cart-cro__low-stock svg {
+    flex-shrink: 0;
+  }
+
+  /* ── Enhanced Checkout Button ── */
+  .cart-drawer .cart__checkout-button {
+    background: linear-gradient(135deg, var(--cro-accent), var(--cro-accent-light));
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .cart-drawer .cart__checkout-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--cro-accent-rgb), 0.3);
+  }
+
+  .cart-drawer .cart__checkout-button:active {
+    transform: translateY(0);
+  }
+
+  /* ── Cart Drawer Dialog Enhancements ── */
+  .cart-drawer__dialog {
+    border-radius: 16px 0 0 16px;
+    box-shadow: -8px 0 30px rgba(0, 0, 0, 0.15);
+  }
+
+  .cart-drawer__heading {
+    font-weight: 600;
+    color: var(--cro-text-primary);
+  }
+
+  .cart-drawer__heading .cart-bubble {
+    background: linear-gradient(135deg, var(--cro-accent), var(--cro-accent-light));
+    color: white;
+  }
+
+  .cart-drawer__heading .cart-bubble__background {
+    display: none;
+  }
+
+  /* ── JS for Gift Options toggle ── */
+  @supports selector(:has(*)) {
+    .cart-cro__gift-checkbox:has(input:checked) ~ .cart-cro__gift-message {
+      display: block !important;
+    }
+  }
 {% endstylesheet %}
+
+{%- comment -%} ═══ CRO: Upsell Quick Add JavaScript ═══ {%- endcomment -%}
+<script type="module">
+  // Upsell Quick Add to Cart functionality
+  document.addEventListener('click', async (e) => {
+    const addBtn = e.target.closest('.cart-cro__upsell-add');
+    if (!addBtn) return;
+
+    const variantId = addBtn.dataset.productId;
+    if (!variantId) return;
+
+    // Visual feedback
+    addBtn.disabled = true;
+    const originalContent = addBtn.innerHTML;
+    addBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg>';
+    addBtn.style.animation = 'spin 0.5s linear infinite';
+
+    try {
+      const response = await fetch('/cart/add.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: [{ id: parseInt(variantId), quantity: 1 }] })
+      });
+
+      if (response.ok) {
+        // Success - trigger cart update
+        addBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+        addBtn.style.animation = '';
+        addBtn.style.background = '#10b981';
+
+        // Dispatch CartAddEvent for Horizon's cart drawer to update
+        document.dispatchEvent(new CustomEvent('CartAddEvent'));
+
+        // Remove the item from upsell after a delay
+        setTimeout(() => {
+          const item = addBtn.closest('.cart-cro__upsell-item');
+          if (item) {
+            item.style.transition = 'opacity 0.3s, transform 0.3s';
+            item.style.opacity = '0';
+            item.style.transform = 'translateX(20px)';
+            setTimeout(() => item.remove(), 300);
+          }
+        }, 1000);
+      } else {
+        throw new Error('Failed to add');
+      }
+    } catch (err) {
+      // Error state
+      addBtn.innerHTML = originalContent;
+      addBtn.style.animation = '';
+      addBtn.disabled = false;
+      addBtn.style.background = '#ef4444';
+      setTimeout(() => {
+        addBtn.style.background = '';
+      }, 2000);
+    }
+  });
+
+  // Spin animation for loading state
+  const style = document.createElement('style');
+  style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+  document.head.appendChild(style);
+</script>

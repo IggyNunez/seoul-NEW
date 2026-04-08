@@ -1,0 +1,750 @@
+{%- comment -%}
+  Seoul Glow Lab - Styled Spaces Gallery
+  Bento grid: first card featured (spans 2 col + 2 row), remaining 4/3 aspect cards
+  Conversion section — shows product in real room settings
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign tag_text  = s.tag_text
+  assign heading   = s.heading
+  assign subtitle  = s.subtitle
+
+  assign bg_color   = s.bg_color | default: '#ffffff'
+  assign text_color = s.text_color | default: '#0a0a0a'
+  assign tag_color  = s.tag_color | default: '#9333ea'
+  assign subtitle_color = s.subtitle_color | default: '#6b7280'
+
+  assign mobile_last_card = s.mobile_last_card | default: 'auto'
+
+  assign padding_top          = s.padding_top | default: 100
+  assign padding_bottom       = s.padding_bottom | default: 100
+  assign padding_mobile_top   = s.padding_mobile_top | default: 60
+  assign padding_mobile_bottom = s.padding_mobile_bottom | default: 60
+-%}
+
+<section
+  class="cdl-spaces"
+  id="cdl-spaces-{{ section.id }}"
+  style="
+    --cdls-bg: {{ bg_color }};
+    --cdls-text: {{ text_color }};
+    --cdls-pt: {{ padding_top }}px;
+    --cdls-pb: {{ padding_bottom }}px;
+    --cdls-tag: {{ tag_color }};
+    --cdls-subtitle: {{ subtitle_color }};
+    --cdls-mpt: {{ padding_mobile_top }}px;
+    --cdls-mpb: {{ padding_mobile_bottom }}px;
+    --cdl-spaces-max-w: {% case section.settings.section_width %}{% when 'full' %}100%{% when 'wide' %}1600px{% when 'narrow' %}1200px{% else %}1400px{% endcase %};
+    --cdl-spaces-px: {% if section.settings.section_width == 'full' %}24px{% else %}40px{% endif %};
+  "
+>
+  <div class="cdl-spaces__container">
+    {%- comment -%} Header {%- endcomment -%}
+    <div class="cdl-spaces__header">
+      {%- if tag_text != blank -%}
+        <span class="cdl-spaces__tag">{{ tag_text }}</span>
+      {%- endif -%}
+      {%- if heading != blank -%}
+        <h2 class="cdl-spaces__heading">{{ heading }}</h2>
+      {%- endif -%}
+      {%- if subtitle != blank -%}
+        <p class="cdl-spaces__subtitle">{{ subtitle }}</p>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} Bento Grid {%- endcomment -%}
+    {%- liquid
+      assign non_featured_count = 0
+      for block in section.blocks
+        unless forloop.first
+          if block.type == 'space'
+            assign non_featured_count = non_featured_count | plus: 1
+          endif
+        endunless
+      endfor
+      assign is_odd = non_featured_count | modulo: 2
+      assign show_last_wide = false
+      if mobile_last_card == 'wide'
+        assign show_last_wide = true
+      elsif mobile_last_card == 'auto' and is_odd == 1
+        assign show_last_wide = true
+      endif
+    -%}
+    <div class="cdl-spaces__grid{% if show_last_wide %} cdl-spaces__grid--last-wide{% endif %}">
+      {%- for block in section.blocks -%}
+        {%- case block.type -%}
+          {%- when 'space' -%}
+            {%- liquid
+              assign has_hosted_video = false
+              assign has_ext_video = false
+              if block.settings.video != blank
+                assign has_hosted_video = true
+              endif
+              if block.settings.video_url != blank
+                assign has_ext_video = true
+              endif
+            -%}
+            {%- assign _has_link = false -%}
+            {%- if block.settings.link != blank -%}{%- assign _has_link = true -%}{%- endif -%}
+            {%- assign _has_content = false -%}
+            {%- if block.settings.title != blank or block.settings.caption != blank -%}{%- assign _has_content = true -%}{%- endif -%}
+            <{% if _has_link %}a href="{{ block.settings.link }}"{% else %}div{% endif %}
+              class="cdl-spaces__card{% if forloop.first %} cdl-spaces__card--featured{% endif %}{% if has_hosted_video or has_ext_video %} cdl-spaces__card--has-video{% endif %}{% unless _has_content %} cdl-spaces__card--no-content{% endunless %}"
+              {{ block.shopify_attributes }}
+            >
+              {%- comment -%} Video background (Shopify-hosted takes priority) {%- endcomment -%}
+              {%- if has_hosted_video -%}
+                <video
+                  class="cdl-spaces__video"
+                  autoplay
+                  loop
+                  muted
+                  playsinline
+                  {%- if block.settings.image != blank %}
+                    poster="{{ block.settings.image | image_url: width: 1400 }}"
+                  {%- endif %}
+                >
+                  {%- for source in block.settings.video.sources -%}
+                    <source src="{{ source.url }}" type="{{ source.mime_type }}">
+                  {%- endfor -%}
+                </video>
+              {%- elsif has_ext_video -%}
+                <video
+                  class="cdl-spaces__video"
+                  src="{{ block.settings.video_url }}"
+                  autoplay
+                  loop
+                  muted
+                  playsinline
+                  {%- if block.settings.image != blank %}
+                    poster="{{ block.settings.image | image_url: width: 1400 }}"
+                  {%- endif %}
+                ></video>
+              {%- endif -%}
+
+              {%- comment -%} Image background (fallback when no video, or poster for video) {%- endcomment -%}
+              {%- if block.settings.image != blank -%}
+                <img
+                  src="{{ block.settings.image | image_url: width: 1400 }}"
+                  srcset="
+                    {{ block.settings.image | image_url: width: 600 }} 600w,
+                    {{ block.settings.image | image_url: width: 900 }} 900w,
+                    {{ block.settings.image | image_url: width: 1400 }} 1400w
+                  "
+                  sizes="{% if forloop.first %}(max-width: 768px) 100vw, 66vw{% else %}(max-width: 768px) 50vw, 33vw{% endif %}"
+                  alt="{{ block.settings.title | escape }}"
+                  class="cdl-spaces__img{% if has_hosted_video or has_ext_video %} cdl-spaces__img--poster{% endif %}"
+                  loading="lazy"
+                  width="700"
+                  height="525"
+                >
+              {%- endif -%}
+              {%- if _has_content -%}
+                <div class="cdl-spaces__overlay"></div>
+                <div class="cdl-spaces__card-content">
+                  {%- if block.settings.title != blank -%}
+                    <span class="cdl-spaces__label">{{ block.settings.title }}</span>
+                  {%- endif -%}
+                  {%- if block.settings.caption != blank -%}
+                    <span class="cdl-spaces__caption">{{ block.settings.caption }}</span>
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
+            </{% if _has_link %}a{% else %}div{% endif %}>
+          {%- when '@app' -%}
+            <div {{ block.shopify_attributes }}>
+              {%- render block -%}
+            </div>
+          {%- when 'custom-liquid' -%}
+            <div {{ block.shopify_attributes }}>
+              {{ block.settings.custom_liquid }}
+            </div>
+        {%- endcase -%}
+      {%- endfor -%}
+
+      {%- comment -%} Fallback if no blocks {%- endcomment -%}
+      {%- if section.blocks.size == 0 -%}
+        <div class="cdl-spaces__card cdl-spaces__card--featured">
+          <div class="cdl-spaces__overlay"></div>
+          <div class="cdl-spaces__card-content">
+            <span class="cdl-spaces__label">Gaming Setup</span>
+          </div>
+        </div>
+        <div class="cdl-spaces__card">
+          <div class="cdl-spaces__overlay"></div>
+          <div class="cdl-spaces__card-content">
+            <span class="cdl-spaces__label">Living Room</span>
+          </div>
+        </div>
+        <div class="cdl-spaces__card">
+          <div class="cdl-spaces__overlay"></div>
+          <div class="cdl-spaces__card-content">
+            <span class="cdl-spaces__label">Home Office</span>
+          </div>
+        </div>
+        <div class="cdl-spaces__card">
+          <div class="cdl-spaces__overlay"></div>
+          <div class="cdl-spaces__card-content">
+            <span class="cdl-spaces__label">Bedroom</span>
+          </div>
+        </div>
+        <div class="cdl-spaces__card">
+          <div class="cdl-spaces__overlay"></div>
+          <div class="cdl-spaces__card-content">
+            <span class="cdl-spaces__label">Entertainment Room</span>
+          </div>
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+
+<script>
+(function() {
+  var root = document.getElementById('cdl-spaces-{{ section.id }}');
+  if (!root) return;
+
+  /* Fade out poster image once video starts playing */
+  root.querySelectorAll('.cdl-spaces__card--has-video').forEach(function(card) {
+    var video = card.querySelector('.cdl-spaces__video');
+    var poster = card.querySelector('.cdl-spaces__img--poster');
+    if (!video || !poster) return;
+
+    video.addEventListener('playing', function() {
+      poster.style.opacity = '0';
+    }, { once: true });
+  });
+
+  /* Pause off-screen videos for performance */
+  if ('IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        var video = entry.target;
+        if (entry.isIntersecting) {
+          video.play().catch(function() {});
+        } else {
+          video.pause();
+        }
+      });
+    }, { rootMargin: '100px' });
+
+    root.querySelectorAll('.cdl-spaces__video').forEach(function(v) {
+      observer.observe(v);
+    });
+  }
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Casa Styled Spaces",
+  "tag": "section",
+  "class": "cdl-spaces-section",
+  "max_blocks": 8,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "tag_text",
+      "label": "Tag",
+      "default": "INSPIRATION"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Title",
+      "default": "Styled Spaces"
+    },
+    {
+      "type": "textarea",
+      "id": "subtitle",
+      "label": "Subtitle",
+      "default": "See how designers and customers style their Seoul Glow Lab pieces"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "tag_color",
+      "label": "Tag/accent color",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "subtitle_color",
+      "label": "Subtitle color",
+      "default": "#6b7280"
+    },
+    {
+      "type": "header",
+      "content": "Mobile layout"
+    },
+    {
+      "type": "select",
+      "id": "mobile_last_card",
+      "label": "Last card on mobile (odd count)",
+      "info": "When you have an odd number of non-featured cards, the last one sits alone. Choose how it displays.",
+      "default": "auto",
+      "options": [
+        { "value": "auto", "label": "Auto (full-width if odd)" },
+        { "value": "wide", "label": "Always full-width" },
+        { "value": "square", "label": "Keep square" }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "Section width",
+      "options": [
+        { "value": "full", "label": "Full width" },
+        { "value": "wide", "label": "Wide (1600px)" },
+        { "value": "contained", "label": "Contained (1400px)" },
+        { "value": "narrow", "label": "Narrow (1200px)" }
+      ],
+      "default": "full"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 100,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 100,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile_top",
+      "label": "Padding top (mobile)",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "default": 60,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile_bottom",
+      "label": "Padding bottom (mobile)",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "default": 60,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "@app"
+    },
+    {
+      "type": "custom-liquid",
+      "name": "Custom Liquid",
+      "settings": [
+        {
+          "type": "liquid",
+          "id": "custom_liquid",
+          "label": "Custom Liquid"
+        }
+      ]
+    },
+    {
+      "type": "space",
+      "name": "Space",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Living Room"
+        },
+        {
+          "type": "text",
+          "id": "caption",
+          "label": "Caption",
+          "info": "Optional short description"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image",
+          "info": "Used as background or as poster frame when a video is set"
+        },
+        {
+          "type": "video",
+          "id": "video",
+          "label": "Background video (Shopify-hosted)",
+          "info": "Upload to Files, loops silently as card background"
+        },
+        {
+          "type": "text",
+          "id": "video_url",
+          "label": "Background video URL (fallback)",
+          "info": "Direct .mp4 URL — only used if no Shopify video above"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Styled Spaces",
+      "blocks": [
+        { "type": "space", "settings": { "title": "Gaming Setup", "caption": "Immersive RGB ambiance" } },
+        { "type": "space", "settings": { "title": "Living Room", "caption": "Elegant centerpiece" } },
+        { "type": "space", "settings": { "title": "Home Office", "caption": "Focus & style" } },
+        { "type": "space", "settings": { "title": "Bedroom", "caption": "Ambient relaxation" } },
+        { "type": "space", "settings": { "title": "Entertainment Room", "caption": "Ultimate vibes" } },
+        { "type": "space", "settings": { "title": "Studio Apartment", "caption": "Space-saving glow" } }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+{% stylesheet %}
+/* ══════════════════════════════════════════════════════════════════════════
+   CDL STYLED SPACES — Bento gallery grid
+   Featured card (2col × 2row) + smaller 4:3 cards
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.cdl-spaces {
+  background: var(--cdls-bg, #ffffff);
+  color: var(--cdls-text, #0a0a0a);
+  padding: var(--cdls-pt, 100px) 0 var(--cdls-pb, 100px);
+}
+
+/* ── Container ── */
+.cdl-spaces__container {
+  max-width: var(--cdl-spaces-max-w, 100%);
+  margin: 0 auto;
+  padding: 0 var(--cdl-spaces-px, 24px);
+}
+
+/* ── Header ── */
+.cdl-spaces__header {
+  text-align: center;
+  margin-bottom: 56px;
+}
+
+.cdl-spaces__tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cdls-tag, #9333ea);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+}
+
+.cdl-spaces__heading {
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 300;
+  color: var(--cdls-text, #0a0a0a);
+  margin: 0 0 16px 0;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.cdl-spaces__subtitle {
+  font-size: 16px;
+  color: var(--cdls-subtitle, #6b7280);
+  max-width: 520px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BENTO GRID
+   Desktop: 3 columns — featured spans 2 col + 2 row (LEFT side)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.cdl-spaces__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: auto auto;
+  gap: 24px;
+}
+
+/* ── Card base ── */
+.cdl-spaces__card {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  text-decoration: none;
+  color: #fff;
+  display: block;
+  aspect-ratio: 4 / 3;
+  transition: transform 0.35s ease;
+}
+
+.cdl-spaces__card:hover {
+  transform: scale(1.02);
+}
+
+/* No-content cards: no overlay, no hover box */
+.cdl-spaces__card--no-content {
+  cursor: default;
+}
+.cdl-spaces__card--no-content:hover {
+  transform: scale(1.01);
+}
+
+/* ── Featured card: spans 2 col + 2 row ── */
+.cdl-spaces__card--featured {
+  grid-column: span 2;
+  grid-row: span 2;
+  aspect-ratio: auto;
+}
+
+/* ── Image ── */
+.cdl-spaces__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.cdl-spaces__card:hover .cdl-spaces__img {
+  transform: scale(1.06);
+}
+
+/* ── Video background ── */
+.cdl-spaces__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  transition: transform 0.5s ease;
+}
+
+.cdl-spaces__card:hover .cdl-spaces__video {
+  transform: scale(1.06);
+}
+
+/* When a video is present, hide the poster image once video loads */
+.cdl-spaces__img--poster {
+  z-index: 0;
+}
+
+.cdl-spaces__card--has-video .cdl-spaces__img--poster {
+  opacity: 1;
+  transition: opacity 0.6s ease;
+}
+
+/* ── Overlay gradient ── */
+.cdl-spaces__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* ── Card content (bottom-left) ── */
+.cdl-spaces__card-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 24px;
+}
+
+/* ── Label — glassmorphism pill ── */
+.cdl-spaces__label {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 12px 24px;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  transition: background 0.3s ease;
+  white-space: nowrap;
+}
+
+.cdl-spaces__card:hover .cdl-spaces__label {
+  background: var(--cdls-tag, #9333ea);
+  opacity: 0.9;
+}
+
+/* ── Caption (shown on featured or hover) ── */
+.cdl-spaces__caption {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 400;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.cdl-spaces__card:hover .cdl-spaces__caption {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.cdl-spaces__card--featured .cdl-spaces__caption {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Fallback gradient backgrounds ── */
+.cdl-spaces__card:nth-child(1) { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+.cdl-spaces__card:nth-child(2) { background: linear-gradient(135deg, #2d132c 0%, #801336 50%, #c72c41 100%); }
+.cdl-spaces__card:nth-child(3) { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #3d3d3d 100%); }
+.cdl-spaces__card:nth-child(4) { background: linear-gradient(135deg, #0d7377 0%, #14a3a8 50%, #32e0c4 100%); }
+.cdl-spaces__card:nth-child(5) { background: linear-gradient(135deg, #4a1942 0%, #6b2d5c 50%, #893168 100%); }
+.cdl-spaces__card:nth-child(6) { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #3a7bd5 100%); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE — Tablet
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+  .cdl-spaces__container {
+    padding: 0 24px;
+  }
+
+  .cdl-spaces__grid {
+    gap: 16px;
+  }
+
+  .cdl-spaces__label {
+    font-size: 14px;
+    padding: 10px 18px;
+  }
+
+  .cdl-spaces__card-content {
+    padding: 20px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE — Mobile
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .cdl-spaces {
+    padding: var(--cdls-mpt, 60px) 0 var(--cdls-mpb, 60px);
+  }
+
+  .cdl-spaces__container {
+    padding: 0 16px;
+  }
+
+  .cdl-spaces__header {
+    margin-bottom: 32px;
+  }
+
+  .cdl-spaces__tag {
+    font-size: 11px;
+    margin-bottom: 12px;
+  }
+
+  .cdl-spaces__subtitle {
+    font-size: 14px;
+  }
+
+  /* Mobile grid: featured full-width 16:9, rest 2-col squares */
+  .cdl-spaces__grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+    gap: 8px;
+  }
+
+  .cdl-spaces__card {
+    border-radius: 12px;
+    aspect-ratio: 1 / 1;
+  }
+
+  .cdl-spaces__card--featured {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    aspect-ratio: 16 / 9;
+  }
+
+  .cdl-spaces__card-content {
+    padding: 12px;
+  }
+
+  .cdl-spaces__label {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .cdl-spaces__caption {
+    display: none;
+  }
+
+  /* When last card should span full-width (odd count) */
+  .cdl-spaces__grid--last-wide > .cdl-spaces__card:last-child:not(.cdl-spaces__card--featured) {
+    grid-column: 1 / -1;
+    aspect-ratio: 16 / 9;
+  }
+}
+
+@media (max-width: 480px) {
+  .cdl-spaces__card-content {
+    padding: 10px;
+  }
+
+  .cdl-spaces__label {
+    font-size: 9px;
+    padding: 5px 10px;
+  }
+}
+{% endstylesheet %}

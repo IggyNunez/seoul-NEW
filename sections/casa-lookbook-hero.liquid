@@ -1,0 +1,740 @@
+{%- liquid
+  # ══════════════════════════════════════════════════════
+  # Casa Lookbook Hero — Full-bleed showcase section
+  # ══════════════════════════════════════════════════════
+
+  # ── Layout & Structure ──
+  assign full_height   = section.settings.full_height
+  assign min_height    = section.settings.min_height | default: 600
+  assign pad_top       = section.settings.padding_top | default: 80
+  assign pad_bot       = section.settings.padding_bottom | default: 80
+  assign content_align = section.settings.content_align | default: 'center'
+  assign enable_parallax = section.settings.enable_parallax
+
+  # ── Colors ──
+  assign bg_color   = section.settings.bg_color | default: '#0a0a0f'
+  assign text_color = section.settings.text_color | default: '#ffffff'
+  assign text_muted = section.settings.text_muted | default: '#a0a0b0'
+  assign accent_1   = section.settings.accent_primary | default: '#9333ea'
+  assign accent_2   = section.settings.accent_secondary | default: '#ec4899'
+
+  # ── Content ──
+  assign badge_text   = section.settings.badge_text | default: ''
+  assign heading      = section.settings.heading | default: ''
+  assign accent_word  = section.settings.accent_word | default: ''
+  assign subtitle     = section.settings.subtitle | default: ''
+
+  # ── CTA ──
+  assign cta_text  = section.settings.cta_text | default: ''
+  assign cta_link  = section.settings.cta_link | default: ''
+  assign cta_style = section.settings.cta_style | default: 'gradient'
+
+  # ── Media ──
+  assign bg_image_d   = section.settings.bg_image_desktop
+  assign bg_image_m   = section.settings.bg_image_mobile
+  assign bg_video_url = section.settings.bg_video_url | default: ''
+  assign overlay_pct  = section.settings.overlay_opacity | default: 50
+
+  # ── Scroll indicator ──
+  assign show_scroll = section.settings.show_scroll_indicator
+
+  # Resolve images
+  assign hero_img_d = bg_image_d
+  assign hero_img_m = bg_image_m
+  if hero_img_m == blank
+    assign hero_img_m = hero_img_d
+  endif
+
+  assign has_media = false
+  if hero_img_d != blank or bg_video_url != blank
+    assign has_media = true
+  endif
+
+  # ── Title processing ──
+  assign display_title = heading
+  if accent_word != blank and heading contains accent_word
+    assign parts = heading | split: accent_word
+    assign display_title = parts[0] | append: '<span class="casa-lb-hero__accent">' | append: accent_word | append: '</span>' | append: parts[1]
+  endif
+
+  # ── Collect mood tag blocks ──
+  assign mood_tags = ''
+  for block in section.blocks
+    if block.type == 'mood_tag'
+      assign mood_tags = mood_tags | append: block.id | append: ','
+    endif
+  endfor
+  assign mood_tag_ids = mood_tags | split: ','
+-%}
+
+{%- capture section_height -%}
+  {%- if full_height -%}100vh{%- else -%}{{ min_height }}px{%- endif -%}
+{%- endcapture -%}
+
+<style>
+  /* ═══════════════════════════════════════════════
+     Casa Lookbook Hero
+     ═══════════════════════════════════════════════ */
+  .casa-lb-hero {
+    position: relative;
+    width: 100%;
+    min-height: {{ section_height | strip }};
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+    background: {{ bg_color }};
+    padding: {{ pad_top }}px 0 {{ pad_bot }}px;
+  }
+
+  /* ── Media Layer ── */
+  .casa-lb-hero__media {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+  .casa-lb-hero__media img,
+  .casa-lb-hero__media video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .casa-lb-hero__media--parallax img,
+  .casa-lb-hero__media--parallax video {
+    height: 120%;
+    will-change: transform;
+  }
+  .casa-lb-hero__img-mobile { display: none; }
+
+  /* ── Overlay ── */
+  .casa-lb-hero__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: linear-gradient(
+      180deg,
+      rgba(0,0,0,{{ overlay_pct | times: 0.3 | divided_by: 100.0 }}) 0%,
+      rgba(0,0,0,{{ overlay_pct | divided_by: 100.0 }}) 100%
+    );
+    pointer-events: none;
+  }
+
+  /* ── Content ── */
+  .casa-lb-hero__content {
+    position: relative;
+    z-index: 3;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    color: {{ text_color }};
+    {%- if content_align == 'left' %}
+    align-items: flex-start;
+    text-align: left;
+    {%- else %}
+    align-items: center;
+    text-align: center;
+    {%- endif %}
+  }
+
+  /* ── Badge ── */
+  .casa-lb-hero__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 18px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: {{ text_color }};
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .casa-lb-hero__badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: {{ accent_1 }};
+    animation: casa-lb-hero-pulse 2s ease-in-out infinite;
+  }
+
+  /* ── Title ── */
+  .casa-lb-hero__title {
+    margin: 0;
+    font-size: clamp(2rem, 6vw, 4rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: {{ text_color }};
+  }
+  .casa-lb-hero__accent {
+    background: linear-gradient(135deg, {{ accent_1 }}, {{ accent_2 }});
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Subtitle ── */
+  .casa-lb-hero__subtitle {
+    margin: 0;
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    line-height: 1.6;
+    color: {{ text_muted }};
+    max-width: 600px;
+  }
+
+  /* ── Mood Tags ── */
+  .casa-lb-hero__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    {%- if content_align == 'center' %}
+    justify-content: center;
+    {%- endif %}
+  }
+  .casa-lb-hero__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    color: {{ text_muted }};
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: border-color 0.3s ease, color 0.3s ease;
+  }
+  .casa-lb-hero__tag:hover {
+    color: {{ text_color }};
+    border-color: {{ accent_1 }};
+  }
+  .casa-lb-hero__tag-icon {
+    font-size: 13px;
+    line-height: 1;
+  }
+
+  /* ── CTA ── */
+  .casa-lb-hero__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 32px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
+    border: none;
+    margin-top: 4px;
+  }
+  .casa-lb-hero__cta:hover {
+    transform: translateY(-2px);
+  }
+  .casa-lb-hero__cta--gradient {
+    color: #fff;
+    background: linear-gradient(135deg, {{ accent_1 }}, {{ accent_2 }});
+    box-shadow: 0 4px 24px rgba(147,51,234,0.3);
+  }
+  .casa-lb-hero__cta--gradient:hover {
+    box-shadow: 0 8px 32px rgba(147,51,234,0.45);
+  }
+  .casa-lb-hero__cta--solid {
+    color: #fff;
+    background: {{ accent_1 }};
+    box-shadow: 0 4px 20px rgba(147,51,234,0.25);
+  }
+  .casa-lb-hero__cta--solid:hover {
+    box-shadow: 0 8px 28px rgba(147,51,234,0.4);
+  }
+  .casa-lb-hero__cta--outline {
+    color: {{ text_color }};
+    background: transparent;
+    border: 1.5px solid rgba(255,255,255,0.2);
+  }
+  .casa-lb-hero__cta--outline:hover {
+    border-color: {{ accent_1 }};
+    box-shadow: 0 4px 20px rgba(147,51,234,0.2);
+  }
+
+  /* ── Scroll Indicator ── */
+  .casa-lb-hero__scroll {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: {{ text_muted }};
+    opacity: 0.6;
+    animation: casa-lb-hero-bounce 2.2s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .casa-lb-hero__scroll-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .casa-lb-hero__scroll-chevron {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* ── Animations ── */
+  @keyframes casa-lb-hero-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  @keyframes casa-lb-hero-bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.6; }
+    50% { transform: translateX(-50%) translateY(8px); opacity: 1; }
+  }
+  @keyframes casa-lb-hero-fadein {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .casa-lb-hero__content > * {
+    animation: casa-lb-hero-fadein 0.7s ease both;
+  }
+  .casa-lb-hero__content > *:nth-child(1) { animation-delay: 0.1s; }
+  .casa-lb-hero__content > *:nth-child(2) { animation-delay: 0.2s; }
+  .casa-lb-hero__content > *:nth-child(3) { animation-delay: 0.3s; }
+  .casa-lb-hero__content > *:nth-child(4) { animation-delay: 0.4s; }
+  .casa-lb-hero__content > *:nth-child(5) { animation-delay: 0.5s; }
+
+  /* ── Responsive ── */
+  @media (max-width: 749px) {
+    .casa-lb-hero {
+      min-height: {%- if full_height -%}100svh{%- else -%}{{ min_height | times: 0.7 | round }}px{%- endif -%};
+      padding: {{ pad_top | times: 0.6 | round }}px 0 {{ pad_bot | times: 0.6 | round }}px;
+    }
+    .casa-lb-hero__img-desktop { display: none; }
+    .casa-lb-hero__img-mobile { display: block; }
+    .casa-lb-hero__content { padding: 0 16px; gap: 16px; }
+    .casa-lb-hero__title { font-size: clamp(1.75rem, 8vw, 2.5rem); }
+    .casa-lb-hero__subtitle { font-size: 0.95rem; }
+    .casa-lb-hero__cta { padding: 12px 28px; font-size: 14px; }
+    .casa-lb-hero__tags { gap: 6px; }
+    .casa-lb-hero__tag { font-size: 11px; padding: 4px 12px; }
+  }
+</style>
+
+<section
+  class="casa-lb-hero"
+  id="section-{{ section.id }}"
+  data-section-id="{{ section.id }}"
+  data-parallax="{{ enable_parallax }}"
+>
+  {%- comment -%} ── Media ── {%- endcomment -%}
+  {%- if has_media -%}
+    <div class="casa-lb-hero__media{% if enable_parallax %} casa-lb-hero__media--parallax{% endif %}">
+      {%- if bg_video_url != blank -%}
+        <video
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="metadata"
+          aria-hidden="true"
+        >
+          <source src="{{ bg_video_url }}" type="video/mp4">
+        </video>
+      {%- else -%}
+        {%- if hero_img_d != blank -%}
+          <img
+            class="casa-lb-hero__img-desktop"
+            src="{{ hero_img_d | image_url: width: 1920 }}"
+            srcset="
+              {{ hero_img_d | image_url: width: 1024 }} 1024w,
+              {{ hero_img_d | image_url: width: 1440 }} 1440w,
+              {{ hero_img_d | image_url: width: 1920 }} 1920w
+            "
+            sizes="100vw"
+            alt="{{ hero_img_d.alt | escape }}"
+            loading="eager"
+            fetchpriority="high"
+          >
+        {%- endif -%}
+        {%- if hero_img_m != blank -%}
+          <img
+            class="casa-lb-hero__img-mobile"
+            src="{{ hero_img_m | image_url: width: 750 }}"
+            srcset="
+              {{ hero_img_m | image_url: width: 480 }} 480w,
+              {{ hero_img_m | image_url: width: 750 }} 750w
+            "
+            sizes="100vw"
+            alt="{{ hero_img_m.alt | escape }}"
+            loading="eager"
+            fetchpriority="high"
+          >
+        {%- endif -%}
+      {%- endif -%}
+    </div>
+  {%- endif -%}
+
+  {%- comment -%} ── Overlay ── {%- endcomment -%}
+  {%- if overlay_pct > 0 -%}
+    <div class="casa-lb-hero__overlay" aria-hidden="true"></div>
+  {%- endif -%}
+
+  {%- comment -%} ── Content ── {%- endcomment -%}
+  <div class="casa-lb-hero__content">
+    {%- if badge_text != blank -%}
+      <div class="casa-lb-hero__badge">
+        <span class="casa-lb-hero__badge-dot" aria-hidden="true"></span>
+        {{ badge_text }}
+      </div>
+    {%- endif -%}
+
+    {%- if heading != blank -%}
+      <h1 class="casa-lb-hero__title">{{ display_title }}</h1>
+    {%- endif -%}
+
+    {%- if subtitle != blank -%}
+      <p class="casa-lb-hero__subtitle">{{ subtitle }}</p>
+    {%- endif -%}
+
+    {%- if mood_tag_ids.size > 0 -%}
+      <div class="casa-lb-hero__tags">
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'mood_tag' -%}
+            <span class="casa-lb-hero__tag" {{ block.shopify_attributes }}>
+              {%- if block.settings.icon != blank -%}
+                <span class="casa-lb-hero__tag-icon" aria-hidden="true">{{ block.settings.icon }}</span>
+              {%- endif -%}
+              {{ block.settings.text }}
+            </span>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+
+    {%- if cta_text != blank and cta_link != blank -%}
+      <a
+        href="{{ cta_link }}"
+        class="casa-lb-hero__cta casa-lb-hero__cta--{{ cta_style }}"
+      >
+        {{ cta_text }}
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </a>
+    {%- endif -%}
+  </div>
+
+  {%- comment -%} ── Scroll Indicator ── {%- endcomment -%}
+  {%- if show_scroll -%}
+    <div class="casa-lb-hero__scroll" aria-hidden="true">
+      <span class="casa-lb-hero__scroll-label">Scroll</span>
+      <svg class="casa-lb-hero__scroll-chevron" viewBox="0 0 20 20" fill="none">
+        <path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  {%- endif -%}
+</section>
+
+{%- comment -%} ── Parallax JS ── {%- endcomment -%}
+<script>
+  (function() {
+    const section = document.getElementById('section-{{ section.id }}');
+    if (!section || section.dataset.parallax !== 'true') return;
+
+    const media = section.querySelector('.casa-lb-hero__media--parallax');
+    if (!media) return;
+
+    const target = media.querySelector('img, video');
+    if (!target) return;
+
+    let ticking = false;
+    let lastScrollY = 0;
+
+    function updateParallax() {
+      const rect = section.getBoundingClientRect();
+      const sectionH = section.offsetHeight;
+      const windowH = window.innerHeight;
+
+      /* Only animate when section is in viewport */
+      if (rect.bottom < 0 || rect.top > windowH) {
+        ticking = false;
+        return;
+      }
+
+      /* Progress 0 (top in view) -> 1 (bottom in view) */
+      const progress = 1 - (rect.bottom / (sectionH + windowH));
+      /* Shift by max 10% of the extra height */
+      const maxShift = sectionH * 0.2;
+      const yOffset = -(progress * maxShift);
+
+      target.style.transform = 'translate3d(0,' + yOffset + 'px,0)';
+      ticking = false;
+    }
+
+    function onScroll() {
+      lastScrollY = window.scrollY;
+      if (!ticking) {
+        requestAnimationFrame(updateParallax);
+        ticking = true;
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    /* Initial position */
+    updateParallax();
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Lookbook Hero",
+  "tag": "div",
+  "class": "casa-lb-hero-wrapper",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "checkbox",
+      "id": "full_height",
+      "label": "Full viewport height",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "min_height",
+      "label": "Minimum height (when not full viewport)",
+      "min": 200,
+      "max": 800,
+      "step": 20,
+      "default": 600,
+      "unit": "px"
+    },
+    {
+      "type": "select",
+      "id": "content_align",
+      "label": "Content alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_parallax",
+      "label": "Enable parallax effect",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_scroll_indicator",
+      "label": "Show scroll-down indicator",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 200,
+      "step": 4,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 200,
+      "step": 4,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Media"
+    },
+    {
+      "type": "image_picker",
+      "id": "bg_image_desktop",
+      "label": "Background image (desktop)"
+    },
+    {
+      "type": "image_picker",
+      "id": "bg_image_mobile",
+      "label": "Background image (mobile)"
+    },
+    {
+      "type": "url",
+      "id": "bg_video_url",
+      "label": "Video URL (MP4, overrides image)"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "label": "Overlay darkness",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 50,
+      "unit": "%"
+    },
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "badge_text",
+      "label": "Badge pill text",
+      "default": "Home Office"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Title",
+      "default": "Design Your Dream Space"
+    },
+    {
+      "type": "text",
+      "id": "accent_word",
+      "label": "Accent word (gradient highlight)",
+      "default": "Dream",
+      "info": "Must match a word in the title exactly"
+    },
+    {
+      "type": "textarea",
+      "id": "subtitle",
+      "label": "Subtitle / description",
+      "default": "Curated lighting collections to transform every corner of your home into a statement of modern luxury."
+    },
+    {
+      "type": "header",
+      "content": "Call to Action"
+    },
+    {
+      "type": "text",
+      "id": "cta_text",
+      "label": "Button text",
+      "default": "Explore Collection"
+    },
+    {
+      "type": "url",
+      "id": "cta_link",
+      "label": "Button link"
+    },
+    {
+      "type": "select",
+      "id": "cta_style",
+      "label": "Button style",
+      "options": [
+        { "value": "gradient", "label": "Gradient" },
+        { "value": "solid", "label": "Solid" },
+        { "value": "outline", "label": "Outline" }
+      ],
+      "default": "gradient"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#0a0a0f"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "text_muted",
+      "label": "Muted text color",
+      "default": "#a0a0b0"
+    },
+    {
+      "type": "color",
+      "id": "accent_primary",
+      "label": "Accent primary",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "accent_secondary",
+      "label": "Accent secondary",
+      "default": "#ec4899"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "mood_tag",
+      "name": "Mood Tag",
+      "limit": 8,
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Tag text",
+          "default": "Modern"
+        },
+        {
+          "type": "text",
+          "id": "icon",
+          "label": "Icon (emoji or symbol, optional)",
+          "info": "e.g. ✨ or 🏠"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Lookbook Hero",
+      "category": "Lookbook",
+      "settings": {
+        "full_height": true,
+        "enable_parallax": true,
+        "show_scroll_indicator": true,
+        "overlay_opacity": 50,
+        "content_align": "center",
+        "badge_text": "Home Office",
+        "heading": "Design Your Dream Space",
+        "accent_word": "Dream",
+        "subtitle": "Curated lighting collections to transform every corner of your home into a statement of modern luxury.",
+        "cta_text": "Explore Collection",
+        "cta_style": "gradient",
+        "bg_color": "#0a0a0f",
+        "text_color": "#ffffff",
+        "text_muted": "#a0a0b0",
+        "accent_primary": "#9333ea",
+        "accent_secondary": "#ec4899"
+      },
+      "blocks": [
+        { "type": "mood_tag", "settings": { "text": "Modern", "icon": "✨" } },
+        { "type": "mood_tag", "settings": { "text": "Minimalist", "icon": "◽" } },
+        { "type": "mood_tag", "settings": { "text": "Cozy", "icon": "🕯️" } },
+        { "type": "mood_tag", "settings": { "text": "Ambient", "icon": "💡" } }
+      ]
+    }
+  ],
+  "templates": ["page"]
+}
+{% endschema %}

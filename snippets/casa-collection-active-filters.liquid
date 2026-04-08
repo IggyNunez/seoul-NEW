@@ -1,0 +1,55 @@
+{%- doc -%}
+  Seoul Glow Lab Active Filter Pills
+  Renders active filter pills with remove buttons
+
+  @param filters {array} - Required. collection.filters array
+  @param collection_url {string} - Required. The collection URL for "Clear All"
+{%- enddoc -%}
+
+{%- liquid
+  assign has_active = false
+  for filter in filters
+    if filter.type == 'price_range'
+      if filter.min_value.value != nil or filter.max_value.value != nil
+        assign has_active = true
+        break
+      endif
+    elsif filter.active_values.size > 0
+      assign has_active = true
+      break
+    endif
+  endfor
+-%}
+
+{%- if has_active -%}
+  <div class="casa-col-active" data-active-filters>
+    {%- for filter in filters -%}
+      {%- if filter.type == 'price_range' -%}
+        {%- if filter.min_value.value != nil or filter.max_value.value != nil -%}
+          {%- liquid
+            assign min_display = filter.min_value.value | default: filter.range_min | money
+            assign max_display = filter.max_value.value | default: filter.range_max | money
+          -%}
+          <a href="{{ filter.url_to_remove }}" class="casa-col-active__pill" data-filter-remove>
+            <span>{{ min_display }} – {{ max_display }}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </a>
+        {%- endif -%}
+      {%- else -%}
+        {%- for value in filter.active_values -%}
+          <a href="{{ value.url_to_remove }}" class="casa-col-active__pill" data-filter-remove>
+            <span>{{ value.label }}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </a>
+        {%- endfor -%}
+      {%- endif -%}
+    {%- endfor -%}
+    <a href="{{ collection_url }}" class="casa-col-active__clear" data-filter-clear>Clear all</a>
+  </div>
+{%- endif -%}

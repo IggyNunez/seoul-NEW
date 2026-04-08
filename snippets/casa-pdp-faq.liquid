@@ -1,0 +1,272 @@
+{%- comment -%}
+  Casa PDP FAQ Section
+  Accordion-style FAQ section
+
+  Parameters:
+  - block: The block object with settings
+{%- endcomment -%}
+
+{%- liquid
+  assign title = block.settings.title | default: 'Frequently Asked Questions'
+  assign open_first = block.settings.open_first
+  assign faq_content = block.settings.faq_content
+-%}
+
+<div class="casa-pdp-faq">
+  <h3 class="casa-pdp-faq__title">{{ title }}</h3>
+
+  <div class="casa-pdp-faq__list">
+    {%- assign faq_lines = faq_content | split: '
+' -%}
+    {%- for line in faq_lines -%}
+      {%- assign parts = line | split: ' | ' -%}
+      {%- if parts.size == 2 -%}
+        <div class="casa-pdp-faq__item{% if open_first and forloop.first %} casa-pdp-faq__item--open{% endif %}" data-faq-item>
+          <button class="casa-pdp-faq__question" data-faq-trigger aria-expanded="{% if open_first and forloop.first %}true{% else %}false{% endif %}">
+            <span class="casa-pdp-faq__question-text">{{ parts[0] }}</span>
+            <span class="casa-pdp-faq__icon">
+              <svg class="casa-pdp-faq__icon-plus" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              <svg class="casa-pdp-faq__icon-minus" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </span>
+          </button>
+          <div class="casa-pdp-faq__answer" data-faq-answer>
+            <div class="casa-pdp-faq__answer-inner">
+              {{ parts[1] }}
+            </div>
+          </div>
+        </div>
+      {%- endif -%}
+    {%- endfor -%}
+  </div>
+</div>
+
+<script>
+  (function() {
+    const faq = document.querySelector('.casa-pdp-faq');
+    if (!faq) return;
+
+    const items = faq.querySelectorAll('[data-faq-item]');
+
+    items.forEach(item => {
+      const trigger = item.querySelector('[data-faq-trigger]');
+
+      trigger?.addEventListener('click', () => {
+        const isOpen = item.classList.contains('casa-pdp-faq__item--open');
+
+        // Close other items
+        items.forEach(otherItem => {
+          if (otherItem !== item) {
+            otherItem.classList.remove('casa-pdp-faq__item--open');
+            otherItem.querySelector('[data-faq-trigger]')?.setAttribute('aria-expanded', 'false');
+          }
+        });
+
+        // Toggle current
+        item.classList.toggle('casa-pdp-faq__item--open');
+        trigger.setAttribute('aria-expanded', !isOpen);
+      });
+    });
+  })();
+</script>
+
+<style>
+.casa-pdp-faq {
+  max-width: 800px;
+}
+
+.casa-pdp-faq__title {
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 600;
+  margin: 0 0 28px 0;
+  color: #0a0a0a;
+}
+
+.casa-pdp-faq__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.casa-pdp-faq__item {
+  background: linear-gradient(145deg, #f8f8fa 0%, #ffffff 100%);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.casa-pdp-faq__item:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.casa-pdp-faq__item--open {
+  box-shadow: 0 4px 20px rgba(147, 51, 234, 0.1);
+}
+
+.casa-pdp-faq__question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.casa-pdp-faq__question-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: #0a0a0a;
+  line-height: 1.4;
+}
+
+.casa-pdp-faq__icon {
+  position: relative;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  transition: background 0.3s ease, color 0.3s ease, transform 0.3s ease;
+}
+
+.casa-pdp-faq__item--open .casa-pdp-faq__icon {
+  background: linear-gradient(135deg, var(--cpm-accent-1, #9333ea), var(--cpm-accent-2, #ec4899));
+  color: #fff;
+  transform: rotate(180deg);
+}
+
+.casa-pdp-faq__icon svg {
+  position: absolute;
+  transition: opacity 0.2s ease;
+}
+
+.casa-pdp-faq__icon-minus {
+  opacity: 0;
+}
+
+.casa-pdp-faq__item--open .casa-pdp-faq__icon-plus {
+  opacity: 0;
+}
+
+.casa-pdp-faq__item--open .casa-pdp-faq__icon-minus {
+  opacity: 1;
+}
+
+.casa-pdp-faq__answer {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+
+.casa-pdp-faq__item--open .casa-pdp-faq__answer {
+  grid-template-rows: 1fr;
+}
+
+.casa-pdp-faq__answer-inner {
+  overflow: hidden;
+  padding: 0 24px;
+  font-size: 15px;
+  color: #555;
+  line-height: 1.7;
+}
+
+.casa-pdp-faq__item--open .casa-pdp-faq__answer-inner {
+  padding: 0 24px 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  margin-top: 0;
+  padding-top: 16px;
+}
+
+@media (max-width: 480px) {
+  .casa-pdp-faq__title {
+    margin-bottom: 20px;
+  }
+
+  .casa-pdp-faq__list {
+    gap: 10px;
+  }
+
+  .casa-pdp-faq__question {
+    padding: 16px 20px;
+    gap: 12px;
+  }
+
+  .casa-pdp-faq__question-text {
+    font-size: 15px;
+  }
+
+  .casa-pdp-faq__icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .casa-pdp-faq__answer-inner {
+    padding: 0 20px;
+    font-size: 14px;
+  }
+
+  .casa-pdp-faq__item--open .casa-pdp-faq__answer-inner {
+    padding: 0 20px 16px;
+    padding-top: 14px;
+  }
+}
+
+@media (max-width: 375px) {
+  .casa-pdp-faq__title {
+    font-size: 20px;
+    margin-bottom: 18px;
+  }
+
+  .casa-pdp-faq__list {
+    gap: 8px;
+  }
+
+  .casa-pdp-faq__item {
+    border-radius: 10px;
+  }
+
+  .casa-pdp-faq__question {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .casa-pdp-faq__question-text {
+    font-size: 14px;
+  }
+
+  .casa-pdp-faq__icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+  }
+
+  .casa-pdp-faq__icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .casa-pdp-faq__answer-inner {
+    padding: 0 16px;
+    font-size: 13px;
+  }
+
+  .casa-pdp-faq__item--open .casa-pdp-faq__answer-inner {
+    padding: 0 16px 14px;
+    padding-top: 12px;
+  }
+}
+</style>

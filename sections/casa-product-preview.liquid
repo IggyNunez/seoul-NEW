@@ -1,0 +1,1254 @@
+{%- comment -%}
+  Casa Product Preview Section
+  Immersive full-width product preview with mode tabs that crossfade between
+  different lighting scenes. Inspired by Nanoleaf-style product showcases.
+  Layout modes: fullscreen, contained, split.
+{%- endcomment -%}
+
+{%- liquid
+  assign layout = section.settings.layout_style | default: 'fullscreen'
+  assign heading_pos = section.settings.heading_position | default: 'top-left'
+  assign tab_style = section.settings.tab_style | default: 'pills'
+  assign tab_pos = section.settings.tab_position | default: 'bottom-center'
+  assign min_h = section.settings.min_height | default: 500
+  assign use_vh = section.settings.fullscreen_height
+  assign overlay_opacity = section.settings.overlay_opacity | default: 30
+  assign radius = section.settings.border_radius | default: 16
+  assign bg_color = section.settings.bg_color | default: '#0a0a0f'
+  assign text_color = section.settings.text_color | default: '#ffffff'
+  assign accent = section.settings.accent_color | default: '#9333ea'
+  assign accent_r = accent | color_extract: 'red'
+  assign accent_g = accent | color_extract: 'green'
+  assign accent_b = accent | color_extract: 'blue'
+  assign auto_play = section.settings.auto_play
+  assign auto_speed = section.settings.auto_play_speed | default: 5
+  assign animations = section.settings.enable_animations
+  assign pt = section.settings.padding_top | default: 0
+  assign pb = section.settings.padding_bottom | default: 0
+  assign show_gradient = section.settings.show_overlay_gradient
+  assign mode_count = section.blocks.size
+-%}
+
+<section
+  class="casa-pprev casa-pprev--{{ layout }} casa-pprev--tabs-{{ tab_style }}{% if animations %} casa-pprev--animated{% endif %}"
+  data-section-id="{{ section.id }}"
+  data-auto-play="{{ auto_play }}"
+  data-auto-speed="{{ auto_speed }}"
+  data-mode-count="{{ mode_count }}"
+  style="
+    --pprev-bg: {{ bg_color }};
+    --pprev-text: {{ text_color }};
+    --pprev-accent: {{ accent }};
+    --pprev-accent-rgb: {{ accent_r }}, {{ accent_g }}, {{ accent_b }};
+    --pprev-min-h: {{ min_h }}px;
+    --pprev-radius: {{ radius }}px;
+    --pprev-overlay-opacity: {{ overlay_opacity | divided_by: 100.0 }};
+    --pprev-pt: {{ pt }}px;
+    --pprev-pb: {{ pb }}px;
+  "
+  role="region"
+  aria-label="{{ section.settings.heading | default: 'Product preview' | escape }}"
+>
+  {%- comment -%} === FULLSCREEN & CONTAINED LAYOUTS === {%- endcomment -%}
+  {%- if layout == 'fullscreen' or layout == 'contained' -%}
+    <div class="casa-pprev__wrapper{% if layout == 'contained' %} casa-pprev__wrapper--contained{% endif %}"
+      {% if layout == 'fullscreen' and use_vh %}style="height:100vh"{% endif %}
+    >
+      {%- comment -%} Image / Video Stack {%- endcomment -%}
+      <div class="casa-pprev__media-stack" aria-live="polite">
+        {%- for block in section.blocks -%}
+          <div
+            class="casa-pprev__media-layer{% if forloop.first %} casa-pprev__media-layer--active{% endif %}"
+            data-mode-index="{{ forloop.index0 }}"
+            {{ block.shopify_attributes }}
+            {% unless forloop.first %}aria-hidden="true"{% endunless %}
+          >
+            {%- if block.settings.video_url != blank -%}
+              <video
+                class="casa-pprev__video" style="object-position: {{ block.settings.focal_point | default: 'center center' }}; --pprev-mobile-focal: {{ block.settings.mobile_focal_point | default: block.settings.focal_point | default: 'center center' }};"
+                src="{{ block.settings.video_url }}"
+                {% if forloop.first %}autoplay{% endif %}
+                loop muted playsinline
+                {%- if block.settings.image != blank %} poster="{{ block.settings.image | image_url: width: 1920 }}"{% endif %}
+              ></video>
+            {%- elsif block.settings.image != blank -%}
+              <picture>
+                {%- if block.settings.mobile_image != blank -%}
+                  <source
+                    media="(max-width: 749px)"
+                    srcset="
+                      {{ block.settings.mobile_image | image_url: width: 400 }} 400w,
+                      {{ block.settings.mobile_image | image_url: width: 600 }} 600w,
+                      {{ block.settings.mobile_image | image_url: width: 800 }} 800w
+                    "
+                    sizes="100vw"
+                  >
+                {%- endif -%}
+                <img
+                  class="casa-pprev__image" style="object-position: {{ block.settings.focal_point | default: 'center center' }}; --pprev-mobile-focal: {{ block.settings.mobile_focal_point | default: block.settings.focal_point | default: 'center center' }};"
+                  src="{{ block.settings.image | image_url: width: 1920 }}"
+                  srcset="
+                    {{ block.settings.image | image_url: width: 768 }} 768w,
+                    {{ block.settings.image | image_url: width: 1200 }} 1200w,
+                    {{ block.settings.image | image_url: width: 1920 }} 1920w
+                  "
+                  sizes="100vw"
+                  alt="{{ block.settings.title | escape }}"
+                  loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                  width="{{ block.settings.image.width }}"
+                  height="{{ block.settings.image.height }}"
+                >
+              </picture>
+            {%- else -%}
+              <div class="casa-pprev__placeholder">
+                <span>{{ block.settings.title | default: 'Mode' }} {{ forloop.index }}</span>
+              </div>
+            {%- endif -%}
+          </div>
+        {%- endfor -%}
+      </div>
+
+      {%- comment -%} Overlay Gradient {%- endcomment -%}
+      {%- if show_gradient -%}
+        <div class="casa-pprev__gradient casa-pprev__gradient--top"></div>
+        <div class="casa-pprev__gradient casa-pprev__gradient--bottom"></div>
+      {%- endif -%}
+
+      {%- comment -%} Text Overlay {%- endcomment -%}
+      {%- if section.settings.subheading != blank or section.settings.heading != blank -%}
+        <div class="casa-pprev__overlay casa-pprev__overlay--{{ heading_pos }}">
+          {%- if section.settings.subheading != blank -%}
+            <span class="casa-pprev__subheading">{{ section.settings.subheading }}</span>
+          {%- endif -%}
+          {%- if section.settings.heading != blank -%}
+            <h2 class="casa-pprev__heading">{{ section.settings.heading }}</h2>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+
+      {%- comment -%} Active Mode Description Overlay (fullscreen only) {%- endcomment -%}
+      {%- if layout == 'fullscreen' -%}
+        {%- for block in section.blocks -%}
+          {%- if block.settings.description != blank -%}
+            <div class="casa-pprev__mode-desc{% if forloop.first %} casa-pprev__mode-desc--active{% endif %}" data-mode-desc="{{ forloop.index0 }}">
+              <p>{{ block.settings.description }}</p>
+            </div>
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
+
+      {%- comment -%} Tab Bar (fullscreen: over image, contained: below) {%- endcomment -%}
+      {%- if layout == 'fullscreen' -%}
+        <nav class="casa-pprev__tabs casa-pprev__tabs--{{ tab_pos }}" role="tablist" aria-label="Lighting modes">
+          {%- for block in section.blocks -%}
+            <button
+              class="casa-pprev__tab{% if forloop.first %} casa-pprev__tab--active{% endif %}"
+              data-mode-index="{{ forloop.index0 }}"
+              role="tab"
+              aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+              aria-controls="pprev-panel-{{ section.id }}-{{ forloop.index0 }}"
+              id="pprev-tab-{{ section.id }}-{{ forloop.index0 }}"
+              type="button"
+            >
+              {%- if block.settings.icon != blank -%}
+                <span class="casa-pprev__tab-icon" aria-hidden="true">{{ block.settings.icon }}</span>
+              {%- endif -%}
+              <span class="casa-pprev__tab-label">{{ block.settings.title | default: 'Mode' }}</span>
+            </button>
+          {%- endfor -%}
+          {%- if auto_play -%}
+            <div class="casa-pprev__progress" aria-hidden="true">
+              <div class="casa-pprev__progress-bar"></div>
+            </div>
+          {%- endif -%}
+        </nav>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} Contained: tabs below image {%- endcomment -%}
+    {%- if layout == 'contained' -%}
+      <nav class="casa-pprev__tabs casa-pprev__tabs--below" role="tablist" aria-label="Lighting modes">
+        {%- for block in section.blocks -%}
+          <button
+            class="casa-pprev__tab{% if forloop.first %} casa-pprev__tab--active{% endif %}"
+            data-mode-index="{{ forloop.index0 }}"
+            role="tab"
+            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+            id="pprev-tab-{{ section.id }}-{{ forloop.index0 }}"
+            type="button"
+          >
+            {%- if block.settings.icon != blank -%}
+              <span class="casa-pprev__tab-icon" aria-hidden="true">{{ block.settings.icon }}</span>
+            {%- endif -%}
+            <span class="casa-pprev__tab-label">{{ block.settings.title | default: 'Mode' }}</span>
+          </button>
+        {%- endfor -%}
+        {%- if auto_play -%}
+          <div class="casa-pprev__progress" aria-hidden="true">
+            <div class="casa-pprev__progress-bar"></div>
+          </div>
+        {%- endif -%}
+      </nav>
+    {%- endif -%}
+
+  {%- comment -%} === SPLIT LAYOUT === {%- endcomment -%}
+  {%- elsif layout == 'split' -%}
+    <div class="casa-pprev__split">
+      {%- comment -%} Left: Image {%- endcomment -%}
+      <div class="casa-pprev__split-media">
+        <div class="casa-pprev__media-stack" aria-live="polite">
+          {%- for block in section.blocks -%}
+            <div
+              class="casa-pprev__media-layer{% if forloop.first %} casa-pprev__media-layer--active{% endif %}"
+              data-mode-index="{{ forloop.index0 }}"
+              {{ block.shopify_attributes }}
+            >
+              {%- if block.settings.video_url != blank -%}
+                <video
+                  class="casa-pprev__video" style="object-position: {{ block.settings.focal_point | default: 'center center' }}; --pprev-mobile-focal: {{ block.settings.mobile_focal_point | default: block.settings.focal_point | default: 'center center' }};"
+                  src="{{ block.settings.video_url }}"
+                  {% if forloop.first %}autoplay{% endif %}
+                  loop muted playsinline
+                  {%- if block.settings.image != blank %} poster="{{ block.settings.image | image_url: width: 1200 }}"{% endif %}
+                ></video>
+              {%- elsif block.settings.image != blank -%}
+                <picture>
+                  {%- if block.settings.mobile_image != blank -%}
+                    <source
+                      media="(max-width: 749px)"
+                      srcset="
+                        {{ block.settings.mobile_image | image_url: width: 400 }} 400w,
+                        {{ block.settings.mobile_image | image_url: width: 600 }} 600w,
+                        {{ block.settings.mobile_image | image_url: width: 800 }} 800w
+                      "
+                      sizes="100vw"
+                    >
+                  {%- endif -%}
+                  <img
+                    class="casa-pprev__image" style="object-position: {{ block.settings.focal_point | default: 'center center' }}; --pprev-mobile-focal: {{ block.settings.mobile_focal_point | default: block.settings.focal_point | default: 'center center' }};"
+                    src="{{ block.settings.image | image_url: width: 1200 }}"
+                    srcset="
+                      {{ block.settings.image | image_url: width: 600 }} 600w,
+                      {{ block.settings.image | image_url: width: 900 }} 900w,
+                      {{ block.settings.image | image_url: width: 1200 }} 1200w
+                    "
+                    sizes="(max-width:749px) 100vw, 60vw"
+                    alt="{{ block.settings.title | escape }}"
+                    loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                    width="{{ block.settings.image.width }}"
+                    height="{{ block.settings.image.height }}"
+                  >
+                </picture>
+              {%- else -%}
+                <div class="casa-pprev__placeholder">
+                  <span>{{ block.settings.title | default: 'Mode' }} {{ forloop.index }}</span>
+                </div>
+              {%- endif -%}
+            </div>
+          {%- endfor -%}
+        </div>
+      </div>
+
+      {%- comment -%} Right: Content + Vertical Tabs {%- endcomment -%}
+      <div class="casa-pprev__split-content">
+        {%- if section.settings.subheading != blank -%}
+          <span class="casa-pprev__subheading">{{ section.settings.subheading }}</span>
+        {%- endif -%}
+        {%- if section.settings.heading != blank -%}
+          <h2 class="casa-pprev__heading casa-pprev__heading--split">{{ section.settings.heading }}</h2>
+        {%- endif -%}
+
+        {%- comment -%} Active mode detail area {%- endcomment -%}
+        {%- for block in section.blocks -%}
+          <div class="casa-pprev__split-detail{% if forloop.first %} casa-pprev__split-detail--active{% endif %}" data-mode-desc="{{ forloop.index0 }}">
+            <h3 class="casa-pprev__split-mode-title">
+              {%- if block.settings.icon != blank -%}
+                <span aria-hidden="true">{{ block.settings.icon }}</span>
+              {%- endif -%}
+              {{ block.settings.title }}
+            </h3>
+            {%- if block.settings.description != blank -%}
+              <p class="casa-pprev__split-mode-text">{{ block.settings.description }}</p>
+            {%- endif -%}
+          </div>
+        {%- endfor -%}
+
+        {%- comment -%} Vertical tab list {%- endcomment -%}
+        <nav class="casa-pprev__tabs casa-pprev__tabs--vertical" role="tablist" aria-label="Lighting modes" aria-orientation="vertical">
+          {%- for block in section.blocks -%}
+            <button
+              class="casa-pprev__tab casa-pprev__tab--vert{% if forloop.first %} casa-pprev__tab--active{% endif %}"
+              data-mode-index="{{ forloop.index0 }}"
+              role="tab"
+              aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+              id="pprev-tab-{{ section.id }}-{{ forloop.index0 }}"
+              type="button"
+            >
+              {%- if block.settings.icon != blank -%}
+                <span class="casa-pprev__tab-icon" aria-hidden="true">{{ block.settings.icon }}</span>
+              {%- endif -%}
+              <span class="casa-pprev__tab-label">{{ block.settings.title | default: 'Mode' }}</span>
+            </button>
+          {%- endfor -%}
+          {%- if auto_play -%}
+            <div class="casa-pprev__progress casa-pprev__progress--vert" aria-hidden="true">
+              <div class="casa-pprev__progress-bar"></div>
+            </div>
+          {%- endif -%}
+        </nav>
+      </div>
+    </div>
+  {%- endif -%}
+</section>
+
+{%- comment -%} ====================== STYLES ====================== {%- endcomment -%}
+<style>
+  /* ---- Base ---- */
+  .casa-pprev {
+    --_accent: var(--pprev-accent, #9333ea);
+    --_accent-rgb: var(--pprev-accent-rgb, 147, 51, 234);
+    --_text: var(--pprev-text, #fff);
+    --_bg: var(--pprev-bg, #0a0a0f);
+    --_transition: 0.6s cubic-bezier(.4, 0, .2, 1);
+
+    position: relative;
+    background: var(--_bg);
+    color: var(--_text);
+    padding-top: var(--pprev-pt);
+    padding-bottom: var(--pprev-pb);
+    overflow: hidden;
+    font-family: inherit;
+  }
+
+  /* ---- Wrapper (fullscreen & contained) ---- */
+  .casa-pprev__wrapper {
+    position: relative;
+    width: 100%;
+    min-height: var(--pprev-min-h, 500px);
+    overflow: hidden;
+  }
+  .casa-pprev__wrapper--contained {
+    max-width: 1400px;
+    margin: 0 auto;
+    border-radius: var(--pprev-radius, 16px);
+  }
+
+  /* ---- Media Stack ---- */
+  .casa-pprev__media-stack {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+  .casa-pprev__media-layer {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity var(--_transition);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .casa-pprev__media-layer--active {
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 2;
+  }
+  .casa-pprev__image,
+  .casa-pprev__image,
+  .casa-pprev__video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: var(--pprev-focal, center center);
+  }
+  @media (max-width: 749px) {
+    .casa-pprev__image {
+      object-position: var(--pprev-mobile-focal, center center);
+    }
+  }
+  .casa-pprev__placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(var(--_accent-rgb),.15), rgba(var(--_accent-rgb),.05));
+    color: rgba(255,255,255,.35);
+    font-size: 1.125rem;
+    letter-spacing: .04em;
+  }
+
+  /* ---- Gradient Overlays ---- */
+  .casa-pprev__gradient {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 40%;
+    z-index: 3;
+    pointer-events: none;
+  }
+  .casa-pprev__gradient--top {
+    top: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,var(--pprev-overlay-opacity,.3)), transparent);
+  }
+  .casa-pprev__gradient--bottom {
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0,0,0,var(--pprev-overlay-opacity,.3)), transparent);
+  }
+
+  /* ---- Text Overlay ---- */
+  .casa-pprev__overlay {
+    position: absolute;
+    z-index: 5;
+    max-width: 600px;
+    padding: 2.5rem;
+  }
+  .casa-pprev__overlay--top-left { top: 0; left: 0; }
+  .casa-pprev__overlay--top-center { top: 0; left: 50%; transform: translateX(-50%); text-align: center; }
+  .casa-pprev__overlay--bottom-left { bottom: 5rem; left: 0; }
+  .casa-pprev__overlay--bottom-center { bottom: 5rem; left: 50%; transform: translateX(-50%); text-align: center; }
+  .casa-pprev__subheading {
+    display: block;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--_accent);
+    margin-bottom: .5rem;
+  }
+  .casa-pprev__heading {
+    font-size: clamp(1.75rem, 4vw, 3.25rem);
+    font-weight: 700;
+    line-height: 1.15;
+    margin: 0;
+    color: var(--_text);
+    text-shadow: 0 2px 20px rgba(0,0,0,.45);
+  }
+  .casa-pprev__heading--split {
+    text-shadow: none;
+    margin-bottom: 1.5rem;
+  }
+
+  /* ---- Mode description overlay (fullscreen) ---- */
+  .casa-pprev__mode-desc {
+    position: absolute;
+    bottom: 5.5rem;
+    left: 2.5rem;
+    z-index: 5;
+    max-width: 420px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity .4s ease, transform .4s ease;
+    pointer-events: none;
+  }
+  .casa-pprev__mode-desc--active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .casa-pprev__mode-desc p {
+    margin: 0;
+    font-size: .9375rem;
+    line-height: 1.6;
+    color: rgba(255,255,255,.75);
+    text-shadow: 0 1px 8px rgba(0,0,0,.5);
+  }
+
+  /* ---- Tab Bar ---- */
+  .casa-pprev__tabs {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    z-index: 10;
+    position: relative;
+  }
+  /* Over-image positioning (fullscreen) */
+  .casa-pprev__tabs--bottom-center,
+  .casa-pprev__tabs--bottom-left,
+  .casa-pprev__tabs--top-center {
+    position: absolute;
+    padding: 1rem;
+  }
+  .casa-pprev__tabs--bottom-center {
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .casa-pprev__tabs--bottom-left {
+    bottom: 1.5rem;
+    left: 2rem;
+  }
+  .casa-pprev__tabs--top-center {
+    top: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  /* Below image (contained) */
+  .casa-pprev__tabs--below {
+    justify-content: center;
+    padding: 1.25rem 1rem .5rem;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  /* Vertical (split) */
+  .casa-pprev__tabs--vertical {
+    flex-direction: column;
+    align-items: stretch;
+    gap: .375rem;
+    margin-top: 1.5rem;
+  }
+
+  /* ---- Tab Buttons ---- */
+  .casa-pprev__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: .8125rem;
+    font-weight: 500;
+    letter-spacing: .03em;
+    transition: all .3s ease;
+    white-space: nowrap;
+    position: relative;
+    color: rgba(255,255,255,.65);
+    background: none;
+    padding: 0;
+    line-height: 1;
+  }
+  .casa-pprev__tab:focus-visible {
+    outline: 2px solid var(--_accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+  .casa-pprev__tab-icon {
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  /* --- Pills --- */
+  .casa-pprev--tabs-pills .casa-pprev__tab {
+    padding: .55rem 1.15rem;
+    border-radius: 100px;
+    border: 1px solid rgba(255,255,255,.15);
+    background: rgba(255,255,255,.06);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .casa-pprev--tabs-pills .casa-pprev__tab:hover {
+    border-color: rgba(var(--_accent-rgb),.5);
+    background: rgba(var(--_accent-rgb),.12);
+    color: #fff;
+  }
+  .casa-pprev--tabs-pills .casa-pprev__tab--active {
+    background: linear-gradient(135deg, var(--_accent), color-mix(in srgb, var(--_accent) 60%, #ec4899));
+    border-color: transparent;
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 2px 16px rgba(var(--_accent-rgb),.4);
+  }
+
+  /* --- Underline --- */
+  .casa-pprev--tabs-underline .casa-pprev__tab {
+    padding: .5rem .75rem;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+  }
+  .casa-pprev--tabs-underline .casa-pprev__tab:hover {
+    color: #fff;
+    border-bottom-color: rgba(var(--_accent-rgb),.4);
+  }
+  .casa-pprev--tabs-underline .casa-pprev__tab--active {
+    color: #fff;
+    border-bottom-color: var(--_accent);
+    font-weight: 600;
+  }
+
+  /* --- Glassmorphic --- */
+  .casa-pprev--tabs-glassmorphic .casa-pprev__tab {
+    padding: .6rem 1.25rem;
+    border-radius: 12px;
+    background: rgba(255,255,255,.07);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,.08);
+  }
+  .casa-pprev--tabs-glassmorphic .casa-pprev__tab:hover {
+    background: rgba(255,255,255,.13);
+    border-color: rgba(255,255,255,.15);
+    color: #fff;
+  }
+  .casa-pprev--tabs-glassmorphic .casa-pprev__tab--active {
+    background: rgba(var(--_accent-rgb),.22);
+    border-color: rgba(var(--_accent-rgb),.35);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 0 20px rgba(var(--_accent-rgb),.2), inset 0 0 20px rgba(var(--_accent-rgb),.06);
+  }
+
+  /* ---- Vertical Tab (split) ---- */
+  .casa-pprev__tab--vert {
+    justify-content: flex-start;
+    text-align: left;
+  }
+  .casa-pprev--tabs-pills .casa-pprev__tab--vert {
+    border-radius: 12px;
+    padding: .65rem 1.25rem;
+  }
+
+  /* ---- Auto-play Progress ---- */
+  .casa-pprev__progress {
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(255,255,255,.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .casa-pprev__progress--vert {
+    position: relative;
+    width: 100%;
+    height: 2px;
+    margin-top: .5rem;
+    bottom: auto;
+  }
+  .casa-pprev__progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--_accent), #ec4899);
+    border-radius: 2px;
+    transition: width .1s linear;
+  }
+  .casa-pprev__progress-bar--running {
+    animation: pprevProgress var(--pprev-auto-speed, 5s) linear forwards;
+  }
+  @keyframes pprevProgress {
+    from { width: 0%; }
+    to { width: 100%; }
+  }
+
+  /* ---- SPLIT LAYOUT ---- */
+  .casa-pprev__split {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    min-height: var(--pprev-min-h, 500px);
+  }
+  .casa-pprev__split-media {
+    position: relative;
+    overflow: hidden;
+  }
+  .casa-pprev__split-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 3rem 2.5rem;
+  }
+  .casa-pprev__split-detail {
+    display: none;
+  }
+  .casa-pprev__split-detail--active {
+    display: block;
+  }
+  .casa-pprev__split-mode-title {
+    font-size: 1.375rem;
+    font-weight: 600;
+    margin: 0 0 .5rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .casa-pprev__split-mode-text {
+    font-size: .9375rem;
+    line-height: 1.7;
+    color: rgba(255,255,255,.65);
+    margin: 0;
+  }
+
+  /* ---- Animations ---- */
+  .casa-pprev--animated .casa-pprev__overlay,
+  .casa-pprev--animated .casa-pprev__tabs {
+    animation: pprevFadeUp .7s ease both;
+  }
+  .casa-pprev--animated .casa-pprev__tabs {
+    animation-delay: .2s;
+  }
+  @keyframes pprevFadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .casa-pprev--animated .casa-pprev__tabs--bottom-center {
+    animation-name: pprevFadeUpCenter;
+  }
+  @keyframes pprevFadeUpCenter {
+    from { opacity: 0; transform: translate(-50%, 12px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+  .casa-pprev--animated .casa-pprev__tabs--top-center {
+    animation-name: pprevFadeDownCenter;
+  }
+  @keyframes pprevFadeDownCenter {
+    from { opacity: 0; transform: translate(-50%, -12px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+
+  /* ---- Reduced Motion ---- */
+  @media (prefers-reduced-motion: reduce) {
+    .casa-pprev__media-layer {
+      transition: opacity 0s !important;
+    }
+    .casa-pprev__mode-desc {
+      transition: none !important;
+      transform: none !important;
+    }
+    .casa-pprev--animated .casa-pprev__overlay,
+    .casa-pprev--animated .casa-pprev__tabs {
+      animation: none !important;
+    }
+    .casa-pprev__progress-bar--running {
+      animation: none !important;
+    }
+  }
+
+  /* ---- Mobile ---- */
+  @media (max-width: 749px) {
+    .casa-pprev__wrapper {
+      min-height: clamp(300px, 70vh, 500px);
+    }
+    .casa-pprev__overlay {
+      padding: 1.5rem;
+      max-width: 100%;
+    }
+    .casa-pprev__heading {
+      font-size: clamp(1.35rem, 6vw, 2rem);
+    }
+    .casa-pprev__tabs--bottom-center,
+    .casa-pprev__tabs--bottom-left,
+    .casa-pprev__tabs--top-center {
+      left: 0;
+      right: 0;
+      transform: none;
+      justify-content: center;
+      padding: .75rem;
+      bottom: 1rem;
+      top: auto;
+      flex-wrap: wrap;
+      gap: .375rem;
+    }
+    .casa-pprev--tabs-pills .casa-pprev__tab {
+      padding: .45rem .85rem;
+      font-size: .75rem;
+    }
+    .casa-pprev--tabs-glassmorphic .casa-pprev__tab {
+      padding: .45rem .9rem;
+      font-size: .75rem;
+    }
+    .casa-pprev__mode-desc {
+      left: 1.5rem;
+      right: 1.5rem;
+      bottom: 4.5rem;
+      max-width: none;
+    }
+    .casa-pprev__mode-desc p {
+      font-size: .8125rem;
+    }
+    /* Split -> stacked */
+    .casa-pprev__split {
+      grid-template-columns: 1fr;
+    }
+    .casa-pprev__split-media {
+      min-height: 280px;
+    }
+    .casa-pprev__split-content {
+      padding: 1.75rem 1.25rem;
+    }
+    .casa-pprev__tabs--vertical {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: .375rem;
+    }
+    .casa-pprev__tab--vert {
+      text-align: center;
+    }
+    .casa-pprev--tabs-pills .casa-pprev__tab--vert {
+      border-radius: 100px;
+      padding: .45rem .85rem;
+    }
+  }
+  @media (min-width: 750px) and (max-width: 989px) {
+    .casa-pprev__split {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>
+
+{%- comment -%} ====================== JAVASCRIPT ====================== {%- endcomment -%}
+<script>
+  (function() {
+    const section = document.querySelector('[data-section-id="{{ section.id }}"]');
+    if (!section) return;
+
+    const tabs = section.querySelectorAll('.casa-pprev__tab');
+    const layers = section.querySelectorAll('.casa-pprev__media-layer');
+    const descs = section.querySelectorAll('[data-mode-desc]');
+    const splitDetails = section.querySelectorAll('.casa-pprev__split-detail');
+    const progressBar = section.querySelector('.casa-pprev__progress-bar');
+
+    const autoPlay = section.dataset.autoPlay === 'true';
+    const autoSpeed = parseInt(section.dataset.autoSpeed, 10) * 1000 || 5000;
+    const modeCount = parseInt(section.dataset.modeCount, 10) || 0;
+
+    let activeIndex = 0;
+    let autoTimer = null;
+    let isPaused = false;
+
+    function activateMode(index) {
+      if (index < 0 || index >= modeCount || index === activeIndex) return;
+      const prevIndex = activeIndex;
+      activeIndex = index;
+
+      /* Tabs */
+      tabs.forEach(function(tab) {
+        const i = parseInt(tab.dataset.modeIndex, 10);
+        const isActive = i === index;
+        tab.classList.toggle('casa-pprev__tab--active', isActive);
+        tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+
+      /* Media layers */
+      layers.forEach(function(layer) {
+        const i = parseInt(layer.dataset.modeIndex, 10);
+        const isActive = i === index;
+        layer.classList.toggle('casa-pprev__media-layer--active', isActive);
+        if (layer.hasAttribute('aria-hidden')) {
+          layer.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+        }
+        /* Video play/pause */
+        var video = layer.querySelector('video');
+        if (video) {
+          if (isActive) {
+            video.play().catch(function() {});
+          } else {
+            video.pause();
+          }
+        }
+      });
+
+      /* Descriptions (fullscreen) */
+      descs.forEach(function(desc) {
+        var i = parseInt(desc.dataset.modeDesc, 10);
+        desc.classList.toggle('casa-pprev__mode-desc--active', i === index);
+      });
+
+      /* Split details */
+      splitDetails.forEach(function(detail) {
+        var i = parseInt(detail.dataset.modeDesc, 10);
+        detail.classList.toggle('casa-pprev__split-detail--active', i === index);
+      });
+
+      resetProgress();
+    }
+
+    /* Click handlers */
+    tabs.forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        var idx = parseInt(tab.dataset.modeIndex, 10);
+        activateMode(idx);
+        stopAutoPlay();
+        if (autoPlay) startAutoPlay();
+      });
+    });
+
+    /* Keyboard navigation */
+    section.addEventListener('keydown', function(e) {
+      if (!e.target.classList.contains('casa-pprev__tab')) return;
+      var isVertical = e.target.closest('.casa-pprev__tabs--vertical');
+      var prevKey = isVertical ? 'ArrowUp' : 'ArrowLeft';
+      var nextKey = isVertical ? 'ArrowDown' : 'ArrowRight';
+      var newIndex = activeIndex;
+
+      if (e.key === nextKey) {
+        newIndex = (activeIndex + 1) % modeCount;
+        e.preventDefault();
+      } else if (e.key === prevKey) {
+        newIndex = (activeIndex - 1 + modeCount) % modeCount;
+        e.preventDefault();
+      } else if (e.key === 'Home') {
+        newIndex = 0;
+        e.preventDefault();
+      } else if (e.key === 'End') {
+        newIndex = modeCount - 1;
+        e.preventDefault();
+      } else {
+        return;
+      }
+      activateMode(newIndex);
+      /* Focus the new active tab */
+      tabs.forEach(function(t) {
+        if (parseInt(t.dataset.modeIndex, 10) === newIndex) t.focus();
+      });
+    });
+
+    /* Touch swipe */
+    var touchStartX = 0;
+    var touchStartY = 0;
+    section.addEventListener('touchstart', function(e) {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+    section.addEventListener('touchend', function(e) {
+      var dx = e.changedTouches[0].screenX - touchStartX;
+      var dy = e.changedTouches[0].screenY - touchStartY;
+      if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
+      if (dx < 0) {
+        activateMode((activeIndex + 1) % modeCount);
+      } else {
+        activateMode((activeIndex - 1 + modeCount) % modeCount);
+      }
+    }, { passive: true });
+
+    /* Auto-play */
+    function resetProgress() {
+      if (!progressBar) return;
+      progressBar.classList.remove('casa-pprev__progress-bar--running');
+      progressBar.style.width = '0%';
+      void progressBar.offsetWidth; /* reflow */
+      progressBar.style.setProperty('--pprev-auto-speed', (autoSpeed / 1000) + 's');
+      if (autoPlay && !isPaused) {
+        progressBar.style.animationDuration = (autoSpeed / 1000) + 's';
+        progressBar.classList.add('casa-pprev__progress-bar--running');
+      }
+    }
+
+    function startAutoPlay() {
+      if (!autoPlay || modeCount < 2) return;
+      isPaused = false;
+      stopAutoPlay();
+      resetProgress();
+      autoTimer = setInterval(function() {
+        var next = (activeIndex + 1) % modeCount;
+        activateMode(next);
+      }, autoSpeed);
+    }
+
+    function stopAutoPlay() {
+      if (autoTimer) {
+        clearInterval(autoTimer);
+        autoTimer = null;
+      }
+    }
+
+    /* Pause on hover / focus */
+    section.addEventListener('mouseenter', function() {
+      if (autoPlay) {
+        isPaused = true;
+        stopAutoPlay();
+        if (progressBar) progressBar.classList.remove('casa-pprev__progress-bar--running');
+      }
+    });
+    section.addEventListener('mouseleave', function() {
+      if (autoPlay) {
+        isPaused = false;
+        startAutoPlay();
+      }
+    });
+
+    /* Init */
+    if (autoPlay && modeCount > 1) startAutoPlay();
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Product Preview",
+  "tag": "section",
+  "class": "casa-product-preview-section",
+  "limit": 2,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "layout_style",
+      "label": "Layout style",
+      "options": [
+        { "value": "fullscreen", "label": "Fullscreen" },
+        { "value": "contained", "label": "Contained" },
+        { "value": "split", "label": "Split" }
+      ],
+      "default": "fullscreen"
+    },
+    {
+      "type": "range",
+      "id": "min_height",
+      "label": "Minimum height (px)",
+      "min": 300,
+      "max": 800,
+      "step": 10,
+      "default": 500,
+      "unit": "px"
+    },
+    {
+      "type": "checkbox",
+      "id": "fullscreen_height",
+      "label": "Use full viewport height (fullscreen)",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Border radius (contained)",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "default": 16,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Text"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading"
+    },
+    {
+      "type": "select",
+      "id": "heading_position",
+      "label": "Heading position",
+      "options": [
+        { "value": "top-left", "label": "Top left" },
+        { "value": "top-center", "label": "Top center" },
+        { "value": "bottom-left", "label": "Bottom left" },
+        { "value": "bottom-center", "label": "Bottom center" }
+      ],
+      "default": "top-left"
+    },
+    {
+      "type": "header",
+      "content": "Overlay"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_overlay_gradient",
+      "label": "Show gradient overlay",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "label": "Overlay opacity",
+      "min": 0,
+      "max": 60,
+      "step": 5,
+      "default": 30,
+      "unit": "%"
+    },
+    {
+      "type": "header",
+      "content": "Tabs"
+    },
+    {
+      "type": "select",
+      "id": "tab_style",
+      "label": "Tab style",
+      "options": [
+        { "value": "pills", "label": "Pills" },
+        { "value": "underline", "label": "Underline" },
+        { "value": "glassmorphic", "label": "Glassmorphic" }
+      ],
+      "default": "pills"
+    },
+    {
+      "type": "select",
+      "id": "tab_position",
+      "label": "Tab position (fullscreen)",
+      "options": [
+        { "value": "bottom-center", "label": "Bottom center" },
+        { "value": "bottom-left", "label": "Bottom left" },
+        { "value": "top-center", "label": "Top center" }
+      ],
+      "default": "bottom-center"
+    },
+    {
+      "type": "header",
+      "content": "Auto-play"
+    },
+    {
+      "type": "checkbox",
+      "id": "auto_play",
+      "label": "Auto-play through modes",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "auto_play_speed",
+      "label": "Auto-play interval",
+      "min": 3,
+      "max": 10,
+      "step": 1,
+      "default": 5,
+      "unit": "s"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#0a0a0f"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "default": "#9333ea"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "default": 0,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "default": 0,
+      "unit": "px"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_animations",
+      "label": "Enable entrance animations",
+      "default": true
+    }
+  ],
+  "blocks": [
+    {
+      "type": "mode",
+      "name": "Mode",
+      "limit": 8,
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Tab label",
+          "default": "Mode"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Desktop image"
+        },
+        {
+          "type": "image_picker",
+          "id": "mobile_image",
+          "label": "Mobile image",
+          "info": "Optional. Shown on screens under 750px."
+        },
+        {
+          "type": "url",
+          "id": "video_url",
+          "label": "Video URL (MP4)"
+        },
+        {
+          "type": "select",
+          "id": "mobile_focal_point",
+          "label": "Mobile image focal point",
+          "options": [
+            { "value": "top left", "label": "Top Left" },
+            { "value": "top center", "label": "Top Center" },
+            { "value": "top right", "label": "Top Right" },
+            { "value": "center left", "label": "Center Left" },
+            { "value": "center center", "label": "Center" },
+            { "value": "center right", "label": "Center Right" },
+            { "value": "bottom left", "label": "Bottom Left" },
+            { "value": "bottom center", "label": "Bottom Center" },
+            { "value": "bottom right", "label": "Bottom Right" }
+          ],
+          "default": "center center"
+        },
+        {
+          "type": "textarea",
+          "id": "description",
+          "label": "Description"
+        },
+        {
+          "type": "text",
+          "id": "icon",
+          "label": "Icon (emoji)"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Product Preview",
+      "blocks": [
+        {
+          "type": "mode",
+          "settings": {
+            "title": "Animated Scenes",
+            "description": "Dynamic color-shifting scenes that transform any room into an immersive experience.",
+            "icon": "🌈"
+          }
+        },
+        {
+          "type": "mode",
+          "settings": {
+            "title": "Warm Whites",
+            "description": "Soft, inviting tones for relaxation and everyday ambiance.",
+            "icon": "🕯️"
+          }
+        },
+        {
+          "type": "mode",
+          "settings": {
+            "title": "Cool Whites",
+            "description": "Crisp daylight tones for focus and productivity.",
+            "icon": "💡"
+          }
+        },
+        {
+          "type": "mode",
+          "settings": {
+            "title": "Solid RGBs",
+            "description": "Bold, vibrant colors to match any mood or moment.",
+            "icon": "🎨"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

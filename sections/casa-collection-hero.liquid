@@ -1,0 +1,930 @@
+{%- liquid
+  assign show_breadcrumbs = section.settings.show_breadcrumbs
+  assign show_description = section.settings.show_description
+  assign show_stats = section.settings.show_stats
+  assign accent_word = section.settings.accent_word | default: ''
+  assign padding_top = section.settings.padding_top | default: 80
+  assign padding_bottom = section.settings.padding_bottom | default: 60
+
+  # Layout
+  assign layout_style = section.settings.layout_style | default: 'minimal'
+  assign content_align = section.settings.content_align | default: 'left'
+  assign content_width = section.settings.content_width | default: 680
+  assign title_size = section.settings.title_size | default: 'large'
+
+  # Colors
+  assign bg_color = section.settings.bg_color | default: '#0a0a0f'
+  assign text_primary = section.settings.text_primary | default: '#ffffff'
+  assign text_secondary = section.settings.text_secondary | default: '#a0a0a0'
+  assign accent_primary = section.settings.accent_primary | default: '#9333ea'
+  assign accent_secondary = section.settings.accent_secondary | default: '#ec4899'
+
+  # Image / Video
+  assign bg_image = section.settings.bg_image
+  assign use_collection_image = section.settings.use_collection_image
+  assign overlay_opacity = section.settings.overlay_opacity | default: 60
+  assign bg_position = section.settings.bg_position | default: 'center'
+  assign enable_parallax = section.settings.enable_parallax
+  assign bg_video_url = section.settings.bg_video_url | default: ''
+  assign min_height = section.settings.min_height | default: 0
+
+  # Determine which image to use
+  assign hero_image = bg_image
+  if use_collection_image and collection.image and hero_image == blank
+    assign hero_image = collection.image
+  endif
+
+  assign has_bg_media = false
+  if hero_image != blank or bg_video_url != blank
+    assign has_bg_media = true
+  endif
+
+  # Badge / subtitle
+  assign hero_badge = section.settings.hero_badge | default: ''
+  assign custom_subtitle = section.settings.custom_subtitle | default: ''
+
+  # CTA
+  assign cta_text = section.settings.cta_text | default: ''
+  assign cta_link = section.settings.cta_link | default: ''
+  assign cta_style = section.settings.cta_style | default: 'gradient'
+  assign cta_text_2 = section.settings.cta_text_2 | default: ''
+  assign cta_link_2 = section.settings.cta_link_2 | default: ''
+
+  # Title
+  assign collection_title = collection.title | default: 'Collection'
+  assign display_title = collection_title
+  if accent_word != blank
+    assign accent_html = '<span class="casa-col-hero__accent">' | append: accent_word | append: '</span>'
+    assign display_title = collection_title | replace: accent_word, accent_html
+  endif
+
+  # Title size class
+  case title_size
+    when 'small'
+      assign title_class = 'casa-col-hero__title--sm'
+    when 'medium'
+      assign title_class = 'casa-col-hero__title--md'
+    when 'large'
+      assign title_class = 'casa-col-hero__title--lg'
+    when 'extra-large'
+      assign title_class = 'casa-col-hero__title--xl'
+    else
+      assign title_class = 'casa-col-hero__title--lg'
+  endcase
+-%}
+
+<section
+  class="casa-col-hero casa-col-hero--{{ layout_style }}{% if has_bg_media %} casa-col-hero--has-bg{% endif %}{% if content_align == 'center' %} casa-col-hero--centered{% endif %}"
+  style="
+    --cch-pt: {{ padding_top }}px;
+    --cch-pb: {{ padding_bottom }}px;
+    --cch-bg: {{ bg_color }};
+    --cch-text: {{ text_primary }};
+    --cch-text-muted: {{ text_secondary }};
+    --cch-accent-1: {{ accent_primary }};
+    --cch-accent-2: {{ accent_secondary }};
+    --cch-content-w: {{ content_width }}px;
+    --cch-overlay-opacity: {{ overlay_opacity | divided_by: 100.0 }};
+    {%- if min_height > 0 -%}--cch-min-h: {{ min_height }}px;{%- endif -%}
+  "
+>
+  {%- comment -%} Background media {%- endcomment -%}
+  {%- if has_bg_media -%}
+    <div class="casa-col-hero__media">
+      {%- if bg_video_url != blank -%}
+        <video class="casa-col-hero__video" autoplay loop muted playsinline>
+          <source src="{{ bg_video_url }}" type="video/mp4">
+        </video>
+      {%- elsif hero_image -%}
+        <img
+          src="{{ hero_image | image_url: width: 1920 }}"
+          srcset="{{ hero_image | image_url: width: 960 }} 960w, {{ hero_image | image_url: width: 1440 }} 1440w, {{ hero_image | image_url: width: 1920 }} 1920w"
+          sizes="100vw"
+          alt="{{ collection_title | escape }}"
+          loading="eager"
+          class="casa-col-hero__bg-img{% if enable_parallax %} casa-col-hero__bg-img--parallax{% endif %}"
+          style="object-position: {{ bg_position }};"
+        >
+      {%- endif -%}
+      <div class="casa-col-hero__overlay"></div>
+    </div>
+  {%- else -%}
+    {%- comment -%} Decorative gradient glows (no image mode) {%- endcomment -%}
+    <div class="casa-col-hero__glow casa-col-hero__glow--1"></div>
+    <div class="casa-col-hero__glow casa-col-hero__glow--2"></div>
+  {%- endif -%}
+
+  <div class="casa-col-hero__container">
+    {%- if show_breadcrumbs -%}
+      <nav class="casa-col-hero__breadcrumbs" aria-label="Breadcrumbs">
+        <a href="/" class="casa-col-hero__breadcrumb-link">Home</a>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        <a href="/collections" class="casa-col-hero__breadcrumb-link">Collections</a>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        <span class="casa-col-hero__breadcrumb-current">{{ collection_title }}</span>
+      </nav>
+    {%- endif -%}
+
+    <div class="casa-col-hero__content">
+      {%- if hero_badge != blank -%}
+        <div class="casa-col-hero__badge">
+          <span class="casa-col-hero__badge-dot"></span>
+          {{ hero_badge }}
+        </div>
+      {%- endif -%}
+
+      <h1 class="casa-col-hero__title {{ title_class }}">{{ display_title }}</h1>
+
+      {%- if custom_subtitle != blank -%}
+        <div class="casa-col-hero__description">{{ custom_subtitle }}</div>
+      {%- elsif show_description and collection.description != blank -%}
+        <div class="casa-col-hero__description">{{ collection.description }}</div>
+      {%- endif -%}
+
+      {%- if cta_text != blank -%}
+        <div class="casa-col-hero__cta-row">
+          <a href="{{ cta_link | default: collection.url }}" class="casa-col-hero__cta casa-col-hero__cta--{{ cta_style }}">
+            {{ cta_text }}
+          </a>
+          {%- if cta_text_2 != blank -%}
+            <a href="{{ cta_link_2 | default: collection.url }}" class="casa-col-hero__cta casa-col-hero__cta--outline">
+              {{ cta_text_2 }}
+            </a>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+
+      {%- if show_stats -%}
+        <div class="casa-col-hero__stats">
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'stat' -%}
+              <div class="casa-col-hero__stat" {{ block.shopify_attributes }}>
+                {%- case block.settings.stat_icon -%}
+                  {%- when 'products' -%}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                  {%- when 'star' -%}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="casa-col-hero__stat-star"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+                  {%- when 'shipping' -%}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                  {%- when 'shield' -%}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+                  {%- when 'heart' -%}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                  {%- when 'clock' -%}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  {%- when 'tag' -%}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                  {%- when 'gift' -%}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+                  {%- when 'zap' -%}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                {%- endcase -%}
+                <span>
+                  {%- if block.settings.stat_use_count and block.settings.stat_icon == 'products' -%}
+                    {{ collection.products_count }} {{ block.settings.stat_text | default: 'Products' }}
+                  {%- else -%}
+                    {{ block.settings.stat_text }}
+                  {%- endif -%}
+                </span>
+              </div>
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} Split image for split layout {%- endcomment -%}
+    {%- if layout_style == 'split' and hero_image -%}
+      <div class="casa-col-hero__split-image">
+        <img
+          src="{{ hero_image | image_url: width: 800 }}"
+          alt="{{ collection_title | escape }}"
+          loading="eager"
+          class="casa-col-hero__split-img"
+        >
+      </div>
+    {%- endif -%}
+  </div>
+</section>
+
+{%- if enable_parallax and has_bg_media -%}
+  <script>
+    (function() {
+      var img = document.querySelector('.casa-col-hero__bg-img--parallax');
+      if (!img) return;
+      var hero = img.closest('.casa-col-hero');
+      function onScroll() {
+        var rect = hero.getBoundingClientRect();
+        var y = -(rect.top * 0.3);
+        img.style.transform = 'translateY(' + y + 'px) scale(1.1)';
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    })();
+  </script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Casa Collection Hero",
+  "tag": "section",
+  "class": "casa-collection-hero-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "layout_style",
+      "label": "Layout style",
+      "options": [
+        { "value": "minimal", "label": "Minimal (text only)" },
+        { "value": "banner", "label": "Full-width banner" },
+        { "value": "split", "label": "Split (text + image)" },
+        { "value": "centered", "label": "Centered overlay" }
+      ],
+      "default": "minimal"
+    },
+    {
+      "type": "select",
+      "id": "content_align",
+      "label": "Content alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "range",
+      "id": "content_width",
+      "label": "Content max width",
+      "min": 400,
+      "max": 1200,
+      "step": 20,
+      "default": 680,
+      "unit": "px"
+    },
+    {
+      "type": "select",
+      "id": "title_size",
+      "label": "Title size",
+      "options": [
+        { "value": "small", "label": "Small" },
+        { "value": "medium", "label": "Medium" },
+        { "value": "large", "label": "Large" },
+        { "value": "extra-large", "label": "Extra Large" }
+      ],
+      "default": "large"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_breadcrumbs",
+      "label": "Show breadcrumbs",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_description",
+      "label": "Show collection description",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_stats",
+      "label": "Show stats row",
+      "info": "Add stats using blocks below",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Badge / Subtitle"
+    },
+    {
+      "type": "text",
+      "id": "hero_badge",
+      "label": "Hero badge text",
+      "info": "Small label above the title (e.g. New Collection, Limited Edition)"
+    },
+    {
+      "type": "text",
+      "id": "accent_word",
+      "label": "Accent word in title",
+      "info": "This word in the collection title will be highlighted with the accent gradient"
+    },
+    {
+      "type": "textarea",
+      "id": "custom_subtitle",
+      "label": "Custom subtitle",
+      "info": "Overrides the collection description if set"
+    },
+    {
+      "type": "header",
+      "content": "Background Image / Video"
+    },
+    {
+      "type": "checkbox",
+      "id": "use_collection_image",
+      "label": "Use collection image as background",
+      "info": "Falls back to collection image when no custom image is set",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "bg_image",
+      "label": "Custom background image",
+      "info": "Overrides collection image"
+    },
+    {
+      "type": "url",
+      "id": "bg_video_url",
+      "label": "Background video URL",
+      "info": "MP4 URL. Overrides image when set."
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "label": "Overlay darkness",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 60,
+      "unit": "%"
+    },
+    {
+      "type": "select",
+      "id": "bg_position",
+      "label": "Image position",
+      "options": [
+        { "value": "top", "label": "Top" },
+        { "value": "center", "label": "Center" },
+        { "value": "bottom", "label": "Bottom" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_parallax",
+      "label": "Enable parallax effect",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "min_height",
+      "label": "Minimum height",
+      "info": "Set to 0 for auto height",
+      "min": 0,
+      "max": 600,
+      "step": 20,
+      "default": 0,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Call to Action"
+    },
+    {
+      "type": "text",
+      "id": "cta_text",
+      "label": "Primary button text"
+    },
+    {
+      "type": "url",
+      "id": "cta_link",
+      "label": "Primary button link",
+      "info": "Defaults to current collection if blank"
+    },
+    {
+      "type": "select",
+      "id": "cta_style",
+      "label": "Primary button style",
+      "options": [
+        { "value": "gradient", "label": "Gradient" },
+        { "value": "solid", "label": "Solid" },
+        { "value": "outline", "label": "Outline" }
+      ],
+      "default": "gradient"
+    },
+    {
+      "type": "text",
+      "id": "cta_text_2",
+      "label": "Secondary button text"
+    },
+    {
+      "type": "url",
+      "id": "cta_link_2",
+      "label": "Secondary button link"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#0a0a0f"
+    },
+    {
+      "type": "color",
+      "id": "text_primary",
+      "label": "Text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "text_secondary",
+      "label": "Secondary text",
+      "default": "#a0a0a0"
+    },
+    {
+      "type": "color",
+      "id": "accent_primary",
+      "label": "Primary accent",
+      "default": "#9333ea"
+    },
+    {
+      "type": "color",
+      "id": "accent_secondary",
+      "label": "Secondary accent",
+      "default": "#ec4899"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 60,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "stat",
+      "name": "Stat",
+      "limit": 8,
+      "settings": [
+        {
+          "type": "select",
+          "id": "stat_icon",
+          "label": "Icon",
+          "options": [
+            { "value": "products", "label": "Grid (products)" },
+            { "value": "star", "label": "Star (rating)" },
+            { "value": "shipping", "label": "Truck (shipping)" },
+            { "value": "shield", "label": "Shield (warranty)" },
+            { "value": "heart", "label": "Heart" },
+            { "value": "clock", "label": "Clock" },
+            { "value": "tag", "label": "Tag (sale)" },
+            { "value": "gift", "label": "Gift" },
+            { "value": "zap", "label": "Lightning" }
+          ],
+          "default": "products"
+        },
+        {
+          "type": "text",
+          "id": "stat_text",
+          "label": "Text",
+          "default": "Products"
+        },
+        {
+          "type": "checkbox",
+          "id": "stat_use_count",
+          "label": "Auto-insert product count",
+          "info": "Prepends the collection product count. Only works with Grid icon.",
+          "default": true
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Collection Hero",
+      "blocks": [
+        {
+          "type": "stat",
+          "settings": {
+            "stat_icon": "products",
+            "stat_text": "Products",
+            "stat_use_count": true
+          }
+        },
+        {
+          "type": "stat",
+          "settings": {
+            "stat_icon": "star",
+            "stat_text": "4.9 Stars",
+            "stat_use_count": false
+          }
+        },
+        {
+          "type": "stat",
+          "settings": {
+            "stat_icon": "shipping",
+            "stat_text": "Free Shipping on $99+",
+            "stat_use_count": false
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+{% stylesheet %}
+/* ═══════════════════════════════════════════════════════
+   COLLECTION HERO — BASE
+   ═══════════════════════════════════════════════════════ */
+.casa-col-hero {
+  position: relative;
+  background: var(--cch-bg);
+  padding: var(--cch-pt) 60px var(--cch-pb);
+  overflow: hidden;
+  min-height: var(--cch-min-h, auto);
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+
+.casa-col-hero--has-bg {
+  display: flex;
+  align-items: flex-end;
+}
+
+.casa-col-hero--centered .casa-col-hero__content {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.casa-col-hero--centered .casa-col-hero__breadcrumbs {
+  justify-content: center;
+}
+
+.casa-col-hero--centered .casa-col-hero__stats {
+  justify-content: center;
+}
+
+.casa-col-hero--centered .casa-col-hero__cta-row {
+  justify-content: center;
+}
+
+.casa-col-hero--centered .casa-col-hero__badge {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── Background media ── */
+.casa-col-hero__media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.casa-col-hero__bg-img,
+.casa-col-hero__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.casa-col-hero__bg-img--parallax {
+  transform: scale(1.1);
+  will-change: transform;
+}
+
+.casa-col-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, calc(var(--cch-overlay-opacity) * 0.7)) 0%,
+    rgba(0, 0, 0, var(--cch-overlay-opacity)) 100%
+  );
+}
+
+/* ── Decorative glows (no-image mode) ── */
+.casa-col-hero__glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.casa-col-hero__glow--1 {
+  width: 600px;
+  height: 600px;
+  background: var(--cch-accent-1);
+  top: -200px;
+  left: 20%;
+}
+
+.casa-col-hero__glow--2 {
+  width: 500px;
+  height: 500px;
+  background: var(--cch-accent-2);
+  top: -150px;
+  right: 5%;
+}
+
+/* ── Container ── */
+.casa-col-hero__container {
+  position: relative;
+  z-index: 1;
+  max-width: 1800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.casa-col-hero--split .casa-col-hero__container {
+  display: flex;
+  align-items: center;
+  gap: 60px;
+}
+
+/* ── Breadcrumbs ── */
+.casa-col-hero__breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+
+.casa-col-hero__breadcrumb-link {
+  color: var(--cch-text-muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.casa-col-hero__breadcrumb-link:hover {
+  color: var(--cch-text);
+}
+
+.casa-col-hero__breadcrumbs svg {
+  color: var(--cch-text-muted);
+  flex-shrink: 0;
+}
+
+.casa-col-hero__breadcrumb-current {
+  color: var(--cch-text);
+}
+
+/* ── Badge ── */
+.casa-col-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 100px;
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.15), rgba(236, 72, 153, 0.1));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--cch-text);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.casa-col-hero__badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cch-accent-1);
+  animation: casaHeroPulse 2s ease-in-out infinite;
+}
+
+@keyframes casaHeroPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.8); }
+}
+
+/* ── Content ── */
+.casa-col-hero__content {
+  max-width: var(--cch-content-w, 680px);
+  flex: 1;
+}
+
+/* Title sizes */
+.casa-col-hero__title {
+  font-weight: 300;
+  color: var(--cch-text);
+  margin: 0 0 16px 0;
+  letter-spacing: -1px;
+  line-height: 1.1;
+}
+
+.casa-col-hero__title--sm { font-size: 32px; }
+.casa-col-hero__title--md { font-size: 40px; }
+.casa-col-hero__title--lg { font-size: 48px; }
+.casa-col-hero__title--xl { font-size: 64px; }
+
+.casa-col-hero__accent {
+  background: linear-gradient(135deg, var(--cch-accent-1), var(--cch-accent-2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 400;
+}
+
+.casa-col-hero__description {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--cch-text-muted);
+  max-width: 560px;
+  margin-bottom: 20px;
+}
+
+.casa-col-hero--centered .casa-col-hero__description {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.casa-col-hero__description p {
+  margin: 0;
+}
+
+/* ── CTA buttons ── */
+.casa-col-hero__cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.casa-col-hero__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.casa-col-hero__cta--gradient {
+  background: linear-gradient(135deg, var(--cch-accent-1), var(--cch-accent-2));
+  color: #ffffff;
+  border: none;
+}
+
+.casa-col-hero__cta--gradient:hover {
+  filter: brightness(1.15);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(147, 51, 234, 0.4);
+}
+
+.casa-col-hero__cta--solid {
+  background: var(--cch-accent-1);
+  color: #ffffff;
+  border: none;
+}
+
+.casa-col-hero__cta--solid:hover {
+  filter: brightness(1.15);
+  transform: translateY(-2px);
+}
+
+.casa-col-hero__cta--outline {
+  background: transparent;
+  color: var(--cch-text);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.casa-col-hero__cta--outline:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ── Stats row ── */
+.casa-col-hero__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding-top: 8px;
+}
+
+.casa-col-hero__stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--cch-text-muted);
+}
+
+.casa-col-hero__stat svg {
+  color: var(--cch-text-muted);
+  flex-shrink: 0;
+}
+
+.casa-col-hero__stat-star {
+  color: #fbbf24 !important;
+}
+
+/* ── Split layout image ── */
+.casa-col-hero__split-image {
+  flex: 0 0 400px;
+  max-width: 400px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.casa-col-hero__split-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .casa-col-hero {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .casa-col-hero__title--sm { font-size: 26px; }
+  .casa-col-hero__title--md { font-size: 32px; }
+  .casa-col-hero__title--lg { font-size: 36px; }
+  .casa-col-hero__title--xl { font-size: 48px; }
+
+  .casa-col-hero__glow--1 {
+    width: 300px;
+    height: 300px;
+    top: -100px;
+  }
+
+  .casa-col-hero__glow--2 {
+    width: 250px;
+    height: 250px;
+    top: -80px;
+  }
+
+  .casa-col-hero--split .casa-col-hero__container {
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .casa-col-hero__split-image {
+    flex: none;
+    max-width: 100%;
+    width: 100%;
+    max-height: 280px;
+  }
+}
+
+@media (max-width: 480px) {
+  .casa-col-hero {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .casa-col-hero__title--sm { font-size: 22px; }
+  .casa-col-hero__title--md { font-size: 26px; }
+  .casa-col-hero__title--lg { font-size: 28px; }
+  .casa-col-hero__title--xl { font-size: 36px; }
+
+  .casa-col-hero__description {
+    font-size: 14px;
+  }
+
+  .casa-col-hero__stats {
+    gap: 16px;
+  }
+
+  .casa-col-hero__stat {
+    font-size: 12px;
+  }
+
+  .casa-col-hero__cta {
+    width: 100%;
+    padding: 14px 24px;
+  }
+}
+{% endstylesheet %}

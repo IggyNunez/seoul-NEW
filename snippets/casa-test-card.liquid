@@ -1,0 +1,81 @@
+{%- comment -%}
+  Seoul Glow Lab — Testimonial Card Snippet
+  Used by casa-testimonials.liquid (carousel, masonry, marquee layouts)
+
+  Params:
+    block    — the review block
+    star_color — star fill color
+    compact  — (optional) true for marquee compact cards
+{%- endcomment -%}
+
+{%- liquid
+  assign rating = block.settings.rating | default: 5
+  assign quote = block.settings.quote
+  assign author = block.settings.author_name | default: 'Customer'
+  assign image = block.settings.author_image
+  assign verified = block.settings.verified
+  assign product_name = block.settings.product_name
+  assign product_url = block.settings.product_url
+  assign date_text = block.settings.date
+  assign sc = star_color | default: '#fbbf24'
+-%}
+
+<div class="casa-test__card{% if compact %} casa-test__card--compact{% endif %}" {{ block.shopify_attributes }}>
+  {%- comment -%} Stars {%- endcomment -%}
+  <div class="casa-test__card-stars">
+    {%- for i in (1..5) -%}
+      {%- if i <= rating -%}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="{{ sc }}"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01z"/></svg>
+      {%- else -%}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{ sc }}" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01z"/></svg>
+      {%- endif -%}
+    {%- endfor -%}
+  </div>
+
+  {%- comment -%} Quote {%- endcomment -%}
+  {%- if quote != blank -%}
+    <p class="casa-test__card-quote">"{{ quote }}"</p>
+  {%- endif -%}
+
+  {%- comment -%} Footer: avatar + author + meta {%- endcomment -%}
+  <div class="casa-test__card-footer">
+    <div class="casa-test__card-avatar">
+      {%- if image != blank -%}
+        <img
+          src="{{ image | image_url: width: 80 }}"
+          alt="{{ author }}"
+          width="40"
+          height="40"
+          loading="lazy"
+        >
+      {%- else -%}
+        {{ author | slice: 0 }}
+      {%- endif -%}
+    </div>
+    <div class="casa-test__card-info">
+      <span class="casa-test__card-author">
+        {{ author }}
+        {%- if verified -%}
+          <span class="casa-test__card-verified" title="Verified purchase">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          </span>
+        {%- endif -%}
+      </span>
+      <span class="casa-test__card-meta">
+        {%- if product_name != blank -%}
+          {%- if product_url != blank -%}
+            <a href="{{ product_url }}" class="casa-test__card-product">{{ product_name }}</a>
+          {%- else -%}
+            <span class="casa-test__card-product">{{ product_name }}</span>
+          {%- endif -%}
+          {%- if date_text != blank -%}
+            <span class="casa-test__card-dot">&middot;</span>
+          {%- endif -%}
+        {%- endif -%}
+        {%- if date_text != blank -%}
+          <span>{{ date_text }}</span>
+        {%- endif -%}
+      </span>
+    </div>
+  </div>
+</div>

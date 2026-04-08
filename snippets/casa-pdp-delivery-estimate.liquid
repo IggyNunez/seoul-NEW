@@ -1,0 +1,113 @@
+{%- comment -%}
+  Casa PDP Delivery Estimate
+  "Order in 2h 15m for delivery Feb 7-10" banner
+
+  Parameters:
+  - block: The block object with settings
+{%- endcomment -%}
+
+{%- liquid
+  assign delivery_days_min = block.settings.delivery_days_min | default: 5
+  assign delivery_days_max = block.settings.delivery_days_max | default: 8
+  assign cutoff_hour = block.settings.cutoff_hour | default: 17
+-%}
+
+<div class="casa-pdp-delivery">
+  <span class="casa-pdp-delivery__icon">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </svg>
+  </span>
+  <span class="casa-pdp-delivery__text">
+    Order in <strong data-delivery-countdown>--h --m</strong> for delivery <strong data-delivery-dates>{{ delivery_days_min }}-{{ delivery_days_max }} days</strong>
+  </span>
+</div>
+
+<script>
+  (function() {
+    const el = document.querySelector('[data-delivery-countdown]');
+    const datesEl = document.querySelector('[data-delivery-dates]');
+    if (!el) return;
+
+    const cutoff = {{ cutoff_hour }};
+    const minDays = {{ delivery_days_min }};
+    const maxDays = {{ delivery_days_max }};
+
+    function formatDate(d) {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return months[d.getMonth()] + ' ' + d.getDate();
+    }
+
+    function update() {
+      const now = new Date();
+      const target = new Date(now);
+      target.setHours(cutoff, 0, 0, 0);
+
+      if (now >= target) {
+        target.setDate(target.getDate() + 1);
+      }
+
+      const diff = target - now;
+      const hours = Math.floor(diff / 3600000);
+      const minutes = Math.floor((diff % 3600000) / 60000);
+      el.textContent = hours + 'h ' + minutes + 'm';
+
+      const baseDate = now >= target ? new Date(now.getTime() + 86400000) : now;
+      const minDate = new Date(baseDate);
+      minDate.setDate(minDate.getDate() + minDays);
+      const maxDate = new Date(baseDate);
+      maxDate.setDate(maxDate.getDate() + maxDays);
+      datesEl.textContent = formatDate(minDate) + '-' + formatDate(maxDate).split(' ')[1];
+    }
+
+    update();
+    setInterval(update, 60000);
+  })();
+</script>
+
+<style>
+.casa-pdp-delivery {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #fafafa;
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
+}
+
+.casa-pdp-delivery__icon {
+  display: flex;
+  flex-shrink: 0;
+  color: #0a0a0a;
+}
+
+.casa-pdp-delivery__text {
+  font-size: 14px;
+  color: #0a0a0a;
+  line-height: 1.5;
+}
+
+.casa-pdp-delivery__text strong {
+  color: #0a0a0a;
+  font-weight: 700;
+}
+
+.casa-pdp-delivery__text strong[data-delivery-countdown] {
+  color: #9333ea;
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .casa-pdp-delivery {
+    padding: 10px 12px;
+    gap: 8px;
+    border-radius: 10px;
+  }
+
+  .casa-pdp-delivery__text {
+    font-size: 12px;
+  }
+}
+</style>

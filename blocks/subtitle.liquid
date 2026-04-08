@@ -1,0 +1,93 @@
+{%- doc -%}
+  Subtitle Block
+  Renders a subtitle text line below the product title.
+  Can use custom text or pull from a product metafield.
+{%- enddoc -%}
+
+{%- liquid
+  assign product_resource = closest.product
+  assign block_settings = block.settings
+-%}
+
+{%- capture subtitle_text -%}
+  {%- if block_settings.text != blank -%}
+    {{ block_settings.text }}
+  {%- elsif product_resource.metafields.custom.subtitle != blank -%}
+    {{ product_resource.metafields.custom.subtitle }}
+  {%- endif -%}
+{%- endcapture -%}
+
+{%- if subtitle_text != blank -%}
+  <div
+    class="casa-subtitle spacing-style"
+    style="{% render 'spacing-style', settings: block_settings %}"
+    {{ block.shopify_attributes }}
+  >
+    <p class="casa-subtitle__text">{{ subtitle_text }}</p>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Subtitle",
+  "tag": null,
+  "settings": [
+    {
+      "type": "inline_richtext",
+      "id": "text",
+      "label": "Subtitle text",
+      "info": "Leave blank to use the product metafield 'custom.subtitle'"
+    },
+    {
+      "type": "header",
+      "content": "t:content.padding"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "t:settings.top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "t:settings.bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "padding-inline-start",
+      "label": "t:settings.left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-inline-end",
+      "label": "t:settings.right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "Subtitle",
+      "category": "t:categories.product"
+    }
+  ]
+}
+{% endschema %}

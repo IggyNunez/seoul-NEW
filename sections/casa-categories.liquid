@@ -1,0 +1,1298 @@
+{%- comment -%}
+  Seoul Glow Lab Categories Section — Simplified & Fixed
+  Layouts: grid, masonry, carousel, featured
+  Card styles: gradient, glass, minimal
+  Animations: fade-up, fade-in, scale-up (no parallax conflicts)
+  Fully supports section duplication via section.id scoping
+{%- endcomment -%}
+
+{%- liquid
+  # Layout
+  assign layout = section.settings.layout | default: 'grid'
+  assign columns = section.settings.columns | default: 4
+  assign card_style = section.settings.card_style | default: 'gradient'
+  assign card_size = section.settings.card_size | default: 'medium'
+  assign border_radius = section.settings.border_radius | default: 16
+  assign gap = section.settings.gap | default: 20
+
+  # Background
+  assign bg_style = section.settings.background_style | default: 'light'
+  assign bg_color = section.settings.background_color | default: '#ffffff'
+  assign bg_gradient_1 = section.settings.bg_gradient_color_1 | default: '#f8f9fa'
+  assign bg_gradient_2 = section.settings.bg_gradient_color_2 | default: '#e5e7eb'
+  assign bg_image = section.settings.background_image
+  assign bg_overlay = section.settings.bg_overlay_opacity | default: 50
+
+  # Animation
+  assign animation = section.settings.animation_preset | default: 'fade-up'
+  assign hover_effect = section.settings.hover_effect | default: 'lift'
+
+  # Colors
+  assign accent_color = section.settings.accent_color | default: '#1a1a1a'
+  assign tag_color = section.settings.tag_color | default: accent_color
+  assign title_color = section.settings.title_color
+  assign subtitle_color = section.settings.subtitle_color
+  assign btn_bg = section.settings.btn_bg | default: accent_color
+  assign btn_text = section.settings.btn_text | default: '#ffffff'
+  assign overlay_opacity = section.settings.card_overlay_opacity | default: 40
+
+  # Padding
+  assign padding_top = section.settings.padding_top | default: 80
+  assign padding_bottom = section.settings.padding_bottom | default: 80
+
+  # Header
+  assign header_alignment = section.settings.header_alignment | default: 'center'
+
+  # Card content
+  assign show_card_title = section.settings.show_card_title
+  assign text_position = section.settings.text_position | default: 'inside'
+
+  # Auto text colors based on bg (used as fallback)
+  if bg_style == 'dark' or bg_style == 'gradient-dark' or bg_style == 'image'
+    assign text_primary_auto = '#ffffff'
+    assign text_secondary_auto = 'rgba(255,255,255,0.6)'
+  else
+    assign text_primary_auto = '#1a1a1a'
+    assign text_secondary_auto = '#6b7280'
+  endif
+
+  # Manual overrides beat auto
+  if title_color != blank
+    assign text_primary = title_color
+  else
+    assign text_primary = text_primary_auto
+  endif
+
+  if subtitle_color != blank
+    assign text_secondary = subtitle_color
+  else
+    assign text_secondary = text_secondary_auto
+  endif
+
+  # Card aspect ratio
+  case card_size
+    when 'portrait'
+      assign aspect_ratio = '3/4'
+    when 'landscape'
+      assign aspect_ratio = '4/3'
+    when 'tall'
+      assign aspect_ratio = '2/3'
+    else
+      assign aspect_ratio = '1/1'
+  endcase
+-%}
+
+<section
+  id="casa-cat-{{ section.id }}"
+  class="casa-cat casa-cat--{{ layout }} casa-cat--bg-{{ bg_style }} casa-cat--style-{{ card_style }} casa-cat--text-{{ text_position }}"
+  style="
+    --cc-pad-top: {{ padding_top }}px;
+    --cc-pad-bottom: {{ padding_bottom }}px;
+    --cc-columns: {{ columns }};
+    --cc-gap: {{ gap }}px;
+    --cc-radius: {{ border_radius }}px;
+    --cc-aspect: {{ aspect_ratio }};
+    --cc-bg-color: {{ bg_color }};
+    --cc-bg-grad-1: {{ bg_gradient_1 }};
+    --cc-bg-grad-2: {{ bg_gradient_2 }};
+    --cc-bg-overlay: {{ bg_overlay | divided_by: 100.0 }};
+    --cc-text-primary: {{ text_primary }};
+    --cc-text-secondary: {{ text_secondary }};
+    --cc-accent: {{ accent_color }};
+    --cc-tag-color: {{ tag_color }};
+    --cc-btn-bg: {{ btn_bg }};
+    --cc-btn-text: {{ btn_text }};
+    --cc-overlay-opacity: {{ overlay_opacity | divided_by: 100.0 }};
+    --casa-cat-max-w: {% case section.settings.section_width %}{% when 'full' %}100%{% when 'wide' %}1600px{% when 'narrow' %}1200px{% else %}1400px{% endcase %};
+  "
+  data-animation="{{ animation }}"
+>
+  {%- comment -%} Background {%- endcomment -%}
+  {%- if bg_image != blank and bg_style == 'image' -%}
+    <div class="casa-cat__bg">
+      <img src="{{ bg_image | image_url: width: 1920 }}" alt="" class="casa-cat__bg-img" loading="lazy">
+      <div class="casa-cat__bg-overlay"></div>
+    </div>
+  {%- endif -%}
+
+  <div class="casa-cat__container">
+    {%- comment -%} Header {%- endcomment -%}
+    {%- if section.settings.title != blank or section.settings.subtitle != blank or section.settings.tag != blank -%}
+      <div class="casa-cat__header casa-cat__header--{{ header_alignment }}">
+        {%- if section.settings.tag != blank -%}
+          <span class="casa-cat__tag">{{ section.settings.tag }}</span>
+        {%- endif -%}
+        {%- if section.settings.title != blank -%}
+          <h2 class="casa-cat__title">{{ section.settings.title }}</h2>
+        {%- endif -%}
+        {%- if section.settings.subtitle != blank -%}
+          <p class="casa-cat__subtitle">{{ section.settings.subtitle }}</p>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    {%- comment -%} Grid {%- endcomment -%}
+    <div class="casa-cat__grid" role="list">
+      {%- for block in section.blocks -%}
+        {%- assign collection = block.settings.collection -%}
+        {%- assign is_featured = block.settings.featured -%}
+        {%- assign card_overlay_val = block.settings.overlay_opacity | default: overlay_opacity -%}
+        {%- assign card_overlay_dec = card_overlay_val | divided_by: 100.0 -%}
+
+        {%- comment -%} Per-card gradient {%- endcomment -%}
+        {%- liquid
+          assign grad_color = block.settings.overlay_color | default: '#000000'
+          assign grad_r = grad_color | color_extract: 'red'
+          assign grad_g = grad_color | color_extract: 'green'
+          assign grad_b = grad_color | color_extract: 'blue'
+        -%}
+
+        <div
+          class="casa-cat__item{% if is_featured %} casa-cat__item--featured{% endif %}"
+          style="
+            --card-overlay-rgb: {{ grad_r }}, {{ grad_g }}, {{ grad_b }};
+            --card-overlay-opacity: {{ card_overlay_dec }};
+            --card-delay: {{ forloop.index0 | times: 80 }}ms;
+          "
+          role="listitem"
+          {{ block.shopify_attributes }}
+        >
+          {%- comment -%} External text above {%- endcomment -%}
+          {%- if text_position == 'above' and show_card_title -%}
+            <div class="casa-cat__ext-text">
+              <h3 class="casa-cat__ext-title">{{ block.settings.title | default: collection.title | default: 'Collection' }}</h3>
+              {%- if block.settings.subtitle != blank -%}
+                <p class="casa-cat__ext-sub">{{ block.settings.subtitle }}</p>
+              {%- endif -%}
+              {%- if section.settings.show_product_count and collection != blank -%}
+                <span class="casa-cat__ext-count">{{ collection.products_count }} {{ section.settings.count_label | default: 'Products' }}</span>
+              {%- endif -%}
+            </div>
+          {%- endif -%}
+
+          {%- comment -%} Card {%- endcomment -%}
+          <a href="{{ collection.url | default: block.settings.custom_url | default: '#' }}"
+             class="casa-cat__card casa-cat__card--hover-{{ hover_effect }}">
+
+            {%- comment -%} Video {%- endcomment -%}
+            {%- if block.settings.video != blank -%}
+              <video class="casa-cat__media casa-cat__media--video" autoplay loop muted playsinline
+                {%- if block.settings.image != blank %} poster="{{ block.settings.image | image_url: width: 800 }}"{% endif %}>
+                {%- for source in block.settings.video.sources -%}
+                  <source src="{{ source.url }}" type="{{ source.mime_type }}">
+                {%- endfor -%}
+              </video>
+            {%- endif -%}
+
+            {%- comment -%} Image {%- endcomment -%}
+            {%- if block.settings.image != blank -%}
+              <img
+                src="{{ block.settings.image | image_url: width: 800 }}"
+                srcset="{{ block.settings.image | image_url: width: 400 }} 400w, {{ block.settings.image | image_url: width: 600 }} 600w, {{ block.settings.image | image_url: width: 800 }} 800w"
+                sizes="(max-width: 600px) 50vw, 25vw"
+                alt="{{ block.settings.title | default: collection.title | escape }}"
+                class="casa-cat__media"
+                loading="lazy"
+              >
+            {%- elsif collection.featured_image != blank -%}
+              <img
+                src="{{ collection.featured_image | image_url: width: 800 }}"
+                srcset="{{ collection.featured_image | image_url: width: 400 }} 400w, {{ collection.featured_image | image_url: width: 600 }} 600w, {{ collection.featured_image | image_url: width: 800 }} 800w"
+                sizes="(max-width: 600px) 50vw, 25vw"
+                alt="{{ collection.title | escape }}"
+                class="casa-cat__media"
+                loading="lazy"
+              >
+            {%- endif -%}
+
+            {%- comment -%} Overlay — controlled per-card {%- endcomment -%}
+            <div class="casa-cat__overlay"></div>
+
+            {%- comment -%} Glass content panel (only in glass mode, sits at bottom over the overlay, NOT over the image) {%- endcomment -%}
+            {%- if card_style == 'glass' -%}
+              <div class="casa-cat__glass-panel"></div>
+            {%- endif -%}
+
+            {%- comment -%} Badge {%- endcomment -%}
+            {%- if block.settings.badge != 'none' and block.settings.badge != blank -%}
+              {%- liquid
+                case block.settings.badge
+                  when 'new'
+                    assign badge_text = 'New'
+                  when 'sale'
+                    assign badge_text = 'Sale'
+                  when 'trending'
+                    assign badge_text = 'Trending'
+                  when 'custom'
+                    assign badge_text = block.settings.custom_badge_text | default: 'Special'
+                  else
+                    assign badge_text = block.settings.badge | capitalize
+                endcase
+              -%}
+              <span class="casa-cat__badge casa-cat__badge--{{ block.settings.badge }}">{{ badge_text }}</span>
+            {%- endif -%}
+
+            {%- comment -%} Card content (inside only) {%- endcomment -%}
+            {%- if text_position == 'inside' -%}
+              <div class="casa-cat__content">
+                {%- if show_card_title -%}
+                  <h3 class="casa-cat__name">{{ block.settings.title | default: collection.title | default: 'Collection' }}</h3>
+                  {%- if block.settings.subtitle != blank -%}
+                    <p class="casa-cat__sub">{{ block.settings.subtitle }}</p>
+                  {%- endif -%}
+                  {%- if section.settings.show_product_count and collection != blank -%}
+                    <span class="casa-cat__count">{{ collection.products_count }} {{ section.settings.count_label | default: 'Products' }}</span>
+                  {%- endif -%}
+                {%- endif -%}
+                {%- if section.settings.show_arrow -%}
+                  <span class="casa-cat__arrow">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </span>
+                {%- endif -%}
+              </div>
+            {%- endif -%}
+          </a>
+
+          {%- comment -%} External text below {%- endcomment -%}
+          {%- if text_position == 'below' and show_card_title -%}
+            <div class="casa-cat__ext-text">
+              <h3 class="casa-cat__ext-title">{{ block.settings.title | default: collection.title | default: 'Collection' }}</h3>
+              {%- if block.settings.subtitle != blank -%}
+                <p class="casa-cat__ext-sub">{{ block.settings.subtitle }}</p>
+              {%- endif -%}
+              {%- if section.settings.show_product_count and collection != blank -%}
+                <span class="casa-cat__ext-count">{{ collection.products_count }} {{ section.settings.count_label | default: 'Products' }}</span>
+              {%- endif -%}
+            </div>
+          {%- endif -%}
+        </div>
+      {%- endfor -%}
+    </div>
+
+    {%- comment -%} Carousel indicators {%- endcomment -%}
+    {%- if layout == 'carousel' or section.settings.mobile_carousel -%}
+      <div class="casa-cat__dots" aria-hidden="true">
+        {%- for block in section.blocks -%}
+          <span class="casa-cat__dot{% if forloop.first %} casa-cat__dot--active{% endif %}"></span>
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+
+    {%- comment -%} View all {%- endcomment -%}
+    {%- if section.settings.show_view_all and section.settings.view_all_url != blank -%}
+      <div class="casa-cat__footer">
+        <a href="{{ section.settings.view_all_url }}" class="casa-cat__view-all">
+          {{ section.settings.view_all_text | default: 'View All Collections' }}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+    {%- endif -%}
+  </div>
+</section>
+
+<script>
+  (function() {
+    function initCasaCat() {
+      var root = document.getElementById('casa-cat-{{ section.id }}');
+      if (!root || root.dataset.initialized) return;
+      root.dataset.initialized = 'true';
+
+      var animation = root.dataset.animation;
+      var items = root.querySelectorAll('.casa-cat__item');
+      var grid = root.querySelector('.casa-cat__grid');
+      var dots = root.querySelectorAll('.casa-cat__dot');
+
+      /* Reduced motion */
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        items.forEach(function(item) {
+          item.classList.add('casa-cat__item--visible');
+          item.style.animationDuration = '0s';
+        });
+        return;
+      }
+
+      /* Entrance animations via IntersectionObserver */
+      if (animation && animation !== 'none') {
+        var obs = new IntersectionObserver(function(entries) {
+          entries.forEach(function(e) {
+            if (e.isIntersecting) {
+              e.target.classList.add('casa-cat__item--visible');
+              obs.unobserve(e.target);
+            }
+          });
+        }, { threshold: 0.15 });
+        items.forEach(function(item) { obs.observe(item); });
+      } else {
+        items.forEach(function(item) { item.classList.add('casa-cat__item--visible'); });
+      }
+
+      /* Carousel dot indicators */
+      if (grid && dots.length > 0) {
+        grid.addEventListener('scroll', function() {
+          var firstItem = grid.querySelector('.casa-cat__item');
+          if (!firstItem) return;
+          var itemW = firstItem.offsetWidth + parseInt(getComputedStyle(grid).gap || 16);
+          var idx = Math.round(grid.scrollLeft / itemW);
+          dots.forEach(function(dot, i) {
+            dot.classList.toggle('casa-cat__dot--active', i === idx);
+          });
+        });
+      }
+
+      /* Video play/pause on visibility */
+      var videos = root.querySelectorAll('.casa-cat__media--video');
+      if (videos.length && 'IntersectionObserver' in window) {
+        var vObs = new IntersectionObserver(function(entries) {
+          entries.forEach(function(e) {
+            if (e.isIntersecting) e.target.play().catch(function(){});
+            else e.target.pause();
+          });
+        }, { rootMargin: '100px' });
+        videos.forEach(function(v) { vObs.observe(v); });
+      }
+    }
+
+    initCasaCat();
+
+    /* Re-init on Shopify customizer section events */
+    document.addEventListener('shopify:section:load', function(e) {
+      if (e.target.querySelector('#casa-cat-{{ section.id }}')) initCasaCat();
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Casa Categories",
+  "tag": "section",
+  "class": "casa-categories-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "Section width",
+      "options": [
+        { "value": "full", "label": "Full width" },
+        { "value": "wide", "label": "Wide (1600px)" },
+        { "value": "contained", "label": "Contained (1400px)" },
+        { "value": "narrow", "label": "Narrow (1200px)" }
+      ],
+      "default": "full"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Layout",
+      "options": [
+        { "value": "grid", "label": "Grid" },
+        { "value": "masonry", "label": "Masonry" },
+        { "value": "carousel", "label": "Carousel" },
+        { "value": "featured", "label": "Featured + Grid" }
+      ],
+      "default": "grid"
+    },
+    {
+      "type": "range",
+      "id": "columns",
+      "label": "Columns (desktop)",
+      "min": 2,
+      "max": 6,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "select",
+      "id": "card_size",
+      "label": "Card aspect ratio",
+      "options": [
+        { "value": "square", "label": "Square (1:1)" },
+        { "value": "portrait", "label": "Portrait (3:4)" },
+        { "value": "landscape", "label": "Landscape (4:3)" },
+        { "value": "tall", "label": "Tall (2:3)" }
+      ],
+      "default": "square"
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "Gap",
+      "min": 0,
+      "max": 48,
+      "step": 4,
+      "default": 20,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Corner radius",
+      "min": 0,
+      "max": 48,
+      "step": 4,
+      "default": 16,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Card Style"
+    },
+    {
+      "type": "select",
+      "id": "card_style",
+      "label": "Card style",
+      "options": [
+        { "value": "gradient", "label": "Gradient Overlay" },
+        { "value": "glass", "label": "Glassmorphism" },
+        { "value": "minimal", "label": "Minimal (bottom fade)" }
+      ],
+      "default": "gradient"
+    },
+    {
+      "type": "range",
+      "id": "card_overlay_opacity",
+      "label": "Default overlay opacity",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 40,
+      "unit": "%",
+      "info": "Can be overridden per card"
+    },
+    {
+      "type": "select",
+      "id": "hover_effect",
+      "label": "Hover effect",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "lift", "label": "Lift" },
+        { "value": "zoom", "label": "Zoom Image" },
+        { "value": "glow", "label": "Glow" }
+      ],
+      "default": "lift"
+    },
+    {
+      "type": "header",
+      "content": "Card Content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_card_title",
+      "label": "Show card title",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "text_position",
+      "label": "Text position",
+      "options": [
+        { "value": "inside", "label": "Inside card (overlay)" },
+        { "value": "above", "label": "Above card" },
+        { "value": "below", "label": "Below card" }
+      ],
+      "default": "inside"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_product_count",
+      "label": "Show product count",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "count_label",
+      "label": "Count label",
+      "default": "Products"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_arrow",
+      "label": "Show arrow on card",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Section Header"
+    },
+    {
+      "type": "text",
+      "id": "tag",
+      "label": "Tag text",
+      "default": "Collections"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Shop by Category"
+    },
+    {
+      "type": "textarea",
+      "id": "subtitle",
+      "label": "Subtitle"
+    },
+    {
+      "type": "select",
+      "id": "header_alignment",
+      "label": "Header alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Background"
+    },
+    {
+      "type": "select",
+      "id": "background_style",
+      "label": "Background",
+      "options": [
+        { "value": "light", "label": "White" },
+        { "value": "light-gray", "label": "Light Gray" },
+        { "value": "dark", "label": "Dark" },
+        { "value": "gradient-light", "label": "Gradient Light" },
+        { "value": "gradient-dark", "label": "Gradient Dark" },
+        { "value": "custom", "label": "Custom Color" },
+        { "value": "image", "label": "Image" }
+      ],
+      "default": "light"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Custom background color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "bg_gradient_color_1",
+      "label": "Gradient color 1",
+      "default": "#f8f9fa",
+      "info": "For gradient backgrounds"
+    },
+    {
+      "type": "color",
+      "id": "bg_gradient_color_2",
+      "label": "Gradient color 2",
+      "default": "#e5e7eb",
+      "info": "For gradient backgrounds"
+    },
+    {
+      "type": "image_picker",
+      "id": "background_image",
+      "label": "Background image"
+    },
+    {
+      "type": "range",
+      "id": "bg_overlay_opacity",
+      "label": "Background image overlay",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 50,
+      "unit": "%"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "default": "#1a1a1a"
+    },
+    {
+      "type": "color",
+      "id": "tag_color",
+      "label": "Eyebrow / tag color",
+      "info": "Defaults to accent color"
+    },
+    {
+      "type": "color",
+      "id": "title_color",
+      "label": "Title color",
+      "info": "Leave blank for auto (white on dark, dark on light)"
+    },
+    {
+      "type": "color",
+      "id": "subtitle_color",
+      "label": "Subtitle color",
+      "info": "Leave blank for auto"
+    },
+    {
+      "type": "header",
+      "content": "Animation"
+    },
+    {
+      "type": "select",
+      "id": "animation_preset",
+      "label": "Entrance animation",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "fade-up", "label": "Fade Up" },
+        { "value": "fade-in", "label": "Fade In" },
+        { "value": "scale-up", "label": "Scale Up" }
+      ],
+      "default": "fade-up"
+    },
+    {
+      "type": "header",
+      "content": "View All Button"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_view_all",
+      "label": "Show view all button",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "view_all_text",
+      "label": "Button text",
+      "default": "View All Collections"
+    },
+    {
+      "type": "url",
+      "id": "view_all_url",
+      "label": "Button link"
+    },
+    {
+      "type": "color",
+      "id": "btn_bg",
+      "label": "Button background",
+      "info": "Defaults to accent color"
+    },
+    {
+      "type": "color",
+      "id": "btn_text",
+      "label": "Button text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "header",
+      "content": "Mobile"
+    },
+    {
+      "type": "checkbox",
+      "id": "mobile_carousel",
+      "label": "Carousel on mobile",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 80,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "category",
+      "name": "Category",
+      "settings": [
+        {
+          "type": "collection",
+          "id": "collection",
+          "label": "Collection"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Custom title",
+          "info": "Overrides collection title"
+        },
+        {
+          "type": "text",
+          "id": "subtitle",
+          "label": "Subtitle"
+        },
+        {
+          "type": "url",
+          "id": "custom_url",
+          "label": "Custom link"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "video",
+          "id": "video",
+          "label": "Video (loops as background)"
+        },
+        {
+          "type": "header",
+          "content": "Overlay"
+        },
+        {
+          "type": "color",
+          "id": "overlay_color",
+          "label": "Overlay color",
+          "default": "#000000",
+          "info": "Tints the image"
+        },
+        {
+          "type": "range",
+          "id": "overlay_opacity",
+          "label": "Overlay opacity",
+          "min": 0,
+          "max": 100,
+          "step": 5,
+          "default": 40,
+          "unit": "%",
+          "info": "0 = no overlay, 100 = fully tinted"
+        },
+        {
+          "type": "header",
+          "content": "Badge"
+        },
+        {
+          "type": "select",
+          "id": "badge",
+          "label": "Badge",
+          "options": [
+            { "value": "none", "label": "None" },
+            { "value": "new", "label": "New" },
+            { "value": "sale", "label": "Sale" },
+            { "value": "trending", "label": "Trending" },
+            { "value": "custom", "label": "Custom" }
+          ],
+          "default": "none"
+        },
+        {
+          "type": "text",
+          "id": "custom_badge_text",
+          "label": "Custom badge text"
+        },
+        {
+          "type": "checkbox",
+          "id": "featured",
+          "label": "Featured card (2x width)",
+          "default": false,
+          "info": "Only in Featured layout"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Categories",
+      "blocks": [
+        { "type": "category", "settings": { "title": "Infinity Mirrors" } },
+        { "type": "category", "settings": { "title": "Floor Lamps" } },
+        { "type": "category", "settings": { "title": "Table Lamps" } },
+        { "type": "category", "settings": { "title": "LED Neon Signs" } }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+{% stylesheet %}
+/* ===== CASA CATEGORIES ===== */
+
+.casa-cat {
+  position: relative;
+  padding: var(--cc-pad-top) 5% var(--cc-pad-bottom);
+  overflow: hidden;
+}
+
+/* Backgrounds */
+.casa-cat--bg-light { background: #fff; }
+.casa-cat--bg-light-gray { background: #f5f5f5; }
+.casa-cat--bg-dark { background: #0a0a0a; }
+.casa-cat--bg-gradient-light { background: linear-gradient(180deg, var(--cc-bg-grad-1) 0%, var(--cc-bg-grad-2) 100%); }
+.casa-cat--bg-gradient-dark { background: linear-gradient(180deg, var(--cc-bg-grad-1) 0%, var(--cc-bg-grad-2) 100%); }
+.casa-cat--bg-custom { background: var(--cc-bg-color); }
+.casa-cat--bg-image { background: #0a0a0a; }
+
+.casa-cat__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.casa-cat__bg-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.casa-cat__bg-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, var(--cc-bg-overlay));
+}
+
+/* Container */
+.casa-cat__container {
+  position: relative;
+  z-index: 1;
+  max-width: var(--casa-cat-max-w, 100%);
+  margin: 0 auto;
+}
+
+/* ===== HEADER ===== */
+
+.casa-cat__header {
+  margin-bottom: 48px;
+}
+
+.casa-cat__header--center { text-align: center; }
+.casa-cat__header--left { text-align: left; }
+
+.casa-cat__tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--cc-tag-color);
+  margin-bottom: 12px;
+}
+
+.casa-cat__title {
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 300;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  color: var(--cc-text-primary);
+  margin: 0 0 12px 0;
+}
+
+.casa-cat__subtitle {
+  font-size: clamp(14px, 1.5vw, 17px);
+  color: var(--cc-text-secondary);
+  max-width: 560px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.casa-cat__header--center .casa-cat__subtitle { margin: 0 auto; }
+
+/* ===== GRID ===== */
+
+.casa-cat__grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cc-columns), 1fr);
+  gap: var(--cc-gap);
+}
+
+/* Masonry */
+.casa-cat--masonry .casa-cat__grid {
+  display: block;
+  column-count: var(--cc-columns);
+  column-gap: var(--cc-gap);
+}
+
+.casa-cat--masonry .casa-cat__item {
+  break-inside: avoid;
+  margin-bottom: var(--cc-gap);
+}
+
+.casa-cat--masonry .casa-cat__card:nth-child(odd) { aspect-ratio: 3/4; }
+.casa-cat--masonry .casa-cat__card:nth-child(even) { aspect-ratio: 4/5; }
+
+/* Featured layout */
+.casa-cat--featured .casa-cat__grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.casa-cat--featured .casa-cat__item--featured {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+/* Carousel */
+.casa-cat--carousel .casa-cat__grid {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+
+.casa-cat--carousel .casa-cat__grid::-webkit-scrollbar { display: none; }
+
+.casa-cat--carousel .casa-cat__item {
+  flex: 0 0 calc(25% - var(--cc-gap) * 0.75);
+  scroll-snap-align: start;
+}
+
+/* ===== ITEM (card wrapper) ===== */
+
+.casa-cat__item {
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  transition-delay: var(--card-delay, 0ms);
+}
+
+.casa-cat__item--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* fade-in variant */
+.casa-cat[data-animation="fade-in"] .casa-cat__item {
+  transform: none;
+}
+
+/* scale-up variant */
+.casa-cat[data-animation="scale-up"] .casa-cat__item {
+  transform: scale(0.95);
+}
+
+.casa-cat[data-animation="scale-up"] .casa-cat__item--visible {
+  transform: scale(1);
+}
+
+/* No animation */
+.casa-cat[data-animation="none"] .casa-cat__item {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+/* ===== CARD ===== */
+
+.casa-cat__card {
+  position: relative;
+  aspect-ratio: var(--cc-aspect);
+  border-radius: var(--cc-radius);
+  overflow: hidden;
+  display: flex;
+  flex: 1;
+  text-decoration: none;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+
+/* Hover effects */
+.casa-cat__card--hover-lift:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+}
+
+.casa-cat__card--hover-zoom:hover .casa-cat__media {
+  transform: scale(1.08);
+}
+
+.casa-cat__card--hover-glow:hover {
+  box-shadow: 0 0 30px rgba(var(--card-overlay-rgb), 0.35);
+}
+
+/* ===== MEDIA (image/video) ===== */
+
+.casa-cat__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+/* ===== OVERLAY ===== */
+
+/* Gradient style: full overlay using per-card color + opacity */
+.casa-cat--style-gradient .casa-cat__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top,
+    rgba(var(--card-overlay-rgb), var(--card-overlay-opacity)) 0%,
+    rgba(var(--card-overlay-rgb), calc(var(--card-overlay-opacity) * 0.3)) 100%
+  );
+  z-index: 1;
+}
+
+/* Minimal style: bottom fade only */
+.casa-cat--style-minimal .casa-cat__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top,
+    rgba(var(--card-overlay-rgb), var(--card-overlay-opacity)) 0%,
+    transparent 50%
+  );
+  z-index: 1;
+}
+
+/* Glass style: light top overlay, glass panel at bottom */
+.casa-cat--style-glass .casa-cat__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top,
+    rgba(var(--card-overlay-rgb), calc(var(--card-overlay-opacity) * 0.6)) 0%,
+    transparent 40%
+  );
+  z-index: 1;
+}
+
+.casa-cat__glass-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* ===== CARD CONTENT ===== */
+
+.casa-cat__content {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  color: #fff;
+}
+
+.casa-cat__name {
+  font-size: clamp(16px, 1.4vw, 20px);
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  line-height: 1.2;
+}
+
+.casa-cat__sub {
+  font-size: 13px;
+  opacity: 0.8;
+  margin: 0 0 4px 0;
+}
+
+.casa-cat__count {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.casa-cat__arrow {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.casa-cat__card:hover .casa-cat__arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ===== EXTERNAL TEXT ===== */
+
+.casa-cat__ext-text {
+  color: var(--cc-text-primary);
+  padding: 10px 4px;
+}
+
+.casa-cat__ext-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 2px 0;
+  transition: color 0.3s ease;
+}
+
+.casa-cat__item:hover .casa-cat__ext-title {
+  color: var(--cc-accent);
+}
+
+.casa-cat__ext-sub {
+  font-size: 13px;
+  color: var(--cc-text-secondary);
+  margin: 0 0 2px 0;
+}
+
+.casa-cat__ext-count {
+  font-size: 12px;
+  color: var(--cc-text-secondary);
+}
+
+/* ===== BADGE ===== */
+
+.casa-cat__badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  padding: 5px 10px;
+  border-radius: 16px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #fff;
+}
+
+.casa-cat__badge--new { background: #7c3aed; }
+.casa-cat__badge--sale { background: #ef4444; }
+.casa-cat__badge--trending { background: #f59e0b; color: #0a0a0a; }
+.casa-cat__badge--custom { background: var(--cc-accent); }
+
+/* ===== DOTS (carousel indicators) ===== */
+
+.casa-cat__dots {
+  display: none;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 20px;
+}
+
+.casa-cat__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cc-text-secondary);
+  opacity: 0.3;
+  transition: all 0.3s ease;
+}
+
+.casa-cat__dot--active {
+  opacity: 1;
+  background: var(--cc-accent);
+  width: 20px;
+  border-radius: 3px;
+}
+
+/* ===== VIEW ALL ===== */
+
+.casa-cat__footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
+}
+
+.casa-cat__view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: var(--cc-btn-bg);
+  color: var(--cc-btn-text);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 24px;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.casa-cat__view-all:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 1200px) {
+  .casa-cat__grid { --cc-columns: 3; }
+  .casa-cat--featured .casa-cat__grid { grid-template-columns: repeat(3, 1fr); }
+  .casa-cat--carousel .casa-cat__item { flex: 0 0 calc(33.333% - var(--cc-gap) * 0.67); }
+}
+
+@media (max-width: 900px) {
+  .casa-cat__grid { --cc-columns: 2; }
+  .casa-cat--featured .casa-cat__grid { grid-template-columns: repeat(2, 1fr); }
+  .casa-cat--featured .casa-cat__item--featured { grid-column: span 2; grid-row: span 1; }
+  .casa-cat--carousel .casa-cat__item { flex: 0 0 calc(50% - var(--cc-gap) * 0.5); }
+  .casa-cat--masonry .casa-cat__grid { column-count: 2; }
+}
+
+@media (max-width: 600px) {
+  .casa-cat { padding: 48px 16px 48px; }
+  .casa-cat__header { margin-bottom: 28px; }
+
+  /* Mobile carousel when enabled */
+  .casa-cat:not(.casa-cat--carousel) .casa-cat__grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 12px;
+  }
+
+  .casa-cat:not(.casa-cat--carousel) .casa-cat__grid::-webkit-scrollbar { display: none; }
+
+  .casa-cat:not(.casa-cat--carousel) .casa-cat__item {
+    flex: 0 0 200px;
+    scroll-snap-align: start;
+  }
+
+  .casa-cat:not(.casa-cat--carousel) .casa-cat__item--featured {
+    flex: 0 0 260px;
+  }
+
+  .casa-cat--carousel .casa-cat__item {
+    flex: 0 0 200px;
+  }
+
+  .casa-cat__card { aspect-ratio: 1/1; }
+
+  .casa-cat--masonry .casa-cat__grid {
+    display: flex;
+    column-count: unset;
+  }
+
+  .casa-cat--masonry .casa-cat__item { margin-bottom: 0; }
+  .casa-cat--masonry .casa-cat__card { aspect-ratio: 1/1; }
+
+  .casa-cat__dots { display: flex; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .casa-cat__item {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .casa-cat__card,
+  .casa-cat__media,
+  .casa-cat__arrow,
+  .casa-cat__ext-title {
+    transition: none;
+  }
+}
+{% endstylesheet %}

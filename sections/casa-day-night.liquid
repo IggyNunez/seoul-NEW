@@ -1,0 +1,460 @@
+{%- comment -%}
+  Casa Day/Night Showcase Section
+  Full-width split section showing product in day mode (mirror) and night mode (portal/LED)
+{%- endcomment -%}
+
+{%- liquid
+  assign img_shape = section.settings.image_shape | default: 'circle'
+  assign img_size = section.settings.image_size | default: 180
+
+  assign _day_bg = section.settings.day_bg_color | default: '#f8f9fa'
+  assign _day_text = section.settings.day_text_color | default: '#0a0a0a'
+  assign _night_bg = section.settings.night_bg_color | default: '#0a0a0f'
+  assign _night_text = section.settings.night_text_color | default: '#ffffff'
+  assign _night_glow = section.settings.night_glow_color | default: '#9333ea'
+  assign _night_glow_r = _night_glow | color_extract: 'red'
+  assign _night_glow_g = _night_glow | color_extract: 'green'
+  assign _night_glow_b = _night_glow | color_extract: 'blue'
+-%}
+<section
+  class="casa-day-night-section"
+  data-section-id="{{ section.id }}"
+  style="
+    --cdn-img-size: {{ img_size }}px;
+    --cdn-img-radius: {% if img_shape == 'circle' %}50%{% elsif img_shape == 'rounded' %}24px{% else %}0{% endif %};
+    --cdn-day-bg: {{ _day_bg }};
+    --cdn-day-text: {{ _day_text }};
+    --cdn-night-bg: {{ _night_bg }};
+    --cdn-night-text: {{ _night_text }};
+    --cdn-night-glow: {{ _night_glow }};
+    --cdn-night-glow-rgb: {{ _night_glow_r }}, {{ _night_glow_g }}, {{ _night_glow_b }};
+  "
+>
+  <div class="casa-day-night">
+    {%- comment -%} Day Side {%- endcomment -%}
+    <div class="casa-day-night__panel casa-day-night__panel--day">
+      <div class="casa-day-night__content">
+        <div class="casa-day-night__image-wrapper casa-day-night__image-wrapper--day">
+          {%- if section.settings.day_video != blank -%}
+            <video class="casa-day-night__video" autoplay loop muted playsinline
+              {%- if section.settings.day_image != blank %} poster="{{ section.settings.day_image | image_url: width: 400 }}"{% endif %}>
+              {%- for source in section.settings.day_video.sources -%}
+                <source src="{{ source.url }}" type="{{ source.mime_type }}">
+              {%- endfor -%}
+            </video>
+          {%- elsif section.settings.day_video_url != blank -%}
+            <video class="casa-day-night__video" src="{{ section.settings.day_video_url }}" autoplay loop muted playsinline
+              {%- if section.settings.day_image != blank %} poster="{{ section.settings.day_image | image_url: width: 400 }}"{% endif %}></video>
+          {%- endif -%}
+          {%- if section.settings.day_image != blank -%}
+            <img
+              src="{{ section.settings.day_image | image_url: width: 400 }}"
+              alt="{{ section.settings.day_title | escape }}"
+              class="casa-day-night__image{% if section.settings.day_video != blank or section.settings.day_video_url != blank %} casa-day-night__image--poster{% endif %}"
+              loading="lazy"
+              width="200"
+              height="200"
+            >
+          {%- elsif section.settings.day_video == blank and section.settings.day_video_url == blank -%}
+            <div class="casa-day-night__placeholder casa-day-night__placeholder--day"></div>
+          {%- endif -%}
+        </div>
+        <h3 class="casa-day-night__title">{{ section.settings.day_title }}</h3>
+        <p class="casa-day-night__subtitle">{{ section.settings.day_subtitle }}</p>
+      </div>
+    </div>
+
+    {%- comment -%} Night Side {%- endcomment -%}
+    <div class="casa-day-night__panel casa-day-night__panel--night">
+      <div class="casa-day-night__content">
+        <div class="casa-day-night__image-wrapper casa-day-night__image-wrapper--night">
+          {%- if section.settings.night_video != blank -%}
+            <video class="casa-day-night__video" autoplay loop muted playsinline
+              {%- if section.settings.night_image != blank %} poster="{{ section.settings.night_image | image_url: width: 400 }}"{% endif %}>
+              {%- for source in section.settings.night_video.sources -%}
+                <source src="{{ source.url }}" type="{{ source.mime_type }}">
+              {%- endfor -%}
+            </video>
+          {%- elsif section.settings.night_video_url != blank -%}
+            <video class="casa-day-night__video" src="{{ section.settings.night_video_url }}" autoplay loop muted playsinline
+              {%- if section.settings.night_image != blank %} poster="{{ section.settings.night_image | image_url: width: 400 }}"{% endif %}></video>
+          {%- endif -%}
+          {%- if section.settings.night_image != blank -%}
+            <img
+              src="{{ section.settings.night_image | image_url: width: 400 }}"
+              alt="{{ section.settings.night_title | escape }}"
+              class="casa-day-night__image{% if section.settings.night_video != blank or section.settings.night_video_url != blank %} casa-day-night__image--poster{% endif %}"
+              loading="lazy"
+              width="200"
+              height="200"
+            >
+          {%- elsif section.settings.night_video == blank and section.settings.night_video_url == blank -%}
+            <div class="casa-day-night__placeholder casa-day-night__placeholder--night"></div>
+          {%- endif -%}
+        </div>
+        <h3 class="casa-day-night__title">{{ section.settings.night_title }}</h3>
+        <p class="casa-day-night__subtitle">{{ section.settings.night_subtitle }}</p>
+      </div>
+    </div>
+
+    {%- for block in section.blocks -%}
+      {%- case block.type -%}
+        {%- when '@app' -%}
+          <div {{ block.shopify_attributes }}>
+            {%- render block -%}
+          </div>
+        {%- when 'custom-liquid' -%}
+          <div {{ block.shopify_attributes }}>
+            {{ block.settings.custom_liquid }}
+          </div>
+      {%- endcase -%}
+    {%- endfor -%}
+  </div>
+</section>
+
+{% stylesheet %}
+.casa-day-night-section {
+  width: 100%;
+}
+
+.casa-day-night {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 450px;
+}
+
+.casa-day-night__panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+}
+
+.casa-day-night__panel--day {
+  background: var(--cdn-day-bg, #f8f9fa);
+}
+
+.casa-day-night__panel--night {
+  background: var(--cdn-night-bg, #0a0a0f);
+}
+
+.casa-day-night__content {
+  text-align: center;
+  max-width: 300px;
+}
+
+.casa-day-night__image-wrapper {
+  width: var(--cdn-img-size, 180px);
+  height: var(--cdn-img-size, 180px);
+  margin: 0 auto 28px;
+  border-radius: var(--cdn-img-radius, 50%);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.casa-day-night__image-wrapper--day {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--cdn-day-bg, #f8f9fa), #000 8%), var(--cdn-day-bg, #f8f9fa));
+  box-shadow:
+    8px 8px 20px rgba(0, 0, 0, 0.1),
+    -8px -8px 20px rgba(255, 255, 255, 0.9);
+}
+
+.casa-day-night__image-wrapper--night {
+  background: var(--cdn-night-bg, #0a0a0f);
+  box-shadow:
+    0 0 80px rgba(var(--cdn-night-glow-rgb, 147, 51, 234), 0.5),
+    0 0 120px rgba(var(--cdn-night-glow-rgb, 147, 51, 234), 0.3),
+    inset 0 0 40px rgba(var(--cdn-night-glow-rgb, 147, 51, 234), 0.4);
+}
+
+.casa-day-night__placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.casa-day-night__placeholder--day {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--cdn-day-bg, #f8f9fa), #000 20%), color-mix(in srgb, var(--cdn-day-bg, #f8f9fa), #000 10%));
+}
+
+.casa-day-night__placeholder--night {
+  background: var(--cdn-night-bg, #0a0a0f);
+  box-shadow: inset 0 0 50px rgba(var(--cdn-night-glow-rgb, 147, 51, 234), 0.6);
+}
+
+.casa-day-night__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.casa-day-night__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: var(--cdn-img-radius, 50%);
+}
+
+.casa-day-night__image--poster {
+  position: relative;
+  z-index: 0;
+  transition: opacity 0.6s ease;
+}
+
+.casa-day-night__title {
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  line-height: 1.2;
+}
+
+.casa-day-night__panel--day .casa-day-night__title {
+  color: var(--cdn-day-text, #0a0a0a);
+}
+
+.casa-day-night__panel--night .casa-day-night__title {
+  color: var(--cdn-night-text, #ffffff);
+}
+
+.casa-day-night__subtitle {
+  font-size: 15px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.casa-day-night__panel--day .casa-day-night__subtitle {
+  color: color-mix(in srgb, var(--cdn-day-text, #0a0a0a) 60%, transparent);
+}
+
+.casa-day-night__panel--night .casa-day-night__subtitle {
+  color: color-mix(in srgb, var(--cdn-night-text, #ffffff) 60%, transparent);
+}
+
+@media (max-width: 768px) {
+  .casa-day-night {
+    grid-template-columns: 1fr;
+  }
+
+  .casa-day-night__panel {
+    padding: 60px 24px;
+    min-height: 320px;
+  }
+
+  .casa-day-night__image-wrapper {
+    width: min(var(--cdn-img-size, 180px), 140px);
+    height: min(var(--cdn-img-size, 180px), 140px);
+    margin-bottom: 24px;
+  }
+
+  .casa-day-night__title {
+    font-size: 24px;
+  }
+
+  .casa-day-night__subtitle {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .casa-day-night__panel {
+    padding: 48px 20px;
+    min-height: 280px;
+  }
+
+  .casa-day-night__image-wrapper {
+    width: min(var(--cdn-img-size, 180px), 120px);
+    height: min(var(--cdn-img-size, 180px), 120px);
+  }
+
+  .casa-day-night__title {
+    font-size: 20px;
+  }
+}
+{% endstylesheet %}
+
+<script>
+(function() {
+  var root = document.querySelector('.casa-day-night-section[data-section-id="{{ section.id }}"]');
+  if (!root) return;
+  root.querySelectorAll('.casa-day-night__image-wrapper').forEach(function(wrap) {
+    var video = wrap.querySelector('.casa-day-night__video');
+    var poster = wrap.querySelector('.casa-day-night__image--poster');
+    if (video && poster) {
+      video.addEventListener('playing', function() { poster.style.opacity = '0'; }, { once: true });
+    }
+  });
+  if ('IntersectionObserver' in window) {
+    var obs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) e.target.play().catch(function(){});
+        else e.target.pause();
+      });
+    }, { rootMargin: '100px' });
+    root.querySelectorAll('.casa-day-night__video').forEach(function(v) { obs.observe(v); });
+  }
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Day/Night Showcase",
+  "tag": "section",
+  "class": "casa-day-night-wrapper",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Image settings"
+    },
+    {
+      "type": "select",
+      "id": "image_shape",
+      "label": "Image shape",
+      "default": "circle",
+      "options": [
+        { "value": "circle", "label": "Circle" },
+        { "value": "rounded", "label": "Rounded rectangle" },
+        { "value": "square", "label": "Square" }
+      ]
+    },
+    {
+      "type": "range",
+      "id": "image_size",
+      "label": "Image size",
+      "min": 100,
+      "max": 400,
+      "step": 10,
+      "default": 180,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Day Side"
+    },
+    {
+      "type": "image_picker",
+      "id": "day_image",
+      "label": "Day image",
+      "info": "Also used as poster frame when a video is set"
+    },
+    {
+      "type": "video",
+      "id": "day_video",
+      "label": "Day video (Shopify-hosted)",
+      "info": "Loops silently — overrides image"
+    },
+    {
+      "type": "text",
+      "id": "day_video_url",
+      "label": "Day video URL (fallback)",
+      "info": "Direct .mp4 URL — only used if no Shopify video above"
+    },
+    {
+      "type": "text",
+      "id": "day_title",
+      "label": "Title",
+      "default": "Mirror by Day"
+    },
+    {
+      "type": "text",
+      "id": "day_subtitle",
+      "label": "Subtitle",
+      "default": "A perfect, functional reflection"
+    },
+    {
+      "type": "header",
+      "content": "Night Side"
+    },
+    {
+      "type": "image_picker",
+      "id": "night_image",
+      "label": "Night image",
+      "info": "Also used as poster frame when a video is set"
+    },
+    {
+      "type": "video",
+      "id": "night_video",
+      "label": "Night video (Shopify-hosted)",
+      "info": "Loops silently — overrides image"
+    },
+    {
+      "type": "text",
+      "id": "night_video_url",
+      "label": "Night video URL (fallback)",
+      "info": "Direct .mp4 URL — only used if no Shopify video above"
+    },
+    {
+      "type": "text",
+      "id": "night_title",
+      "label": "Title",
+      "default": "Portal by Night"
+    },
+    {
+      "type": "text",
+      "id": "night_subtitle",
+      "label": "Subtitle",
+      "default": "An infinite, mesmerizing dimension"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "day_bg_color",
+      "label": "Day background",
+      "default": "#f8f9fa"
+    },
+    {
+      "type": "color",
+      "id": "day_text_color",
+      "label": "Day text color",
+      "default": "#0a0a0a"
+    },
+    {
+      "type": "color",
+      "id": "night_bg_color",
+      "label": "Night background",
+      "default": "#0a0a0f"
+    },
+    {
+      "type": "color",
+      "id": "night_text_color",
+      "label": "Night text color",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "night_glow_color",
+      "label": "Night glow color",
+      "default": "#9333ea"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "@app"
+    },
+    {
+      "type": "custom-liquid",
+      "name": "Custom Liquid",
+      "settings": [
+        {
+          "type": "liquid",
+          "id": "custom_liquid",
+          "label": "Custom Liquid"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Day/Night Showcase"
+    }
+  ]
+}
+{% endschema %}

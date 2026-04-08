@@ -1,0 +1,118 @@
+{%- doc -%}
+  Collection Link Block
+  Links to the product's primary collection with customizable text and color.
+{%- enddoc -%}
+
+{%- liquid
+  assign product_resource = closest.product
+  assign block_settings = block.settings
+  assign collection = product_resource.collections.first
+-%}
+
+{%- if collection -%}
+  <div
+    class="casa-collection-link spacing-style"
+    style="{% render 'spacing-style', settings: block_settings %}"
+    {{ block.shopify_attributes }}
+  >
+    <a href="{{ collection.url }}" class="casa-collection-link__anchor">
+      <span class="casa-collection-link__text">
+        {%- if block_settings.text_override != blank -%}
+          {{ block_settings.text_override }}
+        {%- else -%}
+          {{ collection.title }}
+        {%- endif -%}
+      </span>
+      <span class="casa-collection-link__arrow" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5.25 3.5L8.75 7L5.25 10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+    </a>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Collection link",
+  "tag": null,
+  "settings": [
+    {
+      "type": "text",
+      "id": "text_override",
+      "label": "Text override",
+      "info": "Leave blank to use the collection title"
+    },
+    {
+      "type": "select",
+      "id": "link_color",
+      "label": "Link color",
+      "options": [
+        {
+          "value": "purple",
+          "label": "Purple"
+        },
+        {
+          "value": "pink",
+          "label": "Pink"
+        },
+        {
+          "value": "default",
+          "label": "Default"
+        }
+      ],
+      "default": "purple"
+    },
+    {
+      "type": "header",
+      "content": "t:content.padding"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "t:settings.top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "t:settings.bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "padding-inline-start",
+      "label": "t:settings.left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-inline-end",
+      "label": "t:settings.right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "Collection link",
+      "category": "t:categories.product"
+    }
+  ]
+}
+{% endschema %}
