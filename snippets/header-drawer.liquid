@@ -1,5 +1,5 @@
 {%- doc -%}
-  Renders a mobile header drawer menu with DoingWell styling
+  Renders a mobile header drawer menu with Seoul Glow Lab styling
   Shows submenu items (children) as image cards, grouped by parent
 {%- enddoc -%}
 
@@ -55,23 +55,23 @@
     
     <div
       data-header-drawer
-      class="dw-mobile-drawer{% unless show_labels %} dw-mobile-drawer--no-labels{% endunless %}"
+      class="sgl-mobile-drawer{% unless show_labels %} sgl-mobile-drawer--no-labels{% endunless %}"
       style="
         {% if use_gradient %}
-          --dw-bg: linear-gradient({{ gradient_dir }}, {{ bg_color }}, {{ bg_color_2 }});
+          --sgl-bg: linear-gradient({{ gradient_dir }}, {{ bg_color }}, {{ bg_color_2 }});
         {% else %}
-          --dw-bg: {{ bg_color }};
+          --sgl-bg: {{ bg_color }};
         {% endif %}
-        --dw-text: {{ text_color }};
-        --dw-border: {{ border_color }};
-        --dw-radius: {{ border_radius }}px;
-        --dw-gap: {{ gap }}px;
-        --dw-padding: {{ padding }}px;
+        --sgl-text: {{ text_color }};
+        --sgl-border: {{ border_color }};
+        --sgl-radius: {{ border_radius }}px;
+        --sgl-gap: {{ gap }}px;
+        --sgl-padding: {{ padding }}px;
       "
     >
       <!-- Close Button -->
       <button
-        class="dw-mobile-drawer__close"
+        class="sgl-mobile-drawer__close"
         type="button"
         aria-label="{{ 'actions.close' | t }}"
         on:click="/close"
@@ -83,21 +83,21 @@
       </button>
 
       <!-- Scrollable Menu -->
-      <nav class="dw-mobile-drawer__nav">
-        <div class="dw-mobile-drawer__scroll">
+      <nav class="sgl-mobile-drawer__nav">
+        <div class="sgl-mobile-drawer__scroll">
           
           {% assign animation_index = 0 %}
           
           {% for parent_link in linklist.links %}
             {% if parent_link.links != blank %}
               <!-- Parent with children - show children as image cards -->
-              <div class="dw-mobile-drawer__group">
-                <span class="dw-mobile-drawer__group-title" style="--i: {{ animation_index }};">
+              <div class="sgl-mobile-drawer__group">
+                <span class="sgl-mobile-drawer__group-title" style="--i: {{ animation_index }};">
                   {{ parent_link.title }}
                 </span>
                 {% assign animation_index = animation_index | plus: 1 %}
                 
-                <div class="dw-mobile-drawer__mega">
+                <div class="sgl-mobile-drawer__mega">
                   {% for link in parent_link.links %}
                     {% liquid
                       assign item_image = nil
@@ -110,8 +110,8 @@
                       endif
                     %}
 
-                    <a href="{{ link.url }}" class="dw-mobile-drawer__item" style="--i: {{ animation_index }};">
-                      <div class="dw-mobile-drawer__item-img">
+                    <a href="{{ link.url }}" class="sgl-mobile-drawer__item" style="--i: {{ animation_index }};">
+                      <div class="sgl-mobile-drawer__item-img">
                         {% if item_image != blank %}
                           <img 
                             src="{{ item_image | image_url: width: 600 }}" 
@@ -119,7 +119,7 @@
                             loading="lazy"
                           >
                         {% else %}
-                          <div class="dw-mobile-drawer__placeholder">
+                          <div class="sgl-mobile-drawer__placeholder">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
                               <rect x="3" y="3" width="18" height="18" rx="2"></rect>
                               <circle cx="8.5" cy="8.5" r="1.5"></circle>
@@ -129,7 +129,7 @@
                         {% endif %}
                       </div>
                       {% if show_labels %}
-                        <span class="dw-mobile-drawer__item-label">{{ link.title }}</span>
+                        <span class="sgl-mobile-drawer__item-label">{{ link.title }}</span>
                       {% endif %}
                     </a>
                     {% assign animation_index = animation_index | plus: 1 %}
@@ -142,10 +142,10 @@
           {% endfor %}
 
           <!-- Secondary Menu - includes parent links without children + custom secondary menu -->
-          <div class="dw-mobile-drawer__secondary">
+          <div class="sgl-mobile-drawer__secondary">
             {% for parent_link in linklist.links %}
               {% if parent_link.links == blank %}
-                <a href="{{ parent_link.url }}" class="dw-mobile-drawer__link" style="--i: {{ animation_index }};">
+                <a href="{{ parent_link.url }}" class="sgl-mobile-drawer__link" style="--i: {{ animation_index }};">
                   {{ parent_link.title }}
                 </a>
                 {% assign animation_index = animation_index | plus: 1 %}
@@ -154,7 +154,7 @@
             
             {% if secondary_menu.links.size > 0 %}
               {% for link in secondary_menu.links %}
-                <a href="{{ link.url }}" class="dw-mobile-drawer__link" style="--i: {{ animation_index }};">
+                <a href="{{ link.url }}" class="sgl-mobile-drawer__link" style="--i: {{ animation_index }};">
                   {{ link.title }}
                 </a>
                 {% assign animation_index = animation_index | plus: 1 %}
@@ -166,7 +166,7 @@
       </nav>
 
       <!-- Footer -->
-      <div class="dw-mobile-drawer__footer">
+      <div class="sgl-mobile-drawer__footer">
         {% liquid
           assign show_language = section.settings.show_language
           if localization.available_languages.size <= 1
@@ -179,7 +179,7 @@
           endif
         %}
         {% if show_country or show_language %}
-          <div class="dw-mobile-drawer__localization">
+          <div class="sgl-mobile-drawer__localization">
             {% render 'drawer-localization',
               show_country: show_country,
               show_language: show_language,
@@ -191,14 +191,14 @@
     </div>
 
     <div
-      class="dw-mobile-drawer__backdrop"
+      class="sgl-mobile-drawer__backdrop"
       on:click="header-drawer/close"
     ></div>
   </details>
 </header-drawer>
 
 <style>
-  .dw-mobile-drawer {
+  .sgl-mobile-drawer {
     position: fixed;
     top: 0;
     left: 0;
@@ -206,8 +206,8 @@
     max-width: 400px;
     height: 100vh;
     height: 100dvh;
-    background: var(--dw-bg);
-    color: var(--dw-text);
+    background: var(--sgl-bg);
+    color: var(--sgl-text);
     z-index: 9999;
     display: flex;
     flex-direction: column;
@@ -216,12 +216,12 @@
     visibility: hidden;
   }
 
-  .menu-open .dw-mobile-drawer {
+  .menu-open .sgl-mobile-drawer {
     transform: translateX(0);
     visibility: visible;
   }
 
-  .dw-mobile-drawer__close {
+  .sgl-mobile-drawer__close {
     position: absolute;
     top: 16px;
     right: 16px;
@@ -233,31 +233,31 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: var(--dw-text);
+    color: var(--sgl-text);
     z-index: 10;
     transition: opacity 0.2s ease;
   }
 
-  .dw-mobile-drawer__close:hover {
+  .sgl-mobile-drawer__close:hover {
     opacity: 0.6;
   }
 
-  .dw-mobile-drawer__close svg {
+  .sgl-mobile-drawer__close svg {
     width: 24px;
     height: 24px;
   }
 
-  .dw-mobile-drawer__nav {
+  .sgl-mobile-drawer__nav {
     flex: 1;
     overflow: hidden;
     padding-top: 60px;
   }
 
-  .dw-mobile-drawer__scroll {
+  .sgl-mobile-drawer__scroll {
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: var(--dw-padding);
+    padding: var(--sgl-padding);
     display: flex;
     flex-direction: column;
     gap: 28px;
@@ -265,28 +265,28 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  .dw-mobile-drawer__scroll::-webkit-scrollbar {
+  .sgl-mobile-drawer__scroll::-webkit-scrollbar {
     width: 3px;
   }
 
-  .dw-mobile-drawer__scroll::-webkit-scrollbar-track {
+  .sgl-mobile-drawer__scroll::-webkit-scrollbar-track {
     background: transparent;
   }
 
-  .dw-mobile-drawer__scroll::-webkit-scrollbar-thumb {
-    background: var(--dw-text);
+  .sgl-mobile-drawer__scroll::-webkit-scrollbar-thumb {
+    background: var(--sgl-text);
     opacity: 0.2;
     border-radius: 3px;
   }
 
   /* Group (parent with children) */
-  .dw-mobile-drawer__group {
+  .sgl-mobile-drawer__group {
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
 
-  .dw-mobile-drawer__group-title {
+  .sgl-mobile-drawer__group-title {
     display: block;
     font-size: 11px;
     font-weight: 700;
@@ -296,48 +296,48 @@
     padding-left: 4px;
     opacity: 0;
     transform: translateY(10px);
-    animation: dw-mobile-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: sgl-mobile-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     animation-delay: calc(var(--i, 1) * 50ms);
   }
 
-  .dw-mobile-drawer__mega {
+  .sgl-mobile-drawer__mega {
     display: flex;
     flex-direction: column;
-    gap: var(--dw-gap);
+    gap: var(--sgl-gap);
   }
 
-  .dw-mobile-drawer__item {
+  .sgl-mobile-drawer__item {
     display: block;
     text-decoration: none;
-    color: var(--dw-text);
+    color: var(--sgl-text);
     opacity: 0;
     transform: translateY(20px);
-    animation: dw-mobile-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: sgl-mobile-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     animation-delay: calc(var(--i, 1) * 50ms);
     position: relative;
   }
 
-  @keyframes dw-mobile-fade-up {
+  @keyframes sgl-mobile-fade-up {
     to {
       opacity: 1;
       transform: translateY(0);
     }
   }
 
-  .dw-mobile-drawer__item-img {
+  .sgl-mobile-drawer__item-img {
     position: relative;
     width: 100%;
-    border-radius: var(--dw-radius);
+    border-radius: var(--sgl-radius);
     overflow: hidden;
     background: rgba(0,0,0,0.05);
   }
 
-  .dw-mobile-drawer__item-img::before {
+  .sgl-mobile-drawer__item-img::before {
     content: '';
     position: absolute;
     inset: 0;
-    border-radius: var(--dw-radius);
-    border: 3px solid var(--dw-border);
+    border-radius: var(--sgl-radius);
+    border: 3px solid var(--sgl-border);
     opacity: 0;
     transform: scale(0.95);
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -345,24 +345,24 @@
     pointer-events: none;
   }
 
-  .dw-mobile-drawer__item:hover .dw-mobile-drawer__item-img::before,
-  .dw-mobile-drawer__item:active .dw-mobile-drawer__item-img::before {
+  .sgl-mobile-drawer__item:hover .sgl-mobile-drawer__item-img::before,
+  .sgl-mobile-drawer__item:active .sgl-mobile-drawer__item-img::before {
     opacity: 1;
     transform: scale(1);
   }
 
-  .dw-mobile-drawer__item-img img {
+  .sgl-mobile-drawer__item-img img {
     display: block;
     width: 100%;
     height: auto;
     transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .dw-mobile-drawer__item:hover .dw-mobile-drawer__item-img img {
+  .sgl-mobile-drawer__item:hover .sgl-mobile-drawer__item-img img {
     transform: scale(1.04);
   }
 
-  .dw-mobile-drawer__placeholder {
+  .sgl-mobile-drawer__placeholder {
     width: 100%;
     aspect-ratio: 4 / 3;
     display: flex;
@@ -370,14 +370,14 @@
     justify-content: center;
   }
 
-  .dw-mobile-drawer__placeholder svg {
+  .sgl-mobile-drawer__placeholder svg {
     width: 32px;
     height: 32px;
     opacity: 0.2;
-    color: var(--dw-text);
+    color: var(--sgl-text);
   }
 
-  .dw-mobile-drawer__item-label {
+  .sgl-mobile-drawer__item-label {
     display: block;
     padding: 12px 4px 0;
     font-size: 13px;
@@ -386,66 +386,66 @@
     transition: opacity 0.2s ease;
   }
 
-  .dw-mobile-drawer__item:hover .dw-mobile-drawer__item-label {
+  .sgl-mobile-drawer__item:hover .sgl-mobile-drawer__item-label {
     opacity: 0.7;
   }
 
-  .dw-mobile-drawer--no-labels .dw-mobile-drawer__mega {
-    gap: calc(var(--dw-gap) * 0.75);
+  .sgl-mobile-drawer--no-labels .sgl-mobile-drawer__mega {
+    gap: calc(var(--sgl-gap) * 0.75);
   }
 
   /* Secondary Menu */
-  .dw-mobile-drawer__secondary {
+  .sgl-mobile-drawer__secondary {
     display: flex;
     flex-direction: column;
     padding-top: 16px;
     border-top: 1px solid rgba(0,0,0,0.1);
   }
 
-  .dw-mobile-drawer__secondary:empty {
+  .sgl-mobile-drawer__secondary:empty {
     display: none;
   }
 
-  .dw-mobile-drawer__link {
+  .sgl-mobile-drawer__link {
     display: block;
     padding: 14px 4px;
     font-size: 14px;
     font-weight: 500;
     text-decoration: none;
-    color: var(--dw-text);
+    color: var(--sgl-text);
     border-bottom: 1px solid rgba(0,0,0,0.08);
     opacity: 0;
     transform: translateY(10px);
-    animation: dw-mobile-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: sgl-mobile-fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     animation-delay: calc(var(--i, 1) * 40ms);
     transition: opacity 0.2s ease;
   }
 
-  .dw-mobile-drawer__link:last-child {
+  .sgl-mobile-drawer__link:last-child {
     border-bottom: none;
   }
 
-  .dw-mobile-drawer__link:hover {
+  .sgl-mobile-drawer__link:hover {
     opacity: 0.6;
   }
 
   /* Footer */
-  .dw-mobile-drawer__footer {
-    padding: var(--dw-padding);
+  .sgl-mobile-drawer__footer {
+    padding: var(--sgl-padding);
     flex-shrink: 0;
   }
 
-  .dw-mobile-drawer__footer:empty {
+  .sgl-mobile-drawer__footer:empty {
     display: none;
   }
 
-  .dw-mobile-drawer__localization {
+  .sgl-mobile-drawer__localization {
     padding-top: 16px;
     border-top: 1px solid rgba(0,0,0,0.1);
   }
 
   /* Backdrop */
-  .dw-mobile-drawer__backdrop {
+  .sgl-mobile-drawer__backdrop {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
@@ -456,7 +456,7 @@
     transition: opacity 0.3s ease, visibility 0.3s ease;
   }
 
-  .menu-open .dw-mobile-drawer__backdrop {
+  .menu-open .sgl-mobile-drawer__backdrop {
     opacity: 1;
     visibility: visible;
   }
