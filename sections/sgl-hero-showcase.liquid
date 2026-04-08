@@ -27,6 +27,19 @@
   assign pad_top = section.settings.padding_top | default: 80
   assign pad_bot = section.settings.padding_bottom | default: 80
 
+  comment
+    Typography & button controls
+  endcomment
+  assign title_size_desktop = section.settings.title_size_desktop | default: 48
+  assign title_size_mobile = section.settings.title_size_mobile | default: 28
+  assign desc_size = section.settings.desc_size | default: 16
+  assign btn_primary_bg = section.settings.btn_primary_bg
+  assign btn_primary_text = section.settings.btn_primary_text
+  assign btn_secondary_bg = section.settings.btn_secondary_bg
+  assign btn_secondary_text = section.settings.btn_secondary_text
+  assign mobile_pad_top = section.settings.mobile_padding_top | default: 24
+  assign mobile_pad_bot = section.settings.mobile_padding_bottom | default: 32
+
   assign display_heading = heading
   if accent_word != blank and heading contains accent_word
     assign parts = heading | split: accent_word
@@ -43,7 +56,16 @@
     --sgl-hero-accent-2: {{ accent_color_2 }};
     --sgl-hero-pad-top: {{ pad_top }}px;
     --sgl-hero-pad-bot: {{ pad_bot }}px;
+    --sgl-hero-mobile-pad-top: {{ mobile_pad_top }}px;
+    --sgl-hero-mobile-pad-bot: {{ mobile_pad_bot }}px;
     --sgl-hero-overlay: {{ overlay_opacity | divided_by: 100.0 }};
+    --sgl-hero-title-desktop: {{ title_size_desktop }}px;
+    --sgl-hero-title-mobile: {{ title_size_mobile }}px;
+    --sgl-hero-desc-size: {{ desc_size }}px;
+    {%- if btn_primary_bg != blank %}--sgl-hero-btn1-bg: {{ btn_primary_bg }};{% endif %}
+    {%- if btn_primary_text != blank %}--sgl-hero-btn1-text: {{ btn_primary_text }};{% endif %}
+    {%- if btn_secondary_bg != blank %}--sgl-hero-btn2-bg: {{ btn_secondary_bg }};{% endif %}
+    {%- if btn_secondary_text != blank %}--sgl-hero-btn2-text: {{ btn_secondary_text }};{% endif %}
   "
   {{ section.shopify_attributes }}
 >
@@ -295,9 +317,9 @@
 
   .sgl-hero {
     position: relative;
-    background: var(--sgl-hero-bg, #fdf8f5);
-    color: var(--sgl-hero-text, #2d2028);
-    overflow: hidden;
+    background: var(--sgl-hero-bg, #F8EBDA);
+    color: var(--sgl-hero-text, #5E0A02);
+    overflow: visible;
   }
 
   .sgl-hero__container {
@@ -344,7 +366,7 @@
   .sgl-hero__tag--light { color: rgba(255,255,255,0.7); }
 
   .sgl-hero__title {
-    font-size: clamp(2rem, 5vw, 3.8rem);
+    font-size: var(--sgl-hero-title-desktop, 48px);
     font-weight: 300;
     line-height: 1.1;
     letter-spacing: -0.02em;
@@ -364,7 +386,7 @@
   }
 
   .sgl-hero__desc {
-    font-size: clamp(0.95rem, 1.2vw, 1.1rem);
+    font-size: var(--sgl-hero-desc-size, 16px);
     line-height: 1.65;
     color: var(--sgl-hero-text);
     opacity: 0.7;
@@ -398,19 +420,19 @@
   }
 
   .sgl-hero__btn--primary {
-    background: var(--sgl-hero-text, #2d2028);
-    color: var(--sgl-hero-bg, #fdf8f5);
+    background: var(--sgl-hero-btn1-bg, var(--sgl-hero-text, #5E0A02));
+    color: var(--sgl-hero-btn1-text, var(--sgl-hero-bg, #F8EBDA));
     border: none;
   }
   .sgl-hero__btn--primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     opacity: 0.9;
   }
 
   .sgl-hero__btn--secondary {
-    background: transparent;
-    color: var(--sgl-hero-text);
+    background: var(--sgl-hero-btn2-bg, transparent);
+    color: var(--sgl-hero-btn2-text, var(--sgl-hero-text));
     border: 1.5px solid rgba(0,0,0,0.18);
   }
   .sgl-hero__btn--secondary:hover {
@@ -874,8 +896,12 @@
      ════════════════════════════════════════ */
   @media (max-width: 749px) {
 
+    .sgl-hero {
+      overflow: visible;
+    }
+
     .sgl-hero__container {
-      padding: 24px 20px 32px;
+      padding: var(--sgl-hero-mobile-pad-top, 24px) 20px var(--sgl-hero-mobile-pad-bot, 32px);
     }
 
     /* ── Typography mobile ── */
@@ -886,7 +912,7 @@
     }
 
     .sgl-hero__title {
-      font-size: 1.5rem;
+      font-size: var(--sgl-hero-title-mobile, 28px);
       line-height: 1.15;
       margin-bottom: 10px;
       max-width: 100%;
@@ -895,7 +921,7 @@
     .sgl-hero__title--center { text-align: left; margin-left: 0; }
 
     .sgl-hero__desc {
-      font-size: 0.8rem;
+      font-size: calc(var(--sgl-hero-desc-size, 16px) * 0.85);
       line-height: 1.5;
       max-width: 100%;
       margin-bottom: 14px;
@@ -1195,6 +1221,40 @@
     },
     {
       "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "title_size_desktop",
+      "label": "Title size (desktop)",
+      "min": 24,
+      "max": 80,
+      "step": 2,
+      "default": 48,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "title_size_mobile",
+      "label": "Title size (mobile)",
+      "min": 18,
+      "max": 48,
+      "step": 2,
+      "default": 28,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "desc_size",
+      "label": "Description size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "default": 16,
+      "unit": "px"
+    },
+    {
+      "type": "header",
       "content": "Buttons"
     },
     {
@@ -1209,6 +1269,16 @@
       "label": "Primary button link"
     },
     {
+      "type": "color",
+      "id": "btn_primary_bg",
+      "label": "Primary button background"
+    },
+    {
+      "type": "color",
+      "id": "btn_primary_text",
+      "label": "Primary button text color"
+    },
+    {
       "type": "text",
       "id": "cta2_text",
       "label": "Secondary button text"
@@ -1217,6 +1287,16 @@
       "type": "url",
       "id": "cta2_link",
       "label": "Secondary button link"
+    },
+    {
+      "type": "color",
+      "id": "btn_secondary_bg",
+      "label": "Secondary button background"
+    },
+    {
+      "type": "color",
+      "id": "btn_secondary_text",
+      "label": "Secondary button text color"
     },
     {
       "type": "header",
@@ -1292,6 +1372,26 @@
       "max": 200,
       "step": 10,
       "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_top",
+      "label": "Mobile padding top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "default": 24,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "mobile_padding_bottom",
+      "label": "Mobile padding bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "default": 32,
       "unit": "px"
     },
     {
