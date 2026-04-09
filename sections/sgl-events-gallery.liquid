@@ -1,0 +1,422 @@
+{%- comment -%}
+  Seoul Glow Lab — Events Gallery Section
+  Title + portrait images in scroll or grid layout, mobile optimized
+{%- endcomment -%}
+
+{%- liquid
+  assign title = section.settings.title
+  assign subtitle = section.settings.subtitle
+  assign layout = section.settings.layout | default: 'scroll'
+  assign columns = section.settings.columns | default: 3
+  assign gap = section.settings.gap | default: 12
+  assign bg_color = section.settings.bg_color | default: '#F8EBDA'
+  assign text_color = section.settings.text_color | default: '#5E0A02'
+  assign border_radius = section.settings.border_radius | default: 12
+  assign image_ratio = section.settings.image_ratio | default: '3/4'
+  assign pad_top = section.settings.padding_top | default: 60
+  assign pad_bot = section.settings.padding_bottom | default: 60
+  assign title_size = section.settings.title_size | default: 32
+  assign mobile_columns = section.settings.mobile_columns | default: 2
+-%}
+
+<section
+  class="sgl-events sgl-events--{{ layout }}"
+  style="
+    --sgl-events-bg: {{ bg_color }};
+    --sgl-events-text: {{ text_color }};
+    --sgl-events-gap: {{ gap }}px;
+    --sgl-events-radius: {{ border_radius }}px;
+    --sgl-events-ratio: {{ image_ratio }};
+    --sgl-events-cols: {{ columns }};
+    --sgl-events-mobile-cols: {{ mobile_columns }};
+    --sgl-events-pad-top: {{ pad_top }}px;
+    --sgl-events-pad-bot: {{ pad_bot }}px;
+    --sgl-events-title-size: {{ title_size }}px;
+  "
+  {{ section.shopify_attributes }}
+>
+  <div class="sgl-events__container">
+
+    {%- if title != blank or subtitle != blank -%}
+      <div class="sgl-events__header">
+        {%- if subtitle != blank -%}
+          <div class="sgl-events__subtitle">{{ subtitle }}</div>
+        {%- endif -%}
+        {%- if title != blank -%}
+          <h2 class="sgl-events__title">{{ title }}</h2>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    <div class="sgl-events__gallery">
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'image' and block.settings.image != blank -%}
+          <div class="sgl-events__item" style="--i: {{ forloop.index }}" {{ block.shopify_attributes }}>
+            {%- if block.settings.link != blank -%}
+              <a href="{{ block.settings.link }}" class="sgl-events__link">
+            {%- endif -%}
+              <div class="sgl-events__img-wrap">
+                {{ block.settings.image | image_url: width: 600, height: 800, crop: 'center' | image_tag: loading: 'lazy', class: 'sgl-events__img' }}
+              </div>
+              {%- if block.settings.caption != blank -%}
+                <div class="sgl-events__caption">{{ block.settings.caption }}</div>
+              {%- endif -%}
+            {%- if block.settings.link != blank -%}
+              </a>
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+
+  </div>
+</section>
+
+<style>
+  /* ═══════════════════════════════════════
+     SGL Events Gallery
+     ═══════════════════════════════════════ */
+
+  .sgl-events {
+    background: var(--sgl-events-bg, #F8EBDA);
+    color: var(--sgl-events-text, #5E0A02);
+    padding: var(--sgl-events-pad-top) 0 var(--sgl-events-pad-bot);
+  }
+
+  .sgl-events__container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 clamp(16px, 4vw, 60px);
+  }
+
+  /* ── Header ── */
+  .sgl-events__header {
+    margin-bottom: clamp(24px, 3vw, 40px);
+  }
+
+  .sgl-events__subtitle {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    opacity: 0.5;
+    margin-bottom: 8px;
+  }
+
+  .sgl-events__title {
+    font-size: var(--sgl-events-title-size, 32px);
+    font-weight: 300;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+
+  /* ═══════════════════════════════════════
+     GRID LAYOUT
+     ═══════════════════════════════════════ */
+  .sgl-events--grid .sgl-events__gallery {
+    display: grid;
+    grid-template-columns: repeat(var(--sgl-events-cols, 3), 1fr);
+    gap: var(--sgl-events-gap, 12px);
+  }
+
+  /* ═══════════════════════════════════════
+     SCROLL LAYOUT
+     ═══════════════════════════════════════ */
+  .sgl-events--scroll .sgl-events__gallery {
+    display: flex;
+    gap: var(--sgl-events-gap, 12px);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .sgl-events--scroll .sgl-events__gallery::-webkit-scrollbar { display: none; }
+
+  .sgl-events--scroll .sgl-events__item {
+    flex: 0 0 calc((100% - var(--sgl-events-gap) * (var(--sgl-events-cols) - 1)) / var(--sgl-events-cols));
+    min-width: 200px;
+    scroll-snap-align: start;
+  }
+
+  /* ── Image Card ── */
+  .sgl-events__item {
+    opacity: 0;
+    animation: sgl-events-reveal 0.5s ease forwards;
+    animation-delay: calc(var(--i, 1) * 60ms);
+  }
+
+  .sgl-events__link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+
+  .sgl-events__img-wrap {
+    aspect-ratio: var(--sgl-events-ratio, 3/4);
+    border-radius: var(--sgl-events-radius, 12px);
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.03);
+  }
+
+  .sgl-events__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+  }
+
+  .sgl-events__item:hover .sgl-events__img {
+    transform: scale(1.03);
+  }
+
+  .sgl-events__caption {
+    margin-top: 8px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.35;
+    opacity: 0.7;
+  }
+
+  @keyframes sgl-events-reveal {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ═══════════════════════════════════════
+     MOBILE
+     ═══════════════════════════════════════ */
+  @media (max-width: 749px) {
+    .sgl-events__container {
+      padding: 0 16px;
+    }
+
+    .sgl-events__title {
+      font-size: calc(var(--sgl-events-title-size, 32px) * 0.7);
+    }
+
+    .sgl-events__header {
+      margin-bottom: 16px;
+    }
+
+    /* Grid: use mobile column count */
+    .sgl-events--grid .sgl-events__gallery {
+      grid-template-columns: repeat(var(--sgl-events-mobile-cols, 2), 1fr);
+      gap: 8px;
+    }
+
+    /* Scroll: smaller cards */
+    .sgl-events--scroll .sgl-events__gallery {
+      margin: 0 -16px;
+      padding: 0 16px 4px;
+      gap: 10px;
+    }
+
+    .sgl-events--scroll .sgl-events__item {
+      flex: 0 0 55vw;
+      max-width: 220px;
+      min-width: 150px;
+    }
+
+    .sgl-events__caption {
+      font-size: 0.7rem;
+      margin-top: 6px;
+    }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .sgl-events__item {
+      animation: none !important;
+      opacity: 1 !important;
+    }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "SGL Events Gallery",
+  "tag": "section",
+  "class": "sgl-events-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Glow Events"
+    },
+    {
+      "type": "text",
+      "id": "subtitle",
+      "label": "Subtitle",
+      "default": "Seoul Glow Lab"
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Layout",
+      "options": [
+        { "value": "scroll", "label": "Horizontal Scroll" },
+        { "value": "grid", "label": "Grid" }
+      ],
+      "default": "scroll"
+    },
+    {
+      "type": "range",
+      "id": "columns",
+      "label": "Columns (desktop)",
+      "min": 2,
+      "max": 6,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "mobile_columns",
+      "label": "Columns (mobile, grid only)",
+      "min": 1,
+      "max": 3,
+      "step": 1,
+      "default": 2
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "Gap between images",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "default": 12,
+      "unit": "px"
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "label": "Image ratio",
+      "options": [
+        { "value": "3/4", "label": "Portrait (3:4)" },
+        { "value": "2/3", "label": "Tall Portrait (2:3)" },
+        { "value": "4/5", "label": "Soft Portrait (4:5)" },
+        { "value": "1/1", "label": "Square (1:1)" },
+        { "value": "9/16", "label": "Story (9:16)" }
+      ],
+      "default": "3/4"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Image border radius",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "default": 12,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "label": "Title size",
+      "min": 18,
+      "max": 64,
+      "step": 2,
+      "default": 32,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#F8EBDA"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#5E0A02"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "default": 60,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "default": 60,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "image",
+      "name": "Image",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "text",
+          "id": "caption",
+          "label": "Caption (optional)"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link (optional)"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "SGL Events Gallery",
+      "settings": {
+        "title": "Glow Events",
+        "subtitle": "Seoul Glow Lab",
+        "layout": "scroll",
+        "columns": 3,
+        "image_ratio": "3/4"
+      },
+      "blocks": [
+        { "type": "image" },
+        { "type": "image" },
+        { "type": "image" },
+        { "type": "image" },
+        { "type": "image" }
+      ]
+    }
+  ]
+}
+{% endschema %}
