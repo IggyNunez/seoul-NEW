@@ -1,0 +1,319 @@
+{%- comment -%}
+  Seoul Glow Lab — About Page
+  Hero + Mission + Values + Founder Story + Store + Trust Bar
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+-%}
+
+<div class="sgl-about" style="
+  --sgl-a-bg: {{ s.bg_color | default: '#ffffff' }};
+  --sgl-a-bg-alt: {{ s.bg_alt_color | default: '#F8EBDA' }};
+  --sgl-a-text: {{ s.text_color | default: '#121212' }};
+  --sgl-a-accent: {{ s.accent_color | default: '#B0C3FA' }};
+  --sgl-a-btn-bg: {{ s.btn_bg | default: '#121212' }};
+  --sgl-a-btn-text: {{ s.btn_text | default: '#ffffff' }};
+" {{ section.shopify_attributes }}>
+
+  {%- comment -%} ═══ 1. Hero ═══ {%- endcomment -%}
+  <div class="sgl-about__hero">
+    {%- if s.hero_image != blank -%}
+      <div class="sgl-about__hero-bg">
+        {{ s.hero_image | image_url: width: 1920 | image_tag: class: 'sgl-about__hero-img', loading: 'eager' }}
+        <div class="sgl-about__hero-overlay"></div>
+      </div>
+    {%- endif -%}
+    <div class="sgl-about__hero-inner">
+      {%- if s.hero_tag != blank -%}<div class="sgl-about__tag">{{ s.hero_tag }}</div>{%- endif -%}
+      <h1 class="sgl-about__hero-title">{{ s.hero_title | default: 'Our Story' }}</h1>
+      {%- if s.hero_desc != blank -%}<p class="sgl-about__hero-desc">{{ s.hero_desc }}</p>{%- endif -%}
+    </div>
+  </div>
+
+  {%- comment -%} ═══ 2. Mission (image + text) ═══ {%- endcomment -%}
+  {%- if s.mission_title != blank -%}
+  <div class="sgl-about__section">
+    <div class="sgl-about__split sgl-about__split--img-right">
+      <div class="sgl-about__split-text">
+        <h2 class="sgl-about__heading">{{ s.mission_title }}</h2>
+        <div class="sgl-about__body">{{ s.mission_text }}</div>
+      </div>
+      {%- if s.mission_image != blank -%}
+      <div class="sgl-about__split-img">
+        {{ s.mission_image | image_url: width: 800 | image_tag: class: 'sgl-about__img', loading: 'lazy' }}
+      </div>
+      {%- endif -%}
+    </div>
+  </div>
+  {%- endif -%}
+
+  {%- comment -%} ═══ 3. Values Cards ═══ {%- endcomment -%}
+  {%- assign has_values = false -%}
+  {%- for block in section.blocks -%}
+    {%- if block.type == 'value' -%}{%- assign has_values = true -%}{%- break -%}{%- endif -%}
+  {%- endfor -%}
+  {%- if has_values -%}
+  <div class="sgl-about__values" style="background: var(--sgl-a-accent);">
+    <div class="sgl-about__section">
+      {%- if s.values_title != blank -%}
+      <div class="sgl-about__values-header">
+        <h2 class="sgl-about__heading" style="text-align:center;">{{ s.values_title }}</h2>
+        {%- if s.values_desc != blank -%}<p class="sgl-about__subdesc">{{ s.values_desc }}</p>{%- endif -%}
+      </div>
+      {%- endif -%}
+      <div class="sgl-about__values-grid">
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'value' -%}
+          <div class="sgl-about__value-card" style="--i:{{ forloop.index }}" {{ block.shopify_attributes }}>
+            {%- if block.settings.icon != blank -%}
+            <div class="sgl-about__value-icon">
+              {{ block.settings.icon | image_url: width: 80 | image_tag: loading: 'lazy' }}
+            </div>
+            {%- endif -%}
+            <h3 class="sgl-about__value-title">{{ block.settings.title }}</h3>
+            {%- if block.settings.description != blank -%}
+            <div class="sgl-about__value-desc">{{ block.settings.description }}</div>
+            {%- endif -%}
+          </div>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+    </div>
+  </div>
+  {%- endif -%}
+
+  {%- comment -%} ═══ 4. Founder Story (image + text, flipped) ═══ {%- endcomment -%}
+  {%- if s.founder_title != blank -%}
+  <div class="sgl-about__section">
+    <div class="sgl-about__split sgl-about__split--img-left">
+      {%- if s.founder_image != blank -%}
+      <div class="sgl-about__split-img">
+        {{ s.founder_image | image_url: width: 800 | image_tag: class: 'sgl-about__img', loading: 'lazy' }}
+      </div>
+      {%- endif -%}
+      <div class="sgl-about__split-text">
+        <h2 class="sgl-about__heading">{{ s.founder_title }}</h2>
+        <div class="sgl-about__body">{{ s.founder_text }}</div>
+      </div>
+    </div>
+  </div>
+  {%- endif -%}
+
+  {%- comment -%} ═══ 5. Store Visit (image + text) ═══ {%- endcomment -%}
+  {%- if s.store_title != blank -%}
+  <div class="sgl-about__section">
+    <div class="sgl-about__split sgl-about__split--img-right">
+      <div class="sgl-about__split-text">
+        <h2 class="sgl-about__heading">{{ s.store_title }}</h2>
+        <div class="sgl-about__body">{{ s.store_text }}</div>
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'store_info' -%}
+          <div class="sgl-about__store-row" {{ block.shopify_attributes }}>
+            {%- if block.settings.icon != blank -%}
+            <div class="sgl-about__store-icon">{{ block.settings.icon | image_url: width: 40 | image_tag }}</div>
+            {%- endif -%}
+            <span>{{ block.settings.text }}</span>
+          </div>
+          {%- endif -%}
+        {%- endfor -%}
+        {%- if s.store_btn_text != blank -%}
+        <a href="{{ s.store_btn_link | default: '#' }}" class="sgl-about__btn">{{ s.store_btn_text }}</a>
+        {%- endif -%}
+      </div>
+      {%- if s.store_image != blank -%}
+      <div class="sgl-about__split-img">
+        {{ s.store_image | image_url: width: 800 | image_tag: class: 'sgl-about__img', loading: 'lazy' }}
+      </div>
+      {%- endif -%}
+    </div>
+  </div>
+  {%- endif -%}
+
+  {%- comment -%} ═══ 6. Trust Bar ═══ {%- endcomment -%}
+  {%- assign has_trust = false -%}
+  {%- for block in section.blocks -%}
+    {%- if block.type == 'trust_badge' -%}{%- assign has_trust = true -%}{%- break -%}{%- endif -%}
+  {%- endfor -%}
+  {%- if has_trust -%}
+  <div class="sgl-about__trust" style="background: var(--sgl-a-bg-alt);">
+    <div class="sgl-about__section">
+      <div class="sgl-about__trust-grid">
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'trust_badge' -%}
+          <div class="sgl-about__trust-item" {{ block.shopify_attributes }}>
+            {%- if block.settings.icon != blank -%}
+            <div class="sgl-about__trust-icon">{{ block.settings.icon | image_url: width: 64 | image_tag }}</div>
+            {%- endif -%}
+            <strong>{{ block.settings.title }}</strong>
+            {%- if block.settings.text != blank -%}<span>{{ block.settings.text }}</span>{%- endif -%}
+          </div>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+    </div>
+  </div>
+  {%- endif -%}
+
+</div>
+
+<style>
+  .sgl-about { background: var(--sgl-a-bg); color: var(--sgl-a-text); }
+  .sgl-about__section { max-width: 1200px; margin: 0 auto; padding: 60px clamp(16px, 4vw, 60px); }
+
+  /* Hero */
+  .sgl-about__hero { position: relative; min-height: 380px; display: flex; align-items: flex-end; justify-content: center; padding: 60px 24px 52px; overflow: hidden; background: var(--sgl-a-accent); }
+  .sgl-about__hero-bg { position: absolute; inset: 0; }
+  .sgl-about__hero-img { width: 100%; height: 100%; object-fit: cover; }
+  .sgl-about__hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.5), rgba(0,0,0,0.05) 70%, transparent); }
+  .sgl-about__hero-inner { position: relative; z-index: 2; text-align: center; max-width: 650px; }
+  .sgl-about__tag { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,255,255,0.7); margin-bottom: 10px; }
+  .sgl-about__hero-title { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 300; line-height: 1.1; color: #fff; margin: 0 0 12px; }
+  .sgl-about__hero-desc { font-size: 0.95rem; line-height: 1.6; color: rgba(255,255,255,0.85); margin: 0; }
+
+  /* Split Layout */
+  .sgl-about__split { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 5vw, 64px); align-items: center; }
+  .sgl-about__heading { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 600; margin: 0 0 16px; line-height: 1.2; }
+  .sgl-about__body { font-size: 0.92rem; line-height: 1.7; opacity: 0.75; }
+  .sgl-about__body p { margin: 0 0 12px; }
+  .sgl-about__img { width: 100%; border-radius: 14px; display: block; }
+
+  /* Values */
+  .sgl-about__values { padding: 20px 0; }
+  .sgl-about__values-header { margin-bottom: 32px; }
+  .sgl-about__subdesc { text-align: center; font-size: 0.88rem; opacity: 0.6; margin: 0; }
+  .sgl-about__values-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .sgl-about__value-card { background: var(--sgl-a-bg); border-radius: 14px; padding: 28px 24px; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.04); opacity: 0; animation: sgl-a-up 0.5s ease forwards; animation-delay: calc(var(--i) * 80ms); }
+  .sgl-about__value-icon { width: 40px; height: 40px; margin: 0 auto 14px; }
+  .sgl-about__value-icon img { width: 100%; height: 100%; object-fit: contain; }
+  .sgl-about__value-title { font-size: 1rem; font-weight: 600; margin: 0 0 8px; }
+  .sgl-about__value-desc { font-size: 0.82rem; line-height: 1.55; opacity: 0.6; }
+
+  /* Store rows */
+  .sgl-about__store-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 0.88rem; }
+  .sgl-about__store-icon { width: 20px; height: 20px; flex-shrink: 0; }
+  .sgl-about__store-icon img { width: 100%; height: 100%; object-fit: contain; }
+
+  /* Button */
+  .sgl-about__btn { display: inline-flex; align-items: center; padding: 12px 28px; margin-top: 20px; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; text-decoration: none; border-radius: 8px; background: var(--sgl-a-btn-bg); color: var(--sgl-a-btn-text); transition: opacity 0.2s, transform 0.2s; }
+  .sgl-about__btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  /* Trust Bar */
+  .sgl-about__trust { padding: 8px 0; }
+  .sgl-about__trust-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; text-align: center; }
+  .sgl-about__trust-item { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 0.82rem; }
+  .sgl-about__trust-item strong { font-size: 0.88rem; }
+  .sgl-about__trust-item span { opacity: 0.55; font-size: 0.78rem; }
+  .sgl-about__trust-icon { width: 36px; height: 36px; }
+  .sgl-about__trust-icon img { width: 100%; height: 100%; object-fit: contain; }
+
+  @keyframes sgl-a-up { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+  @media (max-width: 749px) {
+    .sgl-about__hero { min-height: 280px; padding: 40px 20px 36px; }
+    .sgl-about__hero-title { font-size: 1.8rem; }
+    .sgl-about__section { padding: 40px 16px; }
+    .sgl-about__split { grid-template-columns: 1fr; gap: 24px; }
+    .sgl-about__split--img-left { direction: ltr; }
+    .sgl-about__split--img-left .sgl-about__split-img { order: -1; }
+    .sgl-about__values-grid { grid-template-columns: 1fr; }
+    .sgl-about__trust-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sgl-about__value-card { animation: none !important; opacity: 1 !important; }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "SGL About Page",
+  "tag": "section",
+  "class": "sgl-about-section",
+  "settings": [
+    { "type": "header", "content": "Hero" },
+    { "type": "image_picker", "id": "hero_image", "label": "Hero image" },
+    { "type": "text", "id": "hero_tag", "label": "Tag", "default": "Seoul Glow Lab" },
+    { "type": "text", "id": "hero_title", "label": "Title", "default": "Our Story" },
+    { "type": "textarea", "id": "hero_desc", "label": "Description", "default": "Born from a passion for authentic K-beauty and a desire to make skincare simple, effective, and joyful." },
+
+    { "type": "header", "content": "Mission" },
+    { "type": "text", "id": "mission_title", "label": "Title", "default": "Our Mission" },
+    { "type": "richtext", "id": "mission_text", "label": "Text", "default": "<p>At Seoul Glow Lab, we believe skincare should be a ritual of self-care, not a source of confusion. We bridge the gap between Seoul's innovative beauty culture and accessible, everyday routines.</p><p>Every product we curate is tested by our team of skincare specialists, ensuring you get only the most effective, skin-loving formulations from Korea's most trusted brands.</p>" },
+    { "type": "image_picker", "id": "mission_image", "label": "Image" },
+
+    { "type": "header", "content": "Values" },
+    { "type": "text", "id": "values_title", "label": "Title", "default": "What We Stand For" },
+    { "type": "text", "id": "values_desc", "label": "Subtitle", "default": "The principles that guide everything we do" },
+
+    { "type": "header", "content": "Founder Story" },
+    { "type": "text", "id": "founder_title", "label": "Title", "default": "The Heart Behind Seoul Glow Lab" },
+    { "type": "richtext", "id": "founder_text", "label": "Text", "default": "<p>Our founder's journey didn't start in Seoul — it started with real skin concerns, endless research, and a deep love for Korean skincare's gentle, results-driven approach.</p><p>Back in San Diego, she saw how overwhelming K-beauty could feel. Seoul Glow Lab was created to change that — curating proven products, partnering with indie Korean brands, and building a community-driven space where skincare education meets connection and self-discovery.</p>" },
+    { "type": "image_picker", "id": "founder_image", "label": "Image" },
+
+    { "type": "header", "content": "Store" },
+    { "type": "text", "id": "store_title", "label": "Title", "default": "Visit Our Flagship Store" },
+    { "type": "richtext", "id": "store_text", "label": "Description", "default": "<p>Experience Seoul Glow Lab in person at our flagship location in Kearny Mesa, San Diego. Get personalized skincare consultations and discover exclusive in-store collections.</p>" },
+    { "type": "image_picker", "id": "store_image", "label": "Image" },
+    { "type": "text", "id": "store_btn_text", "label": "Button text", "default": "Get Store Updates" },
+    { "type": "url", "id": "store_btn_link", "label": "Button link" },
+
+    { "type": "header", "content": "Colors" },
+    { "type": "color", "id": "bg_color", "label": "Background", "default": "#ffffff" },
+    { "type": "color", "id": "bg_alt_color", "label": "Alt background", "default": "#F8EBDA" },
+    { "type": "color", "id": "text_color", "label": "Text", "default": "#121212" },
+    { "type": "color", "id": "accent_color", "label": "Accent", "default": "#B0C3FA" },
+    { "type": "color", "id": "btn_bg", "label": "Button bg", "default": "#121212" },
+    { "type": "color", "id": "btn_text", "label": "Button text", "default": "#ffffff" }
+  ],
+  "blocks": [
+    {
+      "type": "value",
+      "name": "Value Card",
+      "settings": [
+        { "type": "image_picker", "id": "icon", "label": "Icon" },
+        { "type": "text", "id": "title", "label": "Title" },
+        { "type": "richtext", "id": "description", "label": "Description" }
+      ]
+    },
+    {
+      "type": "store_info",
+      "name": "Store Info Row",
+      "settings": [
+        { "type": "image_picker", "id": "icon", "label": "Icon" },
+        { "type": "text", "id": "text", "label": "Text" }
+      ]
+    },
+    {
+      "type": "trust_badge",
+      "name": "Trust Badge",
+      "settings": [
+        { "type": "image_picker", "id": "icon", "label": "Icon" },
+        { "type": "text", "id": "title", "label": "Title" },
+        { "type": "text", "id": "text", "label": "Subtitle" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "SGL About Page",
+      "settings": {
+        "hero_title": "Our Story",
+        "hero_tag": "Seoul Glow Lab",
+        "hero_desc": "Born from a passion for authentic K-beauty and a desire to make skincare simple, effective, and joyful.",
+        "mission_title": "Our Mission",
+        "founder_title": "The Heart Behind Seoul Glow Lab",
+        "values_title": "What We Stand For",
+        "store_title": "Visit Our Flagship Store"
+      },
+      "blocks": [
+        { "type": "value", "settings": { "title": "Curate Excellence" } },
+        { "type": "value", "settings": { "title": "Educate & Empower" } },
+        { "type": "value", "settings": { "title": "Build Community" } },
+        { "type": "store_info", "settings": { "text": "4344 Convoy Street, Suite C-2, San Diego, 92111" } },
+        { "type": "store_info", "settings": { "text": "Tues-Sat 12pm-7pm, Sunday 12pm-5pm" } }
+      ]
+    }
+  ]
+}
+{% endschema %}
