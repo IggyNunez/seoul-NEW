@@ -1,0 +1,210 @@
+{%- comment -%}
+  Seoul Glow Lab — Book a Treatment Page
+  Practitioner intro + gallery + booking CTA
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+-%}
+
+<div class="sgl-treat" style="
+  --sgl-t-bg: {{ s.bg_color | default: '#ffffff' }};
+  --sgl-t-bg-alt: {{ s.bg_alt | default: '#F8EBDA' }};
+  --sgl-t-text: {{ s.text_color | default: '#121212' }};
+  --sgl-t-accent: {{ s.accent_color | default: '#B0C3FA' }};
+  --sgl-t-btn-bg: {{ s.btn_bg | default: '#121212' }};
+  --sgl-t-btn-text: {{ s.btn_text | default: '#ffffff' }};
+" {{ section.shopify_attributes }}>
+
+  {%- comment -%} ═══ 1. Hero Split: Image + Intro ═══ {%- endcomment -%}
+  <div class="sgl-treat__hero">
+    <div class="sgl-treat__wrap">
+      <div class="sgl-treat__hero-grid">
+        {%- if s.hero_image != blank -%}
+        <div class="sgl-treat__hero-img-wrap">
+          {{ s.hero_image | image_url: width: 800, height: 1000, crop: 'center' | image_tag: class: 'sgl-treat__hero-img', loading: 'eager' }}
+        </div>
+        {%- endif -%}
+        <div class="sgl-treat__hero-content">
+          {%- if s.tag != blank -%}<div class="sgl-treat__tag">{{ s.tag }}</div>{%- endif -%}
+          <h1 class="sgl-treat__title">{{ s.title | default: 'Book a Treatment' }}</h1>
+          {%- if s.practitioner_name != blank -%}
+            <div class="sgl-treat__practitioner">Meet <strong>{{ s.practitioner_name }}</strong></div>
+          {%- endif -%}
+          {%- if s.description != blank -%}
+            <div class="sgl-treat__desc">{{ s.description }}</div>
+          {%- endif -%}
+          {%- if s.cta_text != blank -%}
+            <a href="{{ s.cta_link | default: '#' }}" class="sgl-treat__btn" {% if s.cta_new_tab %}target="_blank" rel="noopener"{% endif %}>{{ s.cta_text }}</a>
+          {%- endif -%}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {%- comment -%} ═══ 2. Gallery ═══ {%- endcomment -%}
+  {%- assign has_gallery = false -%}
+  {%- for block in section.blocks -%}
+    {%- if block.type == 'gallery_image' -%}{%- assign has_gallery = true -%}{%- break -%}{%- endif -%}
+  {%- endfor -%}
+  {%- if has_gallery -%}
+  <div class="sgl-treat__gallery-section" style="background: var(--sgl-t-bg-alt);">
+    <div class="sgl-treat__wrap">
+      {%- if s.gallery_title != blank -%}
+        <h2 class="sgl-treat__section-title" style="text-align:center;">{{ s.gallery_title }}</h2>
+      {%- endif -%}
+      <div class="sgl-treat__gallery">
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'gallery_image' and block.settings.image != blank -%}
+            <div class="sgl-treat__gallery-item" style="--i:{{ forloop.index }}" {{ block.shopify_attributes }}>
+              {{ block.settings.image | image_url: width: 500, height: 500, crop: 'center' | image_tag: class: 'sgl-treat__gallery-img', loading: 'lazy' }}
+            </div>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+      {%- if s.gallery_cta_text != blank -%}
+        <div style="text-align:center; margin-top: 28px;">
+          <a href="{{ s.gallery_cta_link | default: '#' }}" class="sgl-treat__btn" {% if s.cta_new_tab %}target="_blank" rel="noopener"{% endif %}>{{ s.gallery_cta_text }}</a>
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+  {%- endif -%}
+
+  {%- comment -%} ═══ 3. Partner Logo + CTA ═══ {%- endcomment -%}
+  {%- if s.partner_logo != blank or s.partner_name != blank -%}
+  <div class="sgl-treat__partner">
+    <div class="sgl-treat__wrap" style="text-align:center;">
+      {%- if s.partner_logo != blank -%}
+        <div class="sgl-treat__partner-logo">
+          {{ s.partner_logo | image_url: width: 200 | image_tag: loading: 'lazy' }}
+        </div>
+      {%- endif -%}
+      {%- if s.partner_name != blank -%}
+        <p class="sgl-treat__partner-text">In partnership with <strong>{{ s.partner_name }}</strong></p>
+      {%- endif -%}
+      {%- if s.partner_link_text != blank -%}
+        <a href="{{ s.partner_link | default: '#' }}" class="sgl-treat__btn sgl-treat__btn--outline" target="_blank" rel="noopener">{{ s.partner_link_text }}</a>
+      {%- endif -%}
+    </div>
+  </div>
+  {%- endif -%}
+
+</div>
+
+<style>
+  .sgl-treat { background: var(--sgl-t-bg); color: var(--sgl-t-text); }
+  .sgl-treat__wrap { max-width: 1200px; margin: 0 auto; padding: 60px clamp(16px, 4vw, 60px); }
+
+  /* Tag */
+  .sgl-treat__tag { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sgl-t-accent); margin-bottom: 10px; opacity: 0.7; }
+
+  /* Hero Split */
+  .sgl-treat__hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 5vw, 64px); align-items: center; }
+  .sgl-treat__hero-img-wrap { border-radius: 16px; overflow: hidden; }
+  .sgl-treat__hero-img { width: 100%; display: block; }
+  .sgl-treat__title { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 300; line-height: 1.15; margin: 0 0 16px; }
+  .sgl-treat__practitioner { font-size: 1.05rem; margin-bottom: 16px; opacity: 0.8; }
+  .sgl-treat__desc { font-size: 0.9rem; line-height: 1.7; opacity: 0.65; margin-bottom: 24px; }
+  .sgl-treat__desc h3 { font-size: 1rem; font-weight: 600; margin: 0 0 8px; opacity: 1; }
+  .sgl-treat__desc p { margin: 0 0 12px; }
+
+  /* Button */
+  .sgl-treat__btn { display: inline-flex; align-items: center; padding: 13px 32px; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; text-decoration: none; border-radius: 8px; background: var(--sgl-t-btn-bg); color: var(--sgl-t-btn-text); transition: opacity 0.2s, transform 0.2s; border: 2px solid var(--sgl-t-btn-bg); }
+  .sgl-treat__btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .sgl-treat__btn--outline { background: transparent; color: var(--sgl-t-text); border-color: var(--sgl-t-text); }
+  .sgl-treat__btn--outline:hover { background: var(--sgl-t-text); color: var(--sgl-t-bg); }
+
+  /* Section Title */
+  .sgl-treat__section-title { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 300; margin: 0 0 28px; }
+
+  /* Gallery */
+  .sgl-treat__gallery-section { padding: 8px 0; }
+  .sgl-treat__gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .sgl-treat__gallery-item { border-radius: 12px; overflow: hidden; opacity: 0; animation: sgl-t-up 0.5s ease forwards; animation-delay: calc(var(--i) * 80ms); }
+  .sgl-treat__gallery-img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; transition: transform 0.4s ease; }
+  .sgl-treat__gallery-item:hover .sgl-treat__gallery-img { transform: scale(1.03); }
+
+  /* Partner */
+  .sgl-treat__partner { padding: 20px 0; }
+  .sgl-treat__partner-logo { margin-bottom: 16px; }
+  .sgl-treat__partner-logo img { max-width: 150px; height: auto; }
+  .sgl-treat__partner-text { font-size: 0.9rem; opacity: 0.6; margin-bottom: 16px; }
+
+  @keyframes sgl-t-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 749px) {
+    .sgl-treat__wrap { padding: 36px 16px; }
+    .sgl-treat__hero-grid { grid-template-columns: 1fr; gap: 24px; }
+    .sgl-treat__title { font-size: 1.6rem; }
+    .sgl-treat__gallery { grid-template-columns: 1fr 1fr; gap: 10px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sgl-treat__gallery-item { animation: none !important; opacity: 1 !important; }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "SGL Treatment Page",
+  "tag": "section",
+  "class": "sgl-treatment-section",
+  "settings": [
+    { "type": "header", "content": "Hero" },
+    { "type": "image_picker", "id": "hero_image", "label": "Practitioner photo" },
+    { "type": "text", "id": "tag", "label": "Tag", "default": "Seoul Glow Lab" },
+    { "type": "text", "id": "title", "label": "Title", "default": "Book a Treatment" },
+    { "type": "text", "id": "practitioner_name", "label": "Practitioner name", "default": "Sabrina" },
+    { "type": "richtext", "id": "description", "label": "Description", "default": "<h3>Holistic Esthetician</h3><p>Each soulcare standard ritual blends intentional technique with science-backed botanicals - awakening circulation, sculpting & releasing stagnant energy. It's skincare that goes deeper, leaving the skin radiant & spirit grounded.</p>" },
+    { "type": "text", "id": "cta_text", "label": "Button text", "default": "Book Here" },
+    { "type": "url", "id": "cta_link", "label": "Button link" },
+    { "type": "checkbox", "id": "cta_new_tab", "label": "Open in new tab", "default": true },
+
+    { "type": "header", "content": "Gallery" },
+    { "type": "text", "id": "gallery_title", "label": "Gallery title" },
+    { "type": "text", "id": "gallery_cta_text", "label": "Gallery button text", "default": "Book Now" },
+    { "type": "url", "id": "gallery_cta_link", "label": "Gallery button link" },
+
+    { "type": "header", "content": "Partner" },
+    { "type": "image_picker", "id": "partner_logo", "label": "Partner logo" },
+    { "type": "text", "id": "partner_name", "label": "Partner name", "default": "Soulcare Standard" },
+    { "type": "text", "id": "partner_link_text", "label": "Partner link text", "default": "Visit Soulcare Standard" },
+    { "type": "url", "id": "partner_link", "label": "Partner link" },
+
+    { "type": "header", "content": "Colors" },
+    { "type": "color", "id": "bg_color", "label": "Background", "default": "#ffffff" },
+    { "type": "color", "id": "bg_alt", "label": "Gallery background", "default": "#F8EBDA" },
+    { "type": "color", "id": "text_color", "label": "Text", "default": "#121212" },
+    { "type": "color", "id": "accent_color", "label": "Accent", "default": "#B0C3FA" },
+    { "type": "color", "id": "btn_bg", "label": "Button bg", "default": "#121212" },
+    { "type": "color", "id": "btn_text", "label": "Button text", "default": "#ffffff" }
+  ],
+  "blocks": [
+    {
+      "type": "gallery_image",
+      "name": "Gallery Image",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Image" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "SGL Treatment Page",
+      "settings": {
+        "title": "Book a Treatment",
+        "practitioner_name": "Sabrina",
+        "cta_text": "Book Here",
+        "partner_name": "Soulcare Standard"
+      },
+      "blocks": [
+        { "type": "gallery_image" },
+        { "type": "gallery_image" },
+        { "type": "gallery_image" },
+        { "type": "gallery_image" }
+      ]
+    }
+  ]
+}
+{% endschema %}
