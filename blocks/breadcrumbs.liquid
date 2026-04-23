@@ -1,11 +1,43 @@
 {%- doc -%}
   Breadcrumbs Block
   Auto-generates breadcrumb navigation from Home > Collection > Product.
+  Uses the collection the customer navigated from (via Shopify's collection
+  context or sessionStorage fallback), not just the product's first collection.
 {%- enddoc -%}
 
 {%- liquid
   assign product_resource = closest.product
   assign block_settings = block.settings
+
+  comment
+    Priority chain for the breadcrumb collection:
+    1. Shopify's `collection` global (set when URL is /collections/.../products/...)
+    2. sessionStorage from last-visited collection page (JS)
+    3. Smart fallback: first non-generic collection the product belongs to
+       (skips catch-all collections like All, Best Sellers, New Arrivals, etc.)
+    4. Final fallback: product's first collection
+  endcomment
+  assign bc_collection = collection
+  if bc_collection == blank and product_resource.collections.size > 0
+    assign generic_handles = 'all,frontpage,best-sellers,bestsellers,new-arrivals,new,sale,clearance,clearance-sale,featured,must-haves,6-must-haves,gift-cards,gifts,homepage' | split: ','
+    assign bc_collection = nil
+    for col in product_resource.collections
+      assign is_generic = false
+      for gh in generic_handles
+        if col.handle == gh
+          assign is_generic = true
+          break
+        endif
+      endfor
+      if is_generic == false
+        assign bc_collection = col
+        break
+      endif
+    endfor
+    if bc_collection == blank
+      assign bc_collection = product_resource.collections.first
+    endif
+  endif
 -%}
 
 <nav
@@ -14,15 +46,19 @@
   style="{% render 'spacing-style', settings: block_settings %}"
   {{ block.shopify_attributes }}
 >
-  <ol class="casa-breadcrumbs__list">
+  <ol class="casa-breadcrumbs__list" data-casa-breadcrumbs>
     <li class="casa-breadcrumbs__item">
       <a href="/" class="casa-breadcrumbs__link">Home</a>
     </li>
-    {%- if product_resource.collections.size > 0 -%}
-      {%- assign collection = product_resource.collections.first -%}
-      <li class="casa-breadcrumbs__item">
+    {%- if bc_collection != blank -%}
+      <li class="casa-breadcrumbs__item" data-casa-bc-collection>
         <span class="casa-breadcrumbs__separator" aria-hidden="true">&rsaquo;</span>
-        <a href="{{ collection.url }}" class="casa-breadcrumbs__link">{{ collection.title }}</a>
+        <a href="{{ bc_collection.url }}" class="casa-breadcrumbs__link" data-casa-bc-col-link>{{ bc_collection.title }}</a>
+      </li>
+    {%- else -%}
+      <li class="casa-breadcrumbs__item" data-casa-bc-collection style="display:none">
+        <span class="casa-breadcrumbs__separator" aria-hidden="true">&rsaquo;</span>
+        <a href="#" class="casa-breadcrumbs__link" data-casa-bc-col-link></a>
       </li>
     {%- endif -%}
     <li class="casa-breadcrumbs__item casa-breadcrumbs__item--current" aria-current="page">
@@ -31,6 +67,27 @@
     </li>
   </ol>
 </nav>
+
+<script>
+  (function() {
+    // On product pages: upgrade breadcrumb from sessionStorage
+    var path = window.location.pathname;
+    if (path.indexOf('/products/') !== -1) {
+      var bcItem = document.querySelector('[data-casa-bc-collection]');
+      var bcLink = document.querySelector('[data-casa-bc-col-link]');
+      if (bcItem && bcLink) {
+        try {
+          var stored = JSON.parse(sessionStorage.getItem('casa_last_collection'));
+          if (stored && stored.title && stored.url) {
+            bcLink.textContent = stored.title;
+            bcLink.href = stored.url;
+            bcItem.style.display = '';
+          }
+        } catch(e) {}
+      }
+    }
+  })();
+</script>
 
 {% schema %}
 {
