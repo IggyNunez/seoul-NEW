@@ -1,0 +1,119 @@
+{%- comment -%} Casa Price — standalone block for Horizon product-information {%- endcomment -%}
+
+{%- assign product = closest.product -%}
+{%- assign current_variant = product.selected_or_first_available_variant -%}
+<div class="cpm__block cpm__block--price" data-casa-price-block="{{ block.id }}" {{ block.shopify_attributes }}>
+  <div class="cpm__price-inner" data-casa-price-content>
+    <div class="cpm__price-row">
+      <span class="cpm__price-current">{{ current_variant.price | money }}</span>
+      {%- if current_variant.compare_at_price > current_variant.price -%}
+        <span class="cpm__price-compare">{{ current_variant.compare_at_price | money }}</span>
+        {%- if block.settings.show_savings -%}
+          {%- assign savings = current_variant.compare_at_price | minus: current_variant.price -%}
+          <span class="cpm__price-save">Save&nbsp;{{ savings | money }}</span>
+        {%- endif -%}
+      {%- endif -%}
+    </div>
+    {%- if block.settings.show_installments and current_variant.price > 0 -%}
+      <p class="cpm__installments">Pay in 4 interest-free installments of {{ current_variant.price | divided_by: 4 | money }} with <strong>Shop Pay</strong></p>
+    {%- endif -%}
+  </div>
+</div>
+
+<script>
+  (function() {
+    var blockId = {{ block.id | json }};
+    var el = document.querySelector('[data-casa-price-block="' + blockId + '"]');
+    if (!el) return;
+    var section = el.closest('.shopify-section, dialog');
+    if (!section) return;
+
+    section.addEventListener('variant:update', function(e) {
+      var freshHtml = e.detail && e.detail.data && e.detail.data.html;
+      if (!freshHtml) return;
+      var freshBlock = freshHtml.querySelector('[data-casa-price-block="' + blockId + '"]');
+      if (!freshBlock) return;
+      var freshContent = freshBlock.querySelector('[data-casa-price-content]');
+      var currentContent = el.querySelector('[data-casa-price-content]');
+      if (freshContent && currentContent) {
+        currentContent.innerHTML = freshContent.innerHTML;
+      }
+    });
+  })();
+</script>
+
+{% stylesheet %}
+.cpm__block--price { overflow: hidden; }
+.cpm__price-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.cpm__price-current {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--cpm-price, #0a0a0a);
+  word-break: break-word;
+  line-height: 1.1;
+}
+.cpm__price-compare {
+  text-decoration: line-through;
+  color: var(--cpm-compare-price, #9ca3af);
+  font-weight: 400;
+  font-size: 16px;
+  word-break: break-word;
+}
+.cpm__price-save {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  background: rgba(147, 51, 234, 0.08);
+  color: var(--cpm-accent-1, #9333ea);
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.cpm__installments {
+  font-size: 10px;
+  color: var(--cpm-text-muted, #6b7280);
+  margin: 8px 0 0;
+  line-height: 1.4;
+}
+@media (max-width: 480px) {
+  .cpm__price-current { font-size: 20px; }
+  .cpm__price-compare { font-size: 16px; }
+}
+@media (max-width: 375px) {
+  .cpm__price-current { font-size: 18px; }
+  .cpm__price-compare { font-size: 14px; }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Price",
+  "tag": null,
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_savings",
+      "label": "Show savings badge",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_installments",
+      "label": "Show installments",
+      "default": true
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Price",
+      "category": "t:categories.product"
+    }
+  ]
+}
+{% endschema %}

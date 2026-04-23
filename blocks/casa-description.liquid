@@ -1,0 +1,92 @@
+{%- comment -%} Casa Description — standalone block for Horizon product-information {%- endcomment -%}
+
+{%- assign product = closest.product -%}
+{%- if product.description != blank -%}
+  <div class="cpm__block cpm__block--description" {{ block.shopify_attributes }}>
+    {%- if block.settings.collapse -%}
+      <details class="cpm__desc-accordion"{% if block.settings.open_by_default %} open{% endif %}>
+        <summary>{{ block.settings.title | default: 'Description' }}</summary>
+        <div class="rte">{{ product.description }}</div>
+      </details>
+    {%- else -%}
+      <div class="rte">{{ product.description }}</div>
+    {%- endif -%}
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+.cpm__block--description .rte,
+.cpm__description {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--cpm-text-muted, #6b7280);
+}
+.cpm__block--description .rte p { margin: 0 0 16px; }
+.cpm__block--description .rte p:last-child { margin-bottom: 0; }
+.cpm__desc-accordion {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.cpm__desc-accordion summary {
+  padding: 14px 18px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-foreground, #0a0a0a);
+}
+.cpm__desc-accordion summary::-webkit-details-marker { display: none; }
+.cpm__desc-accordion summary::after {
+  content: '+';
+  font-size: 18px;
+  font-weight: 300;
+  transition: transform 0.2s ease;
+}
+.cpm__desc-accordion[open] summary::after {
+  content: '\2212';
+}
+.cpm__desc-accordion .rte {
+  padding: 0 18px 14px;
+}
+@media (max-width: 480px) {
+  .cpm__block--description .rte,
+  .cpm__description { font-size: 14px; }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Description",
+  "tag": null,
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "collapse",
+      "label": "Show as collapsible accordion",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "open_by_default",
+      "label": "Open by default",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Accordion title",
+      "default": "Description"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Description",
+      "category": "t:categories.product"
+    }
+  ]
+}
+{% endschema %}
