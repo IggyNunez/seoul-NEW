@@ -2040,55 +2040,48 @@
   border-radius: 4px;
 }
 
-.casa-col-filter__price-thumb {
+.casa-col-filter__price-track {
+  touch-action: none; /* Prevent vertical scroll while dragging on mobile */
+}
+
+.casa-col-filter__price-handle {
   position: absolute;
-  inset-inline: 0;
   top: 50%;
-  transform: translateY(-50%);
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 4px;
-  background: transparent;
-  pointer-events: none;
-  margin: 0;
+  left: 0;
+  /* translateX is set inline by JS; translateY centers vertically */
+  transform: translate(0, -50%);
+  width: var(--ccm-icon-sm);
+  height: var(--ccm-icon-sm);
+  margin-left: calc(var(--ccm-icon-sm) / -2);
   padding: 0;
+  border-radius: 50%;
+  background: var(--ccm-text);
+  border: 3px solid var(--ccm-accent-1);
+  cursor: grab;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--ccm-overlay) 30%, transparent);
+  touch-action: none;
   z-index: 2;
+  transition: box-shadow var(--ccm-trans-fast), transform var(--ccm-trans-fast);
 }
 
-/* Max thumb sits above min by default so the user can always grab the right handle.
-   When min approaches the right edge, JS flips z-index so the user can still grab min. */
-.casa-col-filter__price-thumb--min {
-  z-index: 3;
+.casa-col-filter__price-handle:hover {
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--ccm-overlay) 50%, transparent);
 }
-.casa-col-filter__price-thumb--max {
+
+.casa-col-filter__price-handle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ccm-accent-1) 30%, transparent);
+}
+
+.casa-col-filter__price-handle[data-dragging="true"] {
+  cursor: grabbing;
   z-index: 4;
-}
-.casa-col-filter__price-range[data-min-on-top="true"] .casa-col-filter__price-thumb--min {
-  z-index: 5;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--ccm-overlay) 60%, transparent);
 }
 
-.casa-col-filter__price-thumb::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: var(--ccm-icon-sm);
-  height: var(--ccm-icon-sm);
-  border-radius: 50%;
-  background: var(--ccm-text);
-  border: 3px solid var(--ccm-accent-1);
-  cursor: pointer;
-  pointer-events: all;
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--ccm-overlay) 30%, transparent);
-}
-
-.casa-col-filter__price-thumb::-moz-range-thumb {
-  width: var(--ccm-icon-sm);
-  height: var(--ccm-icon-sm);
-  border-radius: 50%;
-  background: var(--ccm-text);
-  border: 3px solid var(--ccm-accent-1);
-  cursor: pointer;
-  pointer-events: all;
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--ccm-overlay) 30%, transparent);
+/* Max handle gets a slightly higher base z-index so it wins when thumbs overlap at left edge. */
+.casa-col-filter__price-handle--max {
+  z-index: 3;
 }
 
 .casa-col-filter__price-inputs {
@@ -2893,16 +2886,46 @@ document.addEventListener('DOMContentLoaded', function() {
     drawerOverlay.classList.add('is-visible');
     document.body.style.overflow = 'hidden';
 
-    // Sync changes from drawer back to main form
+    // Sync changes from drawer back to main form, then trigger an AJAX refresh
+    // so the "Show N Results" button reflects the live filtered count.
     clone.addEventListener('change', function(e) {
-      const name = e.target.name;
-      const value = e.target.value;
-      const checked = e.target.checked;
-      const mainInput = filterForm.querySelector('[name="' + name + '"][value="' + value + '"]');
+      const target = e.target;
+      if (!target || !target.name) return;
+
+      const name = target.name;
+      const value = target.value;
+
+      // Find the corresponding input in the main form
+      let mainInput;
+      if (target.type === 'checkbox' || target.type === 'radio') {
+        mainInput = filterForm.querySelector('[name="' + CSS.escape(name) + '"][value="' + CSS.escape(value) + '"]');
+        if (mainInput) mainInput.checked = target.checked;
+      } else {
+        mainInput = filterForm.querySelector('[name="' + CSS.escape(name) + '"]');
+        if (mainInput) mainInput.value = target.value;
+      }
+
+      // Fire change on the main form so the AJAX filter handler runs and
+      // [data-results-count] elements (including the drawer's Show Results button) update.
       if (mainInput) {
-        mainInput.checked = checked;
+        mainInput.dispatchEvent(new Event('change', { bubbles: true }));
       }
     });
+
+    // Mirror price number inputs typed into the drawer too (they fire 'input' not 'change')
+    clone.addEventListener('input', function(e) {
+      const target = e.target;
+      if (!target || !target.matches('.casa-col-filter__price-input')) return;
+      const mainInput = filterForm.querySelector('[name="' + CSS.escape(target.name) + '"]');
+      if (mainInput) {
+        mainInput.value = target.value;
+        mainInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+
+    // The cloned form has its own price slider markup. Re-bind the slider JS
+    // on the clone so dragging in the drawer also updates filters.
+    initPriceSlidersWithin(clone);
   }
 
   function closeDrawer() {
@@ -2934,69 +2957,200 @@ document.addEventListener('DOMContentLoaded', function() {
   // PRICE SLIDER SYNC
   // ═══════════════════════════════════════════════════════════════════════
 
-  section.querySelectorAll('.casa-col-filter__price-range').forEach(priceRange => {
-    const minThumb = priceRange.querySelector('.casa-col-filter__price-thumb--min');
-    const maxThumb = priceRange.querySelector('.casa-col-filter__price-thumb--max');
-    const fill = priceRange.querySelector('.casa-col-filter__price-fill');
+  function initPriceSlidersWithin(scope) {
+    if (!scope) return;
+    scope.querySelectorAll('[data-price-range]').forEach(priceRange => {
+    // Guard against double-binding when re-cloned into the drawer
+    if (priceRange.hasAttribute('data-price-slider-ready')) return;
+    priceRange.setAttribute('data-price-slider-ready', '');
+
+    const track = priceRange.querySelector('[data-price-track]');
+    const fill = priceRange.querySelector('[data-price-fill]');
+    const minHandle = priceRange.querySelector('[data-price-handle="min"]');
+    const maxHandle = priceRange.querySelector('[data-price-handle="max"]');
     const minInput = priceRange.querySelector('.casa-col-filter__price-input[name*="gte"]');
     const maxInput = priceRange.querySelector('.casa-col-filter__price-input[name*="lte"]');
 
-    if (!minThumb || !maxThumb || !fill) return;
+    if (!track || !fill || !minHandle || !maxHandle) return;
 
-    function updateFill() {
-      const min = parseFloat(minThumb.value);
-      const max = parseFloat(maxThumb.value);
-      const rangeMin = parseFloat(minThumb.min);
-      const rangeMax = parseFloat(minThumb.max);
-      const range = rangeMax - rangeMin;
+    const rangeMin = parseFloat(priceRange.dataset.min) || 0;
+    const rangeMax = parseFloat(priceRange.dataset.max) || 100;
+    const range = Math.max(rangeMax - rangeMin, 1);
 
-      const leftPct = ((min - rangeMin) / range) * 100;
-      const rightPct = ((max - rangeMin) / range) * 100;
+    let currentMin = parseFloat(priceRange.dataset.currentMin);
+    let currentMax = parseFloat(priceRange.dataset.currentMax);
+    if (!isFinite(currentMin)) currentMin = rangeMin;
+    if (!isFinite(currentMax)) currentMax = rangeMax;
+
+    function valueToPct(v) {
+      return ((v - rangeMin) / range) * 100;
+    }
+
+    function render() {
+      const leftPct = valueToPct(currentMin);
+      const rightPct = valueToPct(currentMax);
+
+      // Position handles by translating along the track. left:0 + translateX(N%) of own size won't work,
+      // so use left as a percentage of the track and let the negative margin-left center the handle.
+      minHandle.style.left = leftPct + '%';
+      maxHandle.style.left = rightPct + '%';
 
       fill.style.left = leftPct + '%';
-      fill.style.width = (rightPct - leftPct) + '%';
+      fill.style.width = Math.max(0, rightPct - leftPct) + '%';
 
-      // If min thumb has moved past the midpoint of the remaining track,
-      // flip stacking so the min thumb stays grabbable when both thumbs are close.
-      // Specifically: when min is closer to the right edge than max is to the left edge,
-      // promote min to the top.
-      const midpoint = (leftPct + rightPct) / 2;
-      priceRange.setAttribute('data-min-on-top', midpoint > 50 ? 'true' : 'false');
+      minHandle.setAttribute('aria-valuenow', Math.round(currentMin));
+      maxHandle.setAttribute('aria-valuenow', Math.round(currentMax));
     }
 
-    minThumb.addEventListener('input', function() {
-      if (parseFloat(this.value) > parseFloat(maxThumb.value)) {
-        this.value = maxThumb.value;
+    function syncInputs() {
+      if (minInput && document.activeElement !== minInput) {
+        minInput.value = Math.ceil(currentMin);
       }
-      if (minInput) minInput.value = Math.ceil(this.value);
-      updateFill();
+      if (maxInput && document.activeElement !== maxInput) {
+        maxInput.value = Math.ceil(currentMax);
+      }
+    }
+
+    function clamp(v, lo, hi) {
+      return Math.min(hi, Math.max(lo, v));
+    }
+
+    function pxToValue(clientX) {
+      const rect = track.getBoundingClientRect();
+      if (rect.width === 0) return rangeMin;
+      const ratio = clamp((clientX - rect.left) / rect.width, 0, 1);
+      return rangeMin + ratio * range;
+    }
+
+    // ─── Drag handling via Pointer Events ───────────────────────────────
+    let activeHandle = null;
+    let activeKind = null; // 'min' | 'max'
+
+    function onPointerMove(e) {
+      if (!activeHandle) return;
+      e.preventDefault();
+      const v = pxToValue(e.clientX);
+      if (activeKind === 'min') {
+        currentMin = clamp(v, rangeMin, currentMax);
+      } else {
+        currentMax = clamp(v, currentMin, rangeMax);
+      }
+      render();
+      syncInputs();
+    }
+
+    function onPointerUp(e) {
+      if (!activeHandle) return;
+      activeHandle.removeAttribute('data-dragging');
+      try { activeHandle.releasePointerCapture(e.pointerId); } catch (_) {}
+      activeHandle = null;
+      activeKind = null;
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+
+      // Trigger filter refresh once drag ends (mirrors how the number inputs fire on change)
+      if (minInput) minInput.dispatchEvent(new Event('change', { bubbles: true }));
+      if (maxInput) maxInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function startDrag(handle, kind) {
+      return function(e) {
+        e.preventDefault();
+        activeHandle = handle;
+        activeKind = kind;
+        handle.setAttribute('data-dragging', 'true');
+        try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
+      };
+    }
+
+    minHandle.addEventListener('pointerdown', startDrag(minHandle, 'min'));
+    maxHandle.addEventListener('pointerdown', startDrag(maxHandle, 'max'));
+
+    // ─── Click on track jumps the nearest handle ────────────────────────
+    track.addEventListener('pointerdown', function(e) {
+      if (e.target === minHandle || e.target === maxHandle) return;
+      const v = pxToValue(e.clientX);
+      const distMin = Math.abs(v - currentMin);
+      const distMax = Math.abs(v - currentMax);
+      if (distMin <= distMax) {
+        currentMin = clamp(v, rangeMin, currentMax);
+        render();
+        syncInputs();
+        if (minInput) minInput.dispatchEvent(new Event('change', { bubbles: true }));
+      } else {
+        currentMax = clamp(v, currentMin, rangeMax);
+        render();
+        syncInputs();
+        if (maxInput) maxInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
     });
 
-    maxThumb.addEventListener('input', function() {
-      if (parseFloat(this.value) < parseFloat(minThumb.value)) {
-        this.value = minThumb.value;
-      }
-      if (maxInput) maxInput.value = Math.ceil(this.value);
-      updateFill();
-    });
+    // ─── Keyboard support on the handles ────────────────────────────────
+    function keyStep(kind) {
+      return function(e) {
+        const step = (e.shiftKey ? 10 : 1) * (range / 100); // 1% (or 10% with shift) of range
+        let changed = false;
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+          if (kind === 'min') currentMin = clamp(currentMin - step, rangeMin, currentMax);
+          else currentMax = clamp(currentMax - step, currentMin, rangeMax);
+          changed = true;
+        } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+          if (kind === 'min') currentMin = clamp(currentMin + step, rangeMin, currentMax);
+          else currentMax = clamp(currentMax + step, currentMin, rangeMax);
+          changed = true;
+        } else if (e.key === 'Home') {
+          if (kind === 'min') currentMin = rangeMin;
+          else currentMax = currentMin;
+          changed = true;
+        } else if (e.key === 'End') {
+          if (kind === 'min') currentMin = currentMax;
+          else currentMax = rangeMax;
+          changed = true;
+        }
+        if (changed) {
+          e.preventDefault();
+          render();
+          syncInputs();
+          if (minInput) minInput.dispatchEvent(new Event('change', { bubbles: true }));
+          if (maxInput) maxInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      };
+    }
+    minHandle.addEventListener('keydown', keyStep('min'));
+    maxHandle.addEventListener('keydown', keyStep('max'));
 
+    // ─── Number input edits push values back to the handles ─────────────
     if (minInput) {
       minInput.addEventListener('input', function() {
-        minThumb.value = this.value;
-        updateFill();
+        const v = parseFloat(this.value);
+        if (isFinite(v)) {
+          currentMin = clamp(v, rangeMin, currentMax);
+          render();
+        }
       });
     }
-
     if (maxInput) {
       maxInput.addEventListener('input', function() {
-        maxThumb.value = this.value;
-        updateFill();
+        const v = parseFloat(this.value);
+        if (isFinite(v)) {
+          currentMax = clamp(v, currentMin, rangeMax);
+          render();
+        }
       });
     }
 
-    // Initial fill
-    updateFill();
-  });
+    // Initial paint
+    render();
+    syncInputs();
+    });
+  }
+
+  // Bind sliders inside the main (sidebar) form on initial render.
+  initPriceSlidersWithin(section);
 
   // ═══════════════════════════════════════════════════════════════════════
   // ENTRANCE ANIMATIONS
