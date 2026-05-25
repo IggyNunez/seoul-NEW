@@ -224,7 +224,7 @@
     <div class="casa-col-main__toolbar-right">
       {%- if show_product_count -%}
         <span class="casa-col-main__count" data-product-count>
-          {{ collection.products_count }} products
+          <span data-results-count>{{ collection.products_count }}</span> products
         </span>
       {%- endif -%}
 
@@ -287,8 +287,8 @@
           {%- endfor -%}
 
           {%- comment -%} Show Results button (visible on mobile drawer) {%- endcomment -%}
-          <button type="submit" class="casa-col-main__apply-btn">
-            Show {{ collection.products_count }} Results
+          <button type="submit" class="casa-col-main__apply-btn" data-apply-btn>
+            Show <span data-results-count>{{ collection.products_count }}</span> Results
           </button>
         </form>
       </aside>
@@ -428,7 +428,7 @@
     </div>
     <div class="casa-col-main__drawer-footer">
       <button type="button" class="casa-col-main__drawer-apply" data-drawer-apply>
-        Show {{ collection.products_count }} Results
+        Show <span data-results-count>{{ collection.products_count }}</span> Results
       </button>
     </div>
   </div>
@@ -2042,6 +2042,7 @@
 
 .casa-col-filter__price-thumb {
   position: absolute;
+  inset-inline: 0;
   top: 50%;
   transform: translateY(-50%);
   -webkit-appearance: none;
@@ -2050,6 +2051,21 @@
   height: 4px;
   background: transparent;
   pointer-events: none;
+  margin: 0;
+  padding: 0;
+  z-index: 2;
+}
+
+/* Max thumb sits above min by default so the user can always grab the right handle.
+   When min approaches the right edge, JS flips z-index so the user can still grab min. */
+.casa-col-filter__price-thumb--min {
+  z-index: 3;
+}
+.casa-col-filter__price-thumb--max {
+  z-index: 4;
+}
+.casa-col-filter__price-range[data-min-on-top="true"] .casa-col-filter__price-thumb--min {
+  z-index: 5;
 }
 
 .casa-col-filter__price-thumb::-webkit-slider-thumb {
@@ -2721,10 +2737,19 @@ document.addEventListener('DOMContentLoaded', function() {
             activeFiltersContainer.innerHTML = newActive.innerHTML;
           }
 
-          // Update product count
+          // Update product count (toolbar)
           const newCount = newSection.querySelector('[data-product-count]');
           if (newCount && productCountEl) {
-            productCountEl.textContent = newCount.textContent;
+            productCountEl.innerHTML = newCount.innerHTML;
+          }
+
+          // Update ALL filtered-count badges: toolbar count + Show Results buttons (both sidebar + drawer)
+          const newResultsCount = newSection.querySelector('[data-results-count]');
+          if (newResultsCount) {
+            const freshCount = newResultsCount.textContent.trim();
+            section.querySelectorAll('[data-results-count]').forEach(el => {
+              el.textContent = freshCount;
+            });
           }
 
           // Re-bind pagination links
@@ -2930,6 +2955,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
       fill.style.left = leftPct + '%';
       fill.style.width = (rightPct - leftPct) + '%';
+
+      // If min thumb has moved past the midpoint of the remaining track,
+      // flip stacking so the min thumb stays grabbable when both thumbs are close.
+      // Specifically: when min is closer to the right edge than max is to the left edge,
+      // promote min to the top.
+      const midpoint = (leftPct + rightPct) / 2;
+      priceRange.setAttribute('data-min-on-top', midpoint > 50 ? 'true' : 'false');
     }
 
     minThumb.addEventListener('input', function() {
