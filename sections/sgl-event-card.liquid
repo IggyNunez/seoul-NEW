@@ -1,0 +1,656 @@
+{%- comment -%}
+  Seoul Glow Lab — Event Card Section
+  Single hosted event with date, host info, description, instagram link,
+  and Partiful RSVP CTA. Designed for community events hosted at Seoul Glow Lab
+  by guest hosts (e.g. Sabrina Kim's wellness workshops).
+{%- endcomment -%}
+
+{%- liquid
+  assign event_title = section.settings.event_title
+  assign event_subtitle = section.settings.event_subtitle
+  assign event_date = section.settings.event_date
+  assign event_time = section.settings.event_time
+  assign event_location = section.settings.event_location
+  assign event_price = section.settings.event_price
+  assign event_capacity = section.settings.event_capacity
+  assign event_description = section.settings.event_description
+  assign host_name = section.settings.host_name
+  assign host_label = section.settings.host_label | default: 'Hosted by'
+  assign instagram_url = section.settings.instagram_url
+  assign instagram_label = section.settings.instagram_label | default: '@sakurapink'
+  assign partiful_url = section.settings.partiful_url
+  assign rsvp_label = section.settings.rsvp_label | default: 'RSVP on Partiful'
+  assign image_1 = section.settings.image_1
+  assign image_2 = section.settings.image_2
+  assign asset_image_1 = section.settings.asset_image_1
+  assign asset_image_2 = section.settings.asset_image_2
+  assign image_ratio = section.settings.image_ratio | default: '4/5'
+  assign image_layout = section.settings.image_layout | default: 'side'
+  assign bg_color = section.settings.bg_color | default: '#F8EBDA'
+  assign card_bg = section.settings.card_bg | default: '#FFFFFF'
+  assign text_color = section.settings.text_color | default: '#5E0A02'
+  assign muted_color = section.settings.muted_color | default: '#8B6F6A'
+  assign accent_color = section.settings.accent_color | default: '#B0C3FA'
+  assign cta_bg = section.settings.cta_bg | default: '#5E0A02'
+  assign cta_text = section.settings.cta_text | default: '#F2FFA0'
+  assign pad_top = section.settings.padding_top | default: 40
+  assign pad_bot = section.settings.padding_bottom | default: 40
+  assign uid = section.id
+-%}
+
+<section
+  class="sgl-event-card sgl-event-card--{{ image_layout }}"
+  style="
+    --sgl-ec-bg: {{ bg_color }};
+    --sgl-ec-card-bg: {{ card_bg }};
+    --sgl-ec-text: {{ text_color }};
+    --sgl-ec-muted: {{ muted_color }};
+    --sgl-ec-accent: {{ accent_color }};
+    --sgl-ec-cta-bg: {{ cta_bg }};
+    --sgl-ec-cta-text: {{ cta_text }};
+    --sgl-ec-image-ratio: {{ image_ratio }};
+    --sgl-ec-pad-top: {{ pad_top }}px;
+    --sgl-ec-pad-bot: {{ pad_bot }}px;
+  "
+>
+  <div class="sgl-event-card__inner">
+    {%- if image_1 != blank or image_2 != blank or asset_image_1 != blank or asset_image_2 != blank -%}
+      <div class="sgl-event-card__media">
+        {%- if image_1 != blank -%}
+          <div class="sgl-event-card__media-item">
+            {{ image_1 | image_url: width: 1200 | image_tag:
+              loading: 'lazy',
+              widths: '400,600,800,1000,1200',
+              sizes: '(min-width: 990px) 45vw, 100vw',
+              alt: event_title | default: 'Event image'
+            }}
+          </div>
+        {%- elsif asset_image_1 != blank -%}
+          <div class="sgl-event-card__media-item">
+            <img
+              src="{{ asset_image_1 | asset_url }}"
+              alt="{{ event_title | default: 'Event image' | escape }}"
+              loading="lazy"
+              decoding="async"
+            >
+          </div>
+        {%- endif -%}
+        {%- if image_2 != blank -%}
+          <div class="sgl-event-card__media-item">
+            {{ image_2 | image_url: width: 1200 | image_tag:
+              loading: 'lazy',
+              widths: '400,600,800,1000,1200',
+              sizes: '(min-width: 990px) 45vw, 100vw',
+              alt: event_title | default: 'Event image'
+            }}
+          </div>
+        {%- elsif asset_image_2 != blank -%}
+          <div class="sgl-event-card__media-item">
+            <img
+              src="{{ asset_image_2 | asset_url }}"
+              alt="{{ event_title | default: 'Event image' | escape }}"
+              loading="lazy"
+              decoding="async"
+            >
+          </div>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    <div class="sgl-event-card__body">
+      {%- if event_date != blank -%}
+        <div class="sgl-event-card__eyebrow">
+          <span class="sgl-event-card__date">{{ event_date }}</span>
+          {%- if event_time != blank -%}
+            <span class="sgl-event-card__sep">·</span>
+            <span class="sgl-event-card__time">{{ event_time }}</span>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+
+      {%- if event_title != blank -%}
+        <h2 class="sgl-event-card__title">{{ event_title }}</h2>
+      {%- endif -%}
+
+      {%- if event_subtitle != blank -%}
+        <p class="sgl-event-card__subtitle">{{ event_subtitle }}</p>
+      {%- endif -%}
+
+      {%- if host_name != blank or event_location != blank or event_price != blank or event_capacity != blank -%}
+        <ul class="sgl-event-card__meta">
+          {%- if host_name != blank -%}
+            <li class="sgl-event-card__meta-item">
+              <span class="sgl-event-card__meta-label">{{ host_label }}</span>
+              <span class="sgl-event-card__meta-value">
+                {%- if instagram_url != blank -%}
+                  <a href="{{ instagram_url }}" target="_blank" rel="noopener noreferrer" class="sgl-event-card__host-link">
+                    {{ host_name }}
+                    {%- if instagram_label != blank -%}
+                      <span class="sgl-event-card__ig-handle">{{ instagram_label }}</span>
+                    {%- endif -%}
+                  </a>
+                {%- else -%}
+                  {{ host_name }}
+                {%- endif -%}
+              </span>
+            </li>
+          {%- endif -%}
+          {%- if event_location != blank -%}
+            <li class="sgl-event-card__meta-item">
+              <span class="sgl-event-card__meta-label">Where</span>
+              <span class="sgl-event-card__meta-value">{{ event_location }}</span>
+            </li>
+          {%- endif -%}
+          {%- if event_price != blank -%}
+            <li class="sgl-event-card__meta-item">
+              <span class="sgl-event-card__meta-label">Investment</span>
+              <span class="sgl-event-card__meta-value">{{ event_price }}</span>
+            </li>
+          {%- endif -%}
+          {%- if event_capacity != blank -%}
+            <li class="sgl-event-card__meta-item">
+              <span class="sgl-event-card__meta-label">Capacity</span>
+              <span class="sgl-event-card__meta-value">{{ event_capacity }}</span>
+            </li>
+          {%- endif -%}
+        </ul>
+      {%- endif -%}
+
+      {%- if event_description != blank -%}
+        <div class="sgl-event-card__description rte">
+          {{ event_description }}
+        </div>
+      {%- endif -%}
+
+      {%- if partiful_url != blank -%}
+        <div class="sgl-event-card__cta-row">
+          <a
+            href="{{ partiful_url }}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="sgl-event-card__cta"
+          >
+            <span>{{ rsvp_label }}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M7 17L17 7"/><path d="M8 7h9v9"/>
+            </svg>
+          </a>
+          {%- if instagram_url != blank -%}
+            <a
+              href="{{ instagram_url }}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="sgl-event-card__cta-secondary"
+            >
+              View on Instagram
+            </a>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+
+{% stylesheet %}
+  .sgl-event-card {
+    background: var(--sgl-ec-bg);
+    color: var(--sgl-ec-text);
+    padding-block: var(--sgl-ec-pad-top) var(--sgl-ec-pad-bot);
+    padding-inline: clamp(16px, 4vw, 48px);
+  }
+
+  .sgl-event-card__inner {
+    max-width: 1200px;
+    margin-inline: auto;
+    background: var(--sgl-ec-card-bg);
+    border-radius: 20px;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    box-shadow: 0 6px 28px rgb(0 0 0 / 0.06);
+  }
+
+  @media screen and (min-width: 768px) {
+    .sgl-event-card--side .sgl-event-card__inner {
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    }
+    .sgl-event-card--side-reverse .sgl-event-card__inner {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    }
+    .sgl-event-card--side-reverse .sgl-event-card__media {
+      order: 2;
+    }
+  }
+
+  /* Media */
+  .sgl-event-card__media {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+    background: var(--sgl-ec-card-bg);
+  }
+  .sgl-event-card__media:has(.sgl-event-card__media-item:nth-child(2)) {
+    grid-template-columns: 1fr 1fr;
+  }
+  .sgl-event-card__media-item {
+    aspect-ratio: var(--sgl-ec-image-ratio);
+    overflow: hidden;
+    background: rgb(0 0 0 / 0.04);
+  }
+  .sgl-event-card__media-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  @media screen and (min-width: 768px) {
+    .sgl-event-card--side .sgl-event-card__media,
+    .sgl-event-card--side-reverse .sgl-event-card__media {
+      height: 100%;
+    }
+    .sgl-event-card--side .sgl-event-card__media-item,
+    .sgl-event-card--side-reverse .sgl-event-card__media-item {
+      aspect-ratio: auto;
+      height: 100%;
+      min-height: 480px;
+    }
+  }
+
+  /* Body */
+  .sgl-event-card__body {
+    padding: clamp(24px, 4vw, 48px);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    justify-content: center;
+  }
+
+  .sgl-event-card__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Anonymous Pro', ui-monospace, monospace;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--sgl-ec-text);
+    background: var(--sgl-ec-accent);
+    padding: 6px 12px;
+    border-radius: 999px;
+    align-self: flex-start;
+  }
+  .sgl-event-card__sep {
+    opacity: 0.55;
+  }
+
+  .sgl-event-card__title {
+    font-family: 'Roboto Condensed', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: clamp(28px, 4vw, 44px);
+    line-height: 1.05;
+    margin: 0;
+    color: var(--sgl-ec-text);
+    text-wrap: balance;
+  }
+
+  .sgl-event-card__subtitle {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--sgl-ec-muted);
+  }
+
+  .sgl-event-card__meta {
+    list-style: none;
+    padding: 0;
+    margin: 4px 0 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    border-top: 1px solid color-mix(in srgb, var(--sgl-ec-text) 12%, transparent);
+    padding-top: 18px;
+  }
+  @media screen and (min-width: 540px) {
+    .sgl-event-card__meta {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  .sgl-event-card__meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .sgl-event-card__meta-label {
+    font-family: 'Anonymous Pro', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--sgl-ec-muted);
+  }
+  .sgl-event-card__meta-value {
+    font-size: 15px;
+    line-height: 1.35;
+    color: var(--sgl-ec-text);
+    font-weight: 500;
+  }
+  .sgl-event-card__host-link {
+    color: var(--sgl-ec-text);
+    text-decoration: none;
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+    border-bottom: 1px solid color-mix(in srgb, var(--sgl-ec-text) 35%, transparent);
+    transition: border-color 160ms ease;
+  }
+  .sgl-event-card__host-link:hover {
+    border-bottom-color: var(--sgl-ec-text);
+  }
+  .sgl-event-card__ig-handle {
+    font-family: 'Anonymous Pro', ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--sgl-ec-muted);
+    font-weight: 400;
+  }
+
+  .sgl-event-card__description {
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--sgl-ec-text);
+  }
+  .sgl-event-card__description p { margin: 0 0 10px; }
+  .sgl-event-card__description p:last-child { margin-bottom: 0; }
+  .sgl-event-card__description ul,
+  .sgl-event-card__description ol {
+    margin: 4px 0 10px;
+    padding-left: 20px;
+  }
+  .sgl-event-card__description li { margin-bottom: 4px; }
+  .sgl-event-card__description strong { font-weight: 700; }
+  .sgl-event-card__description a {
+    color: var(--sgl-ec-text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* CTAs */
+  .sgl-event-card__cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .sgl-event-card__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--sgl-ec-cta-bg);
+    color: var(--sgl-ec-cta-text);
+    text-decoration: none;
+    font-family: 'Roboto Condensed', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 14px 22px;
+    border-radius: 999px;
+    transition: transform 160ms ease, box-shadow 160ms ease;
+  }
+  .sgl-event-card__cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 22px color-mix(in srgb, var(--sgl-ec-cta-bg) 35%, transparent);
+  }
+  .sgl-event-card__cta-secondary {
+    display: inline-flex;
+    align-items: center;
+    color: var(--sgl-ec-text);
+    text-decoration: none;
+    font-family: 'Anonymous Pro', ui-monospace, monospace;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 14px 18px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--sgl-ec-text) 25%, transparent);
+    transition: background 160ms ease, border-color 160ms ease;
+  }
+  .sgl-event-card__cta-secondary:hover {
+    background: color-mix(in srgb, var(--sgl-ec-text) 6%, transparent);
+    border-color: color-mix(in srgb, var(--sgl-ec-text) 50%, transparent);
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "SGL Event Card",
+  "tag": "section",
+  "class": "section--sgl-event-card",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Event details"
+    },
+    {
+      "type": "text",
+      "id": "event_title",
+      "label": "Event title",
+      "default": "sweat. sculpt. sip"
+    },
+    {
+      "type": "text",
+      "id": "event_subtitle",
+      "label": "Subtitle (optional)",
+      "default": "A community wellness ritual"
+    },
+    {
+      "type": "text",
+      "id": "event_date",
+      "label": "Date",
+      "default": "Sunday, June 7"
+    },
+    {
+      "type": "text",
+      "id": "event_time",
+      "label": "Time",
+      "default": "6:00 – 8:30 PM"
+    },
+    {
+      "type": "text",
+      "id": "event_location",
+      "label": "Location",
+      "default": "Seoul Glow Lab (PTET)"
+    },
+    {
+      "type": "text",
+      "id": "event_price",
+      "label": "Investment / price",
+      "default": "$55 per person"
+    },
+    {
+      "type": "text",
+      "id": "event_capacity",
+      "label": "Capacity",
+      "default": "12 spots"
+    },
+    {
+      "type": "richtext",
+      "id": "event_description",
+      "label": "Description",
+      "default": "<p>A three-part community wellness series featuring mat pilates, lymphatic gua sha massage, herbal mocktails, and K-beauty rituals.</p>"
+    },
+    {
+      "type": "header",
+      "content": "Host"
+    },
+    {
+      "type": "text",
+      "id": "host_label",
+      "label": "Host label",
+      "default": "Hosted by"
+    },
+    {
+      "type": "text",
+      "id": "host_name",
+      "label": "Host name",
+      "default": "Sabrina Kim"
+    },
+    {
+      "type": "text",
+      "id": "instagram_label",
+      "label": "Instagram handle (displayed)",
+      "default": "@sakurapink"
+    },
+    {
+      "type": "url",
+      "id": "instagram_url",
+      "label": "Instagram URL"
+    },
+    {
+      "type": "header",
+      "content": "RSVP / Partiful"
+    },
+    {
+      "type": "url",
+      "id": "partiful_url",
+      "label": "Partiful event URL"
+    },
+    {
+      "type": "text",
+      "id": "rsvp_label",
+      "label": "RSVP button label",
+      "default": "RSVP on Partiful"
+    },
+    {
+      "type": "header",
+      "content": "Imagery"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_1",
+      "label": "Image 1 (uploaded via Shopify Files)"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_2",
+      "label": "Image 2 (uploaded via Shopify Files, optional)"
+    },
+    {
+      "type": "text",
+      "id": "asset_image_1",
+      "label": "OR Image 1 — theme asset filename",
+      "info": "e.g. sabrina-summer-skin-rituals.avif (file must exist in /assets). Used only if Image 1 above is empty."
+    },
+    {
+      "type": "text",
+      "id": "asset_image_2",
+      "label": "OR Image 2 — theme asset filename",
+      "info": "Used only if Image 2 above is empty."
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "label": "Image aspect ratio",
+      "options": [
+        { "value": "1/1", "label": "Square (1:1)" },
+        { "value": "4/5", "label": "Portrait (4:5)" },
+        { "value": "3/4", "label": "Portrait (3:4)" },
+        { "value": "2/3", "label": "Tall (2:3)" }
+      ],
+      "default": "4/5"
+    },
+    {
+      "type": "select",
+      "id": "image_layout",
+      "label": "Image position",
+      "options": [
+        { "value": "side", "label": "Images left, info right" },
+        { "value": "side-reverse", "label": "Info left, images right" }
+      ],
+      "default": "side"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Section background",
+      "default": "#F8EBDA"
+    },
+    {
+      "type": "color",
+      "id": "card_bg",
+      "label": "Card background",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text",
+      "default": "#5E0A02"
+    },
+    {
+      "type": "color",
+      "id": "muted_color",
+      "label": "Muted text",
+      "default": "#8B6F6A"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Eyebrow / pill accent",
+      "default": "#B0C3FA"
+    },
+    {
+      "type": "color",
+      "id": "cta_bg",
+      "label": "CTA background",
+      "default": "#5E0A02"
+    },
+    {
+      "type": "color",
+      "id": "cta_text",
+      "label": "CTA text",
+      "default": "#F2FFA0"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "default": 40,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "default": 40,
+      "unit": "px"
+    }
+  ],
+  "presets": [
+    {
+      "name": "SGL Event Card",
+      "settings": {
+        "event_title": "sweat. sculpt. sip",
+        "event_subtitle": "A community wellness ritual",
+        "event_date": "Sunday, June 7",
+        "event_time": "6:00 – 8:30 PM",
+        "event_location": "Seoul Glow Lab (PTET)"
+      }
+    }
+  ]
+}
+{% endschema %}
