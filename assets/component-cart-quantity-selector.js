@@ -1,4 +1,5 @@
 import { QuantitySelectorComponent } from '@theme/component-quantity-selector';
+import { QuantitySelectorUpdateEvent } from '@theme/events';
 
 /**
  * A custom element that allows the user to select a quantity in the cart.
@@ -20,16 +21,36 @@ class CartQuantitySelectorComponent extends QuantitySelectorComponent {
 
   /**
    * Updates button states based on current value and limits
-   * Cart buttons are always managed client-side, never server-disabled
+   * Cart buttons are always managed client-side, never server-disabled.
+   * Minus is never disabled — at minimum, it removes the line item.
    */
   updateButtonStates() {
     const { minusButton, plusButton } = this.refs;
-    const { min, value } = this.getCurrentValues();
+    const { value } = this.getCurrentValues();
     const effectiveMax = this.getEffectiveMax();
 
-    // Cart buttons are always dynamically managed
-    minusButton.disabled = value <= min;
+    minusButton.disabled = false;
     plusButton.disabled = effectiveMax !== null && value >= effectiveMax;
+  }
+
+  /**
+   * Decrease quantity; if already at minimum, remove the line item by dispatching a 0-quantity update.
+   * @param {Event} event
+   */
+  decreaseQuantity(event) {
+    if (!(event.target instanceof HTMLElement)) return;
+    event.preventDefault();
+
+    const { quantityInput } = this.refs;
+    const { min, value } = this.getCurrentValues();
+
+    if (value <= min) {
+      const cartLine = Number(quantityInput.dataset.cartLine) || undefined;
+      this.dispatchEvent(new QuantitySelectorUpdateEvent(0, cartLine));
+      return;
+    }
+
+    super.decreaseQuantity(event);
   }
 }
 
