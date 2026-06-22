@@ -18,6 +18,16 @@
 
     {%- comment -%} ───────── MAIN ARTICLE COLUMN ───────── {%- endcomment -%}
     <article class="sgl-article">
+      <nav class="sgl-breadcrumb" aria-label="Breadcrumb">
+        <a href="{{ routes.root_url }}">Home</a>
+        <span class="sgl-breadcrumb__sep" aria-hidden="true">/</span>
+        {%- if current_blog -%}
+          <a href="{{ current_blog.url }}">{{ current_blog.title }}</a>
+          <span class="sgl-breadcrumb__sep" aria-hidden="true">/</span>
+        {%- endif -%}
+        <span class="sgl-breadcrumb__current" aria-current="page">{{ article.title | truncate: 48 }}</span>
+      </nav>
+
       {%- if article.image -%}
         <figure class="sgl-article__hero">
           {{ article.image | image_url: width: 1600 | image_tag:
@@ -181,6 +191,27 @@
     background: var(--sgl-periwinkle);
   }
   .sgl-article__hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .sgl-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font-primary--family);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 1.25rem;
+  }
+  .sgl-breadcrumb a {
+    color: var(--sgl-bloodred);
+    text-decoration: none;
+  }
+  .sgl-breadcrumb a:hover { text-decoration: underline; }
+  .sgl-breadcrumb__sep { opacity: 0.45; }
+  .sgl-breadcrumb__current {
+    color: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text, 0.6));
+  }
 
   .sgl-article__eyebrow {
     font-family: var(--font-primary--family);

@@ -1,196 +1,215 @@
+{%- comment -%}
+  Editorial blog index for Seoul Glow Lab — magazine masthead + card grid.
+  First post = large featured card; the rest in a responsive uniform grid.
+  On brand: Periwinkle #B0C3FA, Blood Red #5E0A02, Mindaro #F2FFA0, Antique White.
+{%- endcomment -%}
 
+{%- liquid
+  assign s = section.settings
+  assign posts = blog.articles
+-%}
 
-<script
-  src="{{ 'blog-posts-list.js' | asset_url }}"
-  type="module"
-  fetchpriority="low"
-></script>
+<div class="section-background color-{{ s.color_scheme }}"></div>
+<div class="sgl-blog color-{{ s.color_scheme }}" style="{% render 'spacing-style', settings: s %}">
+  <div class="sgl-blog__inner">
 
-<blog-posts-list section-id="{{ section.id }}">
-  <div class="section-background color-{{ section.settings.color_scheme }}"></div>
-  <div
-    class="
-      section
-      color-{{ section.settings.color_scheme }}
-      blog-posts
-      spacing-style
-      size-style
-    "
-    data-testid="blog-posts"
-    style="{% render 'spacing-style', settings: section.settings %}"
-  >
-    {% content_for 'blocks' %}
+    <header class="sgl-blog__masthead">
+      <p class="sgl-blog__kicker">Seoul Glow Lab Journal</p>
+      <h1 class="sgl-blog__title">{{ blog.title }}</h1>
+      {%- if s.tagline != blank -%}
+        <p class="sgl-blog__tagline">{{ s.tagline }}</p>
+      {%- endif -%}
+      <div class="sgl-blog__rule">
+        <span>{{ blog.articles_count }} {% if blog.articles_count == 1 %}story{% else %}stories{% endif %}</span>
+      </div>
+    </header>
 
-    <div
-      ref="grid"
-      class="blog-posts-container"
-    >
-      {% liquid
-        assign items_on_page = blog.articles.size
-      %}
-      {% for article in blog.articles %}
-        {% liquid
-          # Defaults for compact layout
-          assign col_span = 2
-          assign scale = 0.6
-          assign is_horizontal = false
+    {%- if posts.size == 0 -%}
+      <p class="sgl-blog__empty">No stories yet — check back soon.</p>
+    {%- else -%}
+      <div class="sgl-blog__grid">
+        {%- for article in posts -%}
+          {%- assign featured = false -%}
+          {%- if forloop.first and posts.size > 2 -%}{%- assign featured = true -%}{%- endif -%}
 
-          case items_on_page
-            when 1
-              # Single post: full width hero
-              assign col_span = 6
-              assign scale = 1
-              assign is_horizontal = true
-            when 2
-              # Two posts: both standard side by side
-              assign col_span = 3
-              assign scale = 0.8
-            when 3
-              # Three posts: hero + 2 standard
-              if forloop.index == 1
-                assign col_span = 6
-                assign scale = 1
-                assign is_horizontal = true
-              else
-                assign col_span = 3
-                assign scale = 0.8
-              endif
-            when 4
-              # Four posts: all standard in 2x2 grid
-              assign col_span = 3
-              assign scale = 0.8
-            when 5
-              # Five posts: hero + 4 standard
-              if forloop.index == 1
-                assign col_span = 6
-                assign scale = 1
-                assign is_horizontal = true
-              else
-                assign col_span = 3
-                assign scale = 0.8
-              endif
-            else
-              # 6+ posts: hero, 2 standard, rest compact
-              if forloop.index == 1
-                assign col_span = 6
-                assign scale = 1
-                assign is_horizontal = true
-              elsif forloop.index <= 3
-                assign col_span = 3
-                assign scale = 0.8
-              else
-                assign col_span = 2
-                assign scale = 0.6
-              endif
-          endcase
-        %}
-        {% style %}
-          [data-blog-index="{{ section.id }}-{{ forloop.index }}"] {
-            --col-span: {{ col_span }};
-            --blog-post-card-scale: {{ scale }};
-          }
+          <a href="{{ article.url }}" class="sgl-card{% if featured %} sgl-card--featured{% endif %}">
+            <span class="sgl-card__media">
+              {%- if article.image -%}
+                {%- if featured -%}
+                {{ article.image | image_url: width: 1200 | image_tag:
+                  loading: 'eager',
+                  widths: '400, 700, 1000, 1200',
+                  sizes: '(min-width: 750px) 55vw, 100vw',
+                  alt: article.image.alt | default: article.title
+                }}
+              {%- else -%}
+                {{ article.image | image_url: width: 900 | image_tag:
+                  loading: 'lazy',
+                  widths: '300, 500, 700, 900',
+                  sizes: '(min-width: 750px) 33vw, 100vw',
+                  alt: article.image.alt | default: article.title
+                }}
+              {%- endif -%}
+              {%- else -%}
+                <span class="sgl-card__media-fallback">{{ article.title | slice: 0 }}</span>
+              {%- endif -%}
+            </span>
+            <span class="sgl-card__body">
+              <span class="sgl-card__meta">
+                {{ article.published_at | date: '%b %-d, %Y' }}
+                {%- if article.tags.size > 0 -%}
+                  {%- for tag in article.tags limit: 1 -%}
+                    {%- unless tag contains 'rejected' -%}<span class="sgl-card__tag">{{ tag }}</span>{%- endunless -%}
+                  {%- endfor -%}
+                {%- endif -%}
+              </span>
+              <span class="sgl-card__title">{{ article.title }}</span>
+              <span class="sgl-card__excerpt">
+                {%- if article.excerpt != blank -%}
+                  {{ article.excerpt | strip_html | truncate: 140 }}
+                {%- else -%}
+                  {{ article.content | strip_html | truncate: 140 }}
+                {%- endif -%}
+              </span>
+              <span class="sgl-card__more">Read story &rarr;</span>
+            </span>
+          </a>
+        {%- endfor -%}
+      </div>
 
-          @media screen and (max-width: 749px) {
-            [data-blog-index="{{ section.id }}-{{ forloop.index }}"] {
-              --col-span: 6;
-              --blog-post-card-scale: 0.5;
-            }
-          }
-        {% endstyle %}
-        <div
-          class="blog-post-item{% if is_horizontal %} blog-post-item--horizontal{% endif %}"
-          data-testid="blog-post-item"
-          data-blog-index="{{ section.id }}-{{ forloop.index }}"
-        >
-          {% content_for 'block', id: 'static-blog-post-card', type: '_blog-post-card', article: article %}
-        </div>
-      {% endfor %}
-    </div>
+    {%- endif -%}
+
   </div>
-</blog-posts-list>
+</div>
 
 {% stylesheet %}
-  /**
-   * Blog posts page layout
-   */
-  .blog-posts {
-    --page-content-width: var(--narrow-page-width);
-    --page-width: calc(var(--page-content-width) + (var(--page-margin) * 2));
-    --columns-gap: 36px;
-    --rows-gap: 36px;
-  }
-
-  .blog-posts-container {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 1rem;
+  .sgl-blog {
+    --sgl-periwinkle: #B0C3FA;
+    --sgl-bloodred: #5E0A02;
+    --sgl-mindaro: #F2FFA0;
+    --sgl-cream: #F8EBDA;
     width: 100%;
-    column-gap: var(--columns-gap);
-    row-gap: var(--rows-gap);
   }
 
-  /**
-   * Blog post item grid positioning and scaling.
-   * Layout is calculated in Liquid based on total article count.
-   * Mobile overrides are applied per-item in inline styles for proper specificity.
-   */
-  .blog-post-item {
-    grid-column: span var(--col-span);
+  .sgl-blog__inner {
+    max-width: 1400px;
+    margin-inline: auto;
+    padding-inline: var(--page-margin, 2rem);
+    padding-block: clamp(2rem, 5vw, 4rem);
   }
 
-  /**
-   * When there's no image, the blog post item has a border.
-   */
-  .blog-post-item {
-    border: 1px solid rgb(var(--color-foreground-rgb) / var(--opacity-20));
-    padding: 0 1rem 1rem;
+  /* ── Masthead ── */
+  .sgl-blog__masthead { text-align: center; margin-bottom: clamp(2rem, 5vw, 3.5rem); }
+  .sgl-blog__kicker {
+    font-family: var(--font-primary--family);
+    text-transform: uppercase; letter-spacing: 0.22em;
+    font-size: 0.8rem; color: var(--sgl-bloodred);
+    margin: 0 0 0.75rem;
+  }
+  .sgl-blog__title {
+    font-family: var(--font-primary--family);
+    font-weight: 800; line-height: 1; letter-spacing: -0.01em;
+    font-size: clamp(2.8rem, 7vw, 5rem);
+    margin: 0; color: var(--color-foreground);
+  }
+  .sgl-blog__tagline {
+    max-width: 38rem; margin: 1rem auto 0;
+    font-size: 1.05rem; line-height: 1.6;
+    color: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text, 0.7));
+  }
+  .sgl-blog__rule {
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 1.5rem;
+  }
+  .sgl-blog__rule::before, .sgl-blog__rule::after {
+    content: ""; height: 2px; flex: 1; max-width: 120px; background: var(--sgl-periwinkle);
+  }
+  .sgl-blog__rule span {
+    font-family: var(--font-primary--family);
+    text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.78rem;
+    padding: 0 1rem; color: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text, 0.7));
   }
 
-  .blog-post-item:has(.blog-post-card__image-container) {
-    border: none;
-    padding: 0;
+  /* ── Grid ── */
+  .sgl-blog__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: clamp(1.5rem, 3vw, 2.5rem);
   }
+
+  .sgl-card {
+    display: flex; flex-direction: column;
+    text-decoration: none; color: var(--color-foreground);
+    border-radius: 12px; overflow: hidden;
+    background: var(--color-background, #fff);
+    transition: transform 0.18s ease;
+  }
+  .sgl-card:hover { transform: translateY(-4px); }
+
+  .sgl-card__media {
+    display: block; aspect-ratio: 3 / 2; overflow: hidden;
+    background: var(--sgl-periwinkle); border-radius: 12px;
+  }
+  .sgl-card__media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
+  .sgl-card:hover .sgl-card__media img { transform: scale(1.04); }
+  .sgl-card__media-fallback {
+    display: flex; align-items: center; justify-content: center; height: 100%;
+    font-family: var(--font-primary--family); font-weight: 800; font-size: 3rem; color: var(--sgl-bloodred);
+  }
+
+  .sgl-card__body { display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem 0.25rem 0; }
+  .sgl-card__meta {
+    display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+    font-family: var(--font-primary--family);
+    text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72rem;
+    color: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text, 0.65));
+  }
+  .sgl-card__tag {
+    background: var(--sgl-mindaro); color: var(--sgl-bloodred);
+    padding: 0.2rem 0.55rem; border-radius: 999px; letter-spacing: 0.05em;
+  }
+  .sgl-card__title {
+    font-family: var(--font-primary--family); font-weight: 700; line-height: 1.15;
+    font-size: 1.35rem;
+  }
+  .sgl-card:hover .sgl-card__title { color: var(--sgl-bloodred); }
+  .sgl-card__excerpt {
+    font-size: 0.95rem; line-height: 1.55;
+    color: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text, 0.75));
+  }
+  .sgl-card__more {
+    font-family: var(--font-primary--family); font-weight: 600; font-size: 0.85rem;
+    color: var(--sgl-bloodred); margin-top: 0.25rem;
+  }
+
+  /* Featured (first) card spans full width, image left / text right */
+  .sgl-card--featured { grid-column: 1 / -1; }
+  @media (min-width: 750px) {
+    .sgl-card--featured {
+      flex-direction: row; align-items: stretch; gap: 2rem;
+      background: var(--sgl-cream); padding: 1.5rem; border-radius: 16px;
+    }
+    .sgl-card--featured .sgl-card__media { flex: 0 0 55%; aspect-ratio: 16 / 10; }
+    .sgl-card--featured .sgl-card__body { justify-content: center; padding: 0 1rem 0 0; gap: 0.75rem; }
+    .sgl-card--featured .sgl-card__title { font-size: clamp(1.8rem, 3vw, 2.6rem); }
+    .sgl-card--featured .sgl-card__excerpt { font-size: 1.05rem; }
+  }
+
+  .sgl-blog__empty { text-align: center; padding: 3rem 0; font-size: 1.1rem; opacity: 0.7; }
 {% endstylesheet %}
 
 {% schema %}
 {
   "name": "t:names.blog_posts",
-  "blocks": [
-    {
-      "type": "@theme"
-    },
-    {
-      "type": "@app"
-    },
-    {
-      "type": "text"
-    },
-    {
-      "type": "icon"
-    },
-    {
-      "type": "image"
-    },
-    {
-      "type": "button"
-    },
-    {
-      "type": "video"
-    },
-    {
-      "type": "group"
-    },
-    {
-      "type": "spacer"
-    },
-    {
-      "type": "_divider"
-    }
-  ],
-  "disabled_on": {
-    "groups": ["header"]
-  },
+  "blocks": [{ "type": "@app" }],
+  "disabled_on": { "groups": ["header"] },
   "settings": [
+    {
+      "type": "text",
+      "id": "tagline",
+      "label": "Tagline",
+      "default": "K-beauty rituals, ingredient deep-dives, and your guide to the glow."
+    },
     {
       "type": "color_scheme",
       "id": "color_scheme",
@@ -205,21 +224,13 @@
       "type": "range",
       "id": "padding-block-start",
       "label": "t:settings.top",
-      "min": 0,
-      "max": 100,
-      "step": 1,
-      "unit": "px",
-      "default": 0
+      "min": 0, "max": 100, "step": 1, "unit": "px", "default": 0
     },
     {
       "type": "range",
       "id": "padding-block-end",
       "label": "t:settings.bottom",
-      "min": 0,
-      "max": 100,
-      "step": 1,
-      "unit": "px",
-      "default": 0
+      "min": 0, "max": 100, "step": 1, "unit": "px", "default": 0
     }
   ]
 }
