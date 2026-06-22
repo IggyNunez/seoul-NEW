@@ -1,61 +1,148 @@
+{%- comment -%}
+  Editorial magazine layout for Seoul Glow Lab blog posts.
+  Full-width: article column + sticky sidebar (recent posts + Shop Now).
+  Hero image is wrapped into the article; drop-cap on the opening paragraph.
+  Brand: Periwinkle #B0C3FA, Blood Red #5E0A02, Mindaro #F2FFA0,
+  Roboto Condensed headings / body via theme --font tokens.
+{%- endcomment -%}
 
+{%- liquid
+  assign s = section.settings
+  assign sidebar_count = s.recent_count | default: 5
+  assign current_blog = article.blog | default: blog
+-%}
 
-<div class="section-background color-{{ section.settings.color_scheme }}"></div>
-<div class="section color-{{ section.settings.color_scheme }}">
-  <div
-    class="
-      spacing-style
-      layout-panel-flex
-      layout-panel-flex--column
-      section-content-wrapper
-      mobile-column
-    "
-    style="
-      {% render 'layout-panel-style', settings: section.settings %}
-      {% render 'spacing-style', settings: section.settings %}
-    "
-  >
-    <header>
-      {%- content_for 'block', id: 'blog-post-title', type: 'text' %}
-      {%- content_for 'block', id: 'blog-post-details', type: '_blog-post-info-text' %}
-    </header>
+<div class="section-background color-{{ s.color_scheme }}"></div>
+<div class="sgl-editorial color-{{ s.color_scheme }}" style="{% render 'spacing-style', settings: s %}">
+  <div class="sgl-editorial__inner {% unless s.show_sidebar %}sgl-editorial__inner--full{% endunless %}">
 
-    {%- if article.image -%}
-      {%- content_for 'block', id: 'blog-post-image', type: '_blog-post-featured-image' %}
-    {%- endif -%}
-    {%- content_for 'block', id: 'blog-post-content', type: '_blog-post-content' %}
+    {%- comment -%} ───────── MAIN ARTICLE COLUMN ───────── {%- endcomment -%}
+    <article class="sgl-article">
+      {%- if article.image -%}
+        <figure class="sgl-article__hero">
+          {{ article.image | image_url: width: 1600 | image_tag:
+            loading: 'eager',
+            sizes: '(min-width: 1100px) 70vw, 100vw',
+            widths: '600, 900, 1200, 1600',
+            alt: article.image.alt | default: article.title
+          }}
+        </figure>
+      {%- endif -%}
 
-    {% comment %} Dynamic area for @app blocks only, at the bottom {% endcomment %}
-    {% content_for 'blocks' %}
-
-    {% if blog.comments_enabled? %}
-      <div class="blog-post-comments-container">
-        <h2 class="h3">{{- 'blogs.article.comments_heading' | t: count: article.comments_count -}}</h2>
-
-        <div class="blog-post-comments">
-          {% paginate article.comments by 10 %}
-            {% for comment in article.comments %}
-              <div class="blog-post-comment">
-                {{ comment.content }}
-                <div class="blog-post-comment__author">
-                  <span class="blog-post-comment__author-name">{{- comment.author -}}</span>
-                  <span>{{- 'blogs.article.comment_author_separator' | t -}}</span>
-                  <span class="blog-post-comment__date">
-                    {{- comment.created_at | time_tag: format: 'date' -}}
-                  </span>
-                </div>
-              </div>
-            {% endfor %}
-
-            <div class="blog-post-comments-pagination">
-              {{- paginate | default_pagination -}}
-            </div>
-          {% endpaginate %}
+      <header class="sgl-article__header">
+        <p class="sgl-article__eyebrow">
+          {%- if current_blog -%}<a href="{{ current_blog.url }}">{{ current_blog.title }}</a>{%- endif -%}
+        </p>
+        <h1 class="sgl-article__title">{{ article.title }}</h1>
+        <div class="sgl-article__meta">
+          <time datetime="{{ article.published_at | date: '%Y-%m-%d' }}">
+            {{ article.published_at | date: '%B %-d, %Y' }}
+          </time>
+          {%- if article.author != blank -%}
+            <span class="sgl-dot">&middot;</span><span>{{ article.author }}</span>
+          {%- endif -%}
+          {%- assign words = article.content | strip_html | split: ' ' | size -%}
+          {%- assign mins = words | divided_by: 200 | at_least: 1 -%}
+          <span class="sgl-dot">&middot;</span><span>{{ mins }} min read</span>
         </div>
+      </header>
 
-        {% render 'blog-comment-form', article: article, section_id: section.id %}
+      <div class="sgl-article__content rte">
+        <rte-formatter>{{ article.content }}</rte-formatter>
       </div>
-    {% endif %}
+
+      {%- if article.tags.size > 0 -%}
+        <div class="sgl-article__tags">
+          {%- for tag in article.tags -%}
+            {%- unless tag contains 'rejected' -%}
+              <span class="sgl-tag">{{ tag }}</span>
+            {%- endunless -%}
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+
+      {% content_for 'blocks' %}
+
+      {%- if current_blog.comments_enabled? -%}
+        <div class="blog-post-comments-container">
+          <h2 class="h3">{{- 'blogs.article.comments_heading' | t: count: article.comments_count -}}</h2>
+          <div class="blog-post-comments">
+            {% paginate article.comments by 10 %}
+              {% for comment in article.comments %}
+                <div class="blog-post-comment">
+                  {{ comment.content }}
+                  <div class="blog-post-comment__author">
+                    <span class="blog-post-comment__author-name">{{- comment.author -}}</span>
+                    <span>{{- 'blogs.article.comment_author_separator' | t -}}</span>
+                    <span class="blog-post-comment__date">{{- comment.created_at | time_tag: format: 'date' -}}</span>
+                  </div>
+                </div>
+              {% endfor %}
+              <div class="blog-post-comments-pagination">{{- paginate | default_pagination -}}</div>
+            {% endpaginate %}
+          </div>
+          {% render 'blog-comment-form', article: article, section_id: section.id %}
+        </div>
+      {%- endif -%}
+    </article>
+
+    {%- comment -%} ───────── STICKY SIDEBAR ───────── {%- endcomment -%}
+    {%- if s.show_sidebar -%}
+      <aside class="sgl-sidebar">
+        <div class="sgl-sidebar__sticky">
+
+          {%- comment -%} Recent posts {%- endcomment -%}
+          <section class="sgl-widget">
+            <h2 class="sgl-widget__title">{{ s.recent_heading | default: 'Recent Stories' }}</h2>
+            <ul class="sgl-recent">
+              {%- assign shown = 0 -%}
+              {%- for post in current_blog.articles -%}
+                {%- if post.handle != article.handle and shown < sidebar_count -%}
+                  <li class="sgl-recent__item">
+                    <a href="{{ post.url }}" class="sgl-recent__link">
+                      {%- if post.image -%}
+                        <span class="sgl-recent__thumb">
+                          {{ post.image | image_url: width: 160 | image_tag: loading: 'lazy', widths: '80,160', alt: post.title }}
+                        </span>
+                      {%- endif -%}
+                      <span class="sgl-recent__text">
+                        <span class="sgl-recent__heading">{{ post.title }}</span>
+                        <span class="sgl-recent__date">{{ post.published_at | date: '%b %-d, %Y' }}</span>
+                      </span>
+                    </a>
+                  </li>
+                  {%- assign shown = shown | plus: 1 -%}
+                {%- endif -%}
+              {%- endfor -%}
+            </ul>
+          </section>
+
+          {%- comment -%} Shop Now {%- endcomment -%}
+          {%- assign shop_collection = s.shop_collection -%}
+          {%- if shop_collection != blank and shop_collection.products_count > 0 -%}
+            <section class="sgl-widget sgl-shop">
+              <h2 class="sgl-widget__title">{{ s.shop_heading | default: 'Shop the Glow' }}</h2>
+              <div class="sgl-shop__grid">
+                {%- for product in shop_collection.products limit: 4 -%}
+                  <a href="{{ product.url }}" class="sgl-shop__card">
+                    <span class="sgl-shop__media">
+                      {%- if product.featured_image -%}
+                        {{ product.featured_image | image_url: width: 320 | image_tag: loading: 'lazy', widths: '160,320', alt: product.featured_image.alt | default: product.title }}
+                      {%- endif -%}
+                    </span>
+                    <span class="sgl-shop__name">{{ product.title }}</span>
+                    <span class="sgl-shop__price">{{ product.price | money }}</span>
+                  </a>
+                {%- endfor -%}
+              </div>
+              <a href="{{ shop_collection.url }}" class="sgl-shop__cta">Shop Now</a>
+            </section>
+          {%- endif -%}
+
+        </div>
+      </aside>
+    {%- endif -%}
+
   </div>
 </div>
 
@@ -64,89 +151,222 @@
 </script>
 
 {% stylesheet %}
-  .blog-post-comments-container {
+  .sgl-editorial {
+    --sgl-periwinkle: #B0C3FA;
+    --sgl-bloodred: #5E0A02;
+    --sgl-mindaro: #F2FFA0;
+    --sgl-cream: #F8EBDA;
     width: 100%;
-    max-width: var(--normal-content-width);
-    margin: 0 auto;
   }
 
-  .blog-post-comments {
+  .sgl-editorial__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: clamp(2rem, 5vw, 5rem);
+    max-width: 1400px;
+    margin-inline: auto;
+    padding-inline: var(--page-margin, 2rem);
+    padding-block: clamp(2rem, 5vw, 4rem);
+  }
+  .sgl-editorial__inner--full { grid-template-columns: minmax(0, 1fr); }
+
+  /* ── Article ── */
+  .sgl-article { min-width: 0; }
+
+  .sgl-article__hero {
+    margin: 0 0 clamp(1.5rem, 3vw, 2.5rem);
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    background: var(--sgl-periwinkle);
+  }
+  .sgl-article__hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .sgl-article__eyebrow {
+    font-family: var(--font-primary--family);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.8rem;
+    margin: 0 0 0.75rem;
+  }
+  .sgl-article__eyebrow a { color: var(--sgl-bloodred); text-decoration: none; }
+
+  .sgl-article__title {
+    font-family: var(--font-primary--family);
+    font-weight: 800;
+    line-height: 1.05;
+    font-size: clamp(2.2rem, 5vw, 3.6rem);
+    margin: 0 0 1rem;
+    color: var(--color-foreground);
+  }
+
+  .sgl-article__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    color: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text, 0.7));
+    padding-bottom: clamp(1.5rem, 3vw, 2rem);
+    margin-bottom: clamp(1.5rem, 3vw, 2rem);
+    border-bottom: 2px solid var(--sgl-periwinkle);
+  }
+  .sgl-article__meta .sgl-dot { opacity: 0.5; }
+
+  .sgl-article__content {
+    font-size: 1.075rem;
+    line-height: 1.75;
+  }
+  .sgl-article__content > rte-formatter > :first-child::first-letter,
+  .sgl-article__content > rte-formatter > p:first-of-type::first-letter {
+    float: left;
+    font-family: var(--font-primary--family);
+    font-weight: 800;
+    font-size: 4.2rem;
+    line-height: 0.82;
+    padding: 0.1em 0.12em 0 0;
+    color: var(--sgl-bloodred);
+  }
+  .sgl-article__content h2 {
+    font-family: var(--font-primary--family);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    margin-block: 2rem 0.75rem;
+  }
+  .sgl-article__content h3 {
+    font-family: var(--font-primary--family);
+    font-weight: 600;
+    margin-block: 1.5rem 0.5rem;
+  }
+  .sgl-article__content img { border-radius: 10px; }
+
+  .sgl-article__tags {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+    margin-top: clamp(2rem, 4vw, 3rem);
+  }
+  .sgl-tag {
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em;
+    background: var(--sgl-mindaro); color: var(--sgl-bloodred);
+    padding: 0.35rem 0.7rem; border-radius: 999px;
+  }
+
+  /* ── Sidebar ── */
+  .sgl-sidebar { min-width: 0; }
+  .sgl-sidebar__sticky {
+    position: sticky;
+    top: clamp(1rem, 5vh, 6rem);
     display: flex;
     flex-direction: column;
-    gap: var(--gap-3xl);
+    gap: 2rem;
   }
 
-  .blog-post-comment__author {
-    display: flex;
-    align-items: center;
-    gap: var(--gap-2xs);
-    margin-top: var(--margin-md);
-    font-size: var(--font-size--body-sm);
-    color: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text));
+  .sgl-widget__title {
+    font-family: var(--font-primary--family);
+    font-weight: 700;
+    font-size: 1.15rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 1rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 2px solid var(--sgl-bloodred);
   }
 
-  .blog-post-comments-pagination {
-    display: flex;
-    justify-content: center;
-    gap: var(--gap-2xs);
-  }
+  .sgl-recent { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1rem; }
+  .sgl-recent__link { display: flex; gap: 0.85rem; align-items: center; text-decoration: none; color: var(--color-foreground); }
+  .sgl-recent__thumb { flex: 0 0 64px; width: 64px; height: 64px; border-radius: 8px; overflow: hidden; background: var(--sgl-periwinkle); }
+  .sgl-recent__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sgl-recent__text { display: flex; flex-direction: column; gap: 0.2rem; }
+  .sgl-recent__heading { font-family: var(--font-primary--family); font-weight: 600; line-height: 1.2; font-size: 0.95rem; }
+  .sgl-recent__link:hover .sgl-recent__heading { color: var(--sgl-bloodred); }
+  .sgl-recent__date { font-size: 0.78rem; opacity: 0.65; }
 
-  .blog-post-comments-pagination,
-  .blog-post-comments-pagination a {
-    color: var(--color-foreground);
+  /* ── Shop Now ── */
+  .sgl-shop {
+    background: var(--sgl-cream);
+    border-radius: 12px;
+    padding: 1.25rem;
   }
-
-  .blog-post-comments-pagination .current {
-    color: var(--color-foreground);
+  .sgl-shop .sgl-widget__title { border-color: var(--sgl-periwinkle); }
+  .sgl-shop__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 1rem; }
+  .sgl-shop__card { text-decoration: none; color: var(--color-foreground); display: flex; flex-direction: column; gap: 0.3rem; }
+  .sgl-shop__media { aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: #fff; }
+  .sgl-shop__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sgl-shop__name { font-family: var(--font-primary--family); font-weight: 600; font-size: 0.82rem; line-height: 1.15; }
+  .sgl-shop__price { font-size: 0.8rem; opacity: 0.75; }
+  .sgl-shop__cta {
+    display: block; text-align: center; text-decoration: none;
+    font-family: var(--font-primary--family); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    background: var(--sgl-bloodred); color: #fff;
+    padding: 0.8rem; border-radius: 8px;
   }
+  .sgl-shop__cta:hover { background: #7a0d03; }
 
-  .blog-post-comments-pagination .current,
-  .blog-post-comments-pagination a {
-    display: block;
-    padding: var(--padding-2xs) var(--padding-xs);
-  }
+  /* ── Comments (kept from theme) ── */
+  .blog-post-comments-container { width: 100%; margin-top: clamp(2rem, 4vw, 3rem); }
+  .blog-post-comments { display: flex; flex-direction: column; gap: var(--gap-3xl); }
+  .blog-post-comment__author { display: flex; align-items: center; gap: var(--gap-2xs); margin-top: var(--margin-md); font-size: var(--font-size--body-sm); color: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text)); }
+  .blog-post-comments-pagination { display: flex; justify-content: center; gap: var(--gap-2xs); }
+  .blog-post-comments-pagination, .blog-post-comments-pagination a { color: var(--color-foreground); }
+  .blog-post-comments-pagination .current, .blog-post-comments-pagination a { display: block; padding: var(--padding-2xs) var(--padding-xs); }
+  .blog-post-comments-pagination .current, .blog-post-comments-pagination a:hover { border-bottom: 1px solid var(--color-foreground); }
 
-  .blog-post-comments-pagination .current,
-  .blog-post-comments-pagination a:hover {
-    border-bottom: 1px solid var(--color-foreground);
+  /* ── Responsive ── */
+  @media (max-width: 1099px) {
+    .sgl-editorial__inner { grid-template-columns: minmax(0, 1fr); }
+    .sgl-sidebar__sticky { position: static; }
+    .sgl-sidebar { margin-top: 2rem; }
   }
 {% endstylesheet %}
 
 {% schema %}
 {
   "name": "t:names.blog_post",
-  "blocks": [
-    {
-      "type": "@theme"
-    },
-    {
-      "type": "@app"
-    }
-  ],
+  "blocks": [{ "type": "@app" }],
   "class": "section-wrapper",
   "settings": [
     {
-      "type": "select",
-      "id": "content_direction",
-      "label": "t:settings.direction",
-      "options": [
-        {
-          "value": "column",
-          "label": "t:options.vertical"
-        }
-      ],
-      "default": "column",
-      "visible_if": "{{ section.settings.gap < 0 }}"
+      "type": "checkbox",
+      "id": "show_sidebar",
+      "label": "Show sidebar",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Recent stories"
+    },
+    {
+      "type": "text",
+      "id": "recent_heading",
+      "label": "Recent stories heading",
+      "default": "Recent Stories"
     },
     {
       "type": "range",
-      "id": "gap",
-      "label": "t:settings.gap",
-      "min": 0,
-      "max": 100,
+      "id": "recent_count",
+      "label": "Number of recent posts",
+      "min": 3,
+      "max": 8,
       "step": 1,
-      "unit": "px",
-      "default": 12
+      "default": 5
+    },
+    {
+      "type": "header",
+      "content": "Shop Now"
+    },
+    {
+      "type": "text",
+      "id": "shop_heading",
+      "label": "Shop heading",
+      "default": "Shop the Glow"
+    },
+    {
+      "type": "collection",
+      "id": "shop_collection",
+      "label": "Collection to feature"
+    },
+    {
+      "type": "header",
+      "content": "t:content.section"
     },
     {
       "type": "color_scheme",
@@ -155,28 +375,16 @@
       "default": "scheme-1"
     },
     {
-      "type": "header",
-      "content": "t:content.padding"
-    },
-    {
       "type": "range",
       "id": "padding-block-start",
       "label": "t:settings.top",
-      "min": 0,
-      "max": 100,
-      "step": 1,
-      "unit": "px",
-      "default": 0
+      "min": 0, "max": 100, "step": 1, "unit": "px", "default": 0
     },
     {
       "type": "range",
       "id": "padding-block-end",
       "label": "t:settings.bottom",
-      "min": 0,
-      "max": 100,
-      "step": 1,
-      "unit": "px",
-      "default": 0
+      "min": 0, "max": 100, "step": 1, "unit": "px", "default": 0
     }
   ],
   "presets": []
