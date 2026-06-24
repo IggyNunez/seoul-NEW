@@ -1,0 +1,158 @@
+{%- comment -%}
+  Ingredient detail page (renders a single "ingredient" metaobject).
+  Shows name, INCI, description, benefits, image, and "Found in these products".
+
+  "Found in" uses a back-reference list field `products` (list.product_reference)
+  on the ingredient metaobject, populated at import time. Liquid has no native
+  reverse-reference lookup, so we store the product links on the ingredient.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign ing = metaobject
+  assign nm = ing.name.value | default: ing.handle
+-%}
+
+<div class="section-background color-{{ s.color_scheme }}"></div>
+<div class="sgl-ingredient color-{{ s.color_scheme }}" style="{% render 'spacing-style', settings: s %}">
+  <div class="sgl-ingredient__inner">
+
+    <nav class="sgl-breadcrumb" aria-label="Breadcrumb">
+      <a href="{{ routes.root_url }}">Home</a>
+      <span class="sgl-breadcrumb__sep" aria-hidden="true">/</span>
+      <a href="/pages/ingredients">Ingredient Glossary</a>
+      <span class="sgl-breadcrumb__sep" aria-hidden="true">/</span>
+      <span class="sgl-breadcrumb__current" aria-current="page">{{ nm }}</span>
+    </nav>
+
+    <div class="sgl-ingredient__hero">
+      {%- if ing.image.value -%}
+        <figure class="sgl-ingredient__media">
+          {{ ing.image.value | image_url: width: 700 | image_tag: loading: 'eager', widths: '300,500,700', alt: nm }}
+        </figure>
+      {%- endif -%}
+      <div class="sgl-ingredient__head">
+        <h1 class="sgl-ingredient__name">{{ nm }}</h1>
+        {%- if ing.inci_name.value != blank -%}
+          <p class="sgl-ingredient__inci">INCI: {{ ing.inci_name.value }}</p>
+        {%- endif -%}
+        {%- if ing.benefits.value != blank -%}
+          <ul class="sgl-ingredient__benefits">
+            {%- for b in ing.benefits.value -%}
+              <li>{{ b }}</li>
+            {%- endfor -%}
+          </ul>
+        {%- endif -%}
+      </div>
+    </div>
+
+    {%- if ing.description.value != blank -%}
+      <div class="sgl-ingredient__desc rte">
+        <rte-formatter>{{ ing.description.value }}</rte-formatter>
+      </div>
+    {%- endif -%}
+
+    {%- assign found = ing.products.value -%}
+    {%- if found != blank and found.size > 0 -%}
+      <section class="sgl-ingredient__found">
+        <h2 class="sgl-ingredient__found-title">Found in these products</h2>
+        <div class="sgl-ingredient__products">
+          {%- for product in found -%}
+            <a href="{{ product.url }}" class="sgl-ing-prod">
+              <span class="sgl-ing-prod__media">
+                {%- if product.featured_image -%}
+                  {{ product.featured_image | image_url: width: 320 | image_tag: loading: 'lazy', widths: '160,320', alt: product.title }}
+                {%- endif -%}
+              </span>
+              <span class="sgl-ing-prod__name">{{ product.title }}</span>
+              <span class="sgl-ing-prod__price">{{ product.price | money }}</span>
+            </a>
+          {%- endfor -%}
+        </div>
+      </section>
+    {%- endif -%}
+
+    <div class="sgl-ingredient__back">
+      <a href="/pages/ingredients">&larr; Back to the glossary</a>
+    </div>
+
+  </div>
+</div>
+
+{% stylesheet %}
+  .sgl-ingredient {
+    --sgl-periwinkle: #B0C3FA;
+    --sgl-bloodred: #5E0A02;
+    --sgl-mindaro: #F2FFA0;
+    --sgl-cream: #F8EBDA;
+    width: 100%;
+  }
+  .sgl-ingredient__inner {
+    max-width: 900px; margin-inline: auto;
+    padding-inline: var(--page-margin, 2rem);
+    padding-block: clamp(2rem, 5vw, 4rem);
+  }
+
+  .sgl-breadcrumb {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem;
+    font-family: var(--font-primary--family);
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em;
+    margin: 0 0 1.5rem;
+  }
+  .sgl-breadcrumb a { color: var(--sgl-bloodred); text-decoration: none; }
+  .sgl-breadcrumb a:hover { text-decoration: underline; }
+  .sgl-breadcrumb__sep { opacity: 0.45; }
+  .sgl-breadcrumb__current { color: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text, 0.6)); }
+
+  .sgl-ingredient__hero { display: flex; gap: clamp(1.5rem, 4vw, 3rem); align-items: flex-start; margin-bottom: 2rem; }
+  .sgl-ingredient__media { flex: 0 0 40%; max-width: 320px; margin: 0; border-radius: 14px; overflow: hidden; background: var(--sgl-periwinkle); aspect-ratio: 1; }
+  .sgl-ingredient__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sgl-ingredient__head { flex: 1; min-width: 0; }
+  .sgl-ingredient__name {
+    font-family: var(--font-primary--family); font-weight: 800; line-height: 1.05;
+    font-size: clamp(2.2rem, 5vw, 3.4rem); margin: 0 0 0.5rem; color: var(--color-foreground);
+  }
+  .sgl-ingredient__inci {
+    font-family: var(--font-primary--family); text-transform: uppercase; letter-spacing: 0.06em;
+    font-size: 0.85rem; color: var(--sgl-bloodred); margin: 0 0 1rem;
+  }
+  .sgl-ingredient__benefits { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .sgl-ingredient__benefits li {
+    background: var(--sgl-mindaro); color: var(--sgl-bloodred);
+    font-size: 0.82rem; padding: 0.35rem 0.75rem; border-radius: 999px;
+  }
+
+  .sgl-ingredient__desc { font-size: 1.05rem; line-height: 1.75; margin-bottom: clamp(2rem, 4vw, 3rem); }
+
+  .sgl-ingredient__found-title {
+    font-family: var(--font-primary--family); font-weight: 700; font-size: 1.5rem;
+    margin: 0 0 1.25rem; padding-bottom: 0.6rem; border-bottom: 2px solid var(--sgl-periwinkle);
+  }
+  .sgl-ingredient__products { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1.25rem; }
+  .sgl-ing-prod { text-decoration: none; color: var(--color-foreground); display: flex; flex-direction: column; gap: 0.35rem; }
+  .sgl-ing-prod__media { aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--sgl-cream); }
+  .sgl-ing-prod__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sgl-ing-prod:hover .sgl-ing-prod__name { color: var(--sgl-bloodred); }
+  .sgl-ing-prod__name { font-family: var(--font-primary--family); font-weight: 600; font-size: 0.9rem; line-height: 1.15; }
+  .sgl-ing-prod__price { font-size: 0.85rem; opacity: 0.75; }
+
+  .sgl-ingredient__back { margin-top: clamp(2rem, 4vw, 3rem); }
+  .sgl-ingredient__back a { font-family: var(--font-primary--family); font-weight: 600; color: var(--sgl-bloodred); text-decoration: none; }
+
+  @media (max-width: 749px) {
+    .sgl-ingredient__hero { flex-direction: column; }
+    .sgl-ingredient__media { flex-basis: auto; width: 100%; max-width: none; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Ingredient detail",
+  "settings": [
+    { "type": "color_scheme", "id": "color_scheme", "label": "t:settings.color_scheme", "default": "scheme-1" },
+    { "type": "header", "content": "t:content.padding" },
+    { "type": "range", "id": "padding-block-start", "label": "t:settings.top", "min": 0, "max": 100, "step": 1, "unit": "px", "default": 24 },
+    { "type": "range", "id": "padding-block-end", "label": "t:settings.bottom", "min": 0, "max": 100, "step": 1, "unit": "px", "default": 48 }
+  ]
+}
+{% endschema %}

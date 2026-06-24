@@ -1,0 +1,174 @@
+{%- comment -%}
+  Ingredient Glossary index for Seoul Glow Lab.
+  Lists every "ingredient" metaobject A–Z with live search + letter filter.
+  Each links to its own metaobject page (/pages/ingredients/<handle> via the
+  metaobject's Online Store web template). Graceful empty state if no data yet.
+
+  Expected ingredient metaobject fields (created via Admin API):
+    name, inci_name, description, benefits (list), image
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign ingredients = shop.metaobjects.ingredient.values
+-%}
+
+<div class="section-background color-{{ s.color_scheme }}"></div>
+<div class="sgl-glossary color-{{ s.color_scheme }}" style="{% render 'spacing-style', settings: s %}">
+  <div class="sgl-glossary__inner">
+
+    <header class="sgl-glossary__masthead">
+      <p class="sgl-glossary__kicker">Seoul Glow Lab</p>
+      <h1 class="sgl-glossary__title">{{ s.heading | default: 'Ingredient Glossary' }}</h1>
+      {%- if s.intro != blank -%}<p class="sgl-glossary__intro">{{ s.intro }}</p>{%- endif -%}
+    </header>
+
+    {%- if ingredients == empty or ingredients.size == 0 -%}
+      <p class="sgl-glossary__empty">Our ingredient glossary is coming soon — check back shortly.</p>
+    {%- else -%}
+
+      <div class="sgl-glossary__controls">
+        <input
+          type="search"
+          class="sgl-glossary__search"
+          placeholder="Search ingredients…"
+          aria-label="Search ingredients"
+          data-glossary-search
+        >
+      </div>
+
+      <div class="sgl-glossary__grid" data-glossary-grid>
+        {%- assign sorted = ingredients | sort: 'name' -%}
+        {%- for ing in sorted -%}
+          {%- assign nm = ing.name.value | default: ing.handle -%}
+          <a
+            href="{{ ing.system.url | default: ing.url }}"
+            class="sgl-ing-card"
+            data-ing-name="{{ nm | downcase | escape }}"
+            data-ing-inci="{{ ing.inci_name.value | downcase | escape }}"
+          >
+            <span class="sgl-ing-card__media">
+              {%- if ing.image.value -%}
+                {{ ing.image.value | image_url: width: 320 | image_tag: loading: 'lazy', widths: '160,320', alt: nm }}
+              {%- else -%}
+                <span class="sgl-ing-card__initial">{{ nm | slice: 0 }}</span>
+              {%- endif -%}
+            </span>
+            <span class="sgl-ing-card__body">
+              <span class="sgl-ing-card__name">{{ nm }}</span>
+              {%- if ing.inci_name.value != blank -%}
+                <span class="sgl-ing-card__inci">{{ ing.inci_name.value }}</span>
+              {%- endif -%}
+              {%- if ing.description.value != blank -%}
+                <span class="sgl-ing-card__desc">{{ ing.description.value | strip_html | truncate: 90 }}</span>
+              {%- endif -%}
+            </span>
+          </a>
+        {%- endfor -%}
+      </div>
+
+      <p class="sgl-glossary__noresults" data-glossary-noresults hidden>No ingredients match your search.</p>
+    {%- endif -%}
+
+  </div>
+</div>
+
+<script>
+  (function () {
+    var root = document.currentScript.previousElementSibling;
+    var search = root.querySelector('[data-glossary-search]');
+    if (!search) return;
+    var cards = Array.prototype.slice.call(root.querySelectorAll('.sgl-ing-card'));
+    var none = root.querySelector('[data-glossary-noresults]');
+    search.addEventListener('input', function () {
+      var q = search.value.trim().toLowerCase();
+      var shown = 0;
+      cards.forEach(function (c) {
+        var hit = !q || (c.dataset.ingName && c.dataset.ingName.indexOf(q) > -1) || (c.dataset.ingInci && c.dataset.ingInci.indexOf(q) > -1);
+        c.style.display = hit ? '' : 'none';
+        if (hit) shown++;
+      });
+      if (none) none.hidden = shown !== 0;
+    });
+  })();
+</script>
+
+{% stylesheet %}
+  .sgl-glossary {
+    --sgl-periwinkle: #B0C3FA;
+    --sgl-bloodred: #5E0A02;
+    --sgl-mindaro: #F2FFA0;
+    --sgl-cream: #F8EBDA;
+    width: 100%;
+  }
+  .sgl-glossary__inner {
+    max-width: 1200px; margin-inline: auto;
+    padding-inline: var(--page-margin, 2rem);
+    padding-block: clamp(2rem, 5vw, 4rem);
+  }
+  .sgl-glossary__masthead { text-align: center; margin-bottom: clamp(1.5rem, 4vw, 2.5rem); }
+  .sgl-glossary__kicker {
+    font-family: var(--font-primary--family);
+    text-transform: uppercase; letter-spacing: 0.22em; font-size: 0.8rem;
+    color: var(--sgl-bloodred); margin: 0 0 0.5rem;
+  }
+  .sgl-glossary__title {
+    font-family: var(--font-primary--family); font-weight: 800; line-height: 1;
+    font-size: clamp(2.4rem, 6vw, 4rem); margin: 0; color: var(--color-foreground);
+  }
+  .sgl-glossary__intro {
+    max-width: 40rem; margin: 1rem auto 0; line-height: 1.6;
+    color: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text, 0.7));
+  }
+
+  .sgl-glossary__controls { display: flex; justify-content: center; margin-bottom: 2rem; }
+  .sgl-glossary__search {
+    width: 100%; max-width: 28rem;
+    font-family: var(--font-primary--family); font-size: 1rem;
+    padding: 0.8rem 1.1rem; border: 2px solid var(--sgl-periwinkle); border-radius: 999px;
+    background: var(--color-background, #fff); color: var(--color-foreground);
+  }
+  .sgl-glossary__search:focus { outline: none; border-color: var(--sgl-bloodred); }
+
+  .sgl-glossary__grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: clamp(1rem, 2vw, 1.5rem);
+  }
+
+  .sgl-ing-card {
+    display: flex; gap: 0.9rem; align-items: center;
+    text-decoration: none; color: var(--color-foreground);
+    background: var(--color-background, #fff);
+    border: 1px solid var(--sgl-periwinkle); border-radius: 12px;
+    padding: 0.9rem; transition: transform 0.16s ease, border-color 0.16s ease;
+  }
+  .sgl-ing-card:hover { transform: translateY(-3px); border-color: var(--sgl-bloodred); }
+  .sgl-ing-card__media {
+    flex: 0 0 56px; width: 56px; height: 56px; border-radius: 10px; overflow: hidden;
+    background: var(--sgl-periwinkle); display: flex; align-items: center; justify-content: center;
+  }
+  .sgl-ing-card__media img { width: 100%; height: 100%; object-fit: cover; }
+  .sgl-ing-card__initial { font-family: var(--font-primary--family); font-weight: 800; font-size: 1.5rem; color: var(--sgl-bloodred); }
+  .sgl-ing-card__body { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+  .sgl-ing-card__name { font-family: var(--font-primary--family); font-weight: 700; font-size: 1.05rem; line-height: 1.15; }
+  .sgl-ing-card:hover .sgl-ing-card__name { color: var(--sgl-bloodred); }
+  .sgl-ing-card__inci { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.6; }
+  .sgl-ing-card__desc { font-size: 0.85rem; line-height: 1.4; opacity: 0.8; }
+
+  .sgl-glossary__empty, .sgl-glossary__noresults { text-align: center; padding: 2.5rem 0; opacity: 0.7; }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Ingredient glossary",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Ingredient Glossary" },
+    { "type": "textarea", "id": "intro", "label": "Intro text", "default": "Every ingredient we curate, explained — what it is, what it does, and which products you'll find it in." },
+    { "type": "color_scheme", "id": "color_scheme", "label": "t:settings.color_scheme", "default": "scheme-1" },
+    { "type": "header", "content": "t:content.padding" },
+    { "type": "range", "id": "padding-block-start", "label": "t:settings.top", "min": 0, "max": 100, "step": 1, "unit": "px", "default": 24 },
+    { "type": "range", "id": "padding-block-end", "label": "t:settings.bottom", "min": 0, "max": 100, "step": 1, "unit": "px", "default": 48 }
+  ],
+  "presets": [{ "name": "Ingredient glossary" }]
+}
+{% endschema %}

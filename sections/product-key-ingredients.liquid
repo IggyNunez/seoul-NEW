@@ -1,0 +1,89 @@
+{%- comment -%}
+  "Key Ingredients" section for the product page.
+  Reads product.metafields.custom.key_ingredients (list of references to the
+  "ingredient" metaobject) and renders each as a card linking to its glossary
+  entry. Renders nothing if the product has no ingredients tagged.
+
+  Add to the product template via the theme editor, or to templates/product.json.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign list = product.metafields.custom.key_ingredients.value
+-%}
+
+{%- if list != blank and list.size > 0 -%}
+  <div class="section-background color-{{ s.color_scheme }}"></div>
+  <div class="sgl-pki color-{{ s.color_scheme }}" style="{% render 'spacing-style', settings: s %}">
+    <div class="sgl-pki__inner">
+      <h2 class="sgl-pki__title">{{ s.heading | default: 'Key Ingredients' }}</h2>
+      <div class="sgl-pki__grid">
+        {%- for ing in list -%}
+          {%- assign nm = ing.name.value | default: ing.handle -%}
+          <a href="{{ ing.system.url | default: ing.url }}" class="sgl-pki-card">
+            <span class="sgl-pki-card__media">
+              {%- if ing.image.value -%}
+                {{ ing.image.value | image_url: width: 240 | image_tag: loading: 'lazy', widths: '120,240', alt: nm }}
+              {%- else -%}
+                <span class="sgl-pki-card__initial">{{ nm | slice: 0 }}</span>
+              {%- endif -%}
+            </span>
+            <span class="sgl-pki-card__text">
+              <span class="sgl-pki-card__name">{{ nm }}</span>
+              {%- if ing.description.value != blank -%}
+                <span class="sgl-pki-card__desc">{{ ing.description.value | strip_html | truncate: 70 }}</span>
+              {%- endif -%}
+            </span>
+          </a>
+        {%- endfor -%}
+      </div>
+      <a href="/pages/ingredients" class="sgl-pki__all">Explore the full glossary &rarr;</a>
+    </div>
+  </div>
+{%- endif -%}
+
+{% stylesheet %}
+  .sgl-pki {
+    --sgl-periwinkle: #B0C3FA;
+    --sgl-bloodred: #5E0A02;
+    --sgl-cream: #F8EBDA;
+    width: 100%;
+  }
+  .sgl-pki__inner { max-width: var(--page-width, 1200px); margin-inline: auto; padding-inline: var(--page-margin, 2rem); }
+  .sgl-pki__title {
+    font-family: var(--font-primary--family); font-weight: 700; font-size: clamp(1.5rem, 3vw, 2rem);
+    margin: 0 0 1.25rem; padding-bottom: 0.6rem; border-bottom: 2px solid var(--sgl-periwinkle);
+  }
+  .sgl-pki__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+  .sgl-pki-card {
+    display: flex; gap: 0.8rem; align-items: center; text-decoration: none; color: var(--color-foreground);
+    background: var(--color-background, #fff); border: 1px solid var(--sgl-periwinkle); border-radius: 12px;
+    padding: 0.8rem; transition: transform 0.16s ease, border-color 0.16s ease;
+  }
+  .sgl-pki-card:hover { transform: translateY(-3px); border-color: var(--sgl-bloodred); }
+  .sgl-pki-card__media {
+    flex: 0 0 48px; width: 48px; height: 48px; border-radius: 9px; overflow: hidden;
+    background: var(--sgl-periwinkle); display: flex; align-items: center; justify-content: center;
+  }
+  .sgl-pki-card__media img { width: 100%; height: 100%; object-fit: cover; }
+  .sgl-pki-card__initial { font-family: var(--font-primary--family); font-weight: 800; color: var(--sgl-bloodred); }
+  .sgl-pki-card__text { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+  .sgl-pki-card__name { font-family: var(--font-primary--family); font-weight: 700; font-size: 0.98rem; }
+  .sgl-pki-card:hover .sgl-pki-card__name { color: var(--sgl-bloodred); }
+  .sgl-pki-card__desc { font-size: 0.82rem; opacity: 0.8; line-height: 1.35; }
+  .sgl-pki__all { font-family: var(--font-primary--family); font-weight: 600; color: var(--sgl-bloodred); text-decoration: none; }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Key ingredients",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Key Ingredients" },
+    { "type": "color_scheme", "id": "color_scheme", "label": "t:settings.color_scheme", "default": "scheme-1" },
+    { "type": "header", "content": "t:content.padding" },
+    { "type": "range", "id": "padding-block-start", "label": "t:settings.top", "min": 0, "max": 100, "step": 1, "unit": "px", "default": 24 },
+    { "type": "range", "id": "padding-block-end", "label": "t:settings.bottom", "min": 0, "max": 100, "step": 1, "unit": "px", "default": 24 }
+  ],
+  "presets": [{ "name": "Key ingredients" }]
+}
+{% endschema %}
