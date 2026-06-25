@@ -27,47 +27,78 @@
       <p class="sgl-glossary__empty">Our ingredient glossary is coming soon — check back shortly.</p>
     {%- else -%}
 
-      <div class="sgl-glossary__controls">
-        <input
-          type="search"
-          class="sgl-glossary__search"
-          placeholder="Search ingredients…"
-          aria-label="Search ingredients"
-          data-glossary-search
-        >
-      </div>
+      {%- assign sorted = ingredients | sort: 'name' -%}
 
-      <div class="sgl-glossary__grid" data-glossary-grid>
-        {%- assign sorted = ingredients | sort: 'name' -%}
-        {%- for ing in sorted -%}
-          {%- assign nm = ing.name.value | default: ing.handle -%}
-          <a
-            href="{{ ing.system.url | default: ing.url }}"
-            class="sgl-ing-card"
-            data-ing-name="{{ nm | downcase | escape }}"
-            data-ing-inci="{{ ing.inci_name.value | downcase | escape }}"
-          >
-            <span class="sgl-ing-card__media">
-              {%- if ing.image.value -%}
-                {{ ing.image.value | image_url: width: 320 | image_tag: loading: 'lazy', widths: '160,320', alt: nm }}
-              {%- else -%}
-                <span class="sgl-ing-card__initial">{{ nm | slice: 0 }}</span>
-              {%- endif -%}
-            </span>
-            <span class="sgl-ing-card__body">
-              <span class="sgl-ing-card__name">{{ nm }}</span>
-              {%- if ing.inci_name.value != blank -%}
-                <span class="sgl-ing-card__inci">{{ ing.inci_name.value }}</span>
-              {%- endif -%}
-              {%- if ing.description.value != blank -%}
-                <span class="sgl-ing-card__desc">{{ ing.description.value | strip_html | truncate: 90 }}</span>
-              {%- endif -%}
-            </span>
-          </a>
-        {%- endfor -%}
-      </div>
+      <div class="sgl-glossary__layout">
 
-      <p class="sgl-glossary__noresults" data-glossary-noresults hidden>No ingredients match your search.</p>
+        {%- comment -%} ── A–Z navigation sidebar ── {%- endcomment -%}
+        <aside class="sgl-glossary__nav" data-glossary-nav>
+          <div class="sgl-glossary__controls">
+            <input
+              type="search"
+              class="sgl-glossary__search"
+              placeholder="Search ingredients…"
+              aria-label="Search ingredients"
+              data-glossary-search
+            >
+          </div>
+          {%- assign alphabet = 'A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z' | split: ',' -%}
+          {%- for letter in alphabet -%}
+            {%- assign has_any = false -%}
+            {%- capture items -%}
+              {%- for ing in sorted -%}
+                {%- assign nm = ing.name.value | default: ing.handle -%}
+                {%- assign first = nm | slice: 0 | upcase -%}
+                {%- if first == letter -%}
+                  {%- assign has_any = true -%}
+                  <li><a href="#ing-{{ ing.handle }}" data-az-name="{{ nm | downcase | escape }}">{{ nm }}</a></li>
+                {%- endif -%}
+              {%- endfor -%}
+            {%- endcapture -%}
+            {%- if has_any -%}
+              <details class="sgl-az" open data-az-group="{{ letter }}">
+                <summary>{{ letter }}</summary>
+                <ul>{{ items }}</ul>
+              </details>
+            {%- endif -%}
+          {%- endfor -%}
+        </aside>
+
+        {%- comment -%} ── Ingredient cards ── {%- endcomment -%}
+        <div class="sgl-glossary__main">
+          <div class="sgl-glossary__grid" data-glossary-grid>
+            {%- for ing in sorted -%}
+              {%- assign nm = ing.name.value | default: ing.handle -%}
+              <a
+                href="{{ ing.system.url | default: ing.url }}"
+                id="ing-{{ ing.handle }}"
+                class="sgl-ing-card"
+                data-ing-name="{{ nm | downcase | escape }}"
+                data-ing-inci="{{ ing.inci_name.value | downcase | escape }}"
+              >
+                <span class="sgl-ing-card__media">
+                  {%- if ing.image.value -%}
+                    {{ ing.image.value | image_url: width: 320 | image_tag: loading: 'lazy', widths: '160,320', alt: nm }}
+                  {%- else -%}
+                    <span class="sgl-ing-card__initial">{{ nm | slice: 0 }}</span>
+                  {%- endif -%}
+                </span>
+                <span class="sgl-ing-card__body">
+                  <span class="sgl-ing-card__name">{{ nm }}</span>
+                  {%- if ing.inci_name.value != blank -%}
+                    <span class="sgl-ing-card__inci">{{ ing.inci_name.value }}</span>
+                  {%- endif -%}
+                  {%- if ing.description.value != blank -%}
+                    <span class="sgl-ing-card__desc">{{ ing.description.value | strip_html | truncate: 90 }}</span>
+                  {%- endif -%}
+                </span>
+              </a>
+            {%- endfor -%}
+          </div>
+          <p class="sgl-glossary__noresults" data-glossary-noresults hidden>No ingredients match your search.</p>
+        </div>
+
+      </div>
     {%- endif -%}
 
   </div>
@@ -79,7 +110,10 @@
     var search = root.querySelector('[data-glossary-search]');
     if (!search) return;
     var cards = Array.prototype.slice.call(root.querySelectorAll('.sgl-ing-card'));
+    var navLinks = Array.prototype.slice.call(root.querySelectorAll('[data-az-name]'));
+    var groups = Array.prototype.slice.call(root.querySelectorAll('[data-az-group]'));
     var none = root.querySelector('[data-glossary-noresults]');
+
     search.addEventListener('input', function () {
       var q = search.value.trim().toLowerCase();
       var shown = 0;
@@ -88,7 +122,24 @@
         c.style.display = hit ? '' : 'none';
         if (hit) shown++;
       });
+      // filter sidebar links + hide empty letter groups
+      navLinks.forEach(function (a) {
+        var hit = !q || (a.dataset.azName && a.dataset.azName.indexOf(q) > -1);
+        a.parentElement.style.display = hit ? '' : 'none';
+      });
+      groups.forEach(function (g) {
+        var any = g.querySelectorAll('li:not([style*="none"])').length;
+        g.style.display = any ? '' : 'none';
+      });
       if (none) none.hidden = shown !== 0;
+    });
+
+    // smooth-scroll + flash highlight when clicking a sidebar link
+    navLinks.forEach(function (a) {
+      a.addEventListener('click', function () {
+        var card = root.querySelector(a.getAttribute('href'));
+        if (card) { card.style.transition = 'background 0.6s'; card.style.background = 'var(--sgl-cream)'; setTimeout(function(){ card.style.background=''; }, 900); }
+      });
     });
   })();
 </script>
@@ -121,18 +172,53 @@
     color: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text, 0.7));
   }
 
-  .sgl-glossary__controls { display: flex; justify-content: center; margin-bottom: 2rem; }
+  /* Two-column layout: A–Z nav sidebar + cards */
+  .sgl-glossary__layout {
+    display: grid; grid-template-columns: 250px minmax(0, 1fr);
+    gap: clamp(1.5rem, 3vw, 2.5rem); align-items: start;
+  }
+
+  .sgl-glossary__nav {
+    position: sticky; top: calc(var(--header-height, 64px) + 1.5rem);
+    max-height: calc(100vh - var(--header-height, 64px) - 3rem);
+    overflow-y: auto; overflow-x: hidden; scrollbar-width: thin;
+  }
+  .sgl-glossary__controls { margin-bottom: 1.25rem; }
   .sgl-glossary__search {
-    width: 100%; max-width: 28rem;
-    font-family: var(--font-primary--family); font-size: 1rem;
-    padding: 0.8rem 1.1rem; border: 2px solid var(--sgl-periwinkle); border-radius: 999px;
+    width: 100%;
+    font-family: var(--font-primary--family); font-size: 0.95rem;
+    padding: 0.7rem 1rem; border: 2px solid var(--sgl-periwinkle); border-radius: 999px;
     background: var(--color-background, #fff); color: var(--color-foreground);
   }
   .sgl-glossary__search:focus { outline: none; border-color: var(--sgl-bloodred); }
 
+  .sgl-az { border-bottom: 1px solid rgb(var(--color-foreground-rgb) / 0.08); }
+  .sgl-az > summary {
+    font-family: var(--font-primary--family); font-weight: 800; font-size: 1.05rem;
+    color: var(--sgl-bloodred); cursor: pointer; list-style: none;
+    padding: 0.55rem 0.25rem; display: flex; align-items: center; justify-content: space-between;
+  }
+  .sgl-az > summary::-webkit-details-marker { display: none; }
+  .sgl-az > summary::after { content: '+'; opacity: 0.5; font-weight: 400; }
+  .sgl-az[open] > summary::after { content: '–'; }
+  .sgl-az ul { list-style: none; margin: 0 0 0.5rem; padding: 0; }
+  .sgl-az li a {
+    display: block; text-decoration: none; color: var(--color-foreground);
+    font-size: 0.9rem; padding: 0.3rem 0.25rem 0.3rem 0.75rem; line-height: 1.25;
+  }
+  .sgl-az li a:hover { color: var(--sgl-bloodred); }
+
   .sgl-glossary__grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: clamp(1rem, 2vw, 1.5rem);
+  }
+  .sgl-ing-card { scroll-margin-top: calc(var(--header-height, 64px) + 1.5rem); }
+
+  @media (max-width: 899px) {
+    .sgl-glossary__layout { grid-template-columns: minmax(0, 1fr); }
+    .sgl-glossary__nav { position: static; max-height: none; margin-bottom: 1.5rem; }
+    .sgl-glossary__nav .sgl-az { display: none; }
+    .sgl-glossary__nav .sgl-glossary__controls { margin-bottom: 0; }
   }
 
   .sgl-ing-card {
