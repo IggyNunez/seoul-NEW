@@ -14,7 +14,7 @@
 -%}
 
 <div class="section-background color-{{ s.color_scheme }}"></div>
-<div class="sgl-glossary color-{{ s.color_scheme }}" style="{% render 'spacing-style', settings: s %}">
+<div id="sgl-glossary-{{ section.id }}" class="sgl-glossary color-{{ s.color_scheme }}" style="{% render 'spacing-style', settings: s %}">
   <div class="sgl-glossary__inner">
 
     <header class="sgl-glossary__masthead">
@@ -53,7 +53,7 @@
                 {%- assign first = nm | slice: 0 | upcase -%}
                 {%- if first == letter -%}
                   {%- assign has_any = true -%}
-                  <li><a href="#ing-{{ ing.handle }}" data-az-name="{{ nm | downcase | escape }}">{{ nm }}</a></li>
+                  <li><a href="#ing-{{ ing.handle }}" data-az-target="ing-{{ ing.handle }}" data-az-name="{{ nm | downcase | escape }}">{{ nm }}</a></li>
                 {%- endif -%}
               {%- endfor -%}
             {%- endcapture -%}
@@ -109,40 +109,42 @@
 
 <script>
   (function () {
-    var root = document.currentScript.previousElementSibling;
+    // Scope to THIS section by its unique id — robust in the theme editor
+    // (don't rely on currentScript.previousElementSibling, which the editor moves).
+    var root = document.getElementById('sgl-glossary-{{ section.id }}');
+    if (!root) return;
     var search = root.querySelector('[data-glossary-search]');
-    if (!search) return;
-    var cards = Array.prototype.slice.call(root.querySelectorAll('.sgl-ing-card'));
-    var navLinks = Array.prototype.slice.call(root.querySelectorAll('[data-az-name]'));
-    var groups = Array.prototype.slice.call(root.querySelectorAll('[data-az-group]'));
     var none = root.querySelector('[data-glossary-noresults]');
 
-    search.addEventListener('input', function () {
-      var q = search.value.trim().toLowerCase();
-      var shown = 0;
-      cards.forEach(function (c) {
-        var hit = !q || (c.dataset.ingName && c.dataset.ingName.indexOf(q) > -1) || (c.dataset.ingInci && c.dataset.ingInci.indexOf(q) > -1);
-        c.style.display = hit ? '' : 'none';
-        if (hit) shown++;
+    if (search) {
+      search.addEventListener('input', function () {
+        var q = search.value.trim().toLowerCase();
+        var shown = 0;
+        root.querySelectorAll('.sgl-ing-card').forEach(function (c) {
+          var hit = !q || (c.dataset.ingName && c.dataset.ingName.indexOf(q) > -1) || (c.dataset.ingInci && c.dataset.ingInci.indexOf(q) > -1);
+          c.style.display = hit ? '' : 'none';
+          if (hit) shown++;
+        });
+        root.querySelectorAll('[data-az-name]').forEach(function (a) {
+          var hit = !q || (a.dataset.azName && a.dataset.azName.indexOf(q) > -1);
+          a.parentElement.style.display = hit ? '' : 'none';
+        });
+        root.querySelectorAll('[data-az-group]').forEach(function (g) {
+          var any = g.querySelectorAll('li:not([style*="none"])').length;
+          g.style.display = any ? '' : 'none';
+        });
+        if (none) none.hidden = shown !== 0;
       });
-      // filter sidebar links + hide empty letter groups
-      navLinks.forEach(function (a) {
-        var hit = !q || (a.dataset.azName && a.dataset.azName.indexOf(q) > -1);
-        a.parentElement.style.display = hit ? '' : 'none';
-      });
-      groups.forEach(function (g) {
-        var any = g.querySelectorAll('li:not([style*="none"])').length;
-        g.style.display = any ? '' : 'none';
-      });
-      if (none) none.hidden = shown !== 0;
-    });
+    }
 
-    // smooth-scroll to the card (offset for sticky header) + flash highlight
-    navLinks.forEach(function (a) {
-      a.addEventListener('click', function (e) {
+    // Event delegation: one listener on the nav, resolve the card by data-target.
+    var nav = root.querySelector('[data-glossary-nav]');
+    if (nav) {
+      nav.addEventListener('click', function (e) {
+        var a = e.target.closest('[data-az-target]');
+        if (!a) return;
         e.preventDefault();
-        var id = a.getAttribute('href').slice(1);
-        var card = document.getElementById(id);
+        var card = root.querySelector('#' + CSS.escape(a.getAttribute('data-az-target')));
         if (!card) return;
         var headerH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || 64;
         var top = card.getBoundingClientRect().top + window.pageYOffset - headerH - 24;
@@ -151,7 +153,7 @@
         card.style.background = 'var(--sgl-cream)';
         setTimeout(function () { card.style.background = ''; }, 1000);
       });
-    });
+    }
   })();
 </script>
 
