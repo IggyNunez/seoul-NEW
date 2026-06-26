@@ -136,6 +136,29 @@
     var search = root.querySelector('[data-glossary-search]');
     var none = root.querySelector('[data-glossary-noresults]');
 
+    // Measure the REAL sticky-header height so the sticky sidebar (and its search
+    // box) clears it — works whether or not the announcement bar is present.
+    function setStickyTop() {
+      var h = 0;
+      var candidates = document.querySelectorAll('.header-section, [data-sticky-state], #header-group, .shopify-section-group-header-group');
+      candidates.forEach(function (el) {
+        var cs = getComputedStyle(el);
+        if (cs.position === 'sticky' || cs.position === 'fixed') {
+          var r = el.getBoundingClientRect();
+          if (r.height && r.height < window.innerHeight * 0.5) h = Math.max(h, r.bottom > 0 ? r.height : 0);
+        }
+      });
+      // sum stacked sticky pieces if header-group itself isn't the sticky element
+      if (!h) {
+        var hg = document.getElementById('header-group') || document.querySelector('.shopify-section-group-header-group');
+        if (hg) h = hg.getBoundingClientRect().height;
+      }
+      root.style.setProperty('--sgl-sticky-top', (h > 0 ? h + 16 : 112) + 'px');
+    }
+    setStickyTop();
+    window.addEventListener('resize', setStickyTop);
+    window.addEventListener('load', setStickyTop);
+
     if (search) {
       search.addEventListener('input', function () {
         var q = search.value.trim().toLowerCase();
@@ -166,8 +189,8 @@
         e.preventDefault();
         var card = root.querySelector('#' + CSS.escape(a.getAttribute('data-az-target')));
         if (!card) return;
-        var headerH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || 64;
-        var top = card.getBoundingClientRect().top + window.pageYOffset - headerH - 24;
+        var headerH = parseInt(getComputedStyle(root).getPropertyValue('--sgl-sticky-top')) || 112;
+        var top = card.getBoundingClientRect().top + window.pageYOffset - headerH - 16;
         window.scrollTo({ top: top, behavior: 'smooth' });
         card.style.transition = 'background 0.6s';
         card.style.background = 'var(--sgl-cream)';
@@ -212,9 +235,10 @@
   }
 
   .sgl-glossary__nav {
-    position: sticky; top: calc(var(--header-height, 64px) + 1.5rem);
-    max-height: calc(100vh - var(--header-height, 64px) - 3rem);
+    position: sticky; top: var(--sgl-sticky-top, 112px);
+    max-height: calc(100vh - var(--sgl-sticky-top, 112px) - 1.5rem);
     overflow-y: auto; overflow-x: hidden; scrollbar-width: thin;
+    padding-top: 0.5rem;
   }
   .sgl-glossary__controls { margin-bottom: 1.25rem; }
   .sgl-glossary__search {
@@ -245,7 +269,7 @@
     display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: clamp(1rem, 2vw, 1.5rem);
   }
-  .sgl-ing-card { scroll-margin-top: calc(var(--header-height, 64px) + 1.5rem); }
+  .sgl-ing-card { scroll-margin-top: calc(var(--sgl-sticky-top, 112px) + 0.5rem); }
 
   @media (max-width: 899px) {
     .sgl-glossary__layout { grid-template-columns: minmax(0, 1fr); }
