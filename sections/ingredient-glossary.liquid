@@ -45,6 +45,26 @@
             >
           </div>
           {%- assign alphabet = 'A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z' | split: ',' -%}
+
+          {%- comment -%} "#" group: names starting with a number/symbol (not A–Z) {%- endcomment -%}
+          {%- assign has_hash = false -%}
+          {%- capture hash_items -%}
+            {%- for ing in sorted -%}
+              {%- assign nm = ing.name.value | default: ing.handle -%}
+              {%- assign first = nm | slice: 0 | upcase -%}
+              {%- unless alphabet contains first -%}
+                {%- assign has_hash = true -%}
+                <li><a href="#ing-{{ ing.handle }}" data-az-target="ing-{{ ing.handle }}" data-az-name="{{ nm | downcase | escape }}">{{ nm }}</a></li>
+              {%- endunless -%}
+            {%- endfor -%}
+          {%- endcapture -%}
+          {%- if has_hash -%}
+            <details class="sgl-az" open data-az-group="#">
+              <summary>#</summary>
+              <ul>{{ hash_items }}</ul>
+            </details>
+          {%- endif -%}
+
           {%- for letter in alphabet -%}
             {%- assign has_any = false -%}
             {%- capture items -%}
