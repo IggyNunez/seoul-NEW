@@ -10,7 +10,7 @@
 
 {%- liquid
   assign s = section.settings
-  assign ingredients = shop.metaobjects.ingredient.values
+  assign ingredients_count = shop.metaobjects.ingredient.values_count
 -%}
 
 <div class="section-background color-{{ s.color_scheme }}"></div>
@@ -23,11 +23,13 @@
       {%- if s.intro != blank -%}<p class="sgl-glossary__intro">{{ s.intro }}</p>{%- endif -%}
     </header>
 
-    {%- if ingredients == empty or ingredients.size == 0 -%}
+    {%- if ingredients_count == 0 -%}
       <p class="sgl-glossary__empty">Our ingredient glossary is coming soon — check back shortly.</p>
     {%- else -%}
 
-      {%- assign sorted = ingredients | sort: 'name' -%}
+      {%- comment -%} paginate by 250 to lift the 50-entry values loop cap (we have ~174) {%- endcomment -%}
+      {%- paginate shop.metaobjects.ingredient.values by 250 -%}
+      {%- assign sorted = shop.metaobjects.ingredient.values | sort: 'name' -%}
 
       <div class="sgl-glossary__layout">
 
@@ -99,6 +101,7 @@
         </div>
 
       </div>
+      {%- endpaginate -%}
     {%- endif -%}
 
   </div>
@@ -134,11 +137,19 @@
       if (none) none.hidden = shown !== 0;
     });
 
-    // smooth-scroll + flash highlight when clicking a sidebar link
+    // smooth-scroll to the card (offset for sticky header) + flash highlight
     navLinks.forEach(function (a) {
-      a.addEventListener('click', function () {
-        var card = root.querySelector(a.getAttribute('href'));
-        if (card) { card.style.transition = 'background 0.6s'; card.style.background = 'var(--sgl-cream)'; setTimeout(function(){ card.style.background=''; }, 900); }
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        var id = a.getAttribute('href').slice(1);
+        var card = document.getElementById(id);
+        if (!card) return;
+        var headerH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || 64;
+        var top = card.getBoundingClientRect().top + window.pageYOffset - headerH - 24;
+        window.scrollTo({ top: top, behavior: 'smooth' });
+        card.style.transition = 'background 0.6s';
+        card.style.background = 'var(--sgl-cream)';
+        setTimeout(function () { card.style.background = ''; }, 1000);
       });
     });
   })();
