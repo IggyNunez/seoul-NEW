@@ -213,11 +213,18 @@
     margin-inline: auto;
     background: var(--sgl-ec-card-bg);
     border-radius: 20px;
-    overflow: hidden;
+    /* no overflow:hidden — it would break position:sticky on the body */
     display: grid;
     grid-template-columns: 1fr;
     gap: 0;
+    align-items: start;
     box-shadow: 0 6px 28px rgb(0 0 0 / 0.06);
+  }
+  /* round the outer corners now that overflow:hidden is gone */
+  .sgl-event-card__media { border-radius: 20px 20px 0 0; }
+  @media screen and (min-width: 768px) {
+    .sgl-event-card--side .sgl-event-card__media { border-radius: 20px 0 0 20px; }
+    .sgl-event-card--side-reverse .sgl-event-card__media { border-radius: 0 20px 20px 0; }
   }
 
   @media screen and (min-width: 768px) {
@@ -304,7 +311,15 @@
     display: flex;
     flex-direction: column;
     gap: 18px;
-    justify-content: center;
+    justify-content: flex-start;
+  }
+  /* Desktop: keep the details column in view while the flyers scroll */
+  @media screen and (min-width: 768px) {
+    .sgl-event-card__body {
+      position: sticky;
+      top: var(--sgl-sticky-top, 96px);
+      align-self: start;
+    }
   }
 
   .sgl-event-card__eyebrow {
