@@ -57,7 +57,7 @@
 >
   <div class="sgl-event-card__inner">
     {%- if image_1 != blank or image_2 != blank or asset_image_1 != blank or asset_image_2 != blank or url_image_1 != blank or url_image_2 != blank -%}
-      <div class="sgl-event-card__media">
+      <div class="sgl-event-card__media{% if section.settings.media_fit == 'stacked-contain' %} sgl-event-card__media--stacked-contain{% endif %}">
         {%- if image_1 != blank -%}
           <div class="sgl-event-card__media-item">
             {{ image_1 | image_url: width: 1200 | image_tag:
@@ -253,6 +253,27 @@
     object-fit: cover;
     display: block;
   }
+
+  /* Stacked, full-image (no cropping) — opt-in via media_fit: 'stacked-contain' */
+  .sgl-event-card__media--stacked-contain {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    background: transparent;
+  }
+  .sgl-event-card__media--stacked-contain.sgl-event-card__media:has(.sgl-event-card__media-item:nth-child(2)) {
+    grid-template-columns: 1fr; /* override the 2-col rule so images stack */
+  }
+  .sgl-event-card__media--stacked-contain .sgl-event-card__media-item {
+    aspect-ratio: auto;        /* let each image keep its own shape */
+    border-radius: 12px;
+    background: transparent;
+  }
+  .sgl-event-card__media--stacked-contain .sgl-event-card__media-item img {
+    width: 100%;
+    height: auto;              /* full image, no crop */
+    object-fit: contain;
+    border-radius: 12px;
+  }
   @media screen and (min-width: 768px) {
     .sgl-event-card--side .sgl-event-card__media,
     .sgl-event-card--side-reverse .sgl-event-card__media {
@@ -263,6 +284,17 @@
       aspect-ratio: auto;
       height: 100%;
       min-height: 480px;
+    }
+    /* stacked-contain keeps natural image height even in side layouts */
+    .sgl-event-card--side .sgl-event-card__media--stacked-contain,
+    .sgl-event-card--side-reverse .sgl-event-card__media--stacked-contain {
+      height: auto;
+      align-self: start;
+    }
+    .sgl-event-card--side .sgl-event-card__media--stacked-contain .sgl-event-card__media-item,
+    .sgl-event-card--side-reverse .sgl-event-card__media--stacked-contain .sgl-event-card__media-item {
+      height: auto;
+      min-height: 0;
     }
   }
 
@@ -574,6 +606,16 @@
       "id": "url_image_2",
       "label": "OR Image 2 — direct image URL",
       "info": "Full https URL. Used if Image 2 picker is empty."
+    },
+    {
+      "type": "select",
+      "id": "media_fit",
+      "label": "Image fit",
+      "options": [
+        { "value": "cover", "label": "Fill & crop to shape (default)" },
+        { "value": "stacked-contain", "label": "Stack, show full image (no crop)" }
+      ],
+      "default": "cover"
     },
     {
       "type": "select",
