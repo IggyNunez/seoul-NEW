@@ -64,9 +64,22 @@
       <span class="casa-submenu__featured-badge">{{ link.title }}</span>
     </div>
 
-    {%- comment -%} Product or subcategory list {%- endcomment -%}
+    {%- comment -%}
+      Product or subcategory list.
+      Category child-links take priority over the product showcase, so the mobile
+      "Shop" menu shows Cleansers / Toners / Serums / etc. (mirrors the desktop
+      mega menu). A collection can force the product showcase back on by setting
+      the metafield sgl.show_submenu_products = true. (Pattern adapted from Casa
+      di Lumo's hide_submenu_products toggle.)
+    {%- endcomment -%}
     {%- assign _has_products = false -%}
-    {%- if panel_collection and panel_collection.products.size > 0 -%}
+    {%- assign _force_products = false -%}
+    {%- if panel_collection and panel_collection.metafields.sgl.show_submenu_products -%}
+      {%- assign _force_products = true -%}
+    {%- endif -%}
+    {%- if link.links.size > 0 and _force_products == false -%}
+      {%- assign _has_products = false -%}
+    {%- elsif panel_collection and panel_collection.products.size > 0 -%}
       {%- assign _has_products = true -%}
     {%- endif -%}
 
