@@ -136,9 +136,17 @@
             </div>
             <div class="casa-submenu__item-content">
               <span class="casa-submenu__item-name">{{ child_link.title }}</span>
-              {%- assign _child_collection = collections[child_link.handle] -%}
+              {%- comment -%} Resolve the collection from the link object first
+                (a menu link's handle is a handleized title, not the collection
+                handle, so collections[handle] often misses). {%- endcomment -%}
+              {%- assign _child_collection = nil -%}
+              {%- if child_link.type == 'collection_link' and child_link.object != blank -%}
+                {%- assign _child_collection = child_link.object -%}
+              {%- else -%}
+                {%- assign _child_collection = collections[child_link.handle] -%}
+              {%- endif -%}
               {%- if _child_collection != blank -%}
-                {%- assign _child_count = _child_collection.products_count | plus: 0 -%}
+                {%- assign _child_count = _child_collection.all_products_count | default: _child_collection.products_count -%}
                 {%- if _child_count > 0 -%}
                   <span class="casa-submenu__item-count">{{ _child_count }} items</span>
                 {%- endif -%}
