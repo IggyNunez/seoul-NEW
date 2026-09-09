@@ -1,0 +1,305 @@
+{%- comment -%}
+  SGL "Partner With Us" page section.
+  Hero + audience blocks (brands / retailers) + inquiry form.
+  The form uses Shopify's native contact form, so submissions go to the
+  store's contact email with a "Partnership inquiry" subject.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign bg = s.bg_color | default: '#F8EBDA'
+  assign text_color = s.text_color | default: '#5E0A02'
+  assign accent = s.accent_color | default: '#B0C3FA'
+  assign card_bg = s.card_bg | default: '#FFFFFF'
+  assign btn_bg = s.button_bg | default: '#5E0A02'
+  assign btn_text = s.button_text | default: '#F8EBDA'
+-%}
+
+<div
+  class="sgl-partner"
+  style="
+    --sgl-p-bg: {{ bg }};
+    --sgl-p-text: {{ text_color }};
+    --sgl-p-accent: {{ accent }};
+    --sgl-p-card: {{ card_bg }};
+    --sgl-p-btn-bg: {{ btn_bg }};
+    --sgl-p-btn-text: {{ btn_text }};
+  "
+>
+  {%- comment -%} Hero {%- endcomment -%}
+  <section class="sgl-partner__hero">
+    <div class="sgl-partner__wrap sgl-partner__wrap--narrow">
+      {%- if s.hero_heading != blank -%}
+        <h1 class="sgl-partner__hero-title">{{ s.hero_heading }}</h1>
+      {%- endif -%}
+      {%- if s.hero_body != blank -%}
+        <div class="sgl-partner__hero-body">{{ s.hero_body }}</div>
+      {%- endif -%}
+      {%- if s.hero_button_label != blank -%}
+        <a class="sgl-partner__cta" href="#partner-form">{{ s.hero_button_label }}</a>
+      {%- endif -%}
+    </div>
+  </section>
+
+  {%- comment -%} Audience blocks {%- endcomment -%}
+  <section class="sgl-partner__wrap sgl-partner__grid">
+    <article class="sgl-partner__card">
+      {%- if s.brands_label != blank -%}<p class="sgl-partner__label">{{ s.brands_label }}</p>{%- endif -%}
+      {%- if s.brands_heading != blank -%}<h2 class="sgl-partner__card-title">{{ s.brands_heading }}</h2>{%- endif -%}
+      {%- if s.brands_body != blank -%}<div class="sgl-partner__card-body">{{ s.brands_body }}</div>{%- endif -%}
+    </article>
+    <article class="sgl-partner__card">
+      {%- if s.retailers_label != blank -%}<p class="sgl-partner__label">{{ s.retailers_label }}</p>{%- endif -%}
+      {%- if s.retailers_heading != blank -%}<h2 class="sgl-partner__card-title">{{ s.retailers_heading }}</h2>{%- endif -%}
+      {%- if s.retailers_body != blank -%}<div class="sgl-partner__card-body">{{ s.retailers_body }}</div>{%- endif -%}
+    </article>
+  </section>
+
+  {%- comment -%} Inquiry form {%- endcomment -%}
+  <section class="sgl-partner__form-section" id="partner-form">
+    <div class="sgl-partner__wrap sgl-partner__wrap--narrow">
+      {%- if s.form_heading != blank -%}
+        <h2 class="sgl-partner__form-title">{{ s.form_heading }}</h2>
+      {%- endif -%}
+      {%- if s.form_intro != blank -%}
+        <p class="sgl-partner__form-intro">{{ s.form_intro }}</p>
+      {%- endif -%}
+
+      {%- form 'contact', id: 'partner-contact-form', class: 'sgl-partner__form' -%}
+        {%- if form.posted_successfully? -%}
+          <p class="sgl-partner__form-success">Thank you. Your message is on its way, we'll be in touch soon.</p>
+        {%- endif -%}
+        {%- if form.errors -%}
+          <p class="sgl-partner__form-error">
+            {{ form.errors | default_errors }}
+          </p>
+        {%- endif -%}
+
+        <input type="hidden" name="contact[subject]" value="Partnership inquiry (Seoul Glow Lab)">
+
+        <div class="sgl-partner__field-row">
+          <div class="sgl-partner__field">
+            <label for="partner-name">Name</label>
+            <input type="text" id="partner-name" name="contact[name]" autocomplete="name" required>
+          </div>
+          <div class="sgl-partner__field">
+            <label for="partner-email">Email</label>
+            <input type="email" id="partner-email" name="contact[email]" autocomplete="email" required>
+          </div>
+        </div>
+
+        <div class="sgl-partner__field-row">
+          <div class="sgl-partner__field">
+            <label for="partner-business">Business or brand name</label>
+            <input type="text" id="partner-business" name="contact[Business or brand]">
+          </div>
+          <div class="sgl-partner__field">
+            <label for="partner-type">I am a</label>
+            <select id="partner-type" name="contact[I am a]">
+              <option value="Korean beauty brand">Korean beauty brand</option>
+              <option value="Retailer / stockist">Retailer or stockist</option>
+              <option value="Industry partner">Industry partner</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sgl-partner__field">
+          <label for="partner-message">Tell us about your business and what you're looking for</label>
+          <textarea id="partner-message" name="contact[body]" rows="5" required></textarea>
+        </div>
+
+        <button type="submit" class="sgl-partner__cta sgl-partner__cta--submit">
+          {{ s.form_submit_label | default: 'Get in touch' }}
+        </button>
+      {%- endform -%}
+    </div>
+  </section>
+</div>
+
+{% stylesheet %}
+  .sgl-partner {
+    width: 100%;
+    background: var(--sgl-p-bg, #F8EBDA);
+    color: var(--sgl-p-text, #5E0A02);
+  }
+  .sgl-partner__wrap {
+    max-width: var(--page-width, 1200px);
+    margin-inline: auto;
+    padding-inline: var(--page-margin, 1.5rem);
+  }
+  .sgl-partner__wrap--narrow { max-width: 780px; }
+
+  .sgl-partner__hero { padding-block: clamp(56px, 8vw, 104px); text-align: center; }
+  .sgl-partner__hero-title {
+    font-family: var(--font-primary--family, 'Roboto Condensed', sans-serif);
+    font-weight: 700;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    line-height: 1.08;
+    margin: 0 0 1.4rem;
+  }
+  .sgl-partner__hero-body { font-size: 1.06rem; line-height: 1.65; opacity: 0.92; }
+  .sgl-partner__hero-body p { margin: 0 0 1rem; }
+  .sgl-partner__hero-body p:last-child { margin-bottom: 0; }
+
+  .sgl-partner__cta {
+    display: inline-block;
+    margin-top: 2rem;
+    padding: 0.9rem 2.1rem;
+    background: var(--sgl-p-btn-bg, #5E0A02);
+    color: var(--sgl-p-btn-text, #F8EBDA);
+    font-family: var(--font-primary--family, 'Roboto Condensed', sans-serif);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    text-decoration: none;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform 0.16s ease, opacity 0.16s ease;
+  }
+  .sgl-partner__cta:hover { transform: translateY(-2px); opacity: 0.92; }
+  .sgl-partner__cta--submit { margin-top: 0.6rem; }
+
+  .sgl-partner__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    padding-bottom: clamp(40px, 6vw, 72px);
+  }
+  .sgl-partner__card {
+    background: var(--sgl-p-card, #FFFFFF);
+    border: 1px solid color-mix(in srgb, var(--sgl-p-accent, #B0C3FA) 45%, transparent);
+    border-radius: 16px;
+    padding: clamp(1.5rem, 3vw, 2.4rem);
+  }
+  .sgl-partner__label {
+    font-family: var(--font-primary--family, 'Roboto Condensed', sans-serif);
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-size: 0.76rem;
+    color: var(--sgl-p-accent, #B0C3FA);
+    margin: 0 0 0.7rem;
+  }
+  .sgl-partner__card-title {
+    font-family: var(--font-primary--family, 'Roboto Condensed', sans-serif);
+    font-weight: 700;
+    font-size: clamp(1.3rem, 2.6vw, 1.7rem);
+    line-height: 1.16;
+    margin: 0 0 0.9rem;
+  }
+  .sgl-partner__card-body { font-size: 0.98rem; line-height: 1.6; opacity: 0.9; }
+  .sgl-partner__card-body p { margin: 0 0 0.8rem; }
+  .sgl-partner__card-body p:last-child { margin-bottom: 0; }
+
+  .sgl-partner__form-section {
+    background: color-mix(in srgb, var(--sgl-p-accent, #B0C3FA) 16%, var(--sgl-p-bg, #F8EBDA));
+    padding-block: clamp(48px, 7vw, 88px);
+    scroll-margin-top: 90px;
+  }
+  .sgl-partner__form-title {
+    font-family: var(--font-primary--family, 'Roboto Condensed', sans-serif);
+    font-weight: 700;
+    font-size: clamp(1.6rem, 3.4vw, 2.2rem);
+    line-height: 1.14;
+    margin: 0 0 0.6rem;
+    text-align: center;
+  }
+  .sgl-partner__form-intro { text-align: center; opacity: 0.9; margin: 0 0 2rem; }
+  .sgl-partner__form { display: flex; flex-direction: column; gap: 1.1rem; }
+  .sgl-partner__field-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.1rem;
+  }
+  .sgl-partner__field { display: flex; flex-direction: column; gap: 0.4rem; }
+  .sgl-partner__field label {
+    font-family: var(--font-primary--family, 'Roboto Condensed', sans-serif);
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+  }
+  .sgl-partner__field input,
+  .sgl-partner__field select,
+  .sgl-partner__field textarea {
+    width: 100%;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid color-mix(in srgb, var(--sgl-p-text, #5E0A02) 22%, transparent);
+    border-radius: 10px;
+    background: #FFFFFF;
+    color: var(--sgl-p-text, #5E0A02);
+    font: inherit;
+  }
+  .sgl-partner__field textarea { resize: vertical; }
+  .sgl-partner__field input:focus,
+  .sgl-partner__field select:focus,
+  .sgl-partner__field textarea:focus {
+    outline: 2px solid var(--sgl-p-accent, #B0C3FA);
+    outline-offset: 1px;
+  }
+  .sgl-partner__form-success,
+  .sgl-partner__form-error {
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    margin: 0;
+  }
+  .sgl-partner__form-success {
+    background: color-mix(in srgb, var(--sgl-p-accent, #B0C3FA) 30%, #FFFFFF);
+    border: 1px solid var(--sgl-p-accent, #B0C3FA);
+  }
+  .sgl-partner__form-error {
+    background: #fdecea;
+    border: 1px solid #d98a82;
+    color: #7a1a12;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "SGL Partner Page",
+  "settings": [
+    { "type": "header", "content": "Hero" },
+    { "type": "text", "id": "hero_heading", "label": "Hero headline", "default": "Connecting Korean beauty with the right people in the U.S." },
+    {
+      "type": "richtext",
+      "id": "hero_body",
+      "label": "Hero copy",
+      "default": "<p>Seoul Glow Lab works with select indie Korean beauty brands and retail partners to create thoughtful pathways into the U.S. market.</p><p>We combine firsthand product knowledge, consumer insight, education, and industry relationships to help promising brands reach retailers and customers who will actually understand what makes them different.</p>"
+    },
+    { "type": "text", "id": "hero_button_label", "label": "Hero button label", "default": "Start a conversation" },
+    { "type": "header", "content": "For Korean beauty brands" },
+    { "type": "text", "id": "brands_label", "label": "Label", "default": "For Korean beauty brands" },
+    { "type": "text", "id": "brands_heading", "label": "Heading", "default": "More than an introduction. Context matters." },
+    {
+      "type": "richtext",
+      "id": "brands_body",
+      "label": "Copy",
+      "default": "<p>A great formula doesn't always translate automatically into a new market.</p><p>We work closely with brands we believe in to understand the product, formulation, positioning, and story behind it, then help connect that brand with relevant U.S. retail and professional opportunities.</p><p>Because getting a product onto a shelf is one thing. Helping people understand why it belongs there is another.</p>"
+    },
+    { "type": "header", "content": "For retailers + industry partners" },
+    { "type": "text", "id": "retailers_label", "label": "Label", "default": "For retailers + industry partners" },
+    { "type": "text", "id": "retailers_heading", "label": "Heading", "default": "Discover Korean beauty beyond the usual names." },
+    {
+      "type": "richtext",
+      "id": "retailers_body",
+      "label": "Copy",
+      "default": "<p>Some of the most interesting innovation in Korean beauty is happening outside the brands everyone already knows.</p><p>Through our relationships in Korea and our work with emerging and indie brands, Seoul Glow Lab helps retail and industry partners discover products, founders, and formulations worth paying attention to.</p>"
+    },
+    { "type": "header", "content": "Inquiry form" },
+    { "type": "text", "id": "form_heading", "label": "Form heading", "default": "Interested in working together?" },
+    { "type": "text", "id": "form_intro", "label": "Form intro", "default": "Tell us a little about your business and what you're looking for." },
+    { "type": "text", "id": "form_submit_label", "label": "Submit button label", "default": "Get in touch" },
+    { "type": "header", "content": "Colors" },
+    { "type": "color", "id": "bg_color", "label": "Background", "default": "#F8EBDA" },
+    { "type": "color", "id": "text_color", "label": "Text", "default": "#5E0A02" },
+    { "type": "color", "id": "accent_color", "label": "Accent", "default": "#B0C3FA" },
+    { "type": "color", "id": "card_bg", "label": "Card background", "default": "#FFFFFF" },
+    { "type": "color", "id": "button_bg", "label": "Button background", "default": "#5E0A02" },
+    { "type": "color", "id": "button_text", "label": "Button text", "default": "#F8EBDA" }
+  ],
+  "presets": [{ "name": "SGL Partner Page" }]
+}
+{% endschema %}
