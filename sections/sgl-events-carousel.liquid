@@ -1,0 +1,218 @@
+{%- comment -%}
+  Seoul Glow Lab — Events Carousel
+  Auto-scrolling image carousel with prev/next arrows, fed by a list of image
+  URLs (one per line). Built for large sets (e.g. a full event shoot) that
+  exceed the 50-block section limit. Pauses on hover; respects reduced motion.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign urls_raw = s.image_urls | newline_to_br | split: '<br />'
+  assign gap = s.gap | default: 12
+  assign radius = s.border_radius | default: 12
+  assign ratio = s.image_ratio | default: '3/4'
+  assign per_desktop = s.slides_desktop | default: 4
+  assign per_mobile = s.slides_mobile | default: 1.2
+  assign uid = section.id | replace: '_', '' | replace: '-', ''
+-%}
+
+<section
+  class="sglc"
+  style="
+    --sglc-bg: {{ s.bg_color | default: '#F8EBDA' }};
+    --sglc-text: {{ s.text_color | default: '#5E0A02' }};
+    --sglc-accent: {{ s.accent_color | default: '#B0C3FA' }};
+    --sglc-gap: {{ gap }}px;
+    --sglc-radius: {{ radius }}px;
+    --sglc-ratio: {{ ratio }};
+    --sglc-per: {{ per_desktop }};
+    --sglc-per-mobile: {{ per_mobile }};
+    --sglc-pad-top: {{ s.padding_top | default: 60 }}px;
+    --sglc-pad-bot: {{ s.padding_bottom | default: 60 }}px;
+    --sglc-title-size: {{ s.title_size | default: 32 }}px;
+  "
+  {{ section.shopify_attributes }}
+>
+  <div class="sglc__container">
+    {%- if s.title != blank or s.subtitle != blank -%}
+      <div class="sglc__header">
+        {%- if s.subtitle != blank -%}<div class="sglc__subtitle">{{ s.subtitle }}</div>{%- endif -%}
+        {%- if s.title != blank -%}<h2 class="sglc__title">{{ s.title }}</h2>{%- endif -%}
+      </div>
+    {%- endif -%}
+
+    <div class="sglc__stage">
+      {%- if s.show_arrows -%}
+        <button type="button" class="sglc__arrow sglc__arrow--prev" id="sglcPrev{{ uid }}" aria-label="Previous">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+      {%- endif -%}
+
+      <div class="sglc__track" id="sglcTrack{{ uid }}" tabindex="0" aria-label="{{ s.title | default: 'Event photos' | escape }}">
+        {%- for url in urls_raw -%}
+          {%- assign u = url | strip -%}
+          {%- if u != blank -%}
+            <div class="sglc__slide">
+              <div class="sglc__img-wrap">
+                <img src="{{ u }}" alt="{{ s.title | default: 'Event photo' | escape }}" loading="lazy" class="sglc__img">
+              </div>
+            </div>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+
+      {%- if s.show_arrows -%}
+        <button type="button" class="sglc__arrow sglc__arrow--next" id="sglcNext{{ uid }}" aria-label="Next">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+
+<style>
+  .sglc {
+    background: var(--sglc-bg, #F8EBDA);
+    color: var(--sglc-text, #5E0A02);
+    padding: var(--sglc-pad-top) 0 var(--sglc-pad-bot);
+  }
+  .sglc__container { max-width: 1400px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 60px); }
+  .sglc__header { margin-bottom: clamp(20px, 3vw, 36px); }
+  .sglc__subtitle { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.5; margin-bottom: 8px; }
+  .sglc__title { font-size: var(--sglc-title-size, 32px); font-weight: 300; line-height: 1.15; letter-spacing: -0.02em; margin: 0; }
+
+  .sglc__stage { position: relative; }
+  .sglc__track {
+    display: flex;
+    gap: var(--sglc-gap, 12px);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+    outline: none;
+  }
+  .sglc__track::-webkit-scrollbar { display: none; }
+
+  .sglc__slide {
+    flex: 0 0 calc((100% - var(--sglc-gap) * (var(--sglc-per) - 1)) / var(--sglc-per));
+    scroll-snap-align: start;
+  }
+  .sglc__img-wrap {
+    aspect-ratio: var(--sglc-ratio, 3/4);
+    border-radius: var(--sglc-radius, 12px);
+    overflow: hidden;
+    background: rgba(0,0,0,0.04);
+  }
+  .sglc__img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
+  .sglc__slide:hover .sglc__img { transform: scale(1.03); }
+
+  .sglc__arrow {
+    position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+    width: 44px; height: 44px; border-radius: 999px; border: none; cursor: pointer;
+    background: var(--sglc-text, #5E0A02); color: var(--sglc-bg, #F8EBDA);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18); transition: transform 0.16s ease, opacity 0.16s ease; opacity: 0.92;
+  }
+  .sglc__arrow:hover { transform: translateY(-50%) scale(1.06); opacity: 1; }
+  .sglc__arrow:focus-visible { outline: 3px solid var(--sglc-accent, #B0C3FA); outline-offset: 2px; }
+  .sglc__arrow--prev { left: -8px; }
+  .sglc__arrow--next { right: -8px; }
+
+  @media (max-width: 749px) {
+    .sglc__container { padding: 0 16px; }
+    .sglc__title { font-size: calc(var(--sglc-title-size, 32px) * 0.72); }
+    .sglc__slide { flex: 0 0 calc((100% - var(--sglc-gap) * (var(--sglc-per-mobile) - 1)) / var(--sglc-per-mobile)); }
+    .sglc__arrow { width: 38px; height: 38px; }
+    .sglc__arrow--prev { left: 2px; }
+    .sglc__arrow--next { right: 2px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sglc__track { scroll-behavior: auto; }
+  }
+</style>
+
+<script>
+  (function () {
+    var track = document.getElementById('sglcTrack{{ uid }}');
+    if (!track) return;
+    var prev = document.getElementById('sglcPrev{{ uid }}');
+    var next = document.getElementById('sglcNext{{ uid }}');
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function step() {
+      var slide = track.querySelector('.sglc__slide');
+      if (!slide) return track.clientWidth;
+      var gap = parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap || '12') || 12;
+      return slide.getBoundingClientRect().width + gap;
+    }
+    function go(dir) { track.scrollBy({ left: dir * step(), behavior: reduce ? 'auto' : 'smooth' }); }
+
+    if (prev) prev.addEventListener('click', function () { go(-1); });
+    if (next) next.addEventListener('click', function () { go(1); });
+
+    var autoplay = {% if s.autoplay %}true{% else %}false{% endif %};
+    var delay = {{ s.autoplay_seconds | default: 3 }} * 1000;
+    var timer = null, paused = false;
+
+    function tick() {
+      if (paused) return;
+      var atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+      if (atEnd) { track.scrollTo({ left: 0, behavior: reduce ? 'auto' : 'smooth' }); }
+      else { go(1); }
+    }
+    function start() { if (autoplay && !reduce && !timer) timer = setInterval(tick, delay); }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } }
+
+    ['mouseenter', 'focusin', 'touchstart'].forEach(function (e) { track.addEventListener(e, function () { paused = true; }, { passive: true }); });
+    ['mouseleave', 'focusout'].forEach(function (e) { track.addEventListener(e, function () { paused = false; }); });
+    if (prev) { prev.addEventListener('mouseenter', function () { paused = true; }); prev.addEventListener('mouseleave', function () { paused = false; }); }
+    if (next) { next.addEventListener('mouseenter', function () { paused = true; }); next.addEventListener('mouseleave', function () { paused = false; }); }
+
+    start();
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "SGL Events Carousel",
+  "tag": "section",
+  "class": "sgl-events-carousel-section",
+  "settings": [
+    { "type": "header", "content": "Content" },
+    { "type": "text", "id": "title", "label": "Title" },
+    { "type": "text", "id": "subtitle", "label": "Subtitle" },
+    { "type": "textarea", "id": "image_urls", "label": "Image URLs (one per line)", "info": "Paste one image URL per line. Order is preserved." },
+    { "type": "header", "content": "Carousel" },
+    { "type": "checkbox", "id": "autoplay", "label": "Auto-scroll", "default": true },
+    { "type": "range", "id": "autoplay_seconds", "label": "Seconds between slides", "min": 2, "max": 8, "step": 1, "default": 3, "unit": "s" },
+    { "type": "checkbox", "id": "show_arrows", "label": "Show arrows", "default": true },
+    { "type": "range", "id": "slides_desktop", "label": "Images visible (desktop)", "min": 2, "max": 6, "step": 1, "default": 4 },
+    { "type": "range", "id": "slides_mobile", "label": "Images visible (mobile)", "min": 1, "max": 3, "step": 1, "default": 1 },
+    { "type": "range", "id": "gap", "label": "Gap between images", "min": 0, "max": 32, "step": 2, "default": 12, "unit": "px" },
+    {
+      "type": "select", "id": "image_ratio", "label": "Image ratio",
+      "options": [
+        { "value": "3/4", "label": "Portrait (3:4)" },
+        { "value": "2/3", "label": "Tall Portrait (2:3)" },
+        { "value": "4/5", "label": "Soft Portrait (4:5)" },
+        { "value": "1/1", "label": "Square (1:1)" },
+        { "value": "16/9", "label": "Landscape (16:9)" }
+      ],
+      "default": "3/4"
+    },
+    { "type": "range", "id": "border_radius", "label": "Image border radius", "min": 0, "max": 32, "step": 2, "default": 12, "unit": "px" },
+    { "type": "header", "content": "Typography" },
+    { "type": "range", "id": "title_size", "label": "Title size", "min": 18, "max": 64, "step": 2, "default": 32, "unit": "px" },
+    { "type": "header", "content": "Colors" },
+    { "type": "color", "id": "bg_color", "label": "Background", "default": "#F8EBDA" },
+    { "type": "color", "id": "text_color", "label": "Text / arrows", "default": "#5E0A02" },
+    { "type": "color", "id": "accent_color", "label": "Focus accent", "default": "#B0C3FA" },
+    { "type": "header", "content": "Spacing" },
+    { "type": "range", "id": "padding_top", "label": "Padding top", "min": 0, "max": 120, "step": 4, "default": 60, "unit": "px" },
+    { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 120, "step": 4, "default": 60, "unit": "px" }
+  ],
+  "presets": [{ "name": "SGL Events Carousel" }]
+}
+{% endschema %}
