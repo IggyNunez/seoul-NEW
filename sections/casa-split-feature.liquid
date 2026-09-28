@@ -5,14 +5,21 @@
   Day/Night concept for mirror by day / portal by night.
 {%- endcomment -%}
 
+{%- comment -%} Auto-hide when no images or videos exist {%- endcomment -%}
+{%- if section.settings.day_image == blank and section.settings.night_image == blank and section.settings.day_video == blank and section.settings.night_video == blank and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
 {%- liquid
   assign s = section.settings
   assign min_h = s.min_height | default: 600
 
-  assign day_title    = s.day_title | default: ''
-  assign day_sub      = s.day_subtitle | default: ''
-  assign night_title  = s.night_title | default: ''
-  assign night_sub    = s.night_subtitle | default: ''
+  # Pre-2026-05-17 defaulted to "Mirror by Day / Portal by Night" + smart-mirror
+  # subtitle — bled onto non-mirror products that adopt this section.
+  assign day_title    = s.day_title
+  assign day_sub      = s.day_subtitle
+  assign night_title  = s.night_title
+  assign night_sub    = s.night_subtitle
 
   assign desktop_ratio = s.desktop_ratio | default: ''
   assign mobile_ratio  = s.mobile_ratio | default: ''
@@ -48,10 +55,10 @@
     --cdl-split-padding: {{ s.section_padding | default: 0 }}px;
     --cdl-split-gap: {{ s.card_gap | default: 0 }}px;
     --cdl-split-radius: {{ s.card_radius | default: 0 }}px;
-    --cdl-split-bg: {{ s.section_bg | default: '#0a0a0f' }};
+    --cdl-split-bg: {{ s.section_bg | default: '#0A0A0F' }};
     --cdl-split-overlay: {{ s.overlay_opacity | default: 30 | divided_by: 100.0 }};
-    --cdl-split-title-color: {{ s.title_color | default: '#ffffff' }};
-    --cdl-split-sub-color: {{ s.subtitle_color | default: '#ffffff' }};
+    --cdl-split-title-color: {{ s.title_color | default: '#FAFAF7' }};
+    --cdl-split-sub-color: {{ s.subtitle_color | default: '#FAFAF7' }};
     --cdl-split-title-size: {{ s.title_size | default: 28 }}px;
     --cdl-split-title-weight: {{ s.title_weight | default: '300' }};
     --cdl-split-glass-blur: {{ s.glass_blur | default: 12 }}px;
@@ -63,15 +70,18 @@
   <div class="cdl-split__card cdl-split__card--day">
     {%- comment -%} Video background {%- endcomment -%}
     {%- if day_has_video -%}
-      <video class="cdl-split__media" autoplay loop muted playsinline
-        {%- if s.day_image != blank %} poster="{{ s.day_image | image_url: width: 1400 }}"{% endif %}>
+      <video class="cdl-split__media" data-casa-pause loop muted playsinline preload="none">
+        {%- comment -%} MP4 only — never the .m3u8: Safari would pick the HLS
+          stream and pay its adaptive-decode pipeline for a looping bg video
+          (the homepage scroll jitter). Same fix as casa-video-demo.liquid. {%- endcomment -%}
         {%- for source in s.day_video.sources -%}
-          <source src="{{ source.url }}" type="{{ source.mime_type }}">
+          {%- if source.mime_type == 'video/mp4' -%}
+            <source data-src="{{ source.url }}" type="video/mp4">
+          {%- endif -%}
         {%- endfor -%}
       </video>
     {%- elsif day_has_ext -%}
-      <video class="cdl-split__media" src="{{ s.day_video_url }}" autoplay loop muted playsinline
-        {%- if s.day_image != blank %} poster="{{ s.day_image | image_url: width: 1400 }}"{% endif %}></video>
+      <video class="cdl-split__media" data-casa-pause data-src="{{ s.day_video_url | escape }}" loop muted playsinline preload="none"></video>
     {%- endif -%}
 
     {%- comment -%} Image background {%- endcomment -%}
@@ -84,6 +94,8 @@
           {{ s.day_image | image_url: width: 1400 }} 1400w
         "
         sizes="(max-width: 900px) 100vw, 50vw"
+        width="{{ s.day_image.width | default: 1400 }}"
+        height="{{ s.day_image.height | default: 1400 }}"
         alt="{{ day_title | escape }}"
         class="cdl-split__media cdl-split__media--img{% if day_has_video or day_has_ext %} cdl-split__media--poster{% endif %}"
         loading="lazy"
@@ -112,15 +124,16 @@
   {%- comment -%} ── NIGHT SIDE ── {%- endcomment -%}
   <div class="cdl-split__card cdl-split__card--night">
     {%- if night_has_video -%}
-      <video class="cdl-split__media" autoplay loop muted playsinline
-        {%- if s.night_image != blank %} poster="{{ s.night_image | image_url: width: 1400 }}"{% endif %}>
+      <video class="cdl-split__media" data-casa-pause loop muted playsinline preload="none">
+        {%- comment -%} MP4 only — see day-side note. {%- endcomment -%}
         {%- for source in s.night_video.sources -%}
-          <source src="{{ source.url }}" type="{{ source.mime_type }}">
+          {%- if source.mime_type == 'video/mp4' -%}
+            <source data-src="{{ source.url }}" type="video/mp4">
+          {%- endif -%}
         {%- endfor -%}
       </video>
     {%- elsif night_has_ext -%}
-      <video class="cdl-split__media" src="{{ s.night_video_url }}" autoplay loop muted playsinline
-        {%- if s.night_image != blank %} poster="{{ s.night_image | image_url: width: 1400 }}"{% endif %}></video>
+      <video class="cdl-split__media" data-casa-pause data-src="{{ s.night_video_url | escape }}" loop muted playsinline preload="none"></video>
     {%- endif -%}
 
     {%- if s.night_image != blank -%}
@@ -132,6 +145,8 @@
           {{ s.night_image | image_url: width: 1400 }} 1400w
         "
         sizes="(max-width: 900px) 100vw, 50vw"
+        width="{{ s.night_image.width | default: 1400 }}"
+        height="{{ s.night_image.height | default: 1400 }}"
         alt="{{ night_title | escape }}"
         class="cdl-split__media cdl-split__media--img{% if night_has_video or night_has_ext %} cdl-split__media--poster{% endif %}"
         loading="lazy"
@@ -162,6 +177,17 @@
   var root = document.getElementById('cdl-split-{{ section.id }}');
   if (!root) return;
 
+  /* Save-Data / slow-network / reduced-motion: drop videos entirely.
+     The static poster image stays as the fallback — same visual content,
+     no degradation. Matches the casa-hero data-casa-lazy-video pattern. */
+  var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var saveData = (navigator.connection && navigator.connection.saveData) === true;
+  var slowNet = navigator.connection && /2g|slow-2g/.test(navigator.connection.effectiveType || '');
+  if (reducedMotion || saveData || slowNet) {
+    root.querySelectorAll('video.cdl-split__media').forEach(function(v) { v.remove(); });
+    return;
+  }
+
   /* Fade poster once video plays */
   root.querySelectorAll('.cdl-split__card').forEach(function(card) {
     var video = card.querySelector('video.cdl-split__media');
@@ -172,16 +198,113 @@
     }, { once: true });
   });
 
-  /* Pause off-screen videos */
-  if ('IntersectionObserver' in window) {
-    var obs = new IntersectionObserver(function(entries) {
-      entries.forEach(function(e) {
-        if (e.isIntersecting) e.target.play().catch(function(){});
-        else e.target.pause();
-      });
-    }, { rootMargin: '100px' });
-    root.querySelectorAll('video.cdl-split__media').forEach(function(v) { obs.observe(v); });
+  /* Lazy-load: defer the actual video download until the section is
+     within 200px of the viewport. Cuts ~3.7 MB from the homepage payload
+     for visitors who don't scroll past the bestseller carousel above.
+     The <video> ships with preload="none" and no src — only data-src.
+     On first intersection we copy data-src → src on the video (or its
+     <source> children) and call .load() to kick the fetch. */
+  /* PLAYBACK OWNER: assets/casa-offscreen-pause.js (data-casa-pause on the
+     <video>) — plays in view / pauses off-screen from real geometry. This
+     script only LAZY-LOADS the bytes: copy data-src → src 200px before the
+     section enters view so the buffer gets a head start. The old inline owner
+     here had an unguarded deferred retry ('canplay' → play(), {once:true})
+     that restarted the video AFTER the off-screen pause when buffering
+     finished late — the "keeps playing after you scroll past it" bug. */
+  function loadVideo(video) {
+    if (video.dataset.casaSplitLoaded) return;
+    video.dataset.casaSplitLoaded = '1';
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+    video.setAttribute('muted', '');
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    if (video.dataset.src && !video.src) {
+      video.src = video.dataset.src;
+    }
+    video.querySelectorAll('source[data-src]').forEach(function(source) {
+      if (!source.src) source.src = source.dataset.src;
+    });
+    /* preload=none would defer the fetch until play(); with the src now
+       assigned, auto lets the browser buffer ahead — the point of the
+       200px head start. */
+    video.preload = 'auto';
+    video.load();
+    /* The global owner's initial pass ran while this video had no src (its
+       play() no-opped); re-gate now that it is loadable. */
+    if (window.casa && window.casa.offscreenPauseRefresh) window.casa.offscreenPauseRefresh();
   }
+
+  var obs = null;
+  if ('IntersectionObserver' in window) {
+    obs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) {
+          loadVideo(e.target);
+          obs.unobserve(e.target); /* load once; playback is the global owner's job */
+        }
+      });
+    }, { rootMargin: '200px' });
+    root.querySelectorAll('video.cdl-split__media').forEach(function(v) { obs.observe(v); });
+  } else {
+    /* No IntersectionObserver support — fall back to eager load so the
+       section still works on ancient browsers. */
+    root.querySelectorAll('video.cdl-split__media').forEach(function(v) {
+      loadVideo(v);
+    });
+  }
+
+  /* MOBILE TAP-TO-EXPAND
+     ──────────────────────────────────────────────────────────────
+     On touch devices :hover doesn't exist and :focus-within fires
+     for ~1 frame before the tap's link navigation kicks in, so the
+     subtitle never visibly expands. Implement a two-tap pattern:
+
+       1st tap → preventDefault, add .is-tap-expanded class, pill
+                 grows to show one-line subtitle. (Other cards in
+                 the same section collapse.)
+       2nd tap → navigate normally (link's default behavior).
+
+     Detection: matchMedia('(hover: none)') is the canonical "this
+     device has no hover capability" check — picks up touch phones,
+     touch tablets, but skips desktops with touchscreens-that-also-
+     have-a-mouse (those keep the laptop hover behavior). */
+  if (window.matchMedia && window.matchMedia('(hover: none)').matches) {
+    var cards = root.querySelectorAll('.cdl-split__card');
+    cards.forEach(function(card) {
+      var link = card.querySelector('.cdl-split__link');
+      if (!link) return;
+      link.addEventListener('click', function(e) {
+        if (!card.classList.contains('is-tap-expanded')) {
+          e.preventDefault();
+          /* Collapse any other expanded card in this section so only
+             one is open at a time. */
+          cards.forEach(function(other) {
+            if (other !== card) other.classList.remove('is-tap-expanded');
+          });
+          card.classList.add('is-tap-expanded');
+        }
+        /* Second tap: class is already on, default navigation proceeds. */
+      });
+    });
+    /* Tap outside any card in this section → collapse. */
+    var outsideHandler = function(e) {
+      if (!e.target.closest('#shopify-section-{{ section.id }} .cdl-split__card')) {
+        cards.forEach(function(c) { c.classList.remove('is-tap-expanded'); });
+      }
+    };
+    document.addEventListener('click', outsideHandler);
+  }
+
+  /* Theme-editor cleanup: when the merchant removes/replaces this section
+     in the editor, disconnect the observer so it stops referencing
+     orphaned <video> nodes. Production traffic never hits this path. */
+  document.addEventListener('shopify:section:unload', function(e) {
+    if (e.target && e.target.id === 'shopify-section-{{ section.id }}' && obs) {
+      obs.disconnect();
+    }
+  });
 })();
 </script>
 
@@ -257,16 +380,15 @@
       "content": "Day side (Left)"
     },
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "day_title",
       "label": "Title",
-      "default": "Mirror by Day"
+      "info": "Day card title. Wrap a phrase in <em>...</em> for the brand italic-gradient accent. Product-specific — enter per template."
     },
     {
       "type": "text",
       "id": "day_subtitle",
-      "label": "Subtitle",
-      "default": "A perfect, functional reflection"
+      "label": "Subtitle"
     },
     {
       "type": "image_picker",
@@ -296,16 +418,15 @@
       "content": "Night side (Right)"
     },
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "night_title",
       "label": "Title",
-      "default": "Portal by Night"
+      "info": "Night card title. The whole title is rendered with the brand italic-gradient accent on this section (the night card is the brand expression). Wrap the entire phrase in <em>...</em>. Product-specific — enter per template."
     },
     {
       "type": "text",
       "id": "night_subtitle",
-      "label": "Subtitle",
-      "default": "An infinite, mesmerizing dimension"
+      "label": "Subtitle"
     },
     {
       "type": "image_picker",
@@ -369,7 +490,7 @@
       "id": "section_bg",
       "label": "Section background",
       "info": "Visible when padding or gap is set",
-      "default": "#0a0a0f"
+      "default": "#0A0A0F"
     },
     {
       "type": "header",
@@ -389,13 +510,13 @@
       "type": "color",
       "id": "title_color",
       "label": "Title color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
       "id": "subtitle_color",
       "label": "Subtitle color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "range",
@@ -479,6 +600,40 @@
   min-height: var(--cdl-split-h, 600px);
 }
 
+/* Wide-desktop cap: at >= 1600px viewport, an aspect-ratio: 1/1 card would
+   become 800px+ tall AND make the section taller than a typical viewport,
+   while also forcing object-fit: cover to severely crop portrait product
+   imagery (e.g. the mirror by-day photo). Cap the inner row so each card
+   stays at a manageable size. The outer .cdl-split-section keeps the same
+   background so the gutters blend with the Ink surface. */
+@media (min-width: 1600px) {
+  .cdl-split {
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* Short-viewport cap — the same mechanism as the wide-desktop cap above,
+   driven by height instead of width: narrow the row so an
+   aspect-ratio: 1/1 card can't outgrow the window under the sticky
+   header (--casa-vh-fit, casa-base.css). The vertical allowance is the
+   section's OWN padding var — --cdl-split-padding pads all four sides
+   and is a live merchant slider, so a hardcoded allowance would drift
+   the moment the slider moves. Measured before the fix: 720px cards vs
+   a 720px window at 1512×820 and 540px at 1280×640 — the day/night pair
+   could never sit fully in frame. Gutters land on the section
+   background, exactly like the ≥1600px cap. min-height re-clamps the
+   merchant's floor only when the window is smaller than it. */
+@media (min-width: 750px) {
+  .cdl-split {
+    max-width: min(100%, calc((var(--casa-vh-fit, 100svh) - 2 * var(--cdl-split-padding, 0px)) * 2 + var(--cdl-split-gap, 0px) + 2 * var(--cdl-split-padding, 0px)));
+    margin-left: auto;
+    margin-right: auto;
+    min-height: min(var(--cdl-split-h, 600px), calc(var(--casa-vh-fit, 100svh) - 2 * var(--cdl-split-padding, 0px)));
+  }
+}
+
 /* ── Card base ── */
 .cdl-split__card {
   flex: 1;
@@ -507,6 +662,29 @@
   z-index: 0;
   transition: transform 0.6s ease;
 }
+
+/* Belt-and-suspenders: if a device blocks muted autoplay (Low Power Mode,
+   reduced-data) the video stays paused and iOS would paint its native centre
+   play button on this decorative day/night media. Suppress the WebKit media-
+   control pseudo-elements so the poster image is the clean fallback, never a
+   stray button. ONE RULE PER PSEUDO-ELEMENT — a comma-grouped list is dropped
+   in its entirety by any selector the engine doesn't recognise, and
+   `-overlay-play-button` (Chromium-only) would otherwise poison the iOS-only
+   `-start-playback-button` rule. */
+.cdl-split__media::-webkit-media-controls {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.cdl-split__media::-webkit-media-controls-enclosure { display: none !important; }
+.cdl-split__media::-webkit-media-controls-panel { display: none !important; }
+.cdl-split__media::-webkit-media-controls-play-button { display: none !important; }
+.cdl-split__media::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.cdl-split__media::-webkit-media-controls-overlay-play-button { display: none !important; }
 
 .cdl-split__card:hover .cdl-split__media {
   transform: scale(1.05);
@@ -562,60 +740,113 @@
   display: none;
 }
 
-/* ── Content — positioned bottom-left ── */
+/* ── Content — positioned bottom-left, snug to card edge so the
+   pill is a small badge sitting low in the frame, not a billboard
+   floating mid-card. The pill itself uses align-items: flex-start
+   so it shrinks to its text width (no full-row span). */
 .cdl-split__content {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 3;
-  padding: 40px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
 }
 
-/* ── Glassmorphic pill ── */
+/* ── Glassmorphic pill — compact: padding hugs the text so the
+   pill is sized to its contents, not to a generous card layout.
+   Compact pill rule (memory: overlay-ui-must-be-compact-glass-pills).
+   ── */
 .cdl-split__glass {
   background: var(--cdl-split-glass-bg, rgba(255, 255, 255, 0.12));
   backdrop-filter: blur(var(--cdl-split-glass-blur, 12px));
   -webkit-backdrop-filter: blur(var(--cdl-split-glass-blur, 12px));
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--cdl-split-glass-radius, 12px);
-  padding: 20px 28px;
+  padding: 8px 14px;
+  /* Hard-lock the pill width to its visible content. fit-content
+     forces the box to be exactly as wide as the widest currently-
+     rendered child (title only in default state, title-or-subtitle
+     whichever is wider on hover). Without this, even with the
+     subtitle at display:none, residual flex sizing or external CSS
+     could allow the pill to extend past the text — what the
+     merchant kept seeing in their screenshots. */
+  width: fit-content;
+  max-width: 100%;
   transition: background 0.35s ease, transform 0.35s ease;
 }
 
-.cdl-split__card:hover .cdl-split__glass {
-  background: rgba(255, 255, 255, 0.18);
+.cdl-split__card:hover .cdl-split__glass,
+.cdl-split__card:focus-within .cdl-split__glass,
+.cdl-split__card.is-tap-expanded .cdl-split__glass {
+  /* Darken on hover so the revealed white subtitle text reads
+     cleanly against bright product photos (the marble day photo
+     drowned out white text on a whitened glass before).
+     .is-tap-expanded covers the mobile tap-toggle path. */
+  background: rgba(0, 0, 0, 0.55);
   transform: translateY(-4px);
 }
 
 /* ── Title ── */
 .cdl-split__title {
   font-size: var(--cdl-split-title-size, 28px);
-  font-weight: var(--cdl-split-title-weight, 300);
+  font-weight: var(--cdl-split-title-weight, 700);
   color: var(--cdl-split-title-color, #ffffff);
-  margin: 0 0 6px 0;
-  line-height: 1.25;
-  letter-spacing: -0.3px;
-}
-
-/* ── Subtitle — hidden by default, slides in on hover ── */
-.cdl-split__sub {
-  font-size: 14px;
-  color: var(--cdl-split-sub-color, rgba(255, 255, 255, 0.7));
   margin: 0;
-  line-height: 1.5;
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-height 0.4s ease, opacity 0.35s ease;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
-.cdl-split__card:hover .cdl-split__sub {
-  max-height: 80px;
-  opacity: 1;
+/* Italic-gradient <em> accent — LARGER (1.15em) per merchant brand
+   directive. Italic 600 weight + brand gradient. line-height: 1
+   prevents the bigger em from inflating the pill's height. */
+.cdl-split__title em {
+  font-size: 1.15em;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1;
+  background-image: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Subtitle — hidden by default, revealed on hover ──
+   Default: display:none so the pill sizes only to the title.
+   Hover: display:block so the pill expands to fit subtitle width.
+   The :hover glass-background rule below darkens the pill so the
+   subtitle text stays readable against bright product photos
+   (white-on-marble was invisible before). */
+.cdl-split__sub {
+  display: none;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.92);
+  margin: 6px 0 0 0;
+  line-height: 1.4;
+  /* Subtle drop shadow keeps the text legible even when the glass
+     pill is over a bright photo and the merchant's glass_bg setting
+     is fully transparent. Compositor-only; no layout impact. */
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+}
+
+.cdl-split__card:hover .cdl-split__sub,
+.cdl-split__card:focus-within .cdl-split__sub,
+.cdl-split__card.is-tap-expanded .cdl-split__sub {
+  /* One-line reveal — subtitle expands to a single line with ellipsis
+     truncation if it exceeds the available width. The pill grows
+     horizontally to fit the subtitle (via fit-content), capped at
+     max-width: 100% so it never overflows the card.
+     .is-tap-expanded mirrors :hover for touch devices (JS-toggled
+     on first tap; second tap navigates). */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── Full-card clickable link ── */
@@ -651,33 +882,183 @@
     min-height: 240px;
   }
 
+  /* Tablet / landscape phone (601-900px) single-col mobile: match
+     desktop's subtle frosted glass aesthetic — backdrop-blur + thin
+     white border, NO heavy dark background. Image is the hero;
+     the glass is a refined frosted caption strip. */
   .cdl-split__content {
-    padding: 28px;
+    padding: 16px;
   }
 
   .cdl-split__glass {
-    padding: 16px 22px;
-    border-radius: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
   }
 
   .cdl-split__title {
-    font-size: 24px;
+    font-size: 18px;
+    line-height: 1.15;
+    margin: 0 0 2px 0;
   }
 
-  /* Two-col mobile: smaller text */
-  .cdl-split--two-col-mobile .cdl-split__title {
-    font-size: 20px;
-  }
-
-  /* Show subtitle always on mobile (no hover) */
+  /* Subtitle on single-col mobile (one wide card per row): kept
+     visible but clamped to 2 lines + smaller font so the glass
+     doesn't grow tall. */
   .cdl-split__sub {
-    max-height: 80px;
+    font-size: 12px;
+    line-height: 1.35;
     opacity: 1;
+    margin-top: 2px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-height: calc(1.35em * 2);
+  }
+
+  /* TWO-COL MOBILE specifically (tablet / landscape phone, 601-900px):
+     when the cards are side-by-side, each card is roughly 400-450px
+     wide. The shared glass styles above (12/16 padding, 20px title,
+     13px 2-line subtitle, dark glass) made the glass cover ~40% of
+     the card height — the merchant reported the photos were getting
+     swallowed.
+
+     Tighten everything for the half-width context:
+       - content padding: 20 → 5/10 (asymmetric — minimal top/bottom
+         to slam the glass against the card's bottom edge so it stops
+         eating into the mirror image area; modest horizontal so the
+         pill has a small inset from the card sides)
+       - glass padding: 12/16 → 7/12 (smaller pill)
+       - glass border-radius: 12 → 8 (matches smaller pill)
+       - title: 20 → 14 (fits the narrower card)
+       - subtitle: 13 / 2-line → 11 / 1-line (single tight caption)
+       - glass background forced to rgba(0,0,0,0.4) for legibility
+         over both the bright day-image and the dark portal-image
+       - max-width: 80% so the glass can't span the whole card width
+         (leaves visible image to the right of the pill, prevents the
+         "billboard sitting on top of the photo" feel)
+     Result: glass at ~15% of card height pinned to the bottom edge,
+     photo as the visual hero. */
+  .cdl-split--two-col-mobile .cdl-split__content {
+    padding: 5px 10px;
+  }
+  /* Glass matches DESKTOP aesthetic across every device size — no
+     forced dark background. The merchant explicitly asked for the
+     desktop subtle frosted-glass look to be used on phones and
+     tablets too, instead of the heavy rgba(0,0,0,0.4) tint I'd
+     introduced for "legibility". Pure backdrop-filter blur + the
+     existing 1px white border carries the readability on its own
+     because the title sits over the BLURRED underlying photo (the
+     blur softens contrast so white text reads cleanly on either
+     the bright day photo OR the teal/dark portal photo).
+
+     Compact pill size:
+       - padding: 6/12 (was 7/12) — shaves another 2px of height
+       - border-radius: 8 (matches the pill scale)
+       - max-width: 65% (was 80%) — pill is now a tight badge, not
+         a billboard; image is the visual hero
+       - NO `background` override — inherits the merchant's JSON
+         `glass_bg: "rgba(0,0,0,0)"` (transparent) so it matches
+         desktop's subtle treatment exactly */
+  /* IDENTICAL-LOOKING GLASS PILLS for both day and night cards.
+     The merchant's day_title is plain "Mirror by day." but
+     night_title is HTML <em>Portal by night.</em> — that em tag
+     gets italic + 800 weight (gradient text-grad-text class),
+     which has wider glyph metrics per character. At the same
+     font-size the night title is ~25% wider than the day title,
+     so it was wrapping to two lines while the day title fit one.
+
+     Fix: lock both pills to:
+       - FIXED width (70% of card) → both pills are visually
+         identical width on the same row regardless of title
+       - SMALLER font (12px) → both titles fit one line at the
+         narrowest target viewport (320px Android)
+       - white-space: nowrap → no chance of wrapping ever
+       - text-overflow: ellipsis → defensive truncation if a
+         future merchant title is too long
+     Tested mentally:
+       320px Android: card ~145px, glass 70%=101px, padding 24=
+         text area 77px. "Portal by night." italic 800 at 12px
+         ≈ 80px text, overflows by ~3px → ellipsis truncates.
+       375px iPhone SE: card 171px, glass 120px, text area 96px.
+         All titles fit.
+       768px iPad: card 360px, glass 252px — plenty of room. */
+  /* Match the desktop "compact pill" look on mobile two-col:
+       - width: fit-content inherited from base (no 70% lock)
+       - title scales fluidly via clamp so 22px is achievable on
+         ≥420px viewports and shrinks to 15px on tight 320px Android
+       - no white-space: nowrap; let the title wrap if a future
+         merchant title is too long (better than ellipsis cut)
+       - title margin / line-height match desktop's compact spec */
+  .cdl-split--two-col-mobile .cdl-split__glass {
+    padding: 6px 12px;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+  .cdl-split--two-col-mobile .cdl-split__title {
+    font-size: clamp(14px, 4vw, 20px);
+    line-height: 1.15;
+    margin: 0;
+  }
+  /* Make sure the <em> styling inside the night title doesn't
+     introduce a different line-height or padding that would
+     make the night pill look taller. */
+  .cdl-split--two-col-mobile .cdl-split__title em {
+    line-height: inherit;
+  }
+  /* CRITICAL: display:none on two-col-mobile subtitle default state.
+     The single-col mobile rule above sets display: -webkit-box on
+     .cdl-split__sub which would otherwise apply here too — and even
+     with max-height:0 / opacity:0 the rendered subtitle's natural
+     inline width was driving the pill's width: fit-content sizing.
+     The merchant kept seeing the pill extend past the title text on
+     mobile; this is the actual root cause (the invisible subtitle
+     was dictating fit-content). display:none truly removes the
+     subtitle from layout so the pill hugs the title only. Hover /
+     focus rule below re-enables display: block. */
+  .cdl-split--two-col-mobile .cdl-split__sub {
+    display: none;
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+    overflow: hidden;
+  }
+  .cdl-split--two-col-mobile .cdl-split__card:hover .cdl-split__sub,
+  .cdl-split--two-col-mobile .cdl-split__card:focus-within .cdl-split__sub,
+  .cdl-split--two-col-mobile .cdl-split__card.is-tap-expanded .cdl-split__sub {
+    /* Mobile reveal: subtitle expands to ONE LINE with ellipsis
+       truncation if it overflows. Restores both display AND
+       max-height (base mobile rule sets both to hidden/0). The
+       night subtitle has been shortened in the merchant JSON to
+       fit at this width, so the truncation is rarely triggered;
+       it's defensive for future longer titles. */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    font-size: 12px;
+    line-height: 1.35;
+    max-height: 1.5em;
     margin-top: 4px;
+    opacity: 1;
   }
 }
 
 @media (max-width: 600px) {
+  /* Cards reach closer to viewport edges on mobile so the imagery dominates.
+     Cap horizontal section padding + card gap to small values; merchant's
+     smaller values pass through untouched, larger ones clamp. */
+  .cdl-split {
+    padding-left: min(var(--cdl-split-padding, 0px), 10px);
+    padding-right: min(var(--cdl-split-padding, 0px), 10px);
+  }
+
+  .cdl-split--two-col-mobile {
+    gap: min(var(--cdl-split-gap, 0px), 8px);
+  }
+
   .cdl-split__card {
     min-height: 220px;
   }
@@ -686,39 +1067,93 @@
     min-height: 200px;
   }
 
+  /* Glass overlay shrunk so the underlying image (mirror photo /
+     RGB portal animation) stays visible behind it. The merchant
+     reported the previous 14/18px padding + 20px font-size + 13px
+     subtitle (with a 2-3 line wrapping subtitle) made the glass
+     cover ~35% of the card height, hiding too much of the photo.
+     New values land the glass at ~22% of card height with a 2-line
+     subtitle clamp. */
   .cdl-split__content {
-    padding: 20px;
+    padding: 16px;
   }
 
-  /* Two-col mobile: tighter padding */
+  /* Two-col mobile: minimal padding pins the glass to the card's
+     bottom edge so it stops cutting into the mirror image area. */
   .cdl-split--two-col-mobile .cdl-split__content {
-    padding: 14px;
+    padding: 4px 8px;
   }
 
   .cdl-split__glass {
-    padding: 14px 18px;
+    padding: 10px 14px;
     border-radius: 10px;
   }
 
+  /* Two-col mobile glass — subtle dark tint for readability over
+     bright/varied imagery (the merchant's day card has a light photo,
+     the night card has a teal/dark photo, so a single neutral dark
+     glass reads consistently on both). The default `glass_bg` from
+     the merchant's JSON is rgba(0,0,0,0) (fully transparent), which
+     relies on backdrop-filter alone — on the day-image's bright wall
+     the title becomes hard to read. !important overrides the var. */
+  /* ≤600px two-col-mobile: same compact-pill treatment as the
+     parent ≤900px rule. width: fit-content inherited from base,
+     no 70% lock. Pill hugs title text just like the desktop
+     version the merchant signed off on. */
   .cdl-split--two-col-mobile .cdl-split__glass {
-    padding: 10px 14px;
+    padding: 5px 10px;
     border-radius: 8px;
+    box-sizing: border-box;
+  }
+
+  /* Two-col mobile: tighter card gap so the pair reads as a deliberate
+     side-by-side, not two cards stranded on a wide row. */
+  .cdl-split--two-col-mobile {
+    gap: 10px !important;
   }
 
   .cdl-split__title {
-    font-size: 20px;
+    font-size: 18px;
+    line-height: 1.1;
+    margin: 0 0 2px 0;
   }
 
   .cdl-split--two-col-mobile .cdl-split__title {
-    font-size: 16px;
+    /* ≤600px: scale fluidly between 14-18px so "Mirror by day." and
+       "Portal by night." both fit comfortably in the half-width card
+       at 320-600px viewports. No nowrap — wrap is preferable to
+       ellipsis truncation if a future title is too long. */
+    font-size: clamp(14px, 4vw, 18px);
+    line-height: 1.15;
+    margin: 0;
+  }
+  .cdl-split--two-col-mobile .cdl-split__title em {
+    line-height: inherit;
   }
 
   .cdl-split__sub {
-    font-size: 13px;
+    font-size: 12px;
+    line-height: 1.35;
+    /* Clamp subtitle to two lines so the glass can't grow tall on
+       longer descriptions ("Sixteen million colours. Music-reactive…").
+       Excess wraps to ellipsis. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-height: calc(1.35em * 2);
   }
 
-  .cdl-split--two-col-mobile .cdl-split__sub {
+  /* ≤600px two-col-mobile: subtitle stays hidden by default; on
+     hover (irrelevant — no hover on touch), focus, or tap-expand
+     (JS) reveals as ONE LINE with ellipsis truncation. Smaller
+     font here for the narrower cards. */
+  .cdl-split--two-col-mobile .cdl-split__card:hover .cdl-split__sub,
+  .cdl-split--two-col-mobile .cdl-split__card:focus-within .cdl-split__sub,
+  .cdl-split--two-col-mobile .cdl-split__card.is-tap-expanded .cdl-split__sub {
     font-size: 11px;
+    line-height: 1.35;
+    max-height: 1.5em;
   }
 }
 

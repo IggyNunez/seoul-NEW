@@ -59,7 +59,7 @@
         assign menu_theme = 'dark-glow'
       when 'best-sellers', 'popular', 'top-rated', 'k-beauty'
         assign menu_theme = 'emerald'
-      when 'sale', 'clearance', 'deals', 'offers'
+      when 'sale', 'deals', 'offers'
         assign menu_theme = 'rose'
       when 'about', 'about-us', 'customer-care', 'support', 'help', 'faq', 'contact', 'our-story'
         assign menu_theme = 'midnight'
@@ -79,7 +79,23 @@
   endif
 -%}
 
-{%- comment -%} Generate inline style for custom colors if provided {%- endcomment -%}
+{%- comment -%}
+  Generate inline style for custom colors if provided.
+
+  BRAND V1 — quiet chrome principle (docs/brand-book-v1.html):
+  Chrome stays neutral; products + content carry color. So the
+  merchant's per-menu menu_color block is allowed to color CONTENT-
+  level tokens (link color, featured label, the small octagon
+  spinner inside featured cards), but it does NOT color CHROME-level
+  tokens (panel ambient glow, row hover bg, featured card body bg,
+  top-bar gradient, card hover border, icon hover bg).
+
+  Chrome tokens are baked at the base .casa-mega-menu rule using
+  brand purple/pink — uniform across every menu regardless of variant
+  or merchant settings. That kills the "different menu = different
+  full-panel color" effect and pulls every megamenu into one quiet,
+  brand-aligned chrome.
+{%- endcomment -%}
 {%- capture custom_color_style -%}
   {%- if has_custom_colors -%}
     --mega-accent-1: {{ custom_accent_primary }};
@@ -87,15 +103,7 @@
     --mega-accent-3: {{ custom_accent_tertiary | default: custom_accent_secondary | default: custom_accent_primary }};
     --mega-accent-1-rgb: {{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }};
     --mega-accent-2-rgb: {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'blue' }};
-    --mega-glow-1: rgba({{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }}, 0.15);
-    --mega-glow-2: rgba({{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'blue' }}, 0.1);
-    --mega-cat-hover-bg: linear-gradient(135deg, rgba({{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }}, 0.15), rgba({{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'blue' }}, 0.1));
-    --mega-cat-icon-bg: linear-gradient(135deg, rgba({{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }}, 0.2), rgba({{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'blue' }}, 0.15));
-    --mega-cat-icon-hover: linear-gradient(135deg, {{ custom_accent_primary }}, {{ custom_accent_secondary | default: custom_accent_primary }});
-    --mega-featured-bg: linear-gradient(135deg, rgba({{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }}, 0.15), rgba({{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_secondary | default: custom_accent_primary | color_extract: 'blue' }}, 0.1));
     --mega-featured-label-color: {{ custom_accent_secondary | default: custom_accent_primary }};
-    --mega-featured-top-bar: linear-gradient(90deg, {{ custom_accent_primary }}, {{ custom_accent_secondary | default: custom_accent_primary }}, {{ custom_accent_tertiary | default: custom_accent_secondary | default: custom_accent_primary }});
-    --mega-card-hover-border: rgba({{ custom_accent_primary | color_extract: 'red' }}, {{ custom_accent_primary | color_extract: 'green' }}, {{ custom_accent_primary | color_extract: 'blue' }}, 0.3);
     --mega-link-color: {{ custom_accent_primary }};
   {%- endif -%}
 {%- endcapture -%}
@@ -111,104 +119,367 @@
         {%- else -%}{{ categories_title_glow | default: 'Categories' }}
         {%- endif -%}
       </div>
+
+      {%- comment -%}
+        Option G — brand-voice headline (italic-gradient `<em>` accent).
+        Locked typography decision (see memory:
+        brand_typography_locked_2026-05-04.md). Headline copy is brand
+        voice — varies per menu variant but stays code-locked, not
+        merchant-editable, same way the gradient accent rule is locked.
+      {%- endcomment -%}
+      <h3 class="casa-mega-cat-headline">
+        {%- if menu_variant == 'support' -%}How can we <em>help?</em>
+        {%- elsif menu_variant == 'lifestyle' -%}Curated <em>rituals.</em>
+        {%- else -%}Find your <em>glow.</em>
+        {%- endif -%}
+      </h3>
+
+      {%- comment -%}
+        Prominent "Shop All [Category]" CTA — every collection-backed
+        drawer (Shop All → all products, Lighting → all lighting,
+        Home Decor → all home decor). Gives each drawer one
+        unambiguous, high-visibility path to its own full collection,
+        in the slot left by the desktop-hidden hero card. Shown for any
+        non-support drawer whose top-level links to a collection;
+        support drawers (Help) have no collection so they're excluded.
+        `_show_shop_all_cta` + `_link_last_handle` stay in scope for the
+        two category loops below, which skip the now-duplicate
+        "all-{this collection}" row (e.g. "All Products" in Shop All).
+      {%- endcomment -%}
+      {%- assign _link_last_handle = link.url | split: '/' | last -%}
+      {%- assign _is_shop_all_menu = false -%}
+      {%- if _title_handle == 'shop-all' or _title_handle == 'shop' or _title_handle == 'all' or _title_handle == 'all-products' or _link_last_handle == 'all' -%}
+        {%- assign _is_shop_all_menu = true -%}
+      {%- endif -%}
+      {%- assign _show_shop_all_cta = false -%}
+      {%- if menu_variant != 'support' and link.url contains '/collections/' -%}
+        {%- assign _show_shop_all_cta = true -%}
+      {%- endif -%}
+      {%- if _show_shop_all_cta -%}
+        {%- if _is_shop_all_menu -%}
+          {%- assign _shop_all_label = 'Shop All Products' -%}
+          {%- assign _shop_all_sub = 'Browse everything' -%}
+          {%- assign _shop_all_url = collections.all.url | default: '/collections/all' -%}
+        {%- elsif _title_handle == 'home-decor' or _link_last_handle == 'home-accents' or _link_last_handle == 'home-decor' -%}
+          {%- comment -%} "Shop All Home Decor" (19 chars) clips the narrow column even at the 1000px floor; "Decor" is the unambiguous short form and fits like the 17-char labels. {%- endcomment -%}
+          {%- assign _shop_all_label = 'Shop All Decor' -%}
+          {%- assign _shop_all_sub = 'Browse the full range' -%}
+          {%- assign _shop_all_url = link.url -%}
+        {%- else -%}
+          {%- assign _shop_all_label = 'Shop All ' | append: link.title -%}
+          {%- assign _shop_all_sub = 'Browse the full range' -%}
+          {%- assign _shop_all_url = link.url -%}
+        {%- endif -%}
+        <a href="{{ _shop_all_url }}" class="casa-mega-shop-all" aria-label="{{ _shop_all_label | escape }}">
+          <span class="casa-mega-shop-all__icon" aria-hidden="true">{%- render 'casa-icon', icon: 'grid', size: 16 -%}</span>
+          <span class="casa-mega-shop-all__text">
+            <span class="casa-mega-shop-all__label">{{ _shop_all_label }}</span>
+            <span class="casa-mega-shop-all__sub">{{ _shop_all_sub }}</span>
+          </span>
+          <span class="casa-mega-shop-all__arrow" aria-hidden="true">{%- render 'casa-icon', icon: 'arrow-right', size: 16 -%}</span>
+        </a>
+      {%- endif -%}
+
+      {%- comment -%}
+        Option G — hero card pre-pass.
+        Walk the children once, find the first featured item, and render
+        it as a curated visual moment ABOVE the list. Same featured-
+        detection rule as Option C (badge metafield = featured/best/
+        popular/hot, OR handle = best-sellers / bestsellers). The hero
+        is then skipped in the main loop with `continue`. If no child
+        is featured, the hero card simply doesn't render and the list
+        flows up underneath.
+      {%- endcomment -%}
+      {%- assign _hero_handle = '' -%}
+      {%- assign _hero_link = nil -%}
+      {%- assign _hero_collection = nil -%}
+      {%- for _scan_link in link.links -%}
+        {%- if _hero_handle != '' -%}{%- break -%}{%- endif -%}
+        {%- assign _scan_url_parts = _scan_link.url | split: '/' -%}
+        {%- assign _scan_handle = _scan_url_parts | last -%}
+        {%- assign _scan_collection = collections[_scan_handle] -%}
+        {%- assign _scan_badge = '' -%}
+        {%- if _scan_collection.metafields.sgl.badge != blank -%}
+          {%- assign _scan_badge = _scan_collection.metafields.sgl.badge | downcase -%}
+        {%- endif -%}
+        {%- if _scan_badge == 'featured' or _scan_badge == 'best' or _scan_badge == 'popular' or _scan_badge == 'hot' -%}
+          {%- assign _hero_handle = _scan_handle -%}
+          {%- assign _hero_link = _scan_link -%}
+          {%- assign _hero_collection = _scan_collection -%}
+        {%- elsif _scan_handle == 'best-sellers' or _scan_handle == 'bestsellers' -%}
+          {%- assign _hero_handle = _scan_handle -%}
+          {%- assign _hero_link = _scan_link -%}
+          {%- assign _hero_collection = _scan_collection -%}
+        {%- endif -%}
+      {%- endfor -%}
+
+      {%- comment -%}
+        Hero render — uses _hero_link if a child was flagged featured,
+        otherwise falls back to the global Best Sellers collection so
+        every Glow / Lifestyle drawer always shows a visual moment per
+        the Option G mockup. Suppressed for Support.
+      {%- endcomment -%}
+      {%- assign _hero_url = '' -%}
+      {%- assign _hero_title = '' -%}
+      {%- if _hero_link != nil and menu_variant != 'support' -%}
+        {%- assign _hero_url = _hero_link.url -%}
+        {%- assign _hero_title = _hero_link.title -%}
+      {%- elsif menu_variant != 'support' -%}
+        {%- assign _global_best = collections['best-sellers'] -%}
+        {%- if _global_best != blank -%}
+          {%- assign _hero_url = '/collections/best-sellers' -%}
+          {%- assign _hero_title = 'Best Sellers' -%}
+          {%- assign _hero_collection = _global_best -%}
+        {%- endif -%}
+      {%- endif -%}
+
+      {%- if _hero_url != '' -%}
+        {%- assign _hero_focal_x = _hero_collection.metafields.sgl.focal_x -%}
+        {%- assign _hero_focal_y = _hero_collection.metafields.sgl.focal_y -%}
+        {%- if _hero_focal_x != blank -%}{%- assign _hero_focal_x_pct = _hero_focal_x | times: 100 -%}{%- else -%}{%- assign _hero_focal_x_pct = 50 -%}{%- endif -%}
+        {%- if _hero_focal_y != blank -%}{%- assign _hero_focal_y_pct = _hero_focal_y | times: 100 -%}{%- else -%}{%- assign _hero_focal_y_pct = 50 -%}{%- endif -%}
+        <a href="{{ _hero_url }}" class="casa-mega-cat-hero">
+          {%- if _hero_collection.image != blank -%}
+            <img class="casa-mega-cat-hero-img"
+                 src="{{ _hero_collection.image | image_url: width: 600 }}"
+                 srcset="{{ _hero_collection.image | image_url: width: 300 }} 300w, {{ _hero_collection.image | image_url: width: 600 }} 600w, {{ _hero_collection.image | image_url: width: 900 }} 900w"
+                 sizes="(min-width: 1024px) 280px, 360px"
+                 alt="{{ _hero_collection.image.alt | escape | default: _hero_title | escape }}"
+                 width="600" height="338"
+                 loading="lazy" decoding="async"
+                 style="object-position: {{ _hero_focal_x_pct }}% {{ _hero_focal_y_pct }}%">
+          {%- endif -%}
+          <span class="casa-mega-cat-hero-overlay" aria-hidden="true"></span>
+          <span class="casa-mega-cat-hero-content">
+            <span class="casa-mega-cat-hero-text">
+              <span class="casa-mega-cat-hero-tag">Featured · Most-Loved</span>
+              <span class="casa-mega-cat-hero-name">{{ _hero_title }}</span>
+            </span>
+            <span class="casa-mega-cat-hero-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 6 15 12 9 18"/>
+              </svg>
+            </span>
+          </span>
+        </a>
+      {%- endif -%}
+
       <div class="casa-mega-cat-list">
+        {%- comment -%}
+          Detect whether the merchant has hand-curated section dividers
+          (`—` em-dash prefix on a title). If so, render in their order
+          via the original single-pass loop. If not — and the menu is
+          Glow / Lifestyle, not Support — run the 5-pass auto-group
+          renderer below so the live drawer matches the Option G mockup
+          ("Shop / Lamps / Walls" sub-headers) without the merchant
+          having to add divider items in admin.
+        {%- endcomment -%}
+        {%- assign _has_manual_sections = false -%}
+        {%- for _ck in link.links -%}
+          {%- assign _ck_first1 = _ck.title | strip | slice: 0, 1 -%}
+          {%- if _ck_first1 == '—' or _ck_first1 == '–' -%}
+            {%- assign _has_manual_sections = true -%}
+            {%- break -%}
+          {%- endif -%}
+        {%- endfor -%}
+
+        {%- if menu_variant == 'support' or _has_manual_sections -%}
         {%- for child_link in link.links -%}
           {%- comment -%} Extract real handle from URL (more reliable than link.handle which derives from title) {%- endcomment -%}
           {%- assign _child_url_parts = child_link.url | split: '/' -%}
           {%- assign _child_url_handle = _child_url_parts | last -%}
+
+          {%- comment -%}
+            Option G — skip the hero item in the list. It's already
+            rendered as the hero card above. Section headers (`—`
+            prefix) are NOT skipped even if they share the hero's
+            handle (defensive — section markers don't have URLs that
+            collide with collection handles).
+          {%- endcomment -%}
+          {%- if _hero_handle != '' and _child_url_handle == _hero_handle -%}
+            {%- continue -%}
+          {%- endif -%}
+
+          {%- comment -%} Drawers with the prominent "Shop All [Category]" button above already cover their own collection — skip the duplicate row (e.g. "All Products" in Shop All). {%- endcomment -%}
+          {%- if _show_shop_all_cta and _child_url_handle == _link_last_handle -%}{%- continue -%}{%- endif -%}
+
           {%- assign child_collection = collections[_child_url_handle] -%}
-          {%- assign child_page = pages[_child_url_handle] -%}
-          {%- assign child_cat_image = nil -%}
-          {%- if child_collection != blank and child_collection.image != blank -%}
-            {%- assign child_cat_image = child_collection.image -%}
-          {%- endif -%}
-          {%- if child_cat_image == blank and child_page != blank and child_page.metafields.custom.page_image != blank -%}
-            {%- assign child_cat_image = child_page.metafields.custom.page_image.value -%}
-          {%- endif -%}
-          {%- assign child_icon = 'hexagon' -%}
           {%- assign badge_text = '' -%}
           {%- if child_collection.metafields.sgl.badge != blank -%}
             {%- assign badge_text = child_collection.metafields.sgl.badge -%}
           {%- endif -%}
-          {%- if child_collection.metafields.sgl.icon != blank -%}
-            {%- assign child_icon = child_collection.metafields.sgl.icon -%}
-          {%- endif -%}
 
-          {%- comment -%} Auto-assign skincare icons based on handle {%- endcomment -%}
-          {%- if menu_variant != 'support' and child_collection.metafields.sgl.icon == blank -%}
-            {%- case _child_url_handle -%}
-              {%- when 'all', 'shop-all', 'skincare' -%}{%- assign child_icon = 'sparkles' -%}
-              {%- when 'cleansers', 'cleanser', 'cleansing' -%}{%- assign child_icon = 'droplet' -%}
-              {%- when 'serums', 'serum', 'ampoules' -%}{%- assign child_icon = 'flask' -%}
-              {%- when 'moisturizers', 'moisturizer', 'cream', 'creams' -%}{%- assign child_icon = 'moon' -%}
-              {%- when 'essences', 'essence', 'toners', 'toner' -%}{%- assign child_icon = 'droplet' -%}
-              {%- when 'sunscreens', 'sunscreen', 'spf', 'sun-care' -%}{%- assign child_icon = 'sun' -%}
-              {%- when 'masks', 'mask', 'sheet-masks' -%}{%- assign child_icon = 'heart' -%}
-              {%- when 'exfoliators', 'exfoliator', 'peels' -%}{%- assign child_icon = 'refresh' -%}
-              {%- when 'eye-cream', 'eye-care' -%}{%- assign child_icon = 'eye' -%}
-              {%- when 'treatments', 'treatment' -%}{%- assign child_icon = 'zap' -%}
-              {%- when 'sets', 'bundles', 'routines', 'routine' -%}{%- assign child_icon = 'grid' -%}
-              {%- when 'new-arrivals', 'new' -%}{%- assign child_icon = 'sparkles' -%}
-              {%- when 'best-sellers', 'bestsellers', 'popular' -%}{%- assign child_icon = 'star' -%}
-              {%- when 'sale', 'on-sale', 'clearance' -%}{%- assign child_icon = 'tag' -%}
-              {%- when 'k-beauty', 'korean-skincare' -%}{%- assign child_icon = 'heart' -%}
-              {%- when 'tools', 'accessories' -%}{%- assign child_icon = 'box' -%}
-            {%- endcase -%}
-          {%- endif -%}
-
-          {%- comment -%} Auto-assign support icons based on handle {%- endcomment -%}
-          {%- if menu_variant == 'support' -%}
-            {%- case _child_url_handle -%}
-              {%- when 'contact', 'contact-us' -%}{%- assign child_icon = 'headphones' -%}
-              {%- when 'shipping', 'shipping-policy' -%}{%- assign child_icon = 'truck' -%}
-              {%- when 'returns', 'refund-policy', 'refunds-returns' -%}{%- assign child_icon = 'refresh' -%}
-              {%- when 'warranty' -%}{%- assign child_icon = 'shield-check' -%}
-              {%- when 'faq' -%}{%- assign child_icon = 'search' -%}
-              {%- when 'our-story', 'about', 'about-us' -%}{%- assign child_icon = 'users' -%}
-              {%- when 'track-order', 'order-status' -%}{%- assign child_icon = 'package' -%}
-              {%- when 'customer-reviews', 'reviews' -%}{%- assign child_icon = 'star' -%}
-              {%- when 'skin-quiz', 'quiz' -%}{%- assign child_icon = 'search' -%}
-            {%- endcase -%}
-          {%- endif -%}
-
-          <a href="{{ child_link.url }}" class="casa-mega-cat-item{% unless show_category_icons %} casa-mega-cat-item--no-icon{% endunless %}">
-            {%- if show_category_icons -%}
-              {%- assign child_cat_image_url = child_cat_image | image_url: width: 88, height: 88, crop: 'center' -%}
-              <div class="casa-mega-cat-icon{% if child_cat_image_url != blank %} casa-mega-cat-icon--has-image{% endif %}">
-                {%- if child_cat_image_url != blank -%}
-                  <img
-                    src="{{ child_cat_image_url }}"
-                    alt="{{ child_link.title | escape }}"
-                    width="44"
-                    height="44"
-                    loading="lazy"
-                    class="casa-mega-cat-img"
-                  >
-                {%- else -%}
-                  {%- render 'casa-icon', icon: child_icon, size: 22 -%}
-                {%- endif -%}
-              </div>
+          {%- comment -%}
+            Option C — text-led, sectioned (mockups/megamenu-options.html).
+            Section header convention: child link titles starting with
+            `—` (em-dash) or `--` are rendered as a section header
+            (mono UPPERCASE, top border) instead of a clickable item.
+            Lets the merchant group categories from the Shopify menu UI:
+              — Shop
+              All Products
+              Best Sellers
+              — Lamps
+              Floor Lamps
+              ...
+          {%- endcomment -%}
+          {%- assign _ch_first2 = child_link.title | strip | slice: 0, 2 -%}
+          {%- assign _is_section = false -%}
+          {%- if _ch_first2 == '——' or _ch_first2 == '--' -%}
+            {%- assign _is_section = true -%}
+          {%- else -%}
+            {%- assign _ch_first1 = child_link.title | strip | slice: 0, 1 -%}
+            {%- if _ch_first1 == '—' or _ch_first1 == '–' -%}
+              {%- assign _is_section = true -%}
             {%- endif -%}
-            <div class="casa-mega-cat-content">
-              <div class="casa-mega-cat-name">{{ child_link.title }}</div>
+          {%- endif -%}
+
+          {%- if _is_section -%}
+            <div class="casa-mega-cat-section">
+              {{ child_link.title | replace: '——', '' | replace: '—', '' | replace: '–', '' | replace: '--', '' | strip }}
+            </div>
+          {%- else -%}
+            {%- comment -%}
+              Featured highlight: brand purple→pink left-edge bar — single
+              accent moment per drawer. Triggered by casa.badge metafield
+              ("featured"/"best"/"popular"/"hot") or by a known featured
+              handle.
+            {%- endcomment -%}
+            {%- assign _is_featured = false -%}
+            {%- assign _badge_lc = badge_text | downcase -%}
+            {%- if _badge_lc == 'featured' or _badge_lc == 'best' or _badge_lc == 'popular' or _badge_lc == 'hot' -%}
+              {%- assign _is_featured = true -%}
+            {%- elsif _child_url_handle == 'best-sellers' or _child_url_handle == 'bestsellers' -%}
+              {%- assign _is_featured = true -%}
+            {%- endif -%}
+
+            <a href="{{ child_link.url }}" class="casa-mega-cat-item{% if _is_featured %} casa-mega-cat-item--featured{% endif %}">
+              <span class="casa-mega-cat-name">{{ child_link.title }}</span>
+              {%- comment -%}
+                Subtitle: only render when we have actual content. The
+                chevron already implies "click to learn more"; rendering
+                a literal "Learn more" on every row is redundant noise.
+              {%- endcomment -%}
               {%- if menu_variant == 'support' -%}
-                <div class="casa-mega-cat-count">
-                  {%- if child_collection.metafields.sgl.description != blank -%}
-                    {{ child_collection.metafields.sgl.description }}
-                  {%- else -%}
-                    {{ support_fallback_description | default: 'Learn more' }}
-                  {%- endif -%}
-                </div>
+                {%- if child_collection.metafields.sgl.description != blank -%}
+                  <span class="casa-mega-cat-count">{{ child_collection.metafields.sgl.description }}</span>
+                {%- endif -%}
+              {%- elsif child_collection -%}
+                {%- assign _child_count = child_collection.all_products_count | default: child_collection.products_count -%}
+                {%- if _child_count > 0 -%}
+                  <span class="casa-mega-cat-count">{{ _child_count }} items</span>
+                {%- endif -%}
               {%- endif -%}
-            </div>
-            {%- if badge_text != blank -%}
-              <span class="casa-mega-cat-badge casa-mega-cat-badge--{{ badge_text | downcase }}">{{ badge_text }}</span>
-            {%- endif -%}
-            <div class="casa-mega-cat-arrow">
-              {%- render 'casa-icon', icon: 'chevron-right', size: 20 -%}
-            </div>
-          </a>
+              <svg class="casa-mega-cat-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </a>
+          {%- endif -%}
         {%- endfor -%}
+
+        {%- else -%}
+        {%- comment -%}
+          ═══════════════════════════════════════════════════════════
+          Auto-group renderer (5 sub-passes by detected category type)
+          Activates when the merchant has NOT provided manual `—`
+          dividers AND the menu variant is Glow / Lifestyle. Sorts
+          children into Shop / Lamps / Walls & Surfaces / Home / More
+          buckets so the live drawer matches the Option G mockup
+          ("Shop / Lamps / Walls" sub-headers) without admin work.
+          Each pass renders its section header lazily — only if at
+          least one child landed in that bucket.
+          ═══════════════════════════════════════════════════════════
+        {%- endcomment -%}
+        {%- assign _section_labels = 'Shop|Skincare|Makeup|Wellness|More' | split: '|' -%}
+        {%- for _section_label in _section_labels -%}
+          {%- assign _section_idx = forloop.index -%}
+          {%- assign _section_rendered = false -%}
+
+          {%- comment -%}
+            Within each section, render in two priority passes:
+              priority 1 — "all-*" overview entries (e.g. "All Lighting"
+                           in Lamps, "All Products" in Shop). These
+                           always come first as the parent entry.
+              priority 2 — everything else, in merchant menu order.
+          {%- endcomment -%}
+          {%- for _priority in (1..2) -%}
+          {%- for child_link in link.links -%}
+            {%- assign _child_url_parts = child_link.url | split: '/' -%}
+            {%- assign _child_url_handle = _child_url_parts | last -%}
+
+            {%- comment -%} Skip the hero (rendered above) and any defensive `—` markers {%- endcomment -%}
+            {%- if _hero_handle != '' and _child_url_handle == _hero_handle -%}{%- continue -%}{%- endif -%}
+            {%- if _show_shop_all_cta and _child_url_handle == _link_last_handle -%}{%- continue -%}{%- endif -%}
+            {%- assign _ch_first1 = child_link.title | strip | slice: 0, 1 -%}
+            {%- if _ch_first1 == '—' or _ch_first1 == '–' -%}{%- continue -%}{%- endif -%}
+
+            {%- comment -%}
+              Bucket assignment — checks URL handle first, then falls
+              back to the link title for cases where the handle is
+              obscure (e.g. /collections/whats-new vs /collections/
+              new-arrivals). Title check is an EXACT match against
+              well-known shop labels so we don't false-positive on a
+              category whose name happens to contain "new" or "best".
+              Order of elif matters:
+                "wall-lamps"    matches Lamps  (lamp before wall)
+                "table-lamps"   matches Lamps  (lamp before table)
+                "infinity-mirrors" matches Walls & Surfaces
+                everything else  → More
+            {%- endcomment -%}
+            {%- assign _h = _child_url_handle | downcase -%}
+            {%- assign _t = child_link.title | downcase | strip -%}
+            {%- assign _belongs_to = 5 -%}
+            {%- if _h contains 'all-product' or _h == 'all' or _h contains 'best-seller' or _h contains 'bestseller' or _h contains 'arrival' or _h == 'new' or _h contains 'whats-new' or _h contains 'gift' or _h contains 'sale' or _h contains 'perfect' or _t == 'new arrivals' or _t == 'best sellers' or _t == 'all products' or _t == 'sale' or _t == 'whats new' -%}
+              {%- assign _belongs_to = 1 -%}
+            {%- elsif _h contains 'cleans' or _h contains 'toner' or _h contains 'serum' or _h contains 'essence' or _h contains 'moistur' or _h contains 'sunscreen' or _h contains 'spf' or _h contains 'mask' or _h contains 'eye-cream' or _h contains 'eye-care' or _h contains 'exfoli' or _h contains 'treatment' or _h contains 'ampoule' or _h contains 'skin' or _h contains 'acne' -%}
+              {%- assign _belongs_to = 2 -%}
+            {%- elsif _h contains 'makeup' or _h contains 'make-up' or _h contains 'cosmetic' or _h contains 'lip' or _h contains 'palette' or _h contains 'shadow' or _h contains 'foundation' or _h contains 'cushion' or _h contains 'blush' or _h contains 'brow' or _h contains 'mascara' or _h contains 'liner' or _h contains 'tint' -%}
+              {%- assign _belongs_to = 3 -%}
+            {%- elsif _h contains 'wellness' or _h contains 'ritual' or _h contains 'tea' or _h contains 'tool' or _h contains 'gua' or _h contains 'body' or _h contains 'hair' or _h contains 'supplement' -%}
+              {%- assign _belongs_to = 4 -%}
+            {%- endif -%}
+            {%- if _belongs_to != _section_idx -%}{%- continue -%}{%- endif -%}
+
+            {%- comment -%} Priority filter — "all-*" first, everything else second {%- endcomment -%}
+            {%- assign _is_all = false -%}
+            {%- if _h == 'all' or _h contains 'all-' -%}{%- assign _is_all = true -%}{%- endif -%}
+            {%- if _priority == 1 and _is_all == false -%}{%- continue -%}{%- endif -%}
+            {%- if _priority == 2 and _is_all == true -%}{%- continue -%}{%- endif -%}
+
+            {%- comment -%} Lazy section header — only render when at least one item lands in this bucket {%- endcomment -%}
+            {%- if _section_rendered == false -%}
+              <div class="casa-mega-cat-section">{{ _section_label }}</div>
+              {%- assign _section_rendered = true -%}
+            {%- endif -%}
+
+            {%- comment -%} Featured row indicator — same heuristic as the manual-sections branch {%- endcomment -%}
+            {%- assign child_collection = collections[_child_url_handle] -%}
+            {%- assign _is_featured = false -%}
+            {%- assign _badge_lc = '' -%}
+            {%- if child_collection.metafields.sgl.badge != blank -%}
+              {%- assign _badge_lc = child_collection.metafields.sgl.badge | downcase -%}
+            {%- endif -%}
+            {%- if _badge_lc == 'featured' or _badge_lc == 'best' or _badge_lc == 'popular' or _badge_lc == 'hot' -%}
+              {%- assign _is_featured = true -%}
+            {%- elsif _h == 'best-sellers' or _h == 'bestsellers' -%}
+              {%- assign _is_featured = true -%}
+            {%- endif -%}
+
+            <a href="{{ child_link.url }}" class="casa-mega-cat-item{% if _is_featured %} casa-mega-cat-item--featured{% endif %}">
+              <span class="casa-mega-cat-name">{{ child_link.title }}</span>
+              {%- if child_collection -%}
+                {%- assign _child_count = child_collection.all_products_count | default: child_collection.products_count -%}
+                {%- if _child_count > 0 -%}
+                  <span class="casa-mega-cat-count">{{ _child_count }} items</span>
+                {%- endif -%}
+              {%- endif -%}
+              <svg class="casa-mega-cat-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </a>
+          {%- endfor -%}
+          {%- endfor -%}
+        {%- endfor -%}
+        {%- endif -%}
       </div>
     </div>
 
@@ -221,30 +492,95 @@
         </div>
         <div class="casa-mega-faq-grid">
           {%- for child_link in link.links limit: 4 -%}
+            {%- comment -%}
+              Resolve real handle from URL (link.handle drifts from
+              title in some cases). The icon `case` matches against
+              this — previously the case was matching against
+              `_child_url_handle` which is only assigned in the
+              categories-column loop, so every FAQ card fell through
+              to the default `search` icon. Now handles + a couple of
+              extra cases (track-order / privacy / terms) so each
+              card gets a meaningful icon.
+            {%- endcomment -%}
+            {%- assign _faq_url_parts = child_link.url | split: '/' -%}
+            {%- assign _faq_handle = _faq_url_parts | last -%}
+            {%- assign faq_collection = collections[_faq_handle] -%}
+            {%- assign faq_page = pages[_faq_handle] -%}
             {%- assign faq_icon = 'search' -%}
-            {%- assign faq_collection = collections[child_link.handle] -%}
-            {%- case _child_url_handle -%}
+            {%- assign _faq_title = child_link.title | downcase | strip -%}
+
+            {%- comment -%}
+              Icon resolution: try the URL handle first (exact match
+              against known support handles), then fall back to a
+              substring check against the link TITLE. The title
+              fallback catches cases where the merchant's URL handle
+              doesn't match our list (e.g. /pages/track-your-order
+              instead of /pages/track-order, or /pages/about-our-store
+              instead of /pages/about-us). The title is the merchant-
+              facing string, so it's more stable.
+            {%- endcomment -%}
+            {%- case _faq_handle -%}
               {%- when 'contact', 'contact-us' -%}{%- assign faq_icon = 'headphones' -%}
               {%- when 'shipping', 'shipping-policy' -%}{%- assign faq_icon = 'truck' -%}
               {%- when 'returns', 'refund-policy', 'refunds-returns' -%}{%- assign faq_icon = 'refresh' -%}
               {%- when 'warranty' -%}{%- assign faq_icon = 'shield-check' -%}
               {%- when 'faq' -%}{%- assign faq_icon = 'search' -%}
-              {%- when 'our-story', 'about' -%}{%- assign faq_icon = 'users' -%}
+              {%- when 'our-story', 'about', 'about-us' -%}{%- assign faq_icon = 'users' -%}
               {%- when 'customer-reviews', 'reviews' -%}{%- assign faq_icon = 'star' -%}
               {%- when 'installation', 'apollo-installation' -%}{%- assign faq_icon = 'zap' -%}
+              {%- when 'track-order', 'order-status', 'order-tracking', 'track-your-order', 'track' -%}{%- assign faq_icon = 'package' -%}
+              {%- when 'privacy-policy', 'privacy' -%}{%- assign faq_icon = 'shield-check' -%}
+              {%- when 'terms-of-service', 'terms', 'terms-conditions', 'terms-and-conditions' -%}{%- assign faq_icon = 'document' -%}
             {%- endcase -%}
+
+            {%- comment -%} Title-based fallback when handle didn't match {%- endcomment -%}
+            {%- if faq_icon == 'search' -%}
+              {%- if _faq_title contains 'track' or _faq_title contains 'order' -%}
+                {%- assign faq_icon = 'package' -%}
+              {%- elsif _faq_title contains 'contact' -%}
+                {%- assign faq_icon = 'headphones' -%}
+              {%- elsif _faq_title contains 'ship' -%}
+                {%- assign faq_icon = 'truck' -%}
+              {%- elsif _faq_title contains 'return' or _faq_title contains 'refund' -%}
+                {%- assign faq_icon = 'refresh' -%}
+              {%- elsif _faq_title contains 'warranty' -%}
+                {%- assign faq_icon = 'shield-check' -%}
+              {%- elsif _faq_title contains 'story' or _faq_title contains 'about' -%}
+                {%- assign faq_icon = 'users' -%}
+              {%- elsif _faq_title contains 'review' -%}
+                {%- assign faq_icon = 'star' -%}
+              {%- elsif _faq_title contains 'install' -%}
+                {%- assign faq_icon = 'zap' -%}
+              {%- elsif _faq_title contains 'privacy' -%}
+                {%- assign faq_icon = 'shield-check' -%}
+              {%- elsif _faq_title contains 'terms' -%}
+                {%- assign faq_icon = 'document' -%}
+              {%- elsif _faq_title == 'faq' or _faq_title contains 'question' or _faq_title contains 'help' -%}
+                {%- assign faq_icon = 'search' -%}
+              {%- endif -%}
+            {%- endif -%}
             <a href="{{ child_link.url }}" class="casa-mega-faq-card">
               <div class="casa-mega-faq-icon">
                 {%- render 'casa-icon', icon: faq_icon, size: 20 -%}
               </div>
               <div class="casa-mega-faq-title">{{ child_link.title }}</div>
-              <div class="casa-mega-faq-desc">
-                {%- if faq_collection.metafields.sgl.description != blank -%}
-                  {{ faq_collection.metafields.sgl.description }}
-                {%- else -%}
-                  {{ support_fallback_description | default: 'Quick help & resources' }}
-                {%- endif -%}
-              </div>
+              {%- comment -%}
+                Description: only render when there's actual content
+                (collection.casa.description metafield, or a page's
+                custom.page_subtitle). No "Learn more" / "Quick help"
+                fallback — the chevron arrow already implies "click
+                to learn more" and rendering literal placeholder copy
+                on every card was wasteful noise.
+              {%- endcomment -%}
+              {%- assign _faq_desc = '' -%}
+              {%- if faq_collection.metafields.sgl.description != blank -%}
+                {%- assign _faq_desc = faq_collection.metafields.sgl.description -%}
+              {%- elsif faq_page != blank and faq_page.metafields.custom.page_subtitle != blank -%}
+                {%- assign _faq_desc = faq_page.metafields.custom.page_subtitle -%}
+              {%- endif -%}
+              {%- if _faq_desc != blank -%}
+                <div class="casa-mega-faq-desc">{{ _faq_desc }}</div>
+              {%- endif -%}
               <span class="casa-mega-faq-arrow">
                 {%- render 'casa-icon', icon: 'arrow-right', size: 14 -%}
               </span>
@@ -254,14 +590,32 @@
 
       {%- else -%}
         {%- comment -%} ── Glow & Lifestyle: Products Grid ── {%- endcomment -%}
-        {%- comment -%} Select collection: custom per-menu override > variant default {%- endcomment -%}
+        {%- comment -%}
+          Collection priority:
+            1. Custom per-menu override (menu_collection block)
+            2. The actual menu link's collection — when the merchant
+               links a top-level menu item to a collection (e.g. "Home
+               Decor" → /collections/home-decor), pull products from
+               THAT collection. This stops Home Decor from showing
+               Infinity Mirrors just because the merchant set the
+               generic collection_lifestyle to a catch-all.
+            3. Variant default (collection_lifestyle / collection_glow
+               section settings) for menus whose top-level link isn't
+               a collection_link.
+        {%- endcomment -%}
         {%- liquid
+          assign _active_collection = nil
           if custom_collection != blank
             assign _active_collection = collections[custom_collection]
-          elsif menu_variant == 'lifestyle'
-            assign _active_collection = collections[collection_lifestyle]
-          else
-            assign _active_collection = collections[collection_glow]
+          elsif link.type == 'collection_link' and link.object != blank
+            assign _active_collection = link.object
+          endif
+          if _active_collection == blank or _active_collection == nil
+            if menu_variant == 'lifestyle'
+              assign _active_collection = collections[collection_lifestyle]
+            else
+              assign _active_collection = collections[collection_glow]
+            endif
           endif
         -%}
         <div class="casa-mega-products-header">
@@ -292,8 +646,18 @@
               <a href="{{ product.url }}" class="casa-mega-product-card">
                 <div class="casa-mega-product-img">
                   {%- if product.featured_image != blank -%}
-                    {{ product.featured_image | image_url: width: 300 | image_tag: loading: 'lazy', class: 'casa-mega-product-photo' }}
+                    {%- comment -%}
+                      sizes: 1:1 grid cell in the desktop-only mega panel —
+                      middle column ≈ 52% of the panel (max-width 1400px,
+                      growing to 1600px at ≥1920px). Cells ≤ ~280px below
+                      1920 (2 or 3 cols), ≤ ~350px on the wider ≥1920 panel
+                      with explicit 2 cols. Sizes-less srcset would default
+                      the slot to 100vw (Safari 26 intrinsic trap — see
+                      snippets/casa-cart-items.liquid).
+                    {%- endcomment -%}
+                    {{ product.featured_image | image_url: width: 300 | image_tag: loading: 'lazy', class: 'casa-mega-product-photo', sizes: '(min-width: 1920px) 350px, 280px' }}
                   {%- else -%}
+                    /* perf-justified: desktop megamenu — only renders on hover, dismissed within seconds */
                     <div class="casa-octagon" style="width:60%;height:60%;background:conic-gradient(from var(--angle),var(--mega-accent-1),var(--mega-accent-2),var(--mega-accent-3),var(--mega-accent-1));animation:casa-rotate 8s linear infinite;"></div>
                   {%- endif -%}
 
@@ -308,9 +672,9 @@
                 </div>
                 <div class="casa-mega-product-name">{{ product.title }}</div>
                 <div class="casa-mega-product-price">
-                  <span class="casa-mega-product-price-current">{{ product.price | money }}</span>
+                  <span class="casa-mega-product-price-current">{{ product.price | money_with_currency }}</span>
                   {%- if product.compare_at_price > product.price -%}
-                    <span class="casa-mega-product-price-original">{{ product.compare_at_price | money }}</span>
+                    <span class="casa-mega-product-price-original">{{ product.compare_at_price | money_with_currency }}</span>
                   {%- endif -%}
                 </div>
               </a>
@@ -321,11 +685,12 @@
             {%- for i in (1.._placeholder_limit) -%}
               <div class="casa-mega-product-card casa-mega-product-card--placeholder">
                 <div class="casa-mega-product-img">
+                  /* perf-justified: desktop megamenu — only renders on hover, dismissed within seconds */
                   <div class="casa-octagon" style="width:60%;height:60%;background:conic-gradient(from var(--angle),var(--mega-accent-1),var(--mega-accent-2),var(--mega-accent-3),var(--mega-accent-1));animation:casa-rotate 8s linear infinite;"></div>
                 </div>
                 <div class="casa-mega-product-name">Product {{ i }}</div>
                 <div class="casa-mega-product-price">
-                  <span class="casa-mega-product-price-current">$0.00</span>
+                  <span class="casa-mega-product-price-current">{{ 0 | money_with_currency }}</span>
                 </div>
               </div>
             {%- endfor -%}
@@ -346,10 +711,10 @@
             </span>
           {%- endif -%}
           {%- if support_title != blank -%}
-            <h3 class="casa-mega-featured-title">{{ support_title }}</h3>
+            <h3 class="casa-mega-featured-title">{{ support_title | newline_to_br }}</h3>
           {%- endif -%}
           {%- if support_description != blank -%}
-            <p class="casa-mega-featured-desc">{{ support_description }}</p>
+            <p class="casa-mega-featured-desc">{{ support_description | newline_to_br }}</p>
           {%- endif -%}
           <div class="casa-mega-contact-methods">
             {%- if support_email != blank -%}
@@ -365,7 +730,7 @@
               </a>
             {%- endif -%}
             {%- if support_chat_label != blank -%}
-              <a href="{{ support_chat_link | default: '/pages/contact' }}" class="casa-mega-contact-item">
+              <a href="{{ support_chat_link | default: '/pages/contact-us' }}" class="casa-mega-contact-item">
                 {%- render 'casa-icon', icon: 'message-circle', size: 18 -%}
                 <span>{{ support_chat_label }}</span>
               </a>
@@ -373,7 +738,7 @@
           </div>
           {%- if support_btn_text != blank -%}
           <div class="casa-mega-featured-cta">
-            <a href="{{ support_btn_link | default: '/pages/contact' }}" class="casa-mega-featured-btn casa-mega-featured-btn--primary">
+            <a href="{{ support_btn_link | default: '/pages/contact-us' }}" class="casa-mega-featured-btn casa-mega-featured-btn--primary">
               {{ support_btn_text }} {%- render 'casa-icon', icon: 'arrow-right', size: 16 -%}
             </a>
           </div>
@@ -390,17 +755,34 @@
             </span>
           {%- endif -%}
           {%- if lifestyle_title != blank -%}
-            <h3 class="casa-mega-featured-title">{{ lifestyle_title }}</h3>
+            <h3 class="casa-mega-featured-title">{{ lifestyle_title | newline_to_br }}</h3>
           {%- endif -%}
           {%- if lifestyle_subtitle != blank -%}
-            <p class="casa-mega-featured-desc">{{ lifestyle_subtitle }}</p>
+            <p class="casa-mega-featured-desc">{{ lifestyle_subtitle | newline_to_br }}</p>
           {%- endif -%}
           <div class="casa-mega-featured-visual">
             {%- if lifestyle_image -%}
-              {{ lifestyle_image | image_url: width: 600 | image_tag: loading: 'lazy' }}
+              {%- comment -%}
+                sizes: the featured visual fills the mega panel's right
+                column — 28% of the ≤1400px panel by default, 38% in the
+                support variant; 38vw covers the worst case. Sizes-less
+                srcset would default the slot to 100vw (see
+                snippets/casa-cart-items.liquid).
+              {%- endcomment -%}
+              {{ lifestyle_image | image_url: width: 600 | image_tag: loading: 'lazy', sizes: '(min-width: 1440px) 500px, 38vw' }}
             {%- elsif lifestyle_video_url != blank -%}
-              <video class="casa-mega-featured-video" autoplay loop muted playsinline>
-                <source src="{{ lifestyle_video_url }}" type="video/mp4">
+              {%- comment -%}
+                Lazy-loaded: mega menu is hidden via opacity:0 +
+                visibility:hidden until the user hovers the parent
+                nav link. Without lazy-load the browser would fetch
+                this video on every page load even though the menu
+                is never visible without interaction. Trigger lives
+                in the parent casa-header.liquid section JS — first
+                pointerover on any nav link swaps data-src → src
+                across all .casa-mega-featured-video elements.
+              {%- endcomment -%}
+              <video class="casa-mega-featured-video" loop muted playsinline preload="none" data-casa-mega-lazy-video>
+                <source data-src="{{ lifestyle_video_url | escape }}" type="video/mp4">
               </video>
             {%- else -%}
               <div class="casa-mega-featured-lifestyle-placeholder">
@@ -432,17 +814,21 @@
             </span>
           {%- endif -%}
           {%- if promo_title != blank -%}
-            <h3 class="casa-mega-featured-title">{{ promo_title }}</h3>
+            <h3 class="casa-mega-featured-title">{{ promo_title | newline_to_br }}</h3>
           {%- endif -%}
           {%- if promo_subtitle != blank -%}
-            <p class="casa-mega-featured-desc">{{ promo_subtitle }}</p>
+            <p class="casa-mega-featured-desc">{{ promo_subtitle | newline_to_br }}</p>
           {%- endif -%}
           <div class="casa-mega-featured-visual">
             {%- if promo_image -%}
-              {{ promo_image | image_url: width: 600 | image_tag: loading: 'lazy' }}
+              {%- comment -%}
+                sizes: same right-column slot as the lifestyle visual above
+                (28% default / 38% support of the ≤1400px panel).
+              {%- endcomment -%}
+              {{ promo_image | image_url: width: 600 | image_tag: loading: 'lazy', sizes: '(min-width: 1440px) 500px, 38vw' }}
             {%- elsif video_url != blank -%}
-              <video class="casa-mega-featured-video" autoplay loop muted playsinline>
-                <source src="{{ video_url }}" type="video/mp4">
+              <video class="casa-mega-featured-video" loop muted playsinline preload="none" data-casa-mega-lazy-video>
+                <source data-src="{{ video_url | escape }}" type="video/mp4">
               </video>
             {%- else -%}
               <div class="casa-mega-featured-lifestyle-placeholder">
@@ -487,66 +873,113 @@
      Colors are inherited from parent .casa-header-section CSS vars
      ═══════════════════════════════════════════════════════ */
 
-  /* ── Glow (default): Purple + Pink ── */
-  .casa-mega-menu--glow {
-    --mega-accent-1: var(--casa-glow-primary, #9333ea);
-    --mega-accent-2: var(--casa-glow-secondary, #ec4899);
-    --mega-accent-3: var(--casa-support-primary, #06b6d4);
-    --mega-accent-1-rgb: var(--casa-glow-primary-rgb, 147, 51, 234);
-    --mega-accent-2-rgb: var(--casa-glow-secondary-rgb, 236, 72, 153);
-    --mega-glow-1: rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.15);
-    --mega-glow-2: rgba(var(--casa-glow-secondary-rgb, 236, 72, 153), 0.1);
-    --mega-cat-hover-bg: linear-gradient(135deg, rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.15), rgba(var(--casa-glow-secondary-rgb, 236, 72, 153), 0.1));
-    --mega-cat-icon-bg: linear-gradient(135deg, rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.2), rgba(var(--casa-glow-secondary-rgb, 236, 72, 153), 0.15));
-    --mega-cat-icon-hover: linear-gradient(135deg, var(--casa-glow-primary, #9333ea), var(--casa-glow-secondary, #ec4899));
-    --mega-featured-bg: linear-gradient(135deg, rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.15), rgba(var(--casa-glow-secondary-rgb, 236, 72, 153), 0.1));
-    --mega-featured-label-color: var(--casa-glow-secondary, #ec4899);
-    --mega-featured-top-bar: linear-gradient(90deg, var(--casa-glow-primary, #9333ea), var(--casa-glow-secondary, #ec4899), var(--casa-support-primary, #06b6d4));
-    --mega-card-hover-border: rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.3);
-    --mega-link-color: var(--casa-glow-primary, #9333ea);
+  /* ════════════════════════════════════════════════════════════
+     BRAND V1 QUIET CHROME — uniform across all variants and
+     all merchant menu_color settings. Chrome tokens are forced
+     to brand purple/pink/cyan regardless of variant. Per-variant
+     identity is preserved ONLY through:
+       --mega-accent-1, --mega-accent-2, --mega-accent-3
+         (used for icons inside featured cards, octagon spinner)
+       --mega-featured-label-color
+         (small label color above featured card title)
+       --mega-link-color
+         (text-link color in featured area)
+     ════════════════════════════════════════════════════════════ */
+
+  /* Brand chrome tokens — same on every megamenu.
+     Default --casa-section-text is Casa Paper (#FAFAF7) for the
+     Portal/Editorial Ink-surface menus. Lifestyle variant overrides
+     to Casa Ink for its Daylit Paper surface (see below). */
+  .casa-mega-menu {
+    --mega-glow-1: rgba(176, 195, 250, 0.06);
+    --mega-glow-2: rgba(94, 10, 2, 0.04);
+    --mega-cat-hover-bg: linear-gradient(135deg, rgba(176, 195, 250, 0.10), rgba(94, 10, 2, 0.06));
+    --mega-cat-icon-bg: linear-gradient(135deg, rgba(176, 195, 250, 0.18), rgba(94, 10, 2, 0.12));
+    --mega-cat-icon-hover: linear-gradient(135deg, #B0C3FA, #5E0A02);
+    --mega-featured-bg: linear-gradient(135deg, rgba(176, 195, 250, 0.10), rgba(94, 10, 2, 0.06));
+    --mega-featured-top-bar: linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0);
+    --mega-card-hover-border: rgba(176, 195, 250, 0.28);
+    --casa-section-text: var(--casa-paper);
   }
 
-  /* ── Lifestyle: Gold + Amber ── */
-  .casa-mega-menu--lifestyle {
+  /* ── Glow (default): Purple + Pink ── content-level accents only */
+  .casa-mega-menu--glow {
+    --mega-accent-1: var(--casa-glow-primary, #B0C3FA);
+    --mega-accent-2: var(--casa-glow-secondary, #5E0A02);
+    --mega-accent-3: var(--casa-support-primary, #F2FFA0);
+    --mega-accent-1-rgb: var(--casa-glow-primary-rgb, 176, 195, 250);
+    --mega-accent-2-rgb: var(--casa-glow-secondary-rgb, 94, 10, 2);
+    --mega-featured-label-color: var(--casa-glow-secondary, #5E0A02);
+    --mega-link-color: var(--casa-glow-primary, #B0C3FA);
+  }
+
+  /* ── Lifestyle: Daylit mood = brand Paper surface ──
+     Per brand book (docs/brand-book-v1.html), the lifestyle variant
+     covers Home Decor / Coffee Tables / Vases / Furniture / Decor —
+     sculptural objects best lit by daylight on Paper. Switching the
+     panel surface from Ink to Paper for these menus only.
+
+     - --theme-bg: Casa Paper (#FAFAF7) gradient at 0.86/0.90 opacity
+       (matches the partial-frost depth of the Ink panels)
+     - --theme-text + --theme-text-muted: Casa Ink for body copy
+     - --casa-section-text: Casa Ink for section headers (overrides
+       the default Paper that suits the Ink surface)
+     - --theme-card-bg / --theme-divider: subtle dark on light tones
+     - All other tokens (per-variant accents) carry through.
+
+     Selector specificity note: written as `.casa-mega-menu.casa-mega-
+     menu--lifestyle` (2-class) instead of just `.casa-mega-menu--
+     lifestyle` (1-class) so the lifestyle Paper tokens win over the
+     `.casa-mega-theme--white/-gold/-midnight/-emerald/-rose/-dark-glow`
+     rules below — those single-class theme modifiers were making the
+     Home Decor menu render Ink even when lifestyle was applied. The
+     lifestyle variant's surface choice always overrides the theme
+     dropdown's surface; theme keeps responsibility for accent colors.
+
+     Opacity 0.82/0.86 matches the stronger frost dialed in for the
+     Ink panels (rgba(15,15,24,0.78) → rgba(10,10,15,0.82)) — slightly
+     more opaque on the Paper variant since dark text needs more
+     surface contrast than white text. */
+  .casa-mega-menu.casa-mega-menu--lifestyle {
+    --theme-bg: linear-gradient(180deg, rgba(250, 250, 247, 0.82) 0%, rgba(248, 246, 240, 0.86) 100%);
+    --theme-border: rgba(0, 0, 0, 0.08);
+    --theme-text: var(--casa-ink);
+    --theme-text-muted: rgba(10, 10, 15, 0.55);
+    --theme-card-bg: rgba(0, 0, 0, 0.02);
+    --theme-card-border: rgba(0, 0, 0, 0.06);
+    --theme-card-hover-bg: rgba(0, 0, 0, 0.04);
+    --theme-divider: rgba(0, 0, 0, 0.08);
+    --theme-btn-primary-bg: var(--casa-ink);
+    --theme-btn-primary-text: #ffffff;
+    --theme-btn-secondary-bg: rgba(0, 0, 0, 0.05);
+    --theme-btn-secondary-text: var(--casa-ink);
+    --theme-btn-secondary-border: rgba(0, 0, 0, 0.12);
+    --theme-scrollbar-track: rgba(0, 0, 0, 0.04);
+    --casa-section-text: var(--casa-ink);
+
     --mega-accent-1: var(--casa-lifestyle-primary, #f59e0b);
     --mega-accent-2: var(--casa-lifestyle-secondary, #d97706);
     --mega-accent-3: #fbbf24;
     --mega-accent-1-rgb: var(--casa-lifestyle-primary-rgb, 245, 158, 11);
     --mega-accent-2-rgb: var(--casa-lifestyle-secondary-rgb, 217, 119, 6);
-    --mega-glow-1: rgba(var(--casa-lifestyle-primary-rgb, 245, 158, 11), 0.12);
-    --mega-glow-2: rgba(var(--casa-lifestyle-secondary-rgb, 217, 119, 6), 0.08);
-    --mega-cat-hover-bg: linear-gradient(135deg, rgba(var(--casa-lifestyle-primary-rgb, 245, 158, 11), 0.12), rgba(var(--casa-lifestyle-secondary-rgb, 217, 119, 6), 0.08));
-    --mega-cat-icon-bg: linear-gradient(135deg, rgba(var(--casa-lifestyle-primary-rgb, 245, 158, 11), 0.15), rgba(var(--casa-lifestyle-secondary-rgb, 217, 119, 6), 0.1));
-    --mega-cat-icon-hover: linear-gradient(135deg, var(--casa-lifestyle-primary, #f59e0b), var(--casa-lifestyle-secondary, #d97706));
-    --mega-featured-bg: linear-gradient(135deg, rgba(var(--casa-lifestyle-primary-rgb, 245, 158, 11), 0.12), rgba(var(--casa-lifestyle-secondary-rgb, 217, 119, 6), 0.08));
     --mega-featured-label-color: var(--casa-lifestyle-primary, #f59e0b);
-    --mega-featured-top-bar: linear-gradient(90deg, var(--casa-lifestyle-primary, #f59e0b), var(--casa-lifestyle-secondary, #d97706), #fbbf24);
-    --mega-card-hover-border: rgba(var(--casa-lifestyle-primary-rgb, 245, 158, 11), 0.3);
     --mega-link-color: var(--casa-lifestyle-primary, #f59e0b);
   }
 
-  /* ── Support: Teal + Cyan ── */
+  /* ── Support: per-variant identity in tiny accents only ── */
   .casa-mega-menu--support {
-    --mega-accent-1: var(--casa-support-primary, #06b6d4);
-    --mega-accent-2: var(--casa-support-secondary, #0891b2);
+    --mega-accent-1: var(--casa-support-primary, #F2FFA0);
+    --mega-accent-2: var(--casa-support-secondary, #F2FFA0);
     --mega-accent-3: #67e8f9;
-    --mega-accent-1-rgb: var(--casa-support-primary-rgb, 6, 182, 212);
+    --mega-accent-1-rgb: var(--casa-support-primary-rgb, 242, 255, 160);
     --mega-accent-2-rgb: var(--casa-support-secondary-rgb, 8, 145, 178);
-    --mega-glow-1: rgba(var(--casa-support-primary-rgb, 6, 182, 212), 0.1);
-    --mega-glow-2: rgba(var(--casa-support-secondary-rgb, 8, 145, 178), 0.06);
-    --mega-cat-hover-bg: linear-gradient(135deg, rgba(var(--casa-support-primary-rgb, 6, 182, 212), 0.1), rgba(var(--casa-support-secondary-rgb, 8, 145, 178), 0.06));
-    --mega-cat-icon-bg: linear-gradient(135deg, rgba(var(--casa-support-primary-rgb, 6, 182, 212), 0.15), rgba(var(--casa-support-secondary-rgb, 8, 145, 178), 0.1));
-    --mega-cat-icon-hover: linear-gradient(135deg, var(--casa-support-primary, #06b6d4), var(--casa-support-secondary, #0891b2));
-    --mega-featured-bg: linear-gradient(135deg, rgba(var(--casa-support-primary-rgb, 6, 182, 212), 0.1), rgba(var(--casa-support-secondary-rgb, 8, 145, 178), 0.06));
     --mega-featured-label-color: #ffffff;
-    --mega-featured-top-bar: linear-gradient(90deg, var(--casa-support-primary, #06b6d4), var(--casa-support-secondary, #0891b2), #67e8f9);
-    --mega-card-hover-border: rgba(var(--casa-support-primary-rgb, 6, 182, 212), 0.3);
-    --mega-link-color: var(--casa-support-primary, #06b6d4);
+    --mega-link-color: var(--casa-support-primary, #F2FFA0);
   }
 
   /* Support variant: wider card column + taller menu to fit contact info */
   .casa-mega-menu--support {
-    max-height: clamp(600px, 85vh, 820px);
+    max-height: min(820px, var(--mega-avail-h));
     overflow-y: auto;
     scrollbar-width: none;
   }
@@ -559,12 +992,13 @@
     overflow: visible;
   }
 
-  /* Support featured area: remove clipping so all content shows */
+  /* Support featured area: allow vertical overflow for tall content, but clip horizontally to keep text inside the card */
   .casa-mega-menu--support .casa-mega-featured {
-    overflow: visible;
+    overflow-x: hidden;
+    overflow-y: visible;
   }
   .casa-mega-menu--support .casa-mega-featured-card {
-    overflow: visible;
+    overflow: hidden;
   }
 
   /* Support featured card: white text and icons */
@@ -579,6 +1013,32 @@
   }
   .casa-mega-menu--support .casa-mega-contact-item {
     color: #ffffff;
+  }
+
+  /* Support variant ONLY: here the count slot holds a free-text
+     `metafields.sgl.description` (see render ~line 434), not a short
+     "N items" string. In the narrow 18% support column — whose
+     `.casa-mega-inner` is intentionally `overflow: visible` — a long
+     description in a `flex-shrink: 0; white-space: nowrap` count would
+     bleed past the column edge (measured ~112px over with a realistic
+     one-line description). Let the support count shrink and clip so a
+     long description can NEVER overflow at any width.
+
+     `max-width: 55%` is deliberate and sets the yield order: the name is
+     `flex: 1 1 0%` (basis 0), so WITHOUT the cap a long description
+     wins the row and the category label collapses to 0px (verified) —
+     backwards for a support link, where the label matters more than its
+     subtitle. Capping the description at 55% guarantees the name keeps
+     ~45% of the row, so the DESCRIPTION truncates first and the label
+     stays visible. The "N items" counts in the glow / lifestyle variants
+     keep the default `flex-shrink: 0` (no cap) and are unaffected; short
+     descriptions here still display in full (nothing to clip). */
+  .casa-mega-menu--support .casa-mega-cat-count {
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 55%;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* ═══════════════════════════════════════════════════════
@@ -622,7 +1082,7 @@
     --theme-btn-secondary-border: rgba(180, 140, 160, 0.2);
     --theme-scrollbar-track: rgba(180, 140, 160, 0.06);
     /* Soft lavender accents */
-    --mega-accent-1: #c084fc;
+    --mega-accent-1: #B0C3FA;
     --mega-accent-2: #d8b4fe;
     --mega-accent-3: #e9d5ff;
     --mega-accent-1-rgb: 192, 132, 252;
@@ -631,12 +1091,12 @@
     --mega-glow-2: rgba(216, 180, 254, 0.05);
     --mega-cat-hover-bg: linear-gradient(135deg, rgba(245, 230, 238, 0.6), rgba(233, 213, 255, 0.3));
     --mega-cat-icon-bg: linear-gradient(135deg, rgba(192, 132, 252, 0.12), rgba(249, 168, 212, 0.08));
-    --mega-cat-icon-hover: linear-gradient(135deg, #c084fc, #f9a8d4);
+    --mega-cat-icon-hover: linear-gradient(135deg, #B0C3FA, #f9a8d4);
     --mega-featured-bg: linear-gradient(135deg, rgba(245, 230, 238, 0.4), rgba(233, 213, 255, 0.2));
-    --mega-featured-label-color: #a855f7;
-    --mega-featured-top-bar: linear-gradient(90deg, #c084fc, #f9a8d4, #fda4af);
+    --mega-featured-label-color: #B0C3FA;
+    --mega-featured-top-bar: linear-gradient(90deg, #B0C3FA, #f9a8d4, #fda4af);
     --mega-card-hover-border: rgba(192, 132, 252, 0.25);
-    --mega-link-color: #9333ea;
+    --mega-link-color: #B0C3FA;
   }
 
   /* ── Theme 3: Gold — Rose gold on warm ivory ── */
@@ -702,7 +1162,7 @@
     --mega-cat-icon-hover: linear-gradient(135deg, #dbb8cc, #f9a8d4);
     --mega-featured-bg: linear-gradient(135deg, rgba(219, 184, 204, 0.1), rgba(201, 160, 184, 0.06));
     --mega-featured-label-color: #dbb8cc;
-    --mega-featured-top-bar: linear-gradient(90deg, #c084fc, #dbb8cc, #f9a8d4);
+    --mega-featured-top-bar: linear-gradient(90deg, #B0C3FA, #dbb8cc, #f9a8d4);
     --mega-card-hover-border: rgba(219, 184, 204, 0.3);
     --mega-link-color: #dbb8cc;
   }
@@ -775,44 +1235,41 @@
     --mega-link-color: #d4567e;
   }
 
-  /* ── Theme 7: Glassmorphic - Apple-style frosted glass ── */
+  /* ── Theme 7: Glassmorphic ──
+     Brand v1 neutralizes this to solid Ink. The glassmorphic effect
+     made the panel translucent at 35-45% white opacity — when the
+     scroll position put a white page section behind the open menu,
+     the panel became a barely-visible glass surface and any text
+     that wasn't already dark-on-white (e.g. our Paper-colored
+     section headers, the white category names) disappeared.
+     Brand book mandates two surfaces only (Paper or Ink); a
+     see-through panel that takes its color from whatever's behind
+     it is neither. Forced to the same Ink as the canonical
+     dark-glow theme so the megamenu always has reliable contrast. */
   .casa-mega-theme--glass {
-    --theme-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.35) 100%);
-    --theme-border: rgba(255, 255, 255, 0.5);
-    --theme-text: rgba(0, 0, 0, 0.85);
-    --theme-text-muted: rgba(0, 0, 0, 0.45);
-    --theme-card-bg: rgba(255, 255, 255, 0.35);
-    --theme-card-border: rgba(255, 255, 255, 0.45);
-    --theme-card-hover-bg: rgba(255, 255, 255, 0.55);
-    --theme-divider: rgba(0, 0, 0, 0.08);
-    --theme-btn-primary-bg: rgba(0, 0, 0, 0.8);
-    --theme-btn-primary-text: #ffffff;
-    --theme-btn-secondary-bg: rgba(255, 255, 255, 0.5);
-    --theme-btn-secondary-text: rgba(0, 0, 0, 0.8);
-    --theme-btn-secondary-border: rgba(0, 0, 0, 0.12);
-    --theme-scrollbar-track: rgba(0, 0, 0, 0.04);
-    /* Neutral / subtle accent for glass */
-    --mega-accent-1: rgba(0, 0, 0, 0.7);
-    --mega-accent-2: rgba(0, 0, 0, 0.5);
-    --mega-accent-3: rgba(0, 0, 0, 0.3);
-    --mega-accent-1-rgb: 60, 60, 67;
-    --mega-accent-2-rgb: 120, 120, 128;
-    --mega-glow-1: rgba(0, 0, 0, 0.04);
-    --mega-glow-2: rgba(0, 0, 0, 0.02);
-    --mega-cat-hover-bg: rgba(255, 255, 255, 0.5);
-    --mega-cat-icon-bg: rgba(255, 255, 255, 0.5);
-    --mega-cat-icon-hover: linear-gradient(135deg, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.6));
-    --mega-featured-bg: rgba(255, 255, 255, 0.35);
-    --mega-featured-label-color: rgba(0, 0, 0, 0.6);
-    --mega-featured-top-bar: linear-gradient(90deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.04));
-    --mega-card-hover-border: rgba(0, 0, 0, 0.12);
-    --mega-link-color: rgba(0, 0, 0, 0.7);
+    --theme-bg: linear-gradient(180deg, rgba(15, 15, 24, 0.78) 0%, rgba(10, 10, 15, 0.82) 100%);
+    --theme-border: rgba(255, 255, 255, 0.08);
+    --theme-text: #ffffff;
+    --theme-text-muted: rgba(255, 255, 255, 0.5);
+    --theme-card-bg: rgba(255, 255, 255, 0.03);
+    --theme-card-border: rgba(255, 255, 255, 0.06);
+    --theme-card-hover-bg: rgba(255, 255, 255, 0.06);
+    --theme-divider: rgba(255, 255, 255, 0.08);
+    --theme-btn-primary-bg: #ffffff;
+    --theme-btn-primary-text: var(--casa-ink);
+    --theme-btn-secondary-bg: rgba(255, 255, 255, 0.1);
+    --theme-btn-secondary-text: #ffffff;
+    --theme-btn-secondary-border: rgba(255, 255, 255, 0.2);
+    --theme-scrollbar-track: rgba(255, 255, 255, 0.03);
   }
 
-  /* Glassmorphic theme: stronger blur + no ambient glows */
+  /* Glassmorphic theme: stronger blur + no ambient glows.
+     backdrop-filter is moved into the .is-open scope below — when this
+     panel is closed (visibility: hidden), the GPU still maintains the
+     compositing layer for an active backdrop-filter, which causes paint
+     thrash on the sticky header during scroll. Apply the blur only
+     while the panel is actually opened. */
   .casa-mega-theme--glass.casa-mega-menu {
-    backdrop-filter: blur(60px) saturate(180%);
-    -webkit-backdrop-filter: blur(60px) saturate(180%);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), inset 0 0 0 0.5px rgba(255, 255, 255, 0.4);
   }
   .casa-mega-theme--glass .casa-mega-glow { display: none; }
@@ -829,16 +1286,19 @@
     position: fixed;
     /* Use JS-calculated height (includes announcement bar), fallback to CSS header height */
     top: var(--header-group-height, var(--casa-header-height, 80px));
+    /* Height available below the header stack — keeps the panel from ever
+       running past the bottom edge (short 14" laptops) regardless of width. */
+    --mega-avail-h: calc(100dvh - var(--header-group-height, var(--casa-header-height, 80px)) - 16px);
     left: 50%;
     transform: translateX(-50%) translateY(-10px);
     width: calc(100vw - clamp(20px, 3vw, 40px));
     max-width: 1400px;
     /* Responsive max-height based on viewport */
-    max-height: clamp(520px, 80vh, 720px);
+    max-height: min(720px, var(--mega-avail-h));
     overflow: hidden;
-    background: var(--theme-bg, linear-gradient(180deg, rgba(15, 15, 24, 0.98) 0%, rgba(10, 10, 15, 0.99) 100%));
-    backdrop-filter: blur(40px);
-    -webkit-backdrop-filter: blur(40px);
+    background: var(--theme-bg, linear-gradient(180deg, rgba(15, 15, 24, 0.78) 0%, rgba(10, 10, 15, 0.82) 100%));
+    /* backdrop-filter moved to the .is-open scope below — see comment on
+       .casa-mega-theme--glass.casa-mega-menu above. */
     border: 1px solid var(--theme-border, rgba(255, 255, 255, 0.08));
     border-top: none;
     border-radius: 0 0 clamp(16px, 1.8vw, 24px) clamp(16px, 1.8vw, 24px);
@@ -854,13 +1314,64 @@
     box-sizing: border-box;
   }
 
-  /* Show when parent is active (click-toggled) */
+  /* Show when parent is active (click-toggled).
+     Partial frosted-glass effect: panel background is Ink at
+     0.78/0.82 opacity (was 0.98/0.99 solid). Combined with the
+     backdrop-filter blur, you get a dark Ink panel with a subtle
+     frost — the page behind shows as a soft blur but contrast for
+     white/Paper text on the panel itself stays in safe range
+     (effective ~rgb(54, 54, 58) over a fully white page section,
+     ≥9.7:1 against white text).
+
+     A 1px-inset highlight at the top edge gives the panel the
+     brand glassmorphic frost-edge feel without crossing into the
+     "see-through" territory the brand book disallows.
+
+     Blur radius is capped at 16px: blur cost scales with radius² ×
+     panel area, and at 48px this panel (≈⅔ of a 3416px viewport)
+     missed the 4.16ms frame budget on the merchant's 240Hz display
+     even on a STATIC page — the whole panel layer drops out for one
+     frame (white flash, frame-verified 2026-07-15). The dark Ink
+     tint carries the frost read; the radius is not the look. */
   .casa-nav-item.is-open .casa-mega-menu {
     opacity: 1;
     visibility: visible;
     transform: translateX(-50%) translateY(0);
     pointer-events: auto;
     transition-delay: 0s;
+    /* perf-justified: single full-bleed mega-menu panel (max 1 on screen);
+       16px cap + no secondary filter, sized to the 4.16ms/240Hz frame
+       budget after the 48px+saturate panel dropped whole frames. */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow:
+      0 24px 64px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  }
+
+  /* ── Panel-to-panel switch: hand off in one frame, never crossfade ──
+     Every panel is position:fixed in the SAME box, so clicking a second
+     nav item runs the outgoing fade-out and the incoming fade-in
+     concurrently (6 transitions, 300ms each — WAAPI-verified 2026-08-23).
+     Two translucent Ink surfaces then stack: composite alpha dips
+     0.80 → 0.69 at the 150ms midpoint, so 31% of the page reads through
+     BOTH panels instead of 20% through one, while the ±10px transforms
+     sit 5.5px apart and ghost every edge, label and CTA. The merchant
+     reads that dip as "it minimizes and shows the site behind it."
+     Suppressing the transition for the one frame the swap commits in
+     makes the panel surface continuous — the content changes, the
+     surface never thins. The first open and the final close are
+     untouched: casa-header only sets this class when a DIFFERENT panel
+     was already open. */
+  body.casa-mega-switching .casa-mega-menu {
+    transition: none;
+  }
+  .casa-nav-item.is-open .casa-mega-theme--glass.casa-mega-menu {
+    /* Glass theme already neutralized to Ink — match the canonical panel.
+       perf-justified: full-bleed mega-menu panel; 16px cap, no secondary
+       filter — sized to the 240Hz frame budget (see canonical rule above). */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 
   /* Ambient glow — uses variant variables */
@@ -872,7 +1383,7 @@
     transform: translateX(-50%);
     width: 600px;
     height: 400px;
-    background: radial-gradient(ellipse, var(--mega-glow-1, rgba(147, 51, 234, 0.15)) 0%, transparent 70%);
+    background: radial-gradient(ellipse, var(--mega-glow-1, rgba(176, 195, 250, 0.15)) 0%, transparent 70%);
     pointer-events: none;
   }
   .casa-mega-menu::after {
@@ -882,7 +1393,7 @@
     right: 0;
     width: 400px;
     height: 300px;
-    background: radial-gradient(ellipse, var(--mega-glow-2, rgba(236, 72, 153, 0.1)) 0%, transparent 70%);
+    background: radial-gradient(ellipse, var(--mega-glow-2, rgba(94, 10, 2, 0.1)) 0%, transparent 70%);
     pointer-events: none;
   }
 
@@ -892,13 +1403,13 @@
     padding: clamp(16px, 3vw, 40px);
     padding-bottom: clamp(12px, 2vw, 24px);
     display: grid;
-    grid-template-columns: minmax(0, 22%) minmax(0, 1fr) minmax(0, 26%);
+    grid-template-columns: minmax(0, 20%) minmax(0, 1fr) minmax(0, 28%);
     grid-template-rows: minmax(0, 1fr) auto;
     align-items: stretch;
     gap: clamp(16px, 2.5vw, 32px);
     width: 100%;
     height: 100%;
-    max-height: calc(clamp(520px, 80vh, 720px) - clamp(32px, 6vw, 80px));
+    max-height: calc(min(720px, var(--mega-avail-h)) - clamp(32px, 6vw, 80px));
     box-sizing: border-box;
     min-width: 0;
     min-height: 0;
@@ -912,14 +1423,23 @@
      SECTION TITLE
      ═══════════════════════════════════════════════════════ */
 
+  /* Section eyebrow ("Categories" / "Lighting" / etc.) — mono
+     UPPERCASE spec register, brand-tinted. Sized down a touch and
+     given a JetBrains Mono family for the brand-spec feel. Color
+     stays driven by the theme but pulls toward brand purple via
+     a low-opacity color-mix so the eyebrow reads on-brand on both
+     Paper and Ink surfaces. */
   .casa-mega-section-title {
-    font-size: clamp(8px, 0.8vw, 10px);
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: clamp(9px, 0.8vw, 11px);
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: clamp(1px, 0.15vw, 2px);
-    color: var(--theme-text-muted, rgba(255, 255, 255, 0.4));
+    letter-spacing: clamp(1.4px, 0.18vw, 2.4px);
+    color: var(--theme-text-muted, rgba(255, 255, 255, 0.55));
     margin-bottom: clamp(10px, 2vw, 20px);
-    padding-left: clamp(8px, 1.2vw, 16px);
+    /* Flush with column left edge — eyebrow + headline + section
+       header + items all start at the same X position. */
+    padding-left: 0;
     flex-shrink: 0;
   }
 
@@ -952,19 +1472,19 @@
     margin: 8px 0;
   }
   .casa-mega-categories::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, var(--mega-accent-1, #9333ea), var(--mega-accent-2, #ec4899));
+    background: linear-gradient(180deg, var(--mega-accent-1, #B0C3FA), var(--mega-accent-2, #5E0A02));
     border-radius: 10px;
     border: 1px solid var(--theme-card-border, rgba(255, 255, 255, 0.1));
-    box-shadow: 0 0 8px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.3);
+    box-shadow: 0 0 8px rgba(var(--mega-accent-1-rgb, 176, 195, 250), 0.3);
   }
   .casa-mega-categories::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, var(--mega-accent-2, #ec4899), var(--mega-accent-1, #9333ea));
-    box-shadow: 0 0 12px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.5);
+    background: linear-gradient(180deg, var(--mega-accent-2, #5E0A02), var(--mega-accent-1, #B0C3FA));
+    box-shadow: 0 0 12px rgba(var(--mega-accent-1-rgb, 176, 195, 250), 0.5);
   }
   /* Firefox scrollbar */
   .casa-mega-categories {
     scrollbar-width: thin;
-    scrollbar-color: var(--mega-accent-1, #9333ea) var(--theme-scrollbar-track, rgba(255, 255, 255, 0.03));
+    scrollbar-color: var(--mega-accent-1, #B0C3FA) var(--theme-scrollbar-track, rgba(255, 255, 255, 0.03));
   }
 
   .casa-mega-cat-list {
@@ -974,86 +1494,424 @@
     min-width: 0;
   }
 
-  .casa-mega-cat-item {
+  /* ── Option G: brand-voice headline above the list ──
+     Italic-gradient `<em>` accent matches the section H2 rule (memory:
+     brand_typography_locked_2026-05-04.md). Keeps the menu's wow
+     moment in typography rather than every row carrying one. */
+  .casa-mega-cat-headline {
+    font-family: var(--font-body--family);
+    font-size: clamp(18px, 1.5vw, 22px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--theme-text, white);
+    /* Flush left, no horizontal margin — aligns with eyebrow / section
+       headers / items at the column's left edge. */
+    margin: 6px 0 14px 0;
+    padding: 0;
+  }
+  .casa-mega-cat-headline em {
+    font-style: italic;
+    font-weight: 800;
+    background-image: linear-gradient(90deg, var(--mega-accent-1, #B0C3FA), var(--mega-accent-2, #5E0A02), var(--mega-accent-3, #F2FFA0));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* ── Prominent "Shop all products" CTA (Shop All drawer only) ──
+     Fills the slot left by the desktop-hidden hero card. Tinted-glass
+     surface from the brand chrome hover-gradient token (purple→pink
+     low alpha) + accent border so it reads as the drawer's primary
+     "browse everything" action without competing with the Ink
+     featured-card button on the right (quiet chrome: tinted glass,
+     not a solid gradient fill). min-width:0 + nowrap/ellipsis on the
+     text guards against overflow in the ~250px categories column. */
+  .casa-mega-shop-all {
     display: flex;
     align-items: center;
-    gap: clamp(8px, 1vw, 14px);
-    padding: clamp(8px, 1vw, 14px) clamp(10px, 1.2vw, 16px);
-    border-radius: clamp(10px, 1vw, 14px);
-    cursor: pointer;
-    transition: all 0.2s;
+    /* Tight chrome (small icon + gaps + padding) so the wider caps
+       label "Shop All Products" clears the ~115px text slot the
+       categories column gives at 1280px without ellipsis. */
+    gap: 10px;
+    padding: 10px 12px;
+    margin: 2px 0 14px 0;
+    border-radius: 14px;
     text-decoration: none;
+    background: var(--mega-cat-hover-bg, linear-gradient(135deg, rgba(176, 195, 250, 0.10), rgba(94, 10, 2, 0.06)));
+    border: 1px solid var(--mega-card-hover-border, rgba(176, 195, 250, 0.28));
     color: var(--theme-text, white);
-    min-width: 0;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
   }
-
-  .casa-mega-cat-item:hover {
-    background: var(--mega-cat-hover-bg);
+  .casa-mega-shop-all:hover {
+    transform: translateY(-1px);
+    border-color: var(--mega-accent-2, #5E0A02);
+    background: var(--mega-cat-icon-bg, linear-gradient(135deg, rgba(176, 195, 250, 0.18), rgba(94, 10, 2, 0.12)));
   }
-
-  .casa-mega-cat-icon {
-    width: clamp(32px, 3.2vw, 44px);
-    height: clamp(32px, 3.2vw, 44px);
-    border-radius: clamp(8px, 0.9vw, 12px);
-    background: var(--mega-cat-icon-bg);
+  .casa-mega-shop-all:focus-visible {
+    outline: 2px solid var(--mega-accent-2, #5E0A02);
+    outline-offset: 2px;
+  }
+  .casa-mega-shop-all__icon {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 9px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s;
-    flex-shrink: 0;
-    flex-shrink: 0;
+    background: var(--mega-cat-icon-hover, linear-gradient(135deg, #B0C3FA, #5E0A02));
+    color: #fff;
   }
-
-  .casa-mega-cat-icon--has-image {
+  .casa-mega-shop-all__text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1;
+  }
+  .casa-mega-shop-all__label {
+    font-family: var(--font-body--family);
+    font-size: clamp(13px, 1.05vw, 15px);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    color: var(--theme-text, white);
+    white-space: nowrap;
     overflow: hidden;
-    padding: 0;
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    text-overflow: ellipsis;
+  }
+  .casa-mega-shop-all__sub {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--theme-text-muted, rgba(255, 255, 255, 0.6));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Up to ~1280px the categories column (text slot ~102–115px) is too
+     narrow to fit the caps label AND the caption on their own one-line
+     rows without clipping — the slot only clears both at ≥1280px. Below
+     that, drop the caption so the label stays a clean single line
+     (never a 2-line wrap, never a mid-caption ellipsis) and scale the
+     caps label down so IT doesn't clip either. The 1.0vw coefficient
+     keeps the label ≤ the slot across the whole 1000–1279px range
+     (~12px at 1200px → fits the ~109px slot). Desktop megamenu only
+     renders ≥1000px; ≤999px is the mobile drawer. */
+  @media (max-width: 1279px) {
+    .casa-mega-shop-all__sub {
+      display: none;
+    }
+    /* Drop the icon chip too: the Shop All drawer's categories column
+       is the narrowest (it shows 9 products, widening the grid), giving
+       the text only ~98px with the icon — not enough for "Shop All
+       Products" even at the 11px floor. Hiding the icon frees ~40px so
+       every label (incl. the widest) stays one un-clipped line. The
+       button degrades to a clean text + arrow row at this range. */
+    .casa-mega-shop-all__icon {
+      display: none;
+    }
+    .casa-mega-shop-all__label {
+      font-size: clamp(12px, 1.05vw, 13px);
+    }
+  }
+  .casa-mega-shop-all__arrow {
+    flex-shrink: 0;
+    color: var(--mega-accent-2, #5E0A02);
+    display: flex;
+    align-items: center;
+    transition: transform 0.2s ease;
+  }
+  .casa-mega-shop-all:hover .casa-mega-shop-all__arrow {
+    transform: translateX(3px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .casa-mega-shop-all,
+    .casa-mega-shop-all__arrow {
+      transition: none;
+    }
+    .casa-mega-shop-all:hover {
+      transform: none;
+    }
+    .casa-mega-shop-all:hover .casa-mega-shop-all__arrow {
+      transform: none;
+    }
   }
 
-  .casa-mega-cat-img {
+  /* ── Option G: featured hero card ──
+     Single curated visual moment per drawer. The first child flagged
+     `casa.badge: featured` (or known best-sellers handle) becomes the
+     hero. Background = collection.image with a brand-aligned dark
+     overlay for legibility; falls back to brand gradient when no
+     image is set. */
+  /* Hero card hidden on desktop — at 280px column width the 16:9 card
+     is too small to read as a product moment, AND the megamenu's
+     right-side promo panel ("Featured / Infinity Mirror") already
+     serves the curated visual moment. Two featured spots in one menu
+     was redundant noise. The Liquid still renders the markup so the
+     mobile drawer (which has no right column and a wider 380px
+     drawer) can show the hero card via its own
+     .casa-submenu__cat-hero rules in casa-submenu-panel.liquid. */
+  .casa-mega-cat-hero {
+    display: none;
+  }
+  .casa-mega-cat-hero-img {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: inherit;
-    transition: transform 0.3s, filter 0.3s;
+    transition: transform 0.4s ease;
+  }
+  .casa-mega-cat-hero:hover .casa-mega-cat-hero-img {
+    transform: scale(1.04);
+  }
+  .casa-mega-cat-hero:focus-visible {
+    outline: 2px solid var(--mega-accent-2, #5E0A02);
+    outline-offset: 3px;
+  }
+  .casa-mega-cat-hero-overlay {
+    position: absolute;
+    inset: 0;
+    /* Bottom-up dark gradient only — no radial white-highlight (which
+       was lifting brightness in the wrong area on bright collection
+       images like the gold corrugated Apollo finish). Stronger
+       darkening at the bottom ensures legible tag + name regardless
+       of source image. */
+    background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.12) 75%, transparent 100%);
+    pointer-events: none;
+  }
+  .casa-mega-cat-hero-content {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .casa-mega-cat-hero-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .casa-mega-cat-hero-tag {
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.95);
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  }
+  .casa-mega-cat-hero-name {
+    font-size: clamp(14px, 1.1vw, 16px);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: white;
+    line-height: 1.2;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .casa-mega-cat-hero-arrow {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    /* Dark backdrop + 1px white border so the circle reads on any
+       collection image, even bright ones (was rgba(255,255,255,0.18)
+       which vanished on the gold Apollo finish). */
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.18s ease, transform 0.18s ease;
+  }
+  .casa-mega-cat-hero-arrow svg {
+    width: 12px;
+    height: 12px;
+  }
+  .casa-mega-cat-hero:hover .casa-mega-cat-hero-arrow {
+    background: rgba(0, 0, 0, 0.6);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateX(2px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .casa-mega-cat-hero-img,
+    .casa-mega-cat-hero-arrow {
+      transition: none;
+    }
+    .casa-mega-cat-hero:hover .casa-mega-cat-hero-img {
+      transform: none;
+    }
   }
 
-  .casa-mega-cat-item:hover .casa-mega-cat-img {
-    transform: scale(1.1);
-    filter: brightness(1.1);
+  /* ── Option C: text-led, sectioned (mockups/megamenu-options.html) ── */
+  .casa-mega-cat-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Flush-left items so the name aligns with the eyebrow / headline /
+       section header at the column's left edge (no extra indent).
+       Right padding keeps the chevron breathing room from the column
+       edge. Math at narrowest column (~250px): 12px right + 12px
+       chevron + 8px gap + 49px count + 8px gap + 124px name = 213px
+       → 37px headroom. Comfortably fits on one line. */
+    gap: 8px;
+    padding: 10px 12px 10px 0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.18s ease;
+    text-decoration: none;
+    color: var(--theme-text, white);
+    min-width: 0;
+    position: relative;
+  }
+  .casa-mega-cat-item:hover {
+    background: var(--mega-cat-hover-bg, rgba(255, 255, 255, 0.04));
   }
 
-  .casa-mega-cat-item:hover .casa-mega-cat-icon {
-    background: var(--mega-cat-icon-hover);
-    box-shadow: 0 8px 24px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.4);
+  /* Featured row — single brand purple→pink left-edge bar per drawer.
+     Single accent moment honors the brand book "gradient = featured +
+     hero + stats + focus rings" rule. */
+  .casa-mega-cat-item--featured::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 12px;
+    bottom: 12px;
+    width: 2px;
+    border-radius: 1px;
+    background: linear-gradient(180deg, var(--mega-accent-1, #B0C3FA), var(--mega-accent-2, #5E0A02));
   }
 
-  .casa-mega-cat-item:hover .casa-mega-cat-icon--has-image {
-    background: transparent;
-    border-color: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 8px 24px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.4);
+  .casa-mega-cat-name {
+    font-family: var(--font-body--family);
+    /* Sized to fit the longest realistic category name ("Perfect For
+       Gifting" = 19 chars) on a single line at the narrowest column
+       width (~250px on 1400px viewport, ~210px usable after padding +
+       chevron). 13px Inter 600 = ~7px/char × 19 = 133px → comfortable
+       headroom in the common case.
+
+       SAFETY NET (must hold at ANY viewport): the old rule assumed the
+       name always fits and used `overflow: visible`, so when the column
+       was ever tighter than name + count + chevron (browser zoom, a
+       narrow window near the 1100px breakpoint, or a longer localized /
+       merchant-renamed label) the un-wrappable name rendered ON TOP of
+       the "N ITEMS" count. It now clips with an ellipsis instead. This
+       can never overlap because the name is `flex: 1; min-width: 0` (it
+       shrinks) while the count + chevron are `flex-shrink: 0` (they keep
+       their space) and the row `gap` preserves the divider. Mirrors the
+       mobile submenu (.casa-submenu__item--cat .casa-submenu__item-name),
+       which already truncates the same way. */
+    font-size: clamp(13px, 1vw, 15px);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    color: var(--theme-text, white);
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .casa-mega-cat-content { flex: 1; min-width: 0; overflow: hidden; }
-  .casa-mega-cat-name { font-size: clamp(12px, 1.1vw, 15px); font-weight: 500; margin-bottom: 2px; white-space: normal; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.3; color: var(--theme-text, white); }
-  .casa-mega-cat-item--no-icon { padding-left: 12px; }
-  .casa-mega-cat-item--no-icon .casa-mega-cat-content { flex: 1; }
-  .casa-mega-cat-count { font-size: clamp(9px, 0.9vw, 12px); color: var(--theme-text-muted, rgba(255, 255, 255, 0.4)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Count — JetBrains Mono UPPERCASE, brand "spec register" per the
+     locked typography memory. "12 ITEMS" form per the Option C / G
+     mockup. Sized down to 9px so name + count + chevron all fit on
+     one line in the narrow desktop megamenu column. */
+  .casa-mega-cat-count {
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--theme-text-muted, rgba(255, 255, 255, 0.40));
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
 
+  /* Section header — JetBrains Mono UPPERCASE in the brand "spec
+     register" (same family as the count and the eyebrow above the
+     headline). Previously rendered at rgba(255,255,255,0.30) which
+     was too faint to read as a parent label, then briefly Inter 700
+     near-white which read too heavy/generic. Settled on the spec
+     register with rgba(255,255,255,0.7) — clearly visible as a group
+     title but elegantly restrained, and the type style matches the
+     locked brand decision (memory: brand_typography_locked_2026-05-04
+     — mono UPPERCASE for spec/labels). Tracking is wider than the
+     eyebrow (0.18em vs 0.12em) so subscription headers feel distinct
+     from the top-level eyebrow. Divider line above each group adds
+     spatial separation; first header drops it so it doesn't compete
+     with the hero card's bottom edge. */
+  .casa-mega-cat-section {
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    /* Theme-aware: Casa Paper #FAFAF7 on Ink panels, Casa Ink #0A0A0F
+       on Paper panels (Lifestyle / Home Decor). The variable switches
+       per variant so the section header always has reliable contrast
+       on whichever surface the merchant's menu uses. Soft text-shadow
+       only on dark surfaces. */
+    color: var(--casa-section-text, var(--casa-paper));
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.18);
+    /* Flush-left to match eyebrow / headline / items. */
+    padding: 18px 0 8px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.10);
+    margin-top: 8px;
+  }
+  .casa-mega-cat-section:first-child {
+    border-top: none;
+    margin-top: 0;
+    padding-top: 6px;
+  }
+  /* Hairline accent under the subcategory eyebrow ("SHOP" / "LAMPS"
+     / "WALLS & SURFACES") — sits between the label text and the
+     items grouped under it. Quiet "section mark" rather than a
+     divider. currentColor inherits the parent's --casa-section-text
+     so it adapts automatically to Paper-mode (Ink) and Ink-mode
+     (Paper) panels. */
+  .casa-mega-cat-section::after {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.5;
+    margin-top: 8px;
+  }
+
+  /* Legacy image/icon classes — element no longer rendered. Hidden
+     defensively so any leftover references don't break layout. */
+  .casa-mega-cat-icon,
+  .casa-mega-cat-icon--has-image,
+  .casa-mega-cat-img,
+  .casa-mega-cat-content { display: contents; }
+
+  /* Chevron — always visible (Option C), slides on hover. Muted color
+     so it doesn't compete with the row content; brightens with the
+     row on hover. 12px to give name + count more breathing room. */
   .casa-mega-cat-arrow {
-    width: 20px;
-    height: 20px;
-    opacity: 0;
-    transform: translateX(-8px);
-    transition: all 0.2s;
-    color: var(--mega-accent-1, #9333ea);
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    color: var(--theme-text-muted, rgba(255, 255, 255, 0.40));
+    transition: transform 0.18s ease, color 0.18s ease;
   }
   .casa-mega-cat-item:hover .casa-mega-cat-arrow {
-    opacity: 1;
-    transform: translateX(0);
+    transform: translateX(3px);
+    color: var(--theme-text, white);
   }
 
   .casa-mega-cat-badge {
@@ -1098,17 +1956,26 @@
     flex-shrink: 0;
   }
 
+  /* "View All →" link — locked to brand purple (no per-variant
+     override), matching the headline accent's color family. Bold
+     enough to read as a CTA without crossing into chrome territory.
+     The arrow expands the gap on hover, brand-aligned motion. */
   .casa-mega-products-link {
-    font-size: clamp(10px, 0.9vw, 12px);
-    color: var(--mega-link-color, #9333ea);
+    font-family: var(--font-body--family);
+    font-size: clamp(11px, 0.9vw, 13px);
+    font-weight: 600;
+    color: var(--casa-purple-on-dark, #B0C3FA);
     text-decoration: none;
     display: flex;
     align-items: center;
-    gap: 4px;
-    transition: gap 0.2s;
+    gap: 6px;
+    transition: gap 0.2s ease, color 0.2s ease;
     white-space: nowrap;
   }
-  .casa-mega-products-link:hover { gap: 8px; }
+  .casa-mega-products-link:hover {
+    gap: 10px;
+    color: #5E0A02;
+  }
 
   .casa-mega-products-grid {
     display: grid;
@@ -1143,19 +2010,19 @@
     margin: 8px 0;
   }
   .casa-mega-products-grid::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, var(--mega-accent-1, #9333ea), var(--mega-accent-2, #ec4899));
+    background: linear-gradient(180deg, var(--mega-accent-1, #B0C3FA), var(--mega-accent-2, #5E0A02));
     border-radius: 10px;
     border: 1px solid var(--theme-card-border, rgba(255, 255, 255, 0.1));
-    box-shadow: 0 0 8px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.3);
+    box-shadow: 0 0 8px rgba(var(--mega-accent-1-rgb, 176, 195, 250), 0.3);
   }
   .casa-mega-products-grid::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, var(--mega-accent-2, #ec4899), var(--mega-accent-1, #9333ea));
-    box-shadow: 0 0 12px rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.5);
+    background: linear-gradient(180deg, var(--mega-accent-2, #5E0A02), var(--mega-accent-1, #B0C3FA));
+    box-shadow: 0 0 12px rgba(var(--mega-accent-1-rgb, 176, 195, 250), 0.5);
   }
   /* Firefox scrollbar */
   .casa-mega-products-grid {
     scrollbar-width: thin;
-    scrollbar-color: var(--mega-accent-1, #9333ea) var(--theme-scrollbar-track, rgba(255, 255, 255, 0.03));
+    scrollbar-color: var(--mega-accent-1, #B0C3FA) var(--theme-scrollbar-track, rgba(255, 255, 255, 0.03));
   }
 
   /* Lifestyle variant: 2-column product grid */
@@ -1203,8 +2070,14 @@
   }
 
   .casa-mega-product-photo {
+    /* height: auto + aspect-ratio instead of height: 100% — the parent's
+       height comes from its own aspect-ratio, and Safari 26 can fail to
+       resolve a %-height against that, falling back to the img's intrinsic
+       height (the /cart flat-thumbnail class; immune pattern from
+       .cart-items__media-image in snippets/cart-products.liquid). */
     width: 100%;
-    height: 100%;
+    height: auto;
+    aspect-ratio: 1;
     object-fit: cover;
     border-radius: 12px;
   }
@@ -1220,7 +2093,7 @@
     text-transform: uppercase;
     color: white;
   }
-  .casa-mega-product-badge--bestseller { background: var(--mega-accent-1, #9333ea); }
+  .casa-mega-product-badge--bestseller { background: var(--mega-accent-1, #B0C3FA); }
   .casa-mega-product-badge--new { background: var(--casa-green, #22c55e); }
   .casa-mega-product-badge--sale { background: var(--casa-red, #ef4444); }
 
@@ -1269,7 +2142,7 @@
 
   .casa-mega-faq-card:hover {
     background: var(--theme-card-hover-bg, rgba(255, 255, 255, 0.06));
-    border-color: var(--mega-card-hover-border, rgba(6, 182, 212, 0.3));
+    border-color: var(--mega-card-hover-border, rgba(242, 255, 160, 0.3));
     transform: translateY(-4px);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
   }
@@ -1288,7 +2161,7 @@
 
   .casa-mega-faq-card:hover .casa-mega-faq-icon {
     background: var(--mega-cat-icon-hover);
-    box-shadow: 0 8px 24px rgba(var(--mega-accent-1-rgb, 6, 182, 212), 0.3);
+    box-shadow: 0 8px 24px rgba(var(--mega-accent-1-rgb, 242, 255, 160), 0.3);
   }
 
   .casa-mega-faq-title {
@@ -1303,7 +2176,7 @@
   }
 
   .casa-mega-faq-arrow {
-    color: var(--mega-link-color, #06b6d4);
+    color: var(--mega-link-color, #F2FFA0);
     margin-top: auto;
     opacity: 0;
     transform: translateX(-4px);
@@ -1357,6 +2230,15 @@
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
   }
+  /* Featured card top accent — 2px brand 5-stop shimmer line.
+     purple → pink → cyan → pink → purple, animated via background-
+     position so the gradient continuously cycles. Subtle glow halo
+     beneath the line lifts it off the panel chrome. The megamenu
+     only renders one featured card at a time, so this honors the
+     brand book "one shimmer per page max" rule (the megamenu is
+     view-bounded — when it's open, this is the page's shimmer).
+
+     Reduced-motion users see a static gradient (no drift). */
   .casa-mega-featured-card::before {
     content: '';
     position: absolute;
@@ -1364,7 +2246,25 @@
     left: 0;
     right: 0;
     height: 2px;
-    background: var(--mega-featured-top-bar);
+    background-image: linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0, #5E0A02, #B0C3FA);
+    background-size: 200% 100%;
+    border-radius: inherit;
+    /* perf-justified: play-state-gated — ticks only while the parent
+       nav item is open. visibility:hidden does NOT stop CSS animations,
+       so ungated this ran at 60fps behind every page, once per menu. */
+    animation: casa-mega-top-bar-shimmer 5s linear infinite;
+    animation-play-state: paused;
+    box-shadow: 0 0 12px rgba(176, 195, 250, 0.45), 0 0 24px rgba(94, 10, 2, 0.18);
+  }
+  .casa-nav-item.is-open .casa-mega-featured-card::before {
+    animation-play-state: running;
+  }
+  @keyframes casa-mega-top-bar-shimmer {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .casa-mega-featured-card::before { animation: none; }
   }
 
   .casa-mega-featured-label {
@@ -1375,21 +2275,20 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: clamp(1px, 0.12vw, 1.5px);
-    color: var(--mega-featured-label-color, #ec4899);
+    color: var(--mega-featured-label-color, #5E0A02);
     margin-bottom: clamp(6px, 1vw, 16px);
     max-width: 100%;
     overflow: hidden;
   }
 
   .casa-mega-featured-title {
-    font-size: clamp(14px, 1.4vw, 22px);
+    font-size: clamp(16px, 1.6vw, 24px);
     font-weight: 600;
     margin-bottom: clamp(4px, 0.6vw, 8px);
-    line-height: 1.3;
+    line-height: 1.2;
     color: var(--theme-text, white);
     word-wrap: break-word;
-    overflow-wrap: break-word;
-    max-width: 100%;
+    flex-shrink: 1;
     /* Fix backdrop-filter text ghosting */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -1403,7 +2302,13 @@
     line-height: 1.5;
     margin-bottom: clamp(8px, 1.2vw, 16px);
     word-wrap: break-word;
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    flex-shrink: 1;
     /* Fix backdrop-filter text ghosting */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -1431,7 +2336,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at center, rgba(var(--mega-accent-1-rgb, 147, 51, 234), 0.3), transparent 70%);
+    background: radial-gradient(circle at center, rgba(var(--mega-accent-1-rgb, 176, 195, 250), 0.3), transparent 70%);
   }
   .casa-mega-featured-visual img {
     width: 100%;
@@ -1450,6 +2355,28 @@
     position: relative;
     z-index: 1;
   }
+
+  /* Belt-and-suspenders for the decorative mega-menu preview video: if a
+     device blocks muted autoplay (Low Power Mode / reduced-data) iOS would
+     paint its native centre play button. Suppress the WebKit media-control
+     pseudo-elements so the poster is the clean fallback. ONE RULE PER
+     pseudo-element — a comma-grouped list is dropped entirely by any selector
+     the engine doesn't recognise, and the Chromium-only -overlay-play-button
+     would otherwise poison the iOS-only -start-playback-button. */
+  .casa-mega-featured-video::-webkit-media-controls {
+    display: none !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .casa-mega-featured-video::-webkit-media-controls-enclosure { display: none !important; }
+  .casa-mega-featured-video::-webkit-media-controls-panel { display: none !important; }
+  .casa-mega-featured-video::-webkit-media-controls-play-button { display: none !important; }
+  .casa-mega-featured-video::-webkit-media-controls-start-playback-button {
+    display: none !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .casa-mega-featured-video::-webkit-media-controls-overlay-play-button { display: none !important; }
 
   /* Lifestyle placeholder */
   .casa-mega-featured-lifestyle-placeholder {
@@ -1473,6 +2400,8 @@
     gap: 12px;
     margin-bottom: 24px;
     flex: 1;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .casa-mega-contact-item {
@@ -1490,16 +2419,28 @@
     cursor: pointer;
     transition: all 0.2s;
     font-family: inherit;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 
   .casa-mega-contact-item:hover {
-    background: rgba(var(--mega-accent-1-rgb, 6, 182, 212), 0.1);
-    border-color: rgba(var(--mega-accent-1-rgb, 6, 182, 212), 0.3);
+    background: rgba(var(--mega-accent-1-rgb, 242, 255, 160), 0.1);
+    border-color: rgba(var(--mega-accent-1-rgb, 242, 255, 160), 0.3);
   }
 
   .casa-mega-contact-item svg {
-    color: var(--mega-accent-1, #06b6d4);
+    color: var(--mega-accent-1, #F2FFA0);
     flex-shrink: 0;
+  }
+
+  .casa-mega-contact-item span {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* ── CTA Buttons ── */
@@ -1525,19 +2466,33 @@
     border-radius: clamp(8px, 0.9vw, 12px);
     font-size: clamp(10px, 0.9vw, 13px);
     font-weight: 600;
+    /* Brand book typography (consumes Horizon's primary
+       button-text-case theme setting; falls back to uppercase). */
+    text-transform: var(--button-text-case-primary, uppercase);
+    letter-spacing: 0.06em;
+    text-indent: 0.06em;
     text-decoration: none;
-    transition: all 0.3s;
+    transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     box-sizing: border-box;
+    /* Own compositor layer: the panel gains backdrop-filter blur(16px) at
+       .is-open, and real Safari rasterizes this opaque pill's tile AFTER the
+       fresh blur tile — the button ghosts (blurred page bleeds through where
+       the fill should be) for ~250ms on open. Same re-blur class as the PDP
+       sticky-bar flicker; isolating the layer paints it with the panel.
+       perf-justified: two small pills per open menu, matches the card's own
+       translateZ(0). Invisible to DOM probes/headless — verify on device. */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
   .casa-mega-featured-btn--primary {
     background: var(--theme-btn-primary-bg, white);
-    color: var(--theme-btn-primary-text, #0a0a0f);
+    color: var(--theme-btn-primary-text, var(--casa-ink));
   }
   .casa-mega-featured-btn--primary:hover {
-    transform: translateY(-2px);
+    transform: translateY(-2px) translateZ(0);
     box-shadow: 0 8px 24px rgba(var(--mega-accent-1-rgb, 255, 255, 255), 0.2);
   }
   .casa-mega-featured-btn--secondary {
@@ -1587,7 +2542,7 @@
   .casa-mega-quick-link:hover {
     background: var(--theme-card-hover-bg, rgba(255, 255, 255, 0.08));
     color: var(--theme-text, white);
-    border-color: var(--mega-card-hover-border, rgba(147, 51, 234, 0.3));
+    border-color: var(--mega-card-hover-border, rgba(176, 195, 250, 0.3));
   }
 
   /* ═══════════════════════════════════════════════════════
@@ -1620,14 +2575,14 @@
   @media (min-width: 1200px) and (max-width: 1400px) {
     .casa-mega-menu {
       width: calc(100vw - 40px);
-      max-height: min(78vh, 650px);
+      max-height: min(650px, var(--mega-avail-h));
     }
 
     .casa-mega-inner {
       padding: 28px;
       grid-template-columns: minmax(0, 20%) minmax(0, 1fr) minmax(0, 24%);
       gap: 24px;
-      max-height: calc(min(78vh, 650px) - 56px);
+      max-height: calc(min(650px, var(--mega-avail-h)) - 56px);
     }
 
     .casa-mega-cat-item {
@@ -1702,14 +2657,14 @@
     .casa-mega-menu {
       width: calc(100vw - 20px);
       max-width: 100%;
-      max-height: min(75vh, 580px);
+      max-height: min(580px, var(--mega-avail-h));
     }
 
     .casa-mega-inner {
       padding: 20px;
       grid-template-columns: minmax(0, 18%) minmax(0, 1fr) minmax(0, 22%);
       gap: 16px;
-      max-height: calc(min(75vh, 580px) - 40px);
+      max-height: calc(min(580px, var(--mega-avail-h)) - 40px);
     }
 
     .casa-mega-section-title {
@@ -1842,7 +2797,7 @@
     .casa-mega-menu {
       width: calc(100vw - 16px);
       max-width: 100%;
-      max-height: min(72vh, 520px);
+      max-height: min(520px, var(--mega-avail-h));
       border-radius: 0 0 12px 12px;
     }
 
@@ -1850,7 +2805,7 @@
       padding: 16px;
       grid-template-columns: minmax(0, 22%) minmax(0, 1fr) minmax(0, 28%);
       gap: 12px;
-      max-height: calc(min(72vh, 520px) - 32px);
+      max-height: calc(min(520px, var(--mega-avail-h)) - 32px);
     }
 
     .casa-mega-section-title {
@@ -2058,7 +3013,7 @@
     .casa-mega-menu {
       width: calc(100vw - 12px);
       max-width: 100%;
-      max-height: min(68vh, 460px);
+      max-height: min(460px, var(--mega-avail-h));
       border-radius: 0 0 10px 10px;
     }
 
@@ -2066,7 +3021,7 @@
       padding: 12px;
       grid-template-columns: minmax(0, 25%) minmax(0, 1fr) minmax(0, 30%);
       gap: 10px;
-      max-height: calc(min(68vh, 460px) - 24px);
+      max-height: calc(min(460px, var(--mega-avail-h)) - 24px);
     }
 
     .casa-mega-section-title {
@@ -2299,7 +3254,11 @@
 
   @media (min-width: 1600px) {
     .casa-mega-inner {
-      grid-template-columns: minmax(0, 18%) minmax(0, 1fr) minmax(0, 24%);
+      /* Categories column widened 18% → 20%. On large screens the name
+         font grows (clamp/overrides) while the column % was shrinking,
+         so titles like "Bubble Girl Lamps" were truncating; give the
+         column enough room to show the full title + count. */
+      grid-template-columns: minmax(0, 20%) minmax(0, 1fr) minmax(0, 24%);
     }
 
     /* Auto mode: switch to 3 columns on extra-large screens */
@@ -2324,13 +3283,13 @@
   @media (min-width: 1920px) {
     .casa-mega-menu {
       max-width: 1600px;
-      max-height: min(85vh, 800px);
+      max-height: min(800px, var(--mega-avail-h));
     }
 
     .casa-mega-inner {
       padding: 48px;
-      gap: 48px;
-      max-height: calc(min(85vh, 800px) - 96px);
+      gap: 36px;
+      max-height: calc(min(800px, var(--mega-avail-h)) - 96px);
     }
 
     .casa-mega-section-title {
@@ -2339,7 +3298,8 @@
     }
 
     .casa-mega-cat-item {
-      padding: 16px 18px;
+      /* flush-left (0 left pad) so the title gets the full column width */
+      padding: 16px 18px 16px 0;
     }
 
     .casa-mega-cat-icon {
@@ -2406,15 +3366,15 @@
   @media (min-width: 2560px) {
     .casa-mega-menu {
       max-width: 2000px;
-      max-height: min(80vh, 900px);
+      max-height: min(900px, var(--mega-avail-h));
       border-radius: 0 0 28px 28px;
     }
 
     .casa-mega-inner {
       padding: 56px;
-      gap: 56px;
-      grid-template-columns: minmax(0, 16%) minmax(0, 1fr) minmax(0, 22%);
-      max-height: calc(min(80vh, 900px) - 112px);
+      gap: 40px;
+      grid-template-columns: minmax(0, 18%) minmax(0, 1fr) minmax(0, 22%);
+      max-height: calc(min(900px, var(--mega-avail-h)) - 112px);
     }
 
     .casa-mega-section-title {
@@ -2424,7 +3384,7 @@
     }
 
     .casa-mega-cat-item {
-      padding: 18px 20px;
+      padding: 18px 20px 18px 0;
       border-radius: 16px;
     }
 
@@ -2574,16 +3534,19 @@
 
   @media (min-width: 3440px) {
     .casa-mega-menu {
-      max-width: 2600px;
-      max-height: min(75vh, 1000px);
+      /* Match the header bar's 2200px ultrawide cap (casa-header.liquid) —
+         the old 2600px paired with the removed 2800px bar and would
+         overhang the capped bar by 200px per side. */
+      max-width: 2200px;
+      max-height: min(1000px, var(--mega-avail-h));
       border-radius: 0 0 32px 32px;
     }
 
     .casa-mega-inner {
       padding: 64px;
-      gap: 64px;
-      grid-template-columns: minmax(0, 14%) minmax(0, 1fr) minmax(0, 20%);
-      max-height: calc(min(75vh, 1000px) - 128px);
+      gap: 44px;
+      grid-template-columns: minmax(0, 16%) minmax(0, 1fr) minmax(0, 20%);
+      max-height: calc(min(1000px, var(--mega-avail-h)) - 128px);
     }
 
     .casa-mega-section-title {
@@ -2593,9 +3556,9 @@
     }
 
     .casa-mega-cat-item {
-      padding: 20px 24px;
+      padding: 20px 24px 20px 0;
       border-radius: 18px;
-      gap: 18px;
+      gap: 12px;
     }
 
     .casa-mega-cat-icon {

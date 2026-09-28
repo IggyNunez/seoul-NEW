@@ -2,62 +2,106 @@
   Seoul Glow Lab Product Card
   Premium product card with CRO features
 
-  @param product {product} - Required. The product object
-  @param variant {string} - Optional. Card variant: 'default', 'mega-menu', 'minimal', 'featured', 'collection'
-  @param show_badge {boolean} - Optional. Show product badge (default: true)
-  @param show_sale_badge {boolean} - Optional. Show auto-calculated sale % badge (default: true)
-  @param show_rating {boolean} - Optional. Show star rating (default: true for default variant)
-  @param show_price {boolean} - Optional. Show price (default: true)
-  @param lazy_load {boolean} - Optional. Lazy load image (default: true)
-  @param index {number} - Optional. Card index for gradient variation
+  @param {product} product - Required. The product object
+  @param {string} [variant] - Optional. Card variant: 'default', 'mega-menu', 'minimal', 'featured', 'collection'
+  @param {boolean} [show_badge] - Optional. Show product badge (default: true)
+  @param {boolean} [show_sale_badge] - Optional. Show auto-calculated sale % badge (default: true)
+  @param {boolean} [show_rating] - Optional. Show star rating (default: true for default variant)
+  @param {boolean} [show_price] - Optional. Show price (default: true)
+  @param {boolean} [lazy_load] - Optional. Lazy load image (default: true)
+  @param {number} [index] - Optional. Card index for gradient variation
+  @param {string} [sizes] - Optional. img `sizes` attribute. Default matches the
+    collection/homepage grids (4-col >1200px, 3-col 901-1200px, 2-col ≤900px).
+    Pass a custom value from sections whose card column widths differ.
 
-  CRO Features (all optional, passed from parent section):
-  @param show_quick_add {boolean} - Quick Add to Cart button on hover
-  @param show_variant_swatches {boolean} - Color/size variant swatches
-  @param show_wishlist {boolean} - Wishlist heart icon
-  @param show_stock_urgency {boolean} - "Only X left!" badge for low stock
-  @param stock_threshold {number} - Threshold for low stock warning (default: 5)
-  @param show_installment {boolean} - Installment price display (e.g., "Or 4× €25")
-  @param installment_count {number} - Number of installments (default: 4)
-  @param show_quick_view {boolean} - Quick view button
-  @param show_hover_video {boolean} - Play product video on hover
-  @param show_savings_highlight {boolean} - Enhanced savings display
-  @param show_social_proof {boolean} - Social proof badges ("Bestseller", "142 sold")
+  CRO Features (all optional, passed from parent section). Every param below
+  resolves via `| default: settings.card_*` then a hardcoded fallback in the
+  body — omitting one at a call site is the DOCUMENTED way to inherit the
+  merchant's theme-settings toggle. Do not "fix" callers by passing literals;
+  that pins the value and severs the theme-settings control path.
+  @param {boolean} [show_quick_add] - Quick Add to Cart button on hover
+  @param {boolean} [show_variant_swatches] - Color/size variant swatches
+  @param {boolean} [show_wishlist] - Wishlist heart icon
+  @param {boolean} [show_stock_urgency] - "Only X left!" badge for low stock
+  @param {number} [stock_threshold] - Threshold for low stock warning (default: 5)
+  @param {boolean} [show_installment] - Installment price display (e.g., "Or 4× €25")
+  @param {number} [installment_count] - Number of installments (default: 4)
+  @param {boolean} [show_quick_view] - Quick view button
+  @param {boolean} [show_hover_video] - Play product video on hover
+  @param {boolean} [show_savings_highlight] - Enhanced savings display
+  @param {boolean} [show_social_proof] - Social proof badges ("Bestseller", "142 sold")
 {%- enddoc -%}
 
 {%- liquid
   assign _variant = variant | default: 'default'
-  assign _show_badge = show_badge | default: settings.card_show_badges | default: true
+  # `allow_false: true` is critical here — without it, unchecking
+  # card_show_badges in Theme Settings makes the value `false`, which
+  # the `default:` filter treats as "missing" and silently falls
+  # through to `true` — meaning badges always show regardless of the
+  # user's toggle. With allow_false, false is treated as a real value.
+  assign _show_badge = show_badge | default: settings.card_show_badges, allow_false: true | default: true, allow_false: true
   assign _show_sale_badge = show_sale_badge | default: settings.card_show_sale_badge | default: true, allow_false: true
   assign _info_align = info_align | default: settings.card_info_align | default: 'left'
   assign _title_tag = title_tag | default: settings.card_title_tag | default: 'h3'
   assign _title_font_size = title_font_size | default: nil
   assign _review_style = review_style | default: settings.card_review_style | default: 'full'
-  assign _show_rating = show_rating | default: settings.card_show_rating | default: false
-  assign _show_price = show_price | default: settings.card_show_price | default: true
-  assign _show_compare_price = show_compare_price | default: settings.card_show_compare_price | default: true
-  assign _show_savings = show_savings | default: settings.card_show_savings | default: false
+  # All boolean show_* flags need allow_false: true on EVERY step.
+  # Without it, unchecking the theme toggle (false) is treated by
+  # `default:` as "missing" and silently falls through to the next
+  # default — which is hardcoded `true`/`false` — meaning the user's
+  # toggle is ignored.
+  assign _show_rating = show_rating | default: settings.card_show_rating, allow_false: true | default: false, allow_false: true
+  assign _show_price = show_price | default: settings.card_show_price, allow_false: true | default: true, allow_false: true
+  assign _show_compare_price = show_compare_price | default: settings.card_show_compare_price, allow_false: true | default: true, allow_false: true
+  # `_show_savings` removed — it was a dead toggle, never read by
+  # any markup. The real "show savings" control is _show_savings_highlight
+  # below (theme setting: card_show_savings_highlight, label "Enhanced
+  # savings display").
   assign _lazy_load = lazy_load | default: true
   assign _index = index | default: 0
+  # Responsive-image `sizes` for the card images. The default mirrors the
+  # real rendered grids (casa-collection-main + casa-products-grid): 4
+  # columns above 1200px, 3 columns 901-1200px, 2 columns at ≤900px —
+  # each expressed as its viewport share BEFORE gaps/sidebar, i.e.
+  # rounded UP, which is the safe direction for srcset selection.
+  assign _img_sizes = sizes | default: '(min-width: 1201px) 25vw, (min-width: 901px) 33vw, 50vw'
   assign _image_ratio = image_ratio | default: settings.card_image_ratio | default: 'adapt'
   assign _border_radius = border_radius | default: settings.card_border_radius | default: 12
 
   if _variant == 'default'
-    assign _show_rating = show_rating | default: settings.card_show_rating | default: true
+    assign _show_rating = show_rating | default: settings.card_show_rating, allow_false: true | default: true, allow_false: true
   endif
 
-  # CRO feature flags (all default to false)
-  assign _show_quick_add = show_quick_add | default: false
-  assign _show_variant_swatches = show_variant_swatches | default: settings.card_show_swatches | default: false
-  assign _show_wishlist = show_wishlist | default: false
-  assign _show_stock_urgency = show_stock_urgency | default: false
-  assign _stock_threshold = stock_threshold | default: 5 | plus: 0
-  assign _show_installment = show_installment | default: false
-  assign _installment_count = installment_count | default: 4 | plus: 0
-  assign _show_quick_view = show_quick_view | default: false
-  assign _show_hover_video = show_hover_video | default: false
-  assign _show_savings_highlight = show_savings_highlight | default: _show_savings | default: false
-  assign _show_social_proof = show_social_proof | default: false
+  # CRO feature flags. Resolution order per flag:
+  #   1. Section explicitly passed a value      (per-section override)
+  #   2. Theme setting (settings.card_show_*)   (global default)
+  #   3. Hardcoded false                        (safety)
+  # Sections that want their own toggles to take effect should pass
+  # the value through render. Sections that want the theme settings
+  # to apply unmodified should NOT pass the parameter at all (i.e.
+  # leave it nil — `default:` then falls through to the theme value).
+  #
+  # `allow_false: true` makes `default:` treat `false` as a real value
+  # instead of "missing" — so a section can explicitly disable a flag
+  # without it silently falling back to the theme default.
+  assign _show_quick_add = show_quick_add | default: settings.card_show_quick_add, allow_false: true | default: false, allow_false: true
+  assign _show_variant_swatches = show_variant_swatches | default: settings.card_show_swatches, allow_false: true | default: false, allow_false: true
+  assign _show_wishlist = show_wishlist | default: settings.card_show_wishlist, allow_false: true | default: false, allow_false: true
+  assign _show_stock_urgency = show_stock_urgency | default: settings.card_show_stock_urgency, allow_false: true | default: false, allow_false: true
+  assign _stock_threshold = stock_threshold | default: settings.card_stock_threshold | default: 5 | plus: 0
+  # Installment widget is HARD-LOCKED OFF on every product-card surface
+  # (collection grids, search, megamenu features, recommendations,
+  # recently-viewed, cart-drawer recs, predictive-search). Per merchant
+  # rule 2026-05-16: BNPL pricing appears ONLY on the PDP buy-box and
+  # above the cart checkout button. Don't honor the merchant or
+  # section toggle here — drift on a card surface is a worse outcome
+  # than the loss of a setting.
+  assign _show_installment = false
+  assign _installment_count = installment_count | default: settings.card_installment_count | default: 4 | plus: 0
+  assign _show_quick_view = show_quick_view | default: settings.card_show_quick_view, allow_false: true | default: false, allow_false: true
+  assign _show_hover_video = show_hover_video | default: settings.card_show_hover_video, allow_false: true | default: false, allow_false: true
+  assign _show_savings_highlight = show_savings_highlight | default: settings.card_show_savings_highlight, allow_false: true | default: false, allow_false: true
+  assign _show_social_proof = show_social_proof | default: settings.card_show_social_proof, allow_false: true | default: false, allow_false: true
 
   # Color customization (section overrides > global theme settings > hardcoded fallback)
   assign _title_color = title_color | default: settings.card_title_color | default: nil
@@ -65,8 +109,8 @@
   assign _compare_color = compare_color | default: settings.compare_price_color | default: nil
   assign _badge_bg = badge_bg | default: settings.card_badge_bg | default: nil
   assign _badge_text = badge_text | default: settings.card_badge_text | default: nil
-  assign _savings_bg = savings_bg | default: settings.savings_badge_bg | default: nil
-  assign _savings_text = savings_text | default: settings.savings_badge_text | default: nil
+  assign _savings_bg = savings_bg | default: nil
+  assign _savings_text = savings_text | default: nil
   assign _installment_color = installment_color | default: settings.card_installment_color | default: nil
   assign _stars_color = stars_color | default: settings.card_stars_color | default: nil
   assign _reviews_color = reviews_color | default: settings.card_reviews_color | default: nil
@@ -150,6 +194,46 @@
     assign color_option_index = _first_multi_option
   endif
 
+  # Will this card render a REAL variant-swatch row (at least one variant has
+  # its own image)? Computed up-front — shared by the swatch-row render guard
+  # (see the has_variant_images assign below the gallery) and the hover-image
+  # pick in the image block. While scanning, collect every image id claimed as
+  # a variant featured image ("|id|" delimited so numeric ids can't
+  # substring-match each other). (2026-07-08, reworked 2026-07-12)
+  assign _card_has_variant_swatches = false
+  assign _claimed_image_ids = ''
+  if _show_variant_swatches and color_option_index != nil
+    for _v in product.variants
+      if _v.featured_image != blank
+        assign _card_has_variant_swatches = true
+        assign _vid = _v.featured_image.id | append: ''
+        assign _claimed_image_ids = _claimed_image_ids | append: '|' | append: _vid | append: '|'
+      endif
+    endfor
+  endif
+
+  # Hover image for swatch cards: the first product image NOT claimed as any
+  # variant's featured image (a group/pair/lifestyle shot). NEVER images[1]
+  # here — catalog audit 2026-07-12: in 9/10 multi-variant products images[1]
+  # is ANOTHER variant's featured photo, and hover-swapping to it read as an
+  # accidental variant auto-select (the 2026-07-08 bug #2). Stays nil when
+  # every image is claimed (e.g. bubble-glass: 7 variants, 7 images) — then
+  # no overlay renders for this card.
+  assign _swatch_hover_image = nil
+  if _card_has_variant_swatches
+    for _img in product.images
+      if _img.id == product.featured_image.id
+        continue
+      endif
+      assign _img_id = _img.id | append: ''
+      assign _needle = _img_id | prepend: '|' | append: '|'
+      unless _claimed_image_ids contains _needle
+        assign _swatch_hover_image = _img
+        break
+      endunless
+    endfor
+  endif
+
   # Get product video for hover
   assign product_video = nil
   if _show_hover_video
@@ -168,7 +252,7 @@
 -%}
 
 <div
-  class="casa-product-card casa-product-card--{{ _variant }}{% if _show_quick_add or _show_quick_view %} casa-product-card--has-actions{% endif %}"
+  class="casa-product-card casa-product-card--{{ _variant }}{% if _show_quick_add %} casa-product-card--has-actions{% endif %}"
   data-product-id="{{ product.id }}"
   style="
     {%- if _title_color -%}--card-title-color: {{ _title_color }};{%- endif -%}
@@ -177,6 +261,30 @@
     --card-info-align: {{ _info_align }};
     {%- if _badge_bg -%}--card-badge-bg: {{ _badge_bg }};{%- endif -%}
     {%- if _badge_text -%}--card-badge-text: {{ _badge_text }};{%- endif -%}
+    {%- if settings.card_badge_bestseller_bg -%}--card-badge-bestseller-bg: {{ settings.card_badge_bestseller_bg }};{%- endif -%}
+    {%- if settings.card_badge_gift_favorite_bg -%}--card-badge-gift-favorite-bg: {{ settings.card_badge_gift_favorite_bg }};{%- endif -%}
+    {%- if settings.card_badge_new_bg -%}--card-badge-new-bg: {{ settings.card_badge_new_bg }};{%- endif -%}
+    {%- if settings.card_badge_editors_pick_bg -%}--card-badge-editors-pick-bg: {{ settings.card_badge_editors_pick_bg }};{%- endif -%}
+    {%- if settings.card_badge_limited_bg -%}--card-badge-limited-bg: {{ settings.card_badge_limited_bg }};{%- endif -%}
+    {%- if settings.card_badge_trending_bg -%}--card-badge-trending-bg: {{ settings.card_badge_trending_bg }};{%- endif -%}
+    {%- if settings.card_badge_eco_bg -%}--card-badge-eco-bg: {{ settings.card_badge_eco_bg }};{%- endif -%}
+    {%- if settings.card_badge_exclusive_bg -%}--card-badge-exclusive-bg: {{ settings.card_badge_exclusive_bg }};{%- endif -%}
+    {%- if settings.card_badge_handmade_bg -%}--card-badge-handmade-bg: {{ settings.card_badge_handmade_bg }};{%- endif -%}
+    {%- if settings.card_badge_free_shipping_bg -%}--card-badge-free-shipping-bg: {{ settings.card_badge_free_shipping_bg }};{%- endif -%}
+    {%- if settings.card_badge_best_value_bg -%}--card-badge-best-value-bg: {{ settings.card_badge_best_value_bg }};{%- endif -%}
+    {%- if settings.card_badge_urgency_bg -%}--card-badge-urgency-bg: {{ settings.card_badge_urgency_bg }};{%- endif -%}
+    {%- if settings.card_badge_soldout_bg -%}--card-badge-soldout-bg: {{ settings.card_badge_soldout_bg }};{%- endif -%}
+    {%- if settings.card_info_gap != blank -%}--card-info-gap: {{ settings.card_info_gap }}px;{%- endif -%}
+    {%- if settings.card_swatch_spacing != blank -%}--card-swatch-spacing: {{ settings.card_swatch_spacing }}px;{%- endif -%}
+    {%- if settings.card_swatch_size != blank -%}--card-swatch-size: {{ settings.card_swatch_size }}px;{%- endif -%}
+    {%- if settings.card_swatch_gap != blank -%}--card-swatch-gap: {{ settings.card_swatch_gap }}px;{%- endif -%}
+    {%- if settings.card_swatch_radius != blank -%}--card-swatch-radius: {{ settings.card_swatch_radius }}px;{%- endif -%}
+    {%- if settings.card_swatch_size_mobile != blank -%}--card-swatch-size-mobile: {{ settings.card_swatch_size_mobile }}px;{%- endif -%}
+    {%- if settings.card_swatch_gap_mobile != blank -%}--card-swatch-gap-mobile: {{ settings.card_swatch_gap_mobile }}px;{%- endif -%}
+    {%- if settings.card_atc_bg -%}--card-atc-bg: {{ settings.card_atc_bg }};{%- endif -%}
+    {%- if settings.card_atc_text -%}--card-atc-text: {{ settings.card_atc_text }};{%- endif -%}
+    {%- if settings.card_options_bg -%}--card-options-bg: {{ settings.card_options_bg }};{%- endif -%}
+    {%- if settings.card_options_text -%}--card-options-text: {{ settings.card_options_text }};{%- endif -%}
     {%- if _savings_bg -%}--card-savings-bg: {{ _savings_bg }};{%- endif -%}
     {%- if _savings_text -%}--card-savings-text: {{ _savings_text }};{%- endif -%}
     {%- if _installment_color -%}--card-installment-color: {{ _installment_color }};{%- endif -%}
@@ -197,24 +305,119 @@
   {%- endif -%}
 
   <a href="{{ product.url }}" class="casa-product-card__link">
+    {%- comment -%}
+      Above-the-fold eager-load:
+      - First 2 cards: eager + fetchpriority=high (likely LCP candidates
+        on collection pages on mobile)
+      - Cards 3-5: eager (visible in the first 1-2 viewports on mobile,
+        and just below fold on desktop)
+      - Cards 6+: lazy (original behavior, browser-native)
+      Without this, native loading="lazy" doesn't fire fetch until you
+      scroll near each card, producing the "empty section while I
+      scroll" pop-in the user reported 2026-05-13.
+    {%- endcomment -%}
+    {%- if _lazy_load and _index >= 6 -%}
+      {%- assign _img_loading = 'lazy' -%}
+      {%- assign _img_fetchprio = '' -%}
+    {%- elsif _lazy_load and _index < 2 -%}
+      {%- assign _img_loading = 'eager' -%}
+      {%- assign _img_fetchprio = 'high' -%}
+    {%- elsif _lazy_load -%}
+      {%- assign _img_loading = 'eager' -%}
+      {%- assign _img_fetchprio = '' -%}
+    {%- else -%}
+      {%- assign _img_loading = 'eager' -%}
+      {%- assign _img_fetchprio = '' -%}
+    {%- endif -%}
     <div class="casa-product-card__image" style="background: {{ card_bg }};">
       {%- if product.featured_image != blank -%}
+        {%- assign _card_image = product.featured_image -%}
+        {%- comment -%}
+          srcset gates every candidate on the source's natural width:
+          Shopify's CDN never upscales, so an ungated descriptor would
+          lie to the browser on small originals (it would pick "1600w"
+          and receive an 800px file). Originals under 1600px expose
+          their natural width as the largest candidate instead. The
+          lower gates are strict (>) so an original whose width equals
+          a gate isn't emitted twice (once by the gate, once as the
+          natural-width tail).
+          JS contract: the swatch swap in casa-product-card.js writes
+          BOTH src and srcset — a src write alone is ignored by the
+          browser while srcset is present.
+        {%- endcomment -%}
+        {%- capture _card_srcset -%}
+          {%- if _card_image.width > 400 -%}{{ _card_image | image_url: width: 400 }} 400w, {% endif -%}
+          {%- if _card_image.width > 600 -%}{{ _card_image | image_url: width: 600 }} 600w, {% endif -%}
+          {%- if _card_image.width > 800 -%}{{ _card_image | image_url: width: 800 }} 800w, {% endif -%}
+          {%- if _card_image.width > 1200 -%}{{ _card_image | image_url: width: 1200 }} 1200w, {% endif -%}
+          {%- if _card_image.width >= 1600 -%}
+            {{- _card_image | image_url: width: 1600 }} 1600w
+          {%- else -%}
+            {{- _card_image | image_url: width: _card_image.width }} {{ _card_image.width }}w
+          {%- endif -%}
+        {%- endcapture -%}
         <img
-          src="{{ product.featured_image | image_url: width: 600 }}"
-          alt="{{ product.featured_image.alt | default: product.title | escape }}"
+          src="{{ _card_image | image_url: width: 600 }}"
+          srcset="{{ _card_srcset }}"
+          sizes="{{ _img_sizes }}"
+          alt="{{ _card_image.alt | default: product.title | escape }}"
           width="300"
           height="300"
-          {% if _lazy_load %}loading="lazy"{% endif %}
+          loading="{{ _img_loading }}"
+          decoding="async"
+          {%- if _img_fetchprio != '' %} fetchpriority="{{ _img_fetchprio }}"{% endif %}
           class="casa-product-card__img"
         >
-        {%- comment -%} Secondary image on hover {%- endcomment -%}
-        {%- if product.images.size > 1 -%}
+        {%- comment -%}
+          Secondary image on hover.
+          Only render when there is NO hover video — otherwise the secondary
+          image fades in (already loaded) before the video fetches from CDN
+          and plays, producing a visible image-then-video swap on hover.
+        {%- endcomment -%}
+        {%- comment -%}
+          Hover-image pick (2026-07-12, replaces the 2026-07-08 blanket
+          suppression on swatch cards):
+          - Non-swatch card: product.images[1], byte-identical to before.
+          - Swatch card: _swatch_hover_image — the first image NOT claimed as
+            any variant's featured image (group/lifestyle shot), computed in
+            the head block. Never another variant's photo, so the hover can't
+            read as an accidental auto-select. nil (no overlay) when every
+            image is claimed by a variant.
+          After a swatch click, commit() in assets/casa-product-card.js pins
+          this overlay to the selected variant's image (src AND srcset), so a
+          later hover never appears to revert the customer's choice; during
+          the selection hover itself the .is-swatch-selected CSS rule hides
+          the overlay entirely.
+        {%- endcomment -%}
+        {%- assign _hover_image = nil -%}
+        {%- if product_video == blank -%}
+          {%- if _card_has_variant_swatches -%}
+            {%- assign _hover_image = _swatch_hover_image -%}
+          {%- elsif product.images.size > 1 -%}
+            {%- assign _hover_image = product.images[1] -%}
+          {%- endif -%}
+        {%- endif -%}
+        {%- if _hover_image != blank -%}
+          {%- capture _hover_srcset -%}
+            {%- if _hover_image.width > 400 -%}{{ _hover_image | image_url: width: 400 }} 400w, {% endif -%}
+            {%- if _hover_image.width > 600 -%}{{ _hover_image | image_url: width: 600 }} 600w, {% endif -%}
+            {%- if _hover_image.width > 800 -%}{{ _hover_image | image_url: width: 800 }} 800w, {% endif -%}
+            {%- if _hover_image.width > 1200 -%}{{ _hover_image | image_url: width: 1200 }} 1200w, {% endif -%}
+            {%- if _hover_image.width >= 1600 -%}
+              {{- _hover_image | image_url: width: 1600 }} 1600w
+            {%- else -%}
+              {{- _hover_image | image_url: width: _hover_image.width }} {{ _hover_image.width }}w
+            {%- endif -%}
+          {%- endcapture -%}
           <img
-            src="{{ product.images[1] | image_url: width: 600 }}"
-            alt="{{ product.images[1].alt | default: product.title | escape }}"
+            src="{{ _hover_image | image_url: width: 600 }}"
+            srcset="{{ _hover_srcset }}"
+            sizes="{{ _img_sizes }}"
+            alt="{{ _hover_image.alt | default: product.title | escape }}"
             width="300"
             height="300"
             loading="lazy"
+            decoding="async"
             class="casa-product-card__img casa-product-card__img--hover"
           >
         {%- endif -%}
@@ -238,8 +441,45 @@
       {%- if product_video != blank -%}
         <div class="casa-product-card__video">
           {%- if product_video.media_type == 'video' -%}
-            <video muted loop playsinline preload="none" data-src="{{ product_video.sources[0].url }}">
-              <source data-src="{{ product_video.sources[0].url }}" type="{{ product_video.sources[0].mime_type }}">
+            {%- comment -%}
+              poster = featured product image so the brief CDN-fetch delay
+              before play() shows the product photo (not a black frame).
+            {%- endcomment -%}
+            {%- comment -%}
+              Pick the MP4 source, never sources[0] blindly: Shopify lists the
+              .m3u8 (HLS) first, which Chrome/Firefox can't play in <video> at
+              all (silently dead hover) and which costs Safari its heavier
+              adaptive-decode pipeline. Fall back to sources[0] only when no
+              MP4 rendition exists.
+            {%- endcomment -%}
+            {%- comment -%}
+              Rendition note (2026-07-16): Shopify's CDN holds 480p/720p/1080p
+              mp4 transcodes, but Liquid's product_video.sources only exposes the
+              full-res master mp4 (here 1080p / 7.2 Mbps) + the HLS manifest —
+              the lighter mp4s are Admin-API-only, NOT selectable from a theme
+              (verified on this store). So we take the single mp4 and never HLS
+              (Chrome/Firefox can't play .m3u8 in a bare <video>). The Safari
+              "flash back to the still" is handled below — no poster + reveal-on-
+              `playing` in casa-product-card.js — which holds regardless of file
+              size. Cutting the 7.2 Mbps download itself would need HLS-with-mp4-
+              fallback (Safari streams adaptively, others get the mp4); that's a
+              separate, bigger call.
+            {%- endcomment -%}
+            {%- assign _card_mp4 = product_video.sources | where: 'mime_type', 'video/mp4' | first -%}
+            {%- assign _card_src = _card_mp4.url | default: product_video.sources[0].url -%}
+            {%- assign _card_type = _card_mp4.mime_type | default: product_video.sources[0].mime_type -%}
+            {%- comment -%}
+              No `poster` (2026-07-16): the card's main <img> (the same featured
+              photo the poster used to duplicate) sits behind this wrapper as the
+              still. A `poster` on the <video> is exactly what WebKit hard-
+              repaints when a frame is momentarily unavailable; without it the
+              identical still simply stays put. The wrapper reveals (opacity)
+              only once casa-product-card.js confirms the `playing` event, so no
+              black/blank frame is ever shown before playback.
+            {%- endcomment -%}
+            <video muted loop playsinline preload="none"
+                   data-src="{{ _card_src }}">
+              <source data-src="{{ _card_src }}" type="{{ _card_type }}">
             </video>
           {%- elsif product_video.media_type == 'external_video' -%}
             {%- comment -%} External video placeholder - would need API integration {%- endcomment -%}
@@ -306,85 +546,129 @@
 
     <div class="casa-product-card__info">
       {%- comment -%} Variant Swatches — Image-based with hover preview {%- endcomment -%}
+      {%- comment -%}
+        Reuse the up-front flag (single source of truth) so the swatch-render
+        guard and the hover-overlay image pick can never desync. (2026-07-08,
+        pick reworked 2026-07-12 — see the image block.)
+      {%- endcomment -%}
+      {%- assign has_variant_images = _card_has_variant_swatches -%}
       {%- if _show_variant_swatches and color_option_index != nil -%}
+        {%- if has_variant_images -%}
         <div class="casa-product-card__swatches" data-product-url="{{ product.url }}">
           {%- assign color_option = product.options_with_values[color_option_index] -%}
-          {%- assign swatch_count = 0 -%}
+          {%- comment -%}
+            Show first 4 unique color swatches max. If more exist,
+            render a "+N" pill. Static cap — no responsive overflow
+            measurement, predictable on every screen size.
+          {%- endcomment -%}
+          {%- assign _swatch_cap = 4 -%}
+          {%- assign _shown = 0 -%}
+          {%- comment -%}
+            Mark at most ONE swatch active by default — the one whose image IS
+            the product's featured image. A group/hero featured image matches
+            none, so nothing is pre-selected (correct: no colour chosen yet).
+            (2026-07-08)
+          {%- endcomment -%}
+          {%- assign _active_marked = false -%}
           {%- for variant in product.variants -%}
-            {%- if swatch_count < 5 -%}
-              {%- comment -%} Only show one swatch per unique color option {%- endcomment -%}
-              {%- assign color_value = variant.options[color_option_index] -%}
-              {%- assign already_shown = false -%}
-              {%- for prev_variant in product.variants -%}
-                {%- if forloop.index < forloop.parentloop.index -%}
-                  {%- if prev_variant.options[color_option_index] == color_value -%}
-                    {%- assign already_shown = true -%}
-                    {%- break -%}
-                  {%- endif -%}
+            {%- if _shown >= _swatch_cap -%}{%- break -%}{%- endif -%}
+            {%- comment -%} Only show one swatch per unique color option {%- endcomment -%}
+            {%- assign color_value = variant.options[color_option_index] -%}
+            {%- assign already_shown = false -%}
+            {%- for prev_variant in product.variants -%}
+              {%- if forloop.index < forloop.parentloop.index -%}
+                {%- if prev_variant.options[color_option_index] == color_value -%}
+                  {%- assign already_shown = true -%}
+                  {%- break -%}
                 {%- endif -%}
-              {%- endfor -%}
-              {%- unless already_shown -%}
-                {%- assign swatch_count = swatch_count | plus: 1 -%}
-                <button
-                  type="button"
-                  class="casa-product-card__swatch{% if forloop.first %} casa-product-card__swatch--active{% endif %}"
-                  data-variant-id="{{ variant.id }}"
-                  data-variant-url="{{ product.url }}?variant={{ variant.id }}"
-                  data-variant-image="{{ variant.featured_image | default: product.featured_image | image_url: width: 600 }}"
-                  data-variant-price="{{ variant.price | money }}"
-                  data-variant-available="{{ variant.available }}"
-                  title="{{ color_value }}"
-                  aria-label="Select {{ color_value }}"
-                >
-                  {%- if variant.featured_image != blank -%}
-                    <img
-                      src="{{ variant.featured_image | image_url: width: 80 }}"
-                      alt="{{ color_value }}"
-                      loading="lazy"
-                    >
-                  {%- elsif product.featured_image != blank -%}
-                    <img
-                      src="{{ product.featured_image | image_url: width: 80 }}"
-                      alt="{{ color_value }}"
-                      loading="lazy"
-                    >
-                  {%- else -%}
-                    <span class="casa-product-card__swatch-fallback">{{ color_value | slice: 0 }}</span>
-                  {%- endif -%}
-                </button>
-              {%- endunless -%}
-            {%- endif -%}
+              {%- endif -%}
+            {%- endfor -%}
+            {%- unless already_shown -%}
+              {%- assign _shown = _shown | plus: 1 -%}
+              {%- assign _is_active = false -%}
+              {%- if _active_marked == false and product.featured_image != blank and variant.featured_image != blank and variant.featured_image.id == product.featured_image.id -%}
+                {%- assign _is_active = true -%}
+                {%- assign _active_marked = true -%}
+              {%- endif -%}
+              <button
+                type="button"
+                class="casa-product-card__swatch{% if _is_active %} casa-product-card__swatch--active{% endif %}"
+                data-variant-id="{{ variant.id }}"
+                data-variant-url="{{ product.url }}?variant={{ variant.id }}"
+                data-variant-image="{{ variant.featured_image | default: product.featured_image | image_url: width: 600 }}"
+                data-variant-price="{{ variant.price | money }}"
+                data-variant-available="{{ variant.available }}"
+                title="{{ color_value }}"
+                aria-label="Select {{ color_value }}"
+                aria-pressed="{% if _is_active %}true{% else %}false{% endif %}"
+              >
+                {%- if variant.featured_image != blank -%}
+                  <img
+                    src="{{ variant.featured_image | image_url: width: 80 }}"
+                    width="40"
+                    height="40"
+                    alt="{{ color_value }}"
+                    loading="lazy"
+                  >
+                {%- elsif product.featured_image != blank -%}
+                  <img
+                    src="{{ product.featured_image | image_url: width: 80 }}"
+                    width="40"
+                    height="40"
+                    alt="{{ color_value }}"
+                    loading="lazy"
+                  >
+                {%- else -%}
+                  <span class="casa-product-card__swatch-fallback">{{ color_value | slice: 0 }}</span>
+                {%- endif -%}
+              </button>
+            {%- endunless -%}
           {%- endfor -%}
-          {%- if color_option.values.size > 5 -%}
-            <a href="{{ product.url }}" class="casa-product-card__swatch-more">+{{ color_option.values.size | minus: 5 }}</a>
+          {%- comment -%}
+            "+N" pill — only rendered when there are MORE colors than
+            the cap. N = total unique colors - 4. Static at render
+            time, no JS measurement needed.
+          {%- endcomment -%}
+          {%- if color_option.values.size > _swatch_cap -%}
+            {%- assign _hidden = color_option.values.size | minus: _swatch_cap -%}
+            {%- comment -%}
+              A <button>, NOT an <a>: an inner <a> nests inside the card's outer
+              <a class="casa-product-card__link">, and the HTML parser's
+              adoption-agency algorithm then clones that card link around the
+              trailing title/price (the "rogue __link" the CSS neutralizers
+              patch). A <button> isn't a formatting element, so no cloning. JS
+              handles navigation. (2026-07-08)
+            {%- endcomment -%}
+            <button
+               type="button"
+               class="casa-product-card__swatch-more"
+               data-more-url="{{ product.url }}"
+               data-total="{{ color_option.values.size }}"
+               aria-label="View {{ _hidden }} more {{ color_option.name | downcase }} options"
+            >+{{ _hidden }}</button>
           {%- endif -%}
         </div>
+        {%- endif -%}
+      {%- endif -%}
+      {%- comment -%}
+        Empty reservation row for cards without real variant swatches
+        (true single-SKU products like Nexus/Phoenix AND multi-variant
+        products whose variants share imagery, like the mirrors with
+        Size-only options). Reserves the same vertical height a real
+        swatch row would occupy, so cards align in mixed carousels
+        (Apollo Family grid, PDP recommendations). No interactive
+        element — that would imply a non-existent variant choice and
+        adds a redundant tab stop.
+      {%- endcomment -%}
+      {%- if _show_variant_swatches and has_variant_images == false and product.featured_image != blank -%}
+        <div class="casa-product-card__swatches casa-product-card__swatches--reserve" aria-hidden="true"></div>
       {%- endif -%}
 
       <{{ _title_tag }} class="casa-product-card__title{% if _title_tag == 'h2' %} {{ _title_tag }}{% elsif _title_tag == 'h3' %} {{ _title_tag }}{% elsif _title_tag == 'h4' %} {{ _title_tag }}{% endif %}"{% if _title_font_size %} style="font-size: {{ _title_font_size }}px !important;"{% endif %}>{{ product.title }}</{{ _title_tag }}>
 
-      {%- if _show_rating and rating_count > 0 -%}
+      {%- if _show_rating -%}
         <div class="casa-product-card__rating">
-          {%- case _review_style -%}
-            {%- when 'full' -%}
-              <span class="casa-product-card__stars">
-                {%- for i in (1..5) -%}
-                  {%- if i <= rating_value -%}★{%- else -%}☆{%- endif -%}
-                {%- endfor -%}
-              </span>
-              <span class="casa-product-card__rating-count">{{ rating_count }} reviews</span>
-            {%- when 'compact' -%}
-              <span class="casa-product-card__stars">★</span>
-              <span class="casa-product-card__rating-count">{{ rating_value }}.0 ({{ rating_count }})</span>
-            {%- when 'stars-only' -%}
-              <span class="casa-product-card__stars">
-                {%- for i in (1..5) -%}
-                  {%- if i <= rating_value -%}★{%- else -%}☆{%- endif -%}
-                {%- endfor -%}
-              </span>
-            {%- when 'text-only' -%}
-              <span class="casa-product-card__rating-count">{{ rating_value }}.0 · {{ rating_count }} reviews</span>
-          {%- endcase -%}
+          {% render 'casa-judgeme-rating', product: product %}
         </div>
       {%- endif -%}
 
@@ -392,32 +676,50 @@
         <div class="casa-product-card__price">
           <span class="casa-product-card__price-current">
             {%- if product.price_varies -%}
-              From {{ product.price_min | money }}
+              From {{ product.price_min | money_with_currency }}
             {%- else -%}
-              {{ product.price | money }}
+              {{ product.price | money_with_currency }}
             {%- endif -%}
           </span>
           {%- if product.compare_at_price > product.price and _show_compare_price -%}
+            {%- comment -%}
+              Was-price uses | money (NOT money_with_currency): the active
+              price above already carries the currency code, so repeating
+              it on the strikethrough was pure redundancy — and on narrow
+              mobile cards it pushed the was-price onto a 2nd line, making
+              the card taller. The active price keeps the code; the
+              struck-through was-price doesn't repeat it. (2026-06-15)
+            {%- endcomment -%}
             <span class="casa-product-card__price-compare">
               {{ product.compare_at_price | money }}
             </span>
             {%- if _show_savings_highlight -%}
-              <span class="casa-product-card__savings">
-                Save{{ savings_amount | money }}
-              </span>
+              <span class="casa-product-card__savings">Save {% render 'casa-money', amount: savings_amount %}</span>
             {%- endif -%}
           {%- endif -%}
         </div>
 
-        {%- comment -%} Installment Price {%- endcomment -%}
-        {%- if _show_installment and product.price > 0 -%}
-          <div class="casa-product-card__installment">
-            Or {{ _installment_count }}× {{ installment_price | money }}
-          </div>
-        {%- endif -%}
       {%- endif -%}
     </div>
   </a>
+
+  {%- comment -%}
+    Real Shop Pay Installments badge — rendered OUTSIDE the <a> link
+    because HTML doesn't allow forms inside anchors. The
+    payment_terms filter hooks into shopify-payment-terms via the
+    explicit form id and shows the actual branded installment
+    eligibility (Shop Pay / Klarna / Affirm depending on store).
+    Hidden via CSS when the variant isn't eligible.
+  {%- endcomment -%}
+  {%- if _show_installment and product.price > 0 -%}
+    {%- assign _card_installment_form_id = 'casa-card-installment-' | append: product.id | append: '-' | append: _index -%}
+    <div class="casa-product-card__installment">
+      {%- form 'product', product, id: _card_installment_form_id, class: 'casa-product-card__installment-form' -%}
+        <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+        {{ form | payment_terms }}
+      {%- endform -%}
+    </div>
+  {%- endif -%}
 
   {%- comment -%} Quick Add Button {%- endcomment -%}
   {%- if _show_quick_add and product.available -%}
@@ -450,6 +752,7 @@
 
 {% stylesheet %}
 .casa-product-card {
+  --card-info-px: 24px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -459,18 +762,34 @@
   border-radius: var(--card-border-radius, 20px);
   overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  /* Stretch to match the tallest sibling in the grid/flex row. Cards
+     in mixed-content rows (with/without real swatches, with/without
+     reviews) need to reach the same bottom edge — the card has its
+     own visible boundary (background + border-radius) and shorter
+     cards leave a visibly empty card-bottom otherwise. The leftover
+     height sits as invisible bottom padding inside the card.
+     `height: 100%` is the load-bearing rule for surfaces whose
+     parent wrapper is display:block (homepage casa-products-grid),
+     where `align-self` would otherwise be a no-op. */
+  align-self: stretch;
+  width: 100%;
   height: 100%;
 }
 
-.casa-product-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 30px 60px -15px color-mix(in srgb, var(--card-hover-shadow-color, #000000) 15%, transparent);
+@media (hover: hover) {
+  /* Brand v2: purple-tinted lift on hover. The lamp is *glowing* — that's
+     the brand signature. Falls back to the merchant's --card-hover-shadow-color
+     setting if they've explicitly overridden, otherwise defaults to brand purple. */
+  .casa-product-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 30px 60px -15px color-mix(in srgb, var(--card-hover-shadow-color, var(--casa-purple, #B0C3FA)) 28%, transparent);
+  }
 }
 
 .casa-product-card > .casa-product-card__link {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 0 0 auto;
   text-decoration: none;
   color: inherit;
 }
@@ -544,8 +863,16 @@
 }
 
 .casa-product-card__img {
+  /* height: auto + aspect-ratio instead of height: 100% — the image
+     container's height comes from its own aspect-ratio (1 in every card
+     variant), and Safari 26 can fail to resolve a %-height against that
+     (the /cart flat-thumbnail class; immune pattern from
+     .cart-items__media-image in snippets/cart-products.liquid). Also
+     covers the --hover img: abspos with top/left only (bottom/right
+     auto), so the ratio transfers width→height to the same square box. */
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: 1;
   object-fit: cover;
   transition: opacity 0.4s ease, transform 0.3s ease;
 }
@@ -557,13 +884,33 @@
   opacity: 0;
 }
 
-.casa-product-card:hover .casa-product-card__img:not(.casa-product-card__img--hover) {
-  transform: scale(1.05);
+@media (hover: hover) {
+  .casa-product-card:hover .casa-product-card__img:not(.casa-product-card__img--hover) {
+    transform: scale(1.05);
+  }
+
+  .casa-product-card:hover .casa-product-card__img--hover {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+
+  /* Swatch-selected: once the customer picks a variant the card is pinned
+     to it, so the hover overlay stays hidden on every later hover — the
+     selected still is what shows, never a different-variant 2nd photo.
+     is-swatch-selected is set by casa-product-card.js on swatch click and
+     persists until the card re-renders from the server (AJAX filter /
+     paginate). (Persistent as of 2026-07-13; previously cleared on
+     mouseleave, which let a stale hover reveal reappear after a pick.) */
+  .casa-product-card.is-swatch-selected:hover .casa-product-card__img--hover {
+    opacity: 0;
+  }
 }
 
-.casa-product-card:hover .casa-product-card__img--hover {
-  opacity: 1;
-  transform: scale(1.05);
+/* Mobile: hover image never covers main image (prevents double-tap issue) */
+@media (hover: none) {
+  .casa-product-card__img--hover {
+    display: none;
+  }
 }
 
 /* ==========================================================================
@@ -581,8 +928,26 @@
   pointer-events: none;
 }
 
-.casa-product-card:hover .casa-product-card__video {
+/* Reveal ONLY once casa-product-card.js confirms real playback (the `playing`
+   event adds .is-playing; any `pause` removes it). Before that the base
+   .casa-product-card__img — the same featured photo the poster used to show —
+   stays visible, so Safari never flashes the still while the clip is fetching,
+   rebuffering, or re-seating its loop. Decoupled from :hover on purpose: the
+   old `:hover` reveal showed the wrapper before a single frame existed, which
+   was the flash. (2026-07-16) */
+.casa-product-card__video.is-playing {
   opacity: 1;
+}
+
+/* Swatch-selected: the hover video is one clip shot on the ORIGINAL colour,
+   so after the customer picks a variant it must not reveal — it would show the
+   wrong colour over the selected still. Specificity (0,3,0) beats the reveal
+   rule (0,2,0) and it sits after it, so the wrapper stays hidden even if a
+   stale .is-playing lingers. casa-product-card.js also skips play() while
+   selected, so no hidden clip keeps decoding. Cleared when the card re-renders
+   from the server. */
+.casa-product-card.is-swatch-selected .casa-product-card__video {
+  opacity: 0;
 }
 
 .casa-product-card__video video {
@@ -623,12 +988,12 @@
 }
 
 .casa-product-card__badge--bestseller {
-  background: var(--card-badge-bestseller-bg, #0a0a0a);
+  background: var(--card-badge-bestseller-bg, var(--casa-ink));
   color: var(--card-badge-text, #ffffff);
 }
 
 .casa-product-card__badge--new {
-  background: var(--card-badge-new-bg, linear-gradient(135deg, #9333ea, #ec4899));
+  background: var(--card-badge-new-bg, var(--grad-primary, linear-gradient(135deg, #B0C3FA, #5E0A02)));
   color: var(--card-badge-text, #ffffff);
 }
 
@@ -643,70 +1008,71 @@
 }
 
 .casa-product-card__badge--custom {
-  background: var(--card-badge-custom-bg, linear-gradient(135deg, #9333ea, #ec4899));
+  background: var(--card-badge-custom-bg, var(--grad-primary, linear-gradient(135deg, #B0C3FA, #5E0A02)));
   color: var(--card-badge-text, #ffffff);
 }
 
 /* Custom metafield badges (custom.badges) */
 .casa-product-card__badge--meta {
-  background: linear-gradient(135deg, #9333ea, #6366f1);
+  background: linear-gradient(135deg, var(--casa-purple), var(--casa-cyan));
   color: var(--card-badge-text, #ffffff);
 }
 
 /* ── Exact matches for current metafield choices ── */
 .casa-product-card__badge--meta-1-bestseller {
-  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  background: var(--card-badge-bestseller-bg, linear-gradient(135deg, #f59e0b, #ef4444));
 }
 .casa-product-card__badge--meta-bestseller {
-  background: #0a0a0a;
+  background: var(--card-badge-bestseller-bg, var(--casa-ink));
 }
 .casa-product-card__badge--meta-new-arrival {
-  background: linear-gradient(135deg, #9333ea, #ec4899);
+  background: var(--card-badge-new-bg, var(--grad-primary, linear-gradient(135deg, #B0C3FA, #5E0A02)));
 }
 .casa-product-card__badge--meta-use-code-new20 {
-  background: linear-gradient(135deg, #06b6d4, #9333ea);
+  background: var(--card-badge-new-bg, linear-gradient(135deg, #F2FFA0, #B0C3FA));
 }
 .casa-product-card__badge--meta-new {
-  background: linear-gradient(135deg, #9333ea, #ec4899);
+  background: var(--card-badge-new-bg, var(--grad-primary, linear-gradient(135deg, #B0C3FA, #5E0A02)));
 }
 .casa-product-card__badge--meta-gift-favorite {
-  background: linear-gradient(135deg, #ec4899, #f43f5e);
+  background: var(--card-badge-gift-favorite-bg, linear-gradient(135deg, #5E0A02, #5E0A02));
 }
 .casa-product-card__badge--meta-editor-s-pick {
-  background: linear-gradient(135deg, #0f172a, #334155);
+  background: var(--card-badge-editors-pick-bg, linear-gradient(135deg, #0f172a, #334155));
 }
 
 /* ── Additional named variants ── */
 .casa-product-card__badge--meta-limited-edition,
 .casa-product-card__badge--meta-limited {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: var(--card-badge-limited-bg, linear-gradient(135deg, #f59e0b, #d97706));
 }
 .casa-product-card__badge--meta-trending,
 .casa-product-card__badge--meta-hot {
-  background: linear-gradient(135deg, #ef4444, #f97316);
+  background: var(--card-badge-trending-bg, linear-gradient(135deg, #ef4444, #f97316));
 }
 .casa-product-card__badge--meta-eco-friendly,
 .casa-product-card__badge--meta-eco {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: var(--card-badge-eco-bg, linear-gradient(135deg, #10b981, #059669));
 }
 .casa-product-card__badge--meta-exclusive {
-  background: linear-gradient(135deg, #0f172a, #334155);
+  background: var(--card-badge-exclusive-bg, linear-gradient(135deg, #0f172a, #334155));
 }
 .casa-product-card__badge--meta-handmade,
 .casa-product-card__badge--meta-artisan {
-  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  background: var(--card-badge-handmade-bg, linear-gradient(135deg, #B0C3FA, #B0C3FA));
 }
 .casa-product-card__badge--meta-free-shipping {
-  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  background: var(--card-badge-free-shipping-bg, linear-gradient(135deg, #F2FFA0, #F2FFA0));
 }
 .casa-product-card__badge--meta-best-value,
 .casa-product-card__badge--meta-value {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  background: var(--card-badge-best-value-bg, linear-gradient(135deg, #22c55e, #16a34a));
 }
 
 .casa-product-card__badge--urgency {
-  background: linear-gradient(135deg, #f97316, #ef4444);
+  background: var(--card-badge-urgency-bg, linear-gradient(135deg, #f97316, #ef4444));
   color: var(--card-badge-text, #ffffff);
+  /* perf-justified: opacity-only pulse on a tiny badge, only renders on cards with urgency tags, paused via prefers-reduced-motion below */
   animation: casaPulse 2s ease-in-out infinite;
 }
 
@@ -743,16 +1109,18 @@
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 0.3s ease, transform 0.3s ease, background 0.2s ease;
-  color: #0a0a0a;
+  color: var(--casa-ink);
 }
 
-.casa-product-card:hover .casa-product-card__quick-view {
-  opacity: 1;
-  transform: translateY(0);
+@media (hover: hover) {
+  .casa-product-card:hover .casa-product-card__quick-view {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .casa-product-card__quick-view:hover {
-  background: linear-gradient(135deg, #9333ea, #ec4899);
+  background: var(--casa-gradient-primary);
   color: white;
 }
 
@@ -775,22 +1143,22 @@
 
 .casa-product-card__shape--octagon {
   clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
-  background: linear-gradient(135deg, #9333ea, #ec4899);
+  background: var(--casa-gradient-primary);
 }
 
 .casa-product-card__shape--hexagon {
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  background: linear-gradient(135deg, #06b6d4, #9333ea);
+  background: linear-gradient(135deg, var(--casa-cyan), var(--casa-purple));
 }
 
 .casa-product-card__shape--circle {
   border-radius: 50%;
-  background: linear-gradient(135deg, #ec4899, #9333ea);
+  background: linear-gradient(315deg, var(--casa-purple), var(--casa-pink));
 }
 
 .casa-product-card__shape--triangle {
   clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-  background: linear-gradient(135deg, #22c55e, #06b6d4);
+  background: linear-gradient(135deg, var(--casa-green), var(--casa-cyan));
 }
 
 /* ==========================================================================
@@ -798,12 +1166,18 @@
    ========================================================================== */
 
 .casa-product-card__info {
-  padding: var(--card-info-padding, 20px 24px 24px);
+  padding: 20px var(--card-info-px, 24px) 0;
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: var(--card-info-gap, 6px);
   text-align: var(--card-info-align, left);
+}
+/* When the installment widget isn't rendered, the info block
+   provides its own bottom padding so the card doesn't look
+   chopped off below the price. */
+.casa-product-card:not(:has(.casa-product-card__installment)) .casa-product-card__info {
+  padding-bottom: 24px;
 }
 .casa-product-card__info .casa-product-card__price,
 .casa-product-card__info .casa-product-card__rating,
@@ -832,26 +1206,114 @@
   margin: 0;
 }
 
+.casa-product-card .casa-product-card__swatches,
 .casa-product-card__swatches {
-  display: flex;
-  flex-direction: row;
+  display: flex !important;
+  flex-direction: row !important;
   align-items: center;
-  gap: 6px;
-  margin: 0;
-  flex-wrap: wrap;
+  /* Inherit horizontal alignment from the card info column. The
+     .casa-product-card__info > __swatches rule above resolves to
+     left/center/right based on --card-info-align. Hardcoding
+     justify-content: center here was ignoring that and forcing
+     every swatch row to center regardless of card alignment. */
+  justify-content: var(--card-info-justify, flex-start);
+  gap: var(--card-swatch-gap, 6px);
+  margin: 0 0 var(--card-swatch-spacing, 0);
+  flex-wrap: nowrap !important;
+  overflow: hidden !important;
+  /* CRITICAL: min-width:0 lets the container shrink below its
+     content size so it never pushes the parent flex column wider
+     than the card. Without this, on small mobile the swatches row
+     forced .casa-product-card__info to expand, which broke the
+     image's 1:1 aspect ratio because the card width grew. */
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Empty swatch-row reservation: collapse, never reserve.
+   Row alignment in mixed grids/carousels is handled by the grid
+   container stretching LIs to equal height + cards filling their
+   LI via align-self: stretch (see .casa-col-main__grid-item rule
+   below). The leftover vertical space ends up below the price line
+   on shorter cards — reads as bottom padding, not a layout bug.
+   Reserving space INSIDE the card (image → title gap) is the bug,
+   not the fix. */
+.casa-product-card__swatches.casa-product-card__swatches--reserve {
+  display: none !important;
+}
+@media (max-width: 900px) {
+  .casa-product-card__swatches.casa-product-card__swatches--reserve {
+    display: none !important;
+  }
+}
+
+/* Some apps / Shopify auto-inject <a class="casa-product-card__link">
+   inside the swatches container, wrapping our buttons. Make that
+   wrapper render contents transparently so flex layout treats the
+   buttons as direct children of the swatches container.
+
+   IMPORTANT: scope this to the rogue link only (.__link). Do NOT
+   match every <a> child — the +N pill is also an <a> sibling and
+   would get display:contents too, which strips its own box and
+   makes it invisible. */
+.casa-product-card__swatches .casa-product-card__link {
+  display: contents !important;
 }
 
 .casa-product-card__swatch {
   position: relative;
-  width: 32px;
-  height: 32px;
+  /* Default bumped 36→40px for a more comfortable mobile tap target
+     (still compact; merchant can override via card_swatch_size). */
+  width: var(--card-swatch-size, 40px);
+  height: var(--card-swatch-size, 40px);
+  /* CRITICAL: prevent flex from shrinking swatches to fit. Without
+     flex-shrink: 0 they squeeze together silently and overflow is
+     never triggered (scrollWidth ends up == clientWidth) so the
+     +N pill never appears.
+
+     Use flex-basis: auto (NOT a fixed px value) so the mobile
+     media query's `width:` override actually wins. Setting
+     flex-basis to the desktop var produced rectangular swatches
+     on mobile (width from flex-basis, height from mobile override). */
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: auto;
   padding: 0;
   border: 2px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--card-swatch-radius, 8px);
   cursor: pointer;
-  background: #f5f5f5;
+  background: var(--casa-border-on-paper);
   overflow: hidden;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* The +N pill should also keep its natural size with a minimum
+   width so it never gets clipped to 0 by the parent's overflow:hidden. */
+.casa-product-card__swatch-more {
+  flex-shrink: 0;
+  min-width: 28px;
+  white-space: nowrap;
+}
+
+/* Narrow viewports (≤360px ≈ Galaxy Fold inner, iPhone SE 1st gen):
+   the swatches container is clamped to the card width (~120px on a
+   2-col grid at 280-360 viewport) and its `overflow: hidden` clips
+   anything past that. Liquid renders 4 swatches + an optional +N
+   pill, but at 36px each that's 36×4 + 6×3 + 6 + 28 = ~190px — only
+   the first 2-3 swatches fit; the +N pill renders past the container
+   right edge and is invisible.
+   Hide swatches beyond the 2nd at narrow widths so the +N pill stays
+   inside the visible container. The +N text becomes slightly
+   inaccurate (says "+1" when really 3+ are hidden) — preserving the
+   "more variants exist" affordance matters more than the exact
+   number, and the customer learns the full count by clicking
+   through to the PDP. */
+@media (max-width: 360px) {
+  .casa-product-card__swatches > .casa-product-card__swatch:nth-of-type(n+3) {
+    display: none;
+  }
 }
 
 .casa-product-card__swatch img {
@@ -877,72 +1339,81 @@
 /* Hover state */
 .casa-product-card__swatch:hover {
   transform: scale(1.1);
-  border-color: #9333ea;
-  box-shadow: 0 4px 12px rgba(147, 51, 234, 0.25);
+  border-color: var(--casa-purple);
+  box-shadow: 0 4px 12px rgba(176, 195, 250, 0.25);
 }
 
-/* Active/selected state */
+/* Active/selected state — purple border PLUS a small corner check badge.
+   Border-only was identical to the hover state (hover also paints a purple
+   border), so a hovered swatch and the selected swatch were indistinguishable.
+   The check is a SHAPE cue hover never paints (WCAG 1.4.1, not colour-only),
+   so "selected" reads at a glance against colourful product imagery. Sits
+   inside the swatch's rounded corner so overflow:hidden doesn't clip it.
+   (2026-07-08) */
 .casa-product-card__swatch--active {
-  border-color: #9333ea;
-  box-shadow:
-    0 0 0 2px rgba(147, 51, 234, 0.2),
-    0 4px 12px rgba(147, 51, 234, 0.2);
+  border-color: var(--casa-purple);
 }
-
 .casa-product-card__swatch--active::after {
-  content: '';
+  content: "";
   position: absolute;
-  inset: -4px;
-  border: 2px solid #9333ea;
-  border-radius: 10px;
-  animation: swatchPulse 1.5s ease-in-out infinite;
+  right: 3px;
+  bottom: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: var(--casa-purple);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 9px 9px;
+  box-shadow: 0 0 0 1.5px #fff;
+  pointer-events: none;
 }
 
-@keyframes swatchPulse {
-  0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 0; transform: scale(1.1); }
-}
-
-/* More variants link */
+/* More variants button (was an <a>; now a <button> — see markup note).
+   Rest state = brand gradient tint chip (restored 2026-07-12; shipped
+   Feb 2026 in 27bdf64d, lost in the 0fa981b9 pill rebuild, then
+   double-buried by a --collection override). Text is #7C22C8 — the brand
+   purple darkened until 11px text clears WCAG AA on the worst-case
+   backdrop (22% purple tint over Paper): 5.77:1 rest / 4.94:1 hover.
+   #B0C3FA itself measures 4.32/3.70 there and white-on-gradient 3.53 —
+   both fail, and WCAG overrides quiet-chrome. */
 .casa-product-card__swatch-more {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 32px;
-  height: 32px;
-  padding: 0 8px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
   font-size: 11px;
   font-weight: 600;
-  color: #6b7280;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 8px;
+  font-family: inherit;
+  color: #7c22c8;
+  background: linear-gradient(135deg, rgba(176, 195, 250, 0.12), rgba(94, 10, 2, 0.12));
+  border: none;
+  border-radius: 10px;
   text-decoration: none;
-  transition: background 0.2s, color 0.2s, transform 0.2s;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: transform 0.2s ease;
 }
 
 .casa-product-card__swatch-more:hover {
-  background: linear-gradient(135deg, #9333ea, #ec4899);
-  color: white;
+  background: linear-gradient(135deg, rgba(176, 195, 250, 0.22), rgba(94, 10, 2, 0.22));
+  color: #7c22c8;
   transform: scale(1.05);
 }
 
-/* Title */
+/* Title — inherits size from theme global heading presets (H2/H3/H4/H5) */
 .casa-product-card__title {
-  font-size: 16px;
-  font-weight: 600;
   margin: 0;
-  color: var(--card-title-color, #0a0a0a);
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  color: var(--card-title-color, var(--casa-ink));
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
-/* When using theme heading tags, inherit their font settings */
-h2.casa-product-card__title { font-size: var(--font-h2--size); font-family: var(--font-h2--family); font-weight: var(--font-h2--weight); line-height: var(--font-h2--line-height); letter-spacing: var(--font-h2--letter-spacing); }
-h3.casa-product-card__title { font-size: var(--font-h3--size); font-family: var(--font-h3--family); font-weight: var(--font-h3--weight); line-height: var(--font-h3--line-height); letter-spacing: var(--font-h3--letter-spacing); }
-h4.casa-product-card__title { font-size: var(--font-h4--size); font-family: var(--font-h4--family); font-weight: var(--font-h4--weight); line-height: var(--font-h4--line-height); letter-spacing: var(--font-h4--letter-spacing); }
-h5.casa-product-card__title { font-size: var(--font-h5--size); font-family: var(--font-h5--family); font-weight: var(--font-h5--weight); line-height: var(--font-h5--line-height); letter-spacing: var(--font-h5--letter-spacing); }
 
 /* Price — always inline */
 .casa-product-card__price {
@@ -953,13 +1424,13 @@ h5.casa-product-card__title { font-size: var(--font-h5--size); font-family: var(
 }
 
 .casa-product-card__price-current {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--card-price-color, #0a0a0a);
+  font-size: var(--casa-price-size, 18px);
+  font-weight: var(--casa-price-weight, 600);
+  color: var(--casa-price-color, var(--card-price-color, var(--casa-ink)));
 }
 
 .casa-product-card__price-compare {
-  font-size: 14px;
+  font-size: var(--casa-compare-size, 14px);
   color: var(--compare-price-color, #6b7280);
   text-decoration: line-through;
 }
@@ -969,18 +1440,60 @@ h5.casa-product-card__title { font-size: var(--font-h5--size); font-family: var(
   align-items: center;
   padding: 4px 10px;
   background: var(--card-savings-bg, var(--savings-badge-bg, #fef2f2));
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 6px;
-  font-size: 12px;
+  border: var(--savings-badge-border-width, 1px) solid var(--savings-badge-border, rgba(239, 68, 68, 0.2));
+  border-radius: var(--savings-badge-radius, 6px);
+  font-size: var(--casa-savings-size, 12px);
   font-weight: 600;
-  color: var(--card-savings-text, #ef4444);
+  color: var(--card-savings-text, var(--savings-badge-text, #ef4444));
 }
 
-/* Installment Price */
+/* Installment Price (Shop Pay widget) — sits flush right under price.
+   Inherits the card's --card-info-px so left/right alignment matches
+   the title and price column exactly across all variants + breakpoints. */
 .casa-product-card__installment {
-  font-size: 12px;
-  color: var(--card-installment-color, #6b7280);
+  font-size: var(--casa-installment-size, 12px);
+  color: var(--casa-installment-color, var(--card-installment-color, #6b7280));
+  padding: 0 var(--card-info-px, 24px) 16px;
   margin: 0;
+  line-height: 1.4;
+  text-align: var(--card-info-align, left);
+}
+.casa-product-card__installment-form {
+  margin: 0;
+}
+.casa-product-card__installment shopify-payment-terms {
+  --shopify-payment-terms-color: var(--casa-installment-color, var(--card-installment-color, #6b7280));
+  font-size: var(--casa-installment-size, 12px);
+  line-height: 1.4;
+  display: block;
+  font-family: inherit;
+}
+/* Inner anchors / text inside the Shopify widget */
+.casa-product-card__installment shopify-payment-terms * {
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+.casa-product-card__installment shopify-payment-terms a {
+  text-underline-offset: 2px;
+}
+/* Hide "View sample plans" / "Learn more" links on cards to prevent
+   the awkward second-line wrap. The full PDP keeps these links. */
+.casa-product-card__installment shopify-payment-terms a[href*="/installments"],
+.casa-product-card__installment shopify-payment-terms a[href*="learn-more"],
+.casa-product-card__installment shopify-payment-terms a[target="_blank"] {
+  display: none;
+}
+/* Center alignment: keep widget visually centered when card is centered */
+.casa-product-card[style*="--card-info-align: center"] .casa-product-card__installment {
+  text-align: center;
+}
+.casa-product-card[style*="--card-info-align: right"] .casa-product-card__installment {
+  text-align: right;
+}
+/* Collapse the wrapper when the variant isn't eligible (no
+   shopify-payment-terms element rendered by Shopify). */
+.casa-product-card__installment:not(:has(shopify-payment-terms)) {
+  display: none;
 }
 
 /* Rating */
@@ -989,6 +1502,18 @@ h5.casa-product-card__title { font-size: var(--font-h5--size); font-family: var(
   align-items: center;
   gap: 8px;
   margin: 0;
+}
+
+/* Zero-review rating row: collapse at every viewport. Title sits
+   directly above the price with no empty slot between them. Row
+   alignment in mixed-review grids/carousels is handled by the grid
+   container stretching LIs to equal height (.casa-col-main__grid
+   rule below) — the leftover height on no-review cards becomes
+   invisible bottom padding inside the card, NOT an empty slot in
+   the middle of the content. */
+.casa-product-card__rating:has(.jdgm-widget:empty),
+.casa-product-card__rating:has(.jdgm-prev-badge[data-number-of-reviews="0"]) {
+  display: none;
 }
 
 .casa-product-card__stars {
@@ -1031,6 +1556,8 @@ h5.casa-product-card__title { font-size: var(--font-h5--size); font-family: var(
   color: var(--card-atc-text, white);
   font-size: 13px;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   text-decoration: none;
   border: none;
   border-radius: var(--card-atc-radius, 12px);
@@ -1044,7 +1571,7 @@ h5.casa-product-card__title { font-size: var(--font-h5--size); font-family: var(
 }
 
 .casa-product-card__add-btn--options {
-  background: var(--card-options-bg, linear-gradient(135deg, #9333ea, #ec4899));
+  background: var(--card-options-bg, var(--grad-primary, linear-gradient(135deg, #B0C3FA, #5E0A02)));
   color: var(--card-options-text, white);
 }
 
@@ -1127,12 +1654,12 @@ h5.casa-product-card__title { font-size: var(--font-h5--size); font-family: var(
 .casa-product-card--featured {
   border: 2px solid transparent;
   background: linear-gradient(#ffffff, #ffffff) padding-box,
-              linear-gradient(135deg, #9333ea, #ec4899) border-box;
+              var(--casa-gradient-primary) border-box;
 }
 
 .casa-product-card--featured:hover {
   transform: translateY(-12px);
-  box-shadow: 0 40px 80px -20px rgba(147, 51, 234, 0.3);
+  box-shadow: 0 40px 80px -20px rgba(176, 195, 250, 0.3);
 }
 
 /* ==========================================================================
@@ -1183,7 +1710,7 @@ h5.casa-product-card__title { font-size: var(--font-h5--size); font-family: var(
 }
 
 .casa-product-card--collection .casa-product-card__swatches {
-  margin: 0;
+  margin: 0 0 var(--card-swatch-spacing, 0);
 }
 
 .casa-product-card--collection .casa-product-card__swatch {
@@ -1198,19 +1725,9 @@ h5.casa-product-card__title { font-size: var(--font-h5--size); font-family: var(
   box-shadow:
     inset 0 2px 4px rgba(255, 255, 255, 0.3),
     inset 0 -2px 4px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(147, 51, 234, 0.5),
-    0 8px 25px rgba(147, 51, 234, 0.3),
+    0 0 0 1px rgba(176, 195, 250, 0.5),
+    0 8px 25px rgba(176, 195, 250, 0.3),
     0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-.casa-product-card--collection .casa-product-card__swatch-more {
-  color: rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.casa-product-card--collection:hover .casa-product-card__swatch-more {
-  background: rgba(147, 51, 234, 0.2);
-  color: rgba(255, 255, 255, 0.8);
 }
 
 .casa-product-card--collection .casa-product-card__price-compare {
@@ -1230,9 +1747,8 @@ h5.casa-product-card__title { font-size: var(--font-h5--size); font-family: var(
 }
 
 .casa-product-card--collection .casa-product-card__savings {
-  background: var(--card-savings-bg, linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(249, 115, 22, 0.2)));
-  border-color: rgba(239, 68, 68, 0.3);
-  color: var(--card-savings-text, #ef4444);
+  background: var(--card-savings-bg, var(--savings-badge-bg, linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(249, 115, 22, 0.2))));
+  color: var(--card-savings-text, var(--savings-badge-text, #ef4444));
 }
 
 /* --- Collection variant: Inline quick-add button (no overlap) --- */
@@ -1252,15 +1768,14 @@ h5.casa-product-card__title { font-size: var(--font-h5--size); font-family: var(
 }
 
 /* --- Collection variant: Minimal info section --- */
+.casa-product-card--collection {
+  --card-info-px: 14px;
+}
 .casa-product-card--collection .casa-product-card__info {
-  padding: 12px 14px 14px;
-  gap: 2px;
+  padding: 12px var(--card-info-px, 14px) 14px;
 }
 
 .casa-product-card--collection .casa-product-card__title {
-  font-size: var(--card-title-size, 13px);
-  font-weight: 500;
-  letter-spacing: 0.01em;
   margin: 0;
   -webkit-line-clamp: 1;
 }
@@ -1278,16 +1793,43 @@ h5.casa-product-card__title { font-size: var(--font-h5--size); font-family: var(
    ========================================================================== */
 
 @media (max-width: 600px) {
+  .casa-product-card {
+    /* Was 0 — title / rating / price sat flush against the card's left
+       border with no breathing room (merchant flag 2026-06-14). 16px
+       inset gives the text comfortable room on the card surface while
+       leaving ample width for the single-line title on a 2-col grid.
+       Persistent (not hover-only) on purpose: phones have no hover, and
+       animating padding on a tap/selected state would trigger layout
+       shift (PERF pre-flight #9). The installment + info blocks both
+       read this var, so price/title/rating stay column-aligned. */
+    --card-info-px: 16px;
+  }
   .casa-product-card__info {
-    padding: 16px;
+    padding: 12px var(--card-info-px, 16px) 0;
+  }
+  /* When no installment row, give the info block a little bottom space */
+  .casa-product-card:not(:has(.casa-product-card__installment)) .casa-product-card__info {
+    padding-bottom: 12px;
+  }
+  .casa-product-card__installment {
+    padding-bottom: 12px;
   }
 
-  .casa-product-card__title {
-    font-size: 14px;
+  /* The "From €X,XX EUR" current price was fixed at 18px, far too wide for
+     a 2-up card track once the 16px info inset is subtracted (~110px of room
+     at 320px) — so "EUR" wrapped to a 2nd line on iPhone-5-class phones.
+     Fluid-shrink it to fit one line. Measured against the real Inter metrics
+     + full box model: the widest realistic price (From €375,95 EUR) stays on
+     one line at 320 / 375 / 414px; below ~300px it wraps gracefully with NO
+     horizontal page overflow (nowrap was rejected precisely because at 280px
+     no readable size fits and it would overflow — a ship-blocker).
+     Scoped with :not(--collection) so the glassy collection card keeps its
+     own deliberate 13/11px sizing; double-class beats that rule's specificity. */
+  .casa-product-card:not(.casa-product-card--collection) .casa-product-card__price-current {
+    font-size: clamp(10.5px, 3.35vw, 14px);
   }
-
-  .casa-product-card__price-current {
-    font-size: 16px;
+  .casa-product-card:not(.casa-product-card--collection) .casa-product-card__price-compare {
+    font-size: clamp(9px, 2.9vw, 12px);
   }
 
   .casa-product-card__wishlist {
@@ -1319,10 +1861,13 @@ h5.casa-product-card__title { font-size: var(--font-h5--size); font-family: var(
     padding-bottom: 60px;
   }
 
+  .casa-product-card__swatches {
+    gap: var(--card-swatch-gap-mobile, 8px);
+  }
   .casa-product-card__swatch {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
+    width: var(--card-swatch-size-mobile, 40px);
+    height: var(--card-swatch-size-mobile, 40px);
+    border-radius: var(--card-swatch-radius, 8px);
   }
 }
 
@@ -1338,7 +1883,8 @@ h5.casa-product-card__title { font-size: var(--font-h5--size); font-family: var(
   .casa-product-card__quick-add,
   .casa-product-card__add-btn,
   .casa-product-card__video,
-  .casa-product-card__swatch {
+  .casa-product-card__swatch,
+  .casa-product-card__swatch-more {
     transition: none;
   }
 
@@ -1346,186 +1892,7 @@ h5.casa-product-card__title { font-size: var(--font-h5--size); font-family: var(
     animation: none;
   }
 }
+
+/* Quick View Modal styles live in snippets/casa-quickview-modal.liquid */
 {% endstylesheet %}
 
-<script>
-  // Initialize product card interactions
-  document.addEventListener('DOMContentLoaded', function() {
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // VARIANT SWATCHES — Click to swap image & update link
-    // ═══════════════════════════════════════════════════════════════════════
-    document.querySelectorAll('.casa-product-card__swatch').forEach(swatch => {
-      swatch.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const card = this.closest('.casa-product-card');
-        const swatchContainer = this.closest('.casa-product-card__swatches');
-        if (!card) return;
-
-        // Update active state
-        swatchContainer.querySelectorAll('.casa-product-card__swatch').forEach(s => {
-          s.classList.remove('casa-product-card__swatch--active');
-        });
-        this.classList.add('casa-product-card__swatch--active');
-
-        // Get variant data
-        const variantUrl = this.dataset.variantUrl;
-        const variantImage = this.dataset.variantImage;
-        const variantId = this.dataset.variantId;
-
-        // Update main product link
-        const productLink = card.querySelector('.casa-product-card__link');
-        if (productLink && variantUrl) {
-          productLink.href = variantUrl;
-        }
-
-        // Update main product image with smooth transition
-        const mainImage = card.querySelector('.casa-product-card__img:not(.casa-product-card__img--hover)');
-        const hoverImage = card.querySelector('.casa-product-card__img--hover');
-        if (mainImage && variantImage) {
-          // Hide hover image so the swatch change is visible immediately
-          if (hoverImage) {
-            hoverImage.style.opacity = '0';
-            hoverImage.style.pointerEvents = 'none';
-          }
-          mainImage.style.opacity = '0';
-          setTimeout(() => {
-            mainImage.src = variantImage;
-            mainImage.style.opacity = '1';
-            // Update hover image to variant image too, then re-enable hover
-            if (hoverImage) {
-              hoverImage.src = variantImage;
-              hoverImage.style.pointerEvents = '';
-              // Remove inline opacity so CSS hover can take over again
-              setTimeout(() => { hoverImage.style.opacity = ''; }, 300);
-            }
-          }, 150);
-        }
-
-        // Update Quick Add form hidden input if present
-        const variantInput = card.querySelector('.casa-product-card__add-form input[name="id"]');
-        if (variantInput && variantId) {
-          variantInput.value = variantId;
-        }
-
-        // Update Quick View button URL
-        const quickViewBtn = card.querySelector('.casa-product-card__quick-view');
-        if (quickViewBtn && variantUrl) {
-          quickViewBtn.dataset.productUrl = variantUrl;
-        }
-      });
-    });
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // WISHLIST
-    // ═══════════════════════════════════════════════════════════════════════
-    document.querySelectorAll('.casa-product-card__wishlist').forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.classList.toggle('is-active');
-        const productId = this.dataset.productId;
-        window.dispatchEvent(new CustomEvent('wishlist:toggle', { detail: { productId } }));
-      });
-    });
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // QUICK VIEW
-    // ═══════════════════════════════════════════════════════════════════════
-    document.querySelectorAll('.casa-product-card__quick-view').forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const productUrl = this.dataset.productUrl;
-        window.dispatchEvent(new CustomEvent('quickview:open', { detail: { productUrl } }));
-      });
-    });
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // HOVER VIDEO
-    // ═══════════════════════════════════════════════════════════════════════
-    document.querySelectorAll('.casa-product-card').forEach(card => {
-      const video = card.querySelector('.casa-product-card__video video');
-      if (video) {
-        card.addEventListener('mouseenter', function() {
-          const sources = video.querySelectorAll('source[data-src]');
-          sources.forEach(source => {
-            if (source.dataset.src && !source.src) {
-              source.src = source.dataset.src;
-            }
-          });
-          if (video.dataset.src && !video.src) {
-            video.src = video.dataset.src;
-          }
-          video.load();
-          video.play().catch(() => {});
-        });
-
-        card.addEventListener('mouseleave', function() {
-          video.pause();
-          video.currentTime = 0;
-        });
-      }
-    });
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // QUICK ADD — AJAX add then open cart drawer (no HTML replacement)
-    // ═══════════════════════════════════════════════════════════════════════
-    document.addEventListener('click', function(e) {
-      var btn = e.target.closest('[data-casa-add-to-cart]');
-      if (!btn || btn.classList.contains('is-loading')) return;
-
-      var variantId = btn.getAttribute('data-casa-add-to-cart');
-      var spanEl = btn.querySelector('span');
-      var originalText = spanEl ? spanEl.textContent : '';
-
-      btn.classList.add('is-loading');
-      btn.disabled = true;
-      if (spanEl) spanEl.textContent = 'Adding...';
-
-      fetch('/cart/add.js', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: [{ id: parseInt(variantId), quantity: 1 }] })
-      })
-      .then(function(res) {
-        if (!res.ok) throw new Error('Failed');
-        return res.json();
-      })
-      .then(function() {
-        if (spanEl) spanEl.textContent = 'Added!';
-
-        // Just open the cart drawer — clicking the cart button triggers
-        // the theme's native drawer open which fetches fresh cart data
-        var cartBtn = document.querySelector('.casa-header__cart-btn');
-        if (cartBtn) cartBtn.click();
-
-        setTimeout(function() {
-          if (spanEl) spanEl.textContent = originalText;
-          btn.classList.remove('is-loading');
-          btn.disabled = false;
-        }, 1200);
-      })
-      .catch(function() {
-        if (spanEl) spanEl.textContent = 'Error';
-        setTimeout(function() {
-          if (spanEl) spanEl.textContent = originalText;
-          btn.classList.remove('is-loading');
-          btn.disabled = false;
-        }, 2000);
-      });
-    });
-  });
-</script>
-{% comment %}
-
-This file has been rewritten to preserve the original behavior.
-
----
-Changes:
-- from: "{%- case _index | modulo: 4 -%}"
-  to: "{%- case _index -%}"
-  position: 12045..12064
-{% endcomment %}

@@ -25,29 +25,29 @@
   # Color theme presets
   case color_theme
     when 'purple-glow'
-      assign color_1 = section.settings.custom_color_1 | default: '#9333ea'
-      assign color_2 = section.settings.custom_color_2 | default: '#ec4899'
-      assign color_3 = section.settings.custom_color_3 | default: '#06b6d4'
+      assign color_1 = section.settings.custom_color_1 | default: '#B0C3FA'
+      assign color_2 = section.settings.custom_color_2 | default: '#5E0A02'
+      assign color_3 = section.settings.custom_color_3 | default: '#F2FFA0'
     when 'sunset-gold'
       assign color_1 = '#f59e0b'
       assign color_2 = '#ef4444'
       assign color_3 = '#fbbf24'
     when 'ocean-teal'
-      assign color_1 = '#06b6d4'
-      assign color_2 = '#0891b2'
-      assign color_3 = '#22d3ee'
+      assign color_1 = '#F2FFA0'
+      assign color_2 = '#F2FFA0'
+      assign color_3 = '#F2FFA0'
     when 'midnight-rose'
-      assign color_1 = '#ec4899'
+      assign color_1 = '#5E0A02'
       assign color_2 = '#be185d'
-      assign color_3 = '#f472b6'
+      assign color_3 = '#5E0A02'
     when 'emerald-glow'
       assign color_1 = '#10b981'
       assign color_2 = '#059669'
       assign color_3 = '#34d399'
     when 'custom'
-      assign color_1 = section.settings.custom_color_1 | default: '#9333ea'
-      assign color_2 = section.settings.custom_color_2 | default: '#ec4899'
-      assign color_3 = section.settings.custom_color_3 | default: '#06b6d4'
+      assign color_1 = section.settings.custom_color_1 | default: '#B0C3FA'
+      assign color_2 = section.settings.custom_color_2 | default: '#5E0A02'
+      assign color_3 = section.settings.custom_color_3 | default: '#F2FFA0'
   endcase
 
   assign overlay_opacity = section.settings.overlay_opacity | default: 70
@@ -69,6 +69,7 @@
 <section
   class="casa-hero casa-hero--{{ layout }} casa-hero--{{ animation_style }} casa-hero--mobile-{{ mobile_order }}{% if mobile_hide_visual %} casa-hero--mobile-no-visual{% endif %}"
   id="casa-hero-{{ section.id }}"
+  data-casa-anim-gate
   style="
     --hero-height: {{ hero_height }};
     --hero-color-1: {{ color_1 }};
@@ -77,12 +78,34 @@
     --hero-overlay-opacity: {{ overlay_opacity | divided_by: 100.0 }};
     --hero-text-align: {{ text_alignment }};
     --hero-flex-align: {% if text_alignment == "center" %}center{% elsif text_alignment == "right" %}flex-end{% else %}flex-start{% endif %};
+    --hero-gradient-mstart: {% if text_alignment == "center" or text_alignment == "right" %}auto{% else %}0{% endif %};
+    --hero-gradient-mend:   {% if text_alignment == "center" %}auto{% else %}0{% endif %};
     --hero-padding-top: {{ padding_top }}px;
     --hero-padding-bottom: {{ padding_bottom }}px;
     --hero-mobile-height: {{ mobile_height }};
     --hero-mobile-padding-top: {{ mobile_padding_top }}px;
     --hero-mobile-padding-bottom: {{ mobile_padding_bottom }}px;
     --hero-mobile-visual-size: {{ mobile_visual_size }}px;
+    {%- comment -%}
+      Heading scale routing: merchant picks an H1-H6 level via the
+      "Title heading scale" / "Accent heading scale" selects. We
+      translate the choice into the matching --font-hN--* tokens
+      (Horizon emits these from Theme Settings → Typography).
+    {%- endcomment -%}
+    {%- assign _title_h = section.settings.title_heading_level | default: 'h1' -%}
+    --hero-title-fs:   var(--font-{{ _title_h }}--size);
+    --hero-title-fw:   var(--font-{{ _title_h }}--weight);
+    --hero-title-lh:   var(--font-{{ _title_h }}--line-height);
+    --hero-title-ls:   var(--font-{{ _title_h }}--letter-spacing);
+    --hero-title-case: var(--font-{{ _title_h }}--case);
+    {%- assign _accent_h = section.settings.accent_heading_level | default: 'inherit' -%}
+    {%- if _accent_h != 'inherit' -%}
+    --hero-accent-fs:   var(--font-{{ _accent_h }}--size);
+    --hero-accent-fw:   var(--font-{{ _accent_h }}--weight);
+    --hero-accent-lh:   var(--font-{{ _accent_h }}--line-height);
+    --hero-accent-ls:   var(--font-{{ _accent_h }}--letter-spacing);
+    --hero-accent-case: var(--font-{{ _accent_h }}--case);
+    {%- endif -%}
     {%- if title_color != blank %}--hero-title-color: {{ title_color }};{% endif -%}
     {%- if accent_word_color_1 != blank %}--hero-accent-word-1: {{ accent_word_color_1 }};{% endif -%}
     {%- if accent_word_color_2 != blank %}--hero-accent-word-2: {{ accent_word_color_2 }};{% endif -%}
@@ -95,35 +118,127 @@
     {%- if hero_bg_color != blank %}--hero-bg-color: {{ hero_bg_color }};{% endif -%}
     --hero-glow-intensity: {{ section.settings.glow_intensity | default: 50 | divided_by: 100.0 }};
     --hero-glow-size: {{ section.settings.glow_size | default: 30 }}px;
+    --hero-floor-glow-opacity: {{ section.settings.floor_glow_intensity | default: 55 | divided_by: 100.0 }};
+    --hero-glass-opacity: {{ section.settings.glass_opacity | default: 30 | divided_by: 100.0 }};
+    --hero-glass-blur: {{ section.settings.glass_blur | default: 16 }}px;
+    --hero-glass-radius: {{ section.settings.glass_radius | default: 16 }}px;
+    --hero-glass-padding: {{ section.settings.glass_padding | default: 28 }}px;
+    --hero-inline-img-width: {{ section.settings.inline_image_max_width | default: 80 }}%;
+    --hero-inline-img-radius: {{ section.settings.inline_image_radius | default: 12 }}px;
   "
 >
-  {%- comment -%} ═══ Background Media ═══ {%- endcomment -%}
+  {%- comment -%} Glassmorphic content background — inline style so Liquid conditionals work {%- endcomment -%}
+  <style>
+    {%- if section.settings.glass_bg_desktop -%}
+    @media (min-width: 750px) {
+      #casa-hero-{{ section.id }} .casa-hero__text {
+        background: rgba(0, 0, 0, var(--hero-glass-opacity, 0.3));
+        backdrop-filter: blur(var(--hero-glass-blur, 16px));
+        -webkit-backdrop-filter: blur(var(--hero-glass-blur, 16px));
+        will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur over the animated hero (perf, 2026-05-17 flicker-fix pattern) */
+        border-radius: var(--hero-glass-radius, 16px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: var(--hero-glass-padding, 28px);
+        {%- if section.settings.glass_width == 'fit' %}
+        width: fit-content;
+        max-width: 100%;
+        {%- else %}
+        width: 100%;
+        {%- endif %}
+      }
+    }
+    {%- endif -%}
+    {%- if section.settings.glass_bg_mobile -%}
+    @media (max-width: 749px) {
+      #casa-hero-{{ section.id }} .casa-hero__text {
+        background: rgba(0, 0, 0, var(--hero-glass-opacity, 0.3));
+        border-radius: var(--hero-glass-radius, 16px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: var(--hero-glass-padding, 28px);
+        {%- if section.settings.glass_width == 'fit' %}
+        width: fit-content;
+        max-width: calc(100vw - 32px);
+        {%- else %}
+        width: 100%;
+        {%- endif %}
+      }
+    }
+    {%- endif -%}
+  </style>
+
+  {%- comment -%} ═══ Background Media — image loads first, video fades in when ready ═══ {%- endcomment -%}
   <div class="casa-hero__bg">
-    {%- if section.settings.background_video != blank -%}
-      <video
-        class="casa-hero__video"
-        autoplay
-        muted
-        loop
-        playsinline
-        poster="{{ section.settings.background_image | image_url: width: 1920 }}"
-      >
-        <source src="{{ section.settings.background_video }}" type="video/mp4">
-      </video>
-    {%- elsif section.settings.background_image != blank -%}
+    {%- if section.settings.background_image != blank -%}
+      {%- comment -%}
+        Force WebP for the hero background regardless of merchant upload
+        format. PNG photographic content is ~5-10x larger than WebP at
+        equivalent quality; this conversion runs at the CDN edge so the
+        merchant doesn't need to re-upload to fix legacy PNG hero assets.
+        Shopify image_url filter accepts `format:` since 2021.
+      {%- endcomment -%}
       <img
         class="casa-hero__bg-image"
-        src="{{ section.settings.background_image | image_url: width: 1920 }}"
+        src="{{ section.settings.background_image | image_url: width: 1600, format: 'webp' }}"
         srcset="
-          {{ section.settings.background_image | image_url: width: 1200 }} 1200w,
-          {{ section.settings.background_image | image_url: width: 1920 }} 1920w,
-          {{ section.settings.background_image | image_url: width: 2560 }} 2560w
+          {{ section.settings.background_image | image_url: width: 640, format: 'webp' }} 640w,
+          {{ section.settings.background_image | image_url: width: 1200, format: 'webp' }} 1200w,
+          {{ section.settings.background_image | image_url: width: 1600, format: 'webp' }} 1600w,
+          {{ section.settings.background_image | image_url: width: 2560, format: 'webp' }} 2560w
         "
         sizes="100vw"
+        width="{{ section.settings.background_image.width | default: 1600 }}"
+        height="{{ section.settings.background_image.height | default: 900 }}"
         alt="{{ section.settings.background_image.alt | default: 'Hero background' | escape }}"
         loading="eager"
         fetchpriority="high"
+        decoding="async"
       >
+    {%- endif -%}
+    {%- liquid
+      assign bg_video_url = ''
+      assign bg_video_small_url = ''
+      assign bg_video_hls_url = ''
+      if section.settings.background_video_file != blank
+        assign bg_video_url = section.settings.background_video_file.sources[1].url | default: section.settings.background_video_file.sources[0].url
+        # Phone-rendition pick. The Liquid video drop can expose FEWER renditions
+        # than exist on the CDN: this hero's drop shows only m3u8/1080 + mp4/1080
+        # while the Admin API lists 480/720/1080 MP4s (verified 2026-08-25). So:
+        # smallest visible MP4 → data-src-small (engages when the drop has a real
+        # ladder, e.g. after a re-upload), and the HLS manifest → data-src-hls so
+        # native-HLS phones (iOS) stream adaptively instead of the 4.3MB 1080p —
+        # that file was the homepage's entire mobile-lab LCP tail.
+        assign bg_small_h = 0
+        for bg_src in section.settings.background_video_file.sources
+          if bg_src.format == 'mp4'
+            if bg_small_h == 0 or bg_src.height < bg_small_h
+              assign bg_small_h = bg_src.height
+              assign bg_video_small_url = bg_src.url
+            endif
+          elsif bg_src.format == 'm3u8'
+            assign bg_video_hls_url = bg_src.url
+          endif
+        endfor
+      elsif section.settings.background_video != blank
+        assign bg_video_url = section.settings.background_video
+      endif
+    -%}
+    {%- if bg_video_url != blank -%}
+      {%- comment -%} No `autoplay` attribute: hero playback is JS-driven (the
+        play/pause IIFE below owns it). A present `autoplay` keeps the browser's
+        own autoplay controller live in parallel and fights our off-screen
+        pause() — that was the caeb065 flash. Keep loop/muted/playsinline. {%- endcomment -%}
+      <video
+        class="casa-hero__video"
+        muted
+        loop
+        playsinline
+        preload="metadata"
+        data-casa-lazy-video
+        {% if section.settings.background_image != blank %}poster="{{ section.settings.background_image | image_url: width: 1200, format: 'webp' }}"{% endif %}
+        aria-hidden="true"
+      >
+        <source data-src="{{ bg_video_url }}"{% if bg_video_small_url != blank and bg_video_small_url != bg_video_url %} data-src-small="{{ bg_video_small_url }}"{% endif %}{% if bg_video_hls_url != blank %} data-src-hls="{{ bg_video_hls_url }}"{% endif %} type="video/mp4">
+      </video>
     {%- endif -%}
     <div class="casa-hero__overlay"></div>
   </div>
@@ -164,7 +279,7 @@
 
   {%- comment -%} ═══ Promo Banner ═══ {%- endcomment -%}
   {%- if section.settings.show_promo_banner and section.settings.promo_text != blank -%}
-    <div class="casa-hero__promo">
+    <div class="casa-hero__promo{% if section.settings.promo_bg_color != blank %} casa-hero__promo--solid{% endif %}">
       <div class="casa-hero__promo-inner">
         {%- if section.settings.promo_icon != 'none' -%}
           {%- render 'casa-icon', icon: section.settings.promo_icon, size: 16 -%}
@@ -174,7 +289,14 @@
           <code class="casa-hero__promo-code">{{ section.settings.promo_code }}</code>
         {%- endif -%}
         {%- if section.settings.promo_countdown != blank -%}
-          <span class="casa-hero__countdown" data-countdown="{{ section.settings.promo_countdown }}"></span>
+          {%- comment -%}
+            The schema documents promo_countdown as "YYYY-MM-DD HH:MM". The
+            date filter parses that in the STORE's timezone and %s emits a
+            UTC epoch, so every visitor counts down to the same absolute
+            deadline. An unparseable value passes through as-is and the JS
+            consumer bails on the NaN.
+          {%- endcomment -%}
+          <span class="casa-hero__countdown" data-countdown="{{ section.settings.promo_countdown | escape }}" data-countdown-ts="{{ section.settings.promo_countdown | date: '%s' | escape }}"></span>
         {%- endif -%}
       </div>
     </div>
@@ -221,8 +343,15 @@
             {%- if section.settings.title_line_1 != blank -%}
               <span class="casa-hero__title-line">{{ section.settings.title_line_1 }}</span>
             {%- endif -%}
-            {%- if section.settings.title_gradient != blank -%}
-              <span class="casa-hero__title-gradient">{{ section.settings.title_gradient }}</span>
+            {%- comment -%}
+              Strip regular whitespace, NBSP (U+00A0), zero-width space (U+200B),
+              and HTML entities that render as invisible characters. If anything
+              is left, render the gradient span; otherwise skip entirely.
+            {%- endcomment -%}
+            {%- assign accent_word = section.settings.title_gradient | strip | replace: ' ', '' | replace: '​', '' | replace: '&nbsp;', '' | replace: '&#160;', '' | replace: '&#8203;', '' -%}
+            {%- if accent_word != blank -%}
+              {%- assign accent_style = section.settings.title_gradient_style | default: 'shimmer' -%}
+              <span class="casa-hero__title-gradient casa-hero__title-gradient--{{ accent_style }}{% if accent_style == 'shimmer' %} text-grad-shimmer{% elsif accent_style == 'text' %} text-grad-text{% endif %}">{{ section.settings.title_gradient | strip }}</span>
             {%- endif -%}
             {%- if section.settings.title_line_2 != blank -%}
               <span class="casa-hero__title-line">{{ section.settings.title_line_2 }}</span>
@@ -275,33 +404,58 @@
         {%- comment -%} Buttons {%- endcomment -%}
         <div class="casa-hero__buttons">
           {%- if section.settings.button_primary_text != blank -%}
+            {%- assign btn_p_icon_pos = section.settings.button_primary_icon_position | default: 'right' -%}
             <a
               href="{{ section.settings.button_primary_link }}"
-              class="casa-hero__btn casa-hero__btn--primary casa-hero__btn--{{ section.settings.button_primary_size | default: 'medium' }}"
-              style="{% if section.settings.button_primary_bg != blank %}background: {{ section.settings.button_primary_bg }};{% endif %}{% if section.settings.button_primary_text_color != blank %}color: {{ section.settings.button_primary_text_color }};{% endif %}border-radius: {{ section.settings.button_primary_radius | default: 12 }}px;"
+              class="btn btn-featured casa-hero__btn casa-hero__btn--primary casa-hero__btn--{{ section.settings.button_primary_size | default: 'medium' }}"
               {%- if section.settings.button_primary_style == 'pulse' %} data-pulse{%- endif -%}
             >
-              {%- if section.settings.button_primary_icon != 'none' -%}
-                {%- render 'casa-icon', icon: section.settings.button_primary_icon, size: 18 -%}
+              {%- if section.settings.button_primary_icon != 'none' and btn_p_icon_pos == 'left' -%}
+                {%- render 'casa-icon', icon: section.settings.button_primary_icon, size: 18, class: 'arrow' -%}
               {%- endif -%}
               {{ section.settings.button_primary_text }}
+              {%- if section.settings.button_primary_icon != 'none' and btn_p_icon_pos == 'right' -%}
+                {%- render 'casa-icon', icon: section.settings.button_primary_icon, size: 18, class: 'arrow' -%}
+              {%- endif -%}
             </a>
           {%- endif -%}
           {%- if section.settings.button_secondary_text != blank -%}
-            <a href="{{ section.settings.button_secondary_link }}" class="casa-hero__btn casa-hero__btn--secondary casa-hero__btn--{{ section.settings.button_secondary_size | default: "medium" }}" style="{% if section.settings.button_secondary_bg != blank %}background: {{ section.settings.button_secondary_bg }};{% endif %}{% if section.settings.button_secondary_text_color != blank %}color: {{ section.settings.button_secondary_text_color }};{% endif %}border-radius: {{ section.settings.button_secondary_radius | default: 12 }}px;">
-              {%- if section.settings.button_secondary_icon != 'none' -%}
-                {%- render 'casa-icon', icon: section.settings.button_secondary_icon, size: 18 -%}
+            {%- assign btn_s_icon_pos = section.settings.button_secondary_icon_position | default: 'right' -%}
+            <a href="{{ section.settings.button_secondary_link }}" class="btn btn-secondary-on-dark casa-hero__btn casa-hero__btn--secondary casa-hero__btn--{{ section.settings.button_secondary_size | default: "medium" }}">
+              {%- if section.settings.button_secondary_icon != 'none' and btn_s_icon_pos == 'left' -%}
+                {%- render 'casa-icon', icon: section.settings.button_secondary_icon, size: 18, class: 'arrow' -%}
               {%- endif -%}
               {{ section.settings.button_secondary_text }}
+              {%- if section.settings.button_secondary_icon != 'none' and btn_s_icon_pos == 'right' -%}
+                {%- render 'casa-icon', icon: section.settings.button_secondary_icon, size: 18, class: 'arrow' -%}
+              {%- endif -%}
             </a>
           {%- endif -%}
           {%- if section.settings.button_tertiary_text != blank -%}
-            <a href="{{ section.settings.button_tertiary_link }}" class="casa-hero__btn casa-hero__btn--tertiary">
+            <a href="{{ section.settings.button_tertiary_link }}" class="btn btn-tertiary casa-hero__btn casa-hero__btn--tertiary">
               {{ section.settings.button_tertiary_text }}
-              {%- render 'casa-icon', icon: 'chevron-right', size: 16 -%}
             </a>
           {%- endif -%}
         </div>
+
+        {%- comment -%} Inline product image (mobile) — shows under buttons {%- endcomment -%}
+        {%- if section.settings.show_inline_image_mobile and section.settings.visual_image != blank -%}
+          <div class="casa-hero__inline-image">
+            <img
+              src="{{ section.settings.visual_image | image_url: width: 600 }}"
+              srcset="
+                {{ section.settings.visual_image | image_url: width: 300 }} 300w,
+                {{ section.settings.visual_image | image_url: width: 600 }} 600w
+              "
+              sizes="(max-width: 749px) calc(100vw - 32px), 400px"
+              width="{{ section.settings.visual_image.width | default: 600 }}"
+              height="{{ section.settings.visual_image.height | default: 600 }}"
+              alt="{{ section.settings.visual_image.alt | default: section.settings.title_gradient | escape }}"
+              loading="eager"
+              class="casa-hero__inline-img"
+            >
+          </div>
+        {%- endif -%}
 
         {%- comment -%} Social Proof {%- endcomment -%}
         {%- if section.settings.show_social_proof -%}
@@ -331,30 +485,52 @@
                     <div class="casa-hero__avatar">{{ i }}</div>
                   {%- endfor -%}
                 </div>
-                <span>+{{ section.settings.customer_count | default: '50K' }} happy customers</span>
+                {%- if section.settings.customer_count != blank -%}<span>+{{ section.settings.customer_count }} happy customers</span>{%- endif -%}
               </div>
             {%- endif -%}
           </div>
         {%- endif -%}
 
-        {%- comment -%} Trust Badges {%- endcomment -%}
+        {%- comment -%}
+          Trust Badges (DESKTOP variant).
+          Lives inside .casa-hero__text so on desktop it sits at the
+          bottom of the text column (below the buttons). The same row
+          is duplicated below as a sibling of .casa-hero__visual so on
+          MOBILE it can render after the visual instead of before.
+          CSS at the bottom of this file toggles which one is visible
+          per breakpoint via .casa-hero__trust-row--desktop-only and
+          --mobile-only modifier classes.
+        {%- endcomment -%}
+        {%- liquid
+          # Icon fallbacks pre-assigned: Shopify's render tag does not support
+          # filters on arguments (they are silently dropped), so `icon: x |
+          # default: 'truck'` never actually defaulted. Assigning first makes
+          # the fallback real. Shared by the desktop trust row, the float
+          # badges, and the mobile trust row below.
+          assign _trust_1_icon = section.settings.trust_1_icon | default: 'truck'
+          assign _trust_2_icon = section.settings.trust_2_icon | default: 'shield-check'
+          assign _trust_3_icon = section.settings.trust_3_icon | default: 'refresh'
+          assign _visual_badge_1_icon = section.settings.visual_badge_1_icon | default: 'zap'
+          assign _visual_badge_2_icon = section.settings.visual_badge_2_icon | default: 'palette'
+          assign _visual_badge_3_icon = section.settings.visual_badge_3_icon | default: 'smartphone'
+        -%}
         {%- if section.settings.show_trust_row -%}
-          <div class="casa-hero__trust-row">
+          <div class="casa-hero__trust-row casa-hero__trust-row--desktop-only">
             {%- if section.settings.trust_1_text != blank -%}
               <div class="casa-hero__trust-item">
-                {%- render 'casa-icon', icon: section.settings.trust_1_icon, default: 'truck', size: 18 -%}
+                {%- render 'casa-icon', icon: _trust_1_icon, size: 18 -%}
                 <span>{{ section.settings.trust_1_text }}</span>
               </div>
             {%- endif -%}
             {%- if section.settings.trust_2_text != blank -%}
               <div class="casa-hero__trust-item">
-                {%- render 'casa-icon', icon: section.settings.trust_2_icon, default: 'shield-check', size: 18 -%}
+                {%- render 'casa-icon', icon: _trust_2_icon, size: 18 -%}
                 <span>{{ section.settings.trust_2_text }}</span>
               </div>
             {%- endif -%}
             {%- if section.settings.trust_3_text != blank -%}
               <div class="casa-hero__trust-item">
-                {%- render 'casa-icon', icon: section.settings.trust_3_icon, default: 'refresh', size: 18 -%}
+                {%- render 'casa-icon', icon: _trust_3_icon, size: 18 -%}
                 <span>{{ section.settings.trust_3_text }}</span>
               </div>
             {%- endif -%}
@@ -365,6 +541,18 @@
       {%- comment -%} Visual Column {%- endcomment -%}
       {%- if layout == 'split' or layout == 'split-reverse' -%}
         <div class="casa-hero__visual">
+          {%- comment -%}
+            Soft light pool under the floating mirror. Sibling of (not inside)
+            .casa-hero__visual-wrapper so it stays put while the mirror floats.
+            Radial-gradient only — no filter: blur(), no @property-animated
+            gradient. That pairing is exactly what made .casa-hero__glow-frame
+            paint an opaque square behind the transparent mirror cutout in
+            shipping Safari; softness here comes from the colour stops, so
+            there is no filter layer for WebKit to rasterize wrong.
+          {%- endcomment -%}
+          {%- if section.settings.show_floor_glow -%}
+            <div class="casa-hero__floor-glow" aria-hidden="true"></div>
+          {%- endif -%}
           <div class="casa-hero__visual-wrapper">
             {%- comment -%} Animated Glow Frame {%- endcomment -%}
             {%- if section.settings.show_glow_frame -%}
@@ -374,11 +562,59 @@
               </div>
             {%- endif -%}
 
-            {%- comment -%} Product/Feature Image or Video {%- endcomment -%}
-            {%- if section.settings.visual_video != blank -%}
+            {%- comment -%} Product/Feature Image or Video — image shows first, video lazy-loads & fades in {%- endcomment -%}
+            {%- liquid
+              assign vis_video_url = ''
+              assign vis_video_small_url = ''
+              assign vis_video_hls_url = ''
+              if section.settings.visual_video_file != blank
+                assign vis_video_url = section.settings.visual_video_file.sources[1].url | default: section.settings.visual_video_file.sources[0].url
+                # Same phone-rendition rule as the bg video above.
+                assign vis_small_h = 0
+                for vis_src in section.settings.visual_video_file.sources
+                  if vis_src.format == 'mp4'
+                    if vis_small_h == 0 or vis_src.height < vis_small_h
+                      assign vis_small_h = vis_src.height
+                      assign vis_video_small_url = vis_src.url
+                    endif
+                  elsif vis_src.format == 'm3u8'
+                    assign vis_video_hls_url = vis_src.url
+                  endif
+                endfor
+              elsif section.settings.visual_video != blank
+                assign vis_video_url = section.settings.visual_video
+              endif
+            -%}
+            {%- if vis_video_url != blank -%}
               <div class="casa-hero__visual-media casa-hero__visual-media--video">
-                <video autoplay muted loop playsinline>
-                  <source src="{{ section.settings.visual_video }}" type="video/mp4">
+                {%- if section.settings.visual_image != blank -%}
+                  <img
+                    class="casa-hero__visual-poster"
+                    src="{{ section.settings.visual_image | image_url: width: 800 }}"
+                    srcset="
+                      {{ section.settings.visual_image | image_url: width: 400 }} 400w,
+                      {{ section.settings.visual_image | image_url: width: 600 }} 600w,
+                      {{ section.settings.visual_image | image_url: width: 800 }} 800w
+                    "
+                    sizes="(max-width: 900px) 300px, 500px"
+                    width="{{ section.settings.visual_image.width | default: 800 }}"
+                    height="{{ section.settings.visual_image.height | default: 800 }}"
+                    alt="{{ section.settings.visual_image.alt | default: section.settings.title_gradient | escape }}"
+                    loading="eager"
+                    decoding="async"
+                  >
+                {%- endif -%}
+                {%- comment -%} No `autoplay` — JS-driven, same as the bg video above. {%- endcomment -%}
+                <video
+                  muted
+                  loop
+                  playsinline
+                  preload="metadata"
+                  data-casa-lazy-video
+                  {% if section.settings.visual_image != blank %}poster="{{ section.settings.visual_image | image_url: width: 600 }}"{% endif %}
+                  aria-hidden="true"
+                >
+                  <source data-src="{{ vis_video_url }}"{% if vis_video_small_url != blank and vis_video_small_url != vis_video_url %} data-src-small="{{ vis_video_small_url }}"{% endif %}{% if vis_video_hls_url != blank %} data-src-hls="{{ vis_video_hls_url }}"{% endif %} type="video/mp4">
                 </video>
               </div>
             {%- elsif section.settings.visual_image != blank -%}
@@ -391,6 +627,8 @@
                     {{ section.settings.visual_image | image_url: width: 800 }} 800w
                   "
                   sizes="(max-width: 900px) 300px, 500px"
+                  width="{{ section.settings.visual_image.width | default: 800 }}"
+                  height="{{ section.settings.visual_image.height | default: 800 }}"
                   alt="{{ section.settings.visual_image.alt | default: section.settings.title_gradient | escape }}"
                   loading="eager"
                   class="casa-hero__product-image"
@@ -411,26 +649,75 @@
               </div>
             {%- endif -%}
 
-            {%- comment -%} Floating Badges on Visual {%- endcomment -%}
-            {%- if section.settings.visual_badge_1 != blank -%}
-              <div class="casa-hero__float-badge casa-hero__float-badge--1">
-                {%- render 'casa-icon', icon: section.settings.visual_badge_1_icon, default: 'zap', size: 16 -%}
-                {{ section.settings.visual_badge_1 }}
-              </div>
-            {%- endif -%}
-            {%- if section.settings.visual_badge_2 != blank -%}
-              <div class="casa-hero__float-badge casa-hero__float-badge--2">
-                {%- render 'casa-icon', icon: section.settings.visual_badge_2_icon, default: 'palette', size: 16 -%}
-                {{ section.settings.visual_badge_2 }}
-              </div>
-            {%- endif -%}
-            {%- if section.settings.visual_badge_3 != blank -%}
-              <div class="casa-hero__float-badge casa-hero__float-badge--3">
-                {%- render 'casa-icon', icon: section.settings.visual_badge_3_icon, default: 'smartphone', size: 16 -%}
-                {{ section.settings.visual_badge_3 }}
+            {%- comment -%}
+              Floating Badges on Visual.
+              Wrapped in .casa-hero__float-badges so we can flip the
+              layout from "badges absolute-positioned around the
+              mirror" (desktop) to "badges as inline pills below the
+              mirror" (mobile) without losing the desktop floating
+              effect. Wrapper is `display: contents` on desktop so
+              it's structurally invisible — each badge keeps its
+              existing top/left positioning relative to the original
+              .casa-hero__visual-inner ancestor. On mobile (max-width
+              900px) the wrapper becomes a centered flex-wrap row so
+              the badges (16M+ Colors / Music Reactive / App Control,
+              etc) are visible without overflowing the narrow visual
+              column. See CSS rules near the bottom of this file.
+            {%- endcomment -%}
+            {%- if section.settings.visual_badge_1 != blank or section.settings.visual_badge_2 != blank or section.settings.visual_badge_3 != blank -%}
+              <div class="casa-hero__float-badges">
+                {%- if section.settings.visual_badge_1 != blank -%}
+                  <div class="casa-hero__float-badge casa-hero__float-badge--1">
+                    {%- render 'casa-icon', icon: _visual_badge_1_icon, size: 16 -%}
+                    {{ section.settings.visual_badge_1 }}
+                  </div>
+                {%- endif -%}
+                {%- if section.settings.visual_badge_2 != blank -%}
+                  <div class="casa-hero__float-badge casa-hero__float-badge--2">
+                    {%- render 'casa-icon', icon: _visual_badge_2_icon, size: 16 -%}
+                    {{ section.settings.visual_badge_2 }}
+                  </div>
+                {%- endif -%}
+                {%- if section.settings.visual_badge_3 != blank -%}
+                  <div class="casa-hero__float-badge casa-hero__float-badge--3">
+                    {%- render 'casa-icon', icon: _visual_badge_3_icon, size: 16 -%}
+                    {{ section.settings.visual_badge_3 }}
+                  </div>
+                {%- endif -%}
               </div>
             {%- endif -%}
           </div>
+        </div>
+      {%- endif -%}
+
+      {%- comment -%}
+        Trust Badges (MOBILE variant).
+        Sibling of .casa-hero__visual so on mobile (where .casa-hero__content
+        is flex-column) the trust row renders AFTER the mirror image instead
+        of before it. The desktop variant inside .casa-hero__text remains
+        the source-of-truth for desktop layout. CSS toggles visibility:
+        --desktop-only is hidden ≤900px, --mobile-only is hidden >900px.
+      {%- endcomment -%}
+      {%- if section.settings.show_trust_row -%}
+        <div class="casa-hero__trust-row casa-hero__trust-row--mobile-only">
+          {%- if section.settings.trust_1_text != blank -%}
+            <div class="casa-hero__trust-item">
+              {%- render 'casa-icon', icon: _trust_1_icon, size: 18 -%}
+              <span>{{ section.settings.trust_1_text }}</span>
+            </div>
+          {%- endif -%}
+          {%- if section.settings.trust_2_text != blank -%}
+            <div class="casa-hero__trust-item">
+              {%- render 'casa-icon', icon: _trust_2_icon, size: 18 -%}
+              <span>{{ section.settings.trust_2_text }}</span>
+            </div>
+          {%- endif -%}
+          {%- if section.settings.trust_3_text != blank -%}
+            <div class="casa-hero__trust-item">
+              {%- render 'casa-icon', icon: _trust_3_icon, size: 18 -%}
+              <span>{{ section.settings.trust_3_text }}</span>
+            </div>
+          {%- endif -%}
         </div>
       {%- endif -%}
     </div>
@@ -442,10 +729,529 @@
       <div class="casa-hero__scroll-mouse">
         <div class="casa-hero__scroll-wheel"></div>
       </div>
-      <span>Scroll to explore</span>
+      <span>{{ 'content.scroll_to_explore' | t | default: 'Scroll to explore' }}</span>
     </div>
   {%- endif -%}
 </section>
+
+<script>
+  // FOUT-no-show: add .fonts-ready class once Inter is actually loaded so
+  // the hero title (which is hidden via opacity:0 in CSS until then) can
+  // fade in at its final size. See the .casa-hero__title CSS comment
+  // explaining why this is needed (the metric-matched fallback was being
+  // skipped by the cascade in favour of -apple-system, causing a 7%
+  // size enlargement when Inter swapped in).
+  (function() {
+    var ready = function() {
+      // Use rAF so the class addition + fade-in are batched into one paint
+      // — avoids any frame where the title is in a transitional state.
+      requestAnimationFrame(function() {
+        document.documentElement.classList.add('fonts-ready');
+      });
+    };
+
+    // Check ONLY the two fonts the title depends on, not every @font-face.
+    // 2026-05-11 fix after iOS recording showed title invisible for ~10s:
+    // `document.fonts.ready` waits for ALL fonts including body, subheading,
+    // accent which the title doesn't need. On iOS Safari, low-priority or
+    // unicode-range fonts can take many seconds to settle, blocking the
+    // title reveal even though Inter bold + bold-italic loaded fast.
+    //
+    // document.fonts.check() returns true once the specific font is loaded,
+    // so we can fire `ready` as soon as the two title-relevant variants
+    // are available — independent of slow body/subheading/accent fonts.
+    function titleFontsLoaded() {
+      if (!document.fonts || !document.fonts.check) return false;
+      try {
+        // Match the @font-face declarations the title uses (700 weight, with
+        // and without italic). If `check` is available the heading bold
+        // and heading bold-italic queries return true when those specific
+        // variants have loaded.
+        return document.fonts.check('700 16px "Inter Casa"') &&
+               document.fonts.check('italic 700 16px "Inter Casa"');
+      } catch (e) {
+        return false;
+      }
+    }
+
+    if (titleFontsLoaded()) {
+      ready();
+    } else if (document.fonts && document.fonts.ready) {
+      // Poll briefly — `document.fonts.ready` waits for all fonts so it's
+      // too slow; instead check our two specific fonts every 50ms.
+      var pollStart = Date.now();
+      var poll = setInterval(function() {
+        if (titleFontsLoaded()) {
+          clearInterval(poll);
+          ready();
+        } else if (Date.now() - pollStart > 500) {
+          // Match CSS animation backstop — never poll past the 500ms cap.
+          clearInterval(poll);
+          ready();
+        }
+      }, 50);
+    } else {
+      // No Font Loading API support — fall back to immediate reveal.
+      ready();
+    }
+    // Hard backstop: matches the CSS animation backstop (500ms). If the
+    // poll above didn't fire (e.g., browser quirk), force visibility here.
+    setTimeout(ready, 500);
+  })();
+</script>
+<script>
+  (function() {
+    // This script tag renders inside its own section; capture that root SYNCHRONOUSLY
+    // (document.currentScript is only valid during synchronous execution) so each
+    // hero IIFE wires ONLY its own section at load instead of rescanning the whole
+    // document — and so two hero instances on one page don't each wire the other.
+    var OWN_SECTION = (document.currentScript && document.currentScript.closest)
+      ? document.currentScript.closest('.shopify-section')
+      : null;
+
+    // Lazy-load hero videos: start loading when idle (background) or when in view (visual).
+    // Respects Save-Data & prefers-reduced-motion — skips video entirely if either is set.
+    var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var saveData = (navigator.connection && navigator.connection.saveData) === true;
+    var slowNet = navigator.connection && /2g|slow-2g/.test(navigator.connection.effectiveType || '');
+
+    // Save-Data / reduced-motion / 2g: never play video. Drop matching
+    // videos so the poster image stays. Computed once and applied both on
+    // initial load AND on every theme-editor section re-render (process()).
+    var mediaOptOut = reducedMotion || saveData || slowNet;
+    function dropVideos(root) {
+      (root || document).querySelectorAll('video[data-casa-lazy-video]').forEach(function(v) { v.remove(); });
+    }
+
+    function startVideo(video) {
+      if (video.dataset.casaVideoStarted) return;
+      video.dataset.casaVideoStarted = '1';
+      // iOS Safari ignores the muted/playsinline HTML *attributes* when a
+      // video's src is assigned in JS and play() is called programmatically:
+      // it treats the video as audible + fullscreen-intent, REJECTS the
+      // autoplay, and paints its native centre play button (which our
+      // pointer-events:none video can't even dismiss). Setting the
+      // PROPERTIES explicitly is what makes muted inline autoplay eligible.
+      video.muted = true;
+      video.defaultMuted = true;
+      video.playsInline = true;
+      video.setAttribute('muted', '');
+      video.setAttribute('playsinline', '');
+      video.setAttribute('webkit-playsinline', '');
+      var source = video.querySelector('source[data-src]');
+      var videoUrl = source ? source.dataset.src : '';
+      // Phone viewports take a lighter stream. Preference order: a real small
+      // MP4 rendition (data-src-small — only present when the Liquid drop
+      // exposes one), else the HLS manifest (data-src-hls) on browsers with
+      // native HLS (iOS Safari) — adaptive variants beat forcing the 1080p.
+      // Decided once at arm time on purpose: a later rotate/resize must never
+      // swap src on a playing video (that re-runs the load algorithm and
+      // blanks the frame).
+      if (source && window.matchMedia && window.matchMedia('(max-width: 749px)').matches) {
+        if (source.dataset.srcSmall) {
+          videoUrl = source.dataset.srcSmall;
+        } else if (source.dataset.srcHls && video.canPlayType('application/vnd.apple.mpegurl')) {
+          videoUrl = source.dataset.srcHls;
+        }
+      }
+      if (videoUrl) {
+        video.src = videoUrl;
+        // Force the media-element load algorithm to re-run with the new src.
+        // The element parsed with preload="metadata" + a srcless <source>, and
+        // iOS WebKit does NOT reliably re-select a source from a bare `.src`
+        // write — without load() the loadeddata/canplay events may never fire
+        // and we'd fall through to the 2s timeout (a ~2s poster-only window).
+        video.load();
+      }
+      // Just play — no opacity toggling, no class swaps.
+      // Video element is always visible; before src loads it shows
+      // poster or is transparent. Frames appear naturally.
+      //
+      // Low Power Mode is the case the CSS pseudo-element suppression can't
+      // win: iOS refuses muted inline autoplay at the OS level (play()
+      // rejects with NotAllowedError) and paints its native centre play
+      // button over the poster. Because the video is pointer-events:none
+      // that button is non-dismissible — it just sits there greyed out. The
+      // only cross-version-reliable fix is to drop the video on a CONFIRMED
+      // refusal, exactly as we already do for reduced-motion / save-data:
+      // the .casa-hero__bg-image poster (or the in-card visual poster) stays
+      // and iOS has nothing left to draw a button on.
+      var played = false;
+      // Reveal the video ONLY once it is genuinely playing. Until then it is
+      // visibility:hidden (CSS), so iOS has no control layer to paint a play
+      // button on — the poster shows and there is no Low Power Mode flash.
+      // The first video frame equals the poster, so the swap is seamless.
+      function reveal() {
+        played = true;
+        video.classList.add('casa-video-visible');
+      }
+      video.addEventListener('playing', reveal, { once: true });
+      // Backstop: 'playing' can be missed on some iOS builds; timeupdate fires
+      // as soon as the clock advances, i.e. it is definitely rendering frames.
+      video.addEventListener('timeupdate', reveal, { once: true });
+
+      function dropToPoster() {
+        // Only when autoplay truly never started. The poster underneath is
+        // the same asset, so removing the absolutely-positioned video causes
+        // no layout shift and no visual jump. __casaSuspended guards the case
+        // where the observer intentionally paused this off-screen before it
+        // ever played: it sits paused at frame 0, which must NOT read as an LPM
+        // refusal, or we'd delete a healthy hero on scroll.
+        if (played || !video.isConnected || video.__casaSuspended) return;
+        video.remove();
+      }
+
+      function tryPlay(isFinal) {
+        // Honor the observer's should-play signal: never start (or restart) a
+        // video the observer has suspended off-screen. startVideo and the
+        // observer share __casaShouldPlay as the single source of truth — without
+        // this gate an event-driven retry (or the 2s backstop) could re-play a
+        // just-suspended bg video off-screen, the exact thing this change
+        // prevents. Undefined = allowed (first paint, before the observer speaks).
+        if (video.__casaShouldPlay === false) return;
+        // Re-assert muted/inline at play time. Some iOS builds drop the
+        // muted state across load() and then reject the autoplay as
+        // "audible", which is what surfaces the native centre play button.
+        video.muted = true;
+        video.playsInline = true;
+        var p = video.play();
+        if (p && p.then) {
+          p.then(function () {
+            // Suspended while play() was resolving → pause straight back.
+            if (video.__casaShouldPlay === false) { video.pause(); return; }
+            reveal();
+          }, function () {
+            // Earlier rejections are routine (no data yet) — the event-driven
+            // retries below recover on a normal device. Act ONLY on the final
+            // attempt: a rejection there is a real refusal (Low Power Mode).
+            // A still-pending promise (slow-network buffering) is not a
+            // rejection, so nothing is removed and the video plays later.
+            if (isFinal) dropToPoster();
+          });
+        }
+      }
+      // Fire on the earliest event that lets play() succeed, plus an
+      // immediate attempt and a hard 2s backstop. tryPlay is idempotent.
+      video.addEventListener('loadedmetadata', function () { tryPlay(false); }, { once: true });
+      video.addEventListener('loadeddata', function () { tryPlay(false); }, { once: true });
+      video.addEventListener('canplay', function () { tryPlay(false); }, { once: true });
+      tryPlay(false);
+      setTimeout(function () { tryPlay(true); }, 2000);
+
+      // Second Low Power Mode signature: some iOS builds neither play nor
+      // reject — play() stays *pending* forever, so the rejection path above
+      // never fires, yet the native play button is still painted. Catch it by
+      // state: if the element has buffered enough to play (readyState >=
+      // HAVE_FUTURE_DATA = 3) but is still paused at frame 0 and never fired
+      // 'playing', autoplay was refused, not merely slow. The readyState gate
+      // is what keeps this safe — a genuinely buffering video on a slow (but
+      // not 2g) connection has readyState < 3, so it is left alone to play
+      // when its data arrives.
+      setTimeout(function () {
+        if (played || !video.isConnected || video.__casaSuspended) return;
+        if (video.paused && video.currentTime === 0 && video.readyState >= 3) {
+          dropToPoster();
+        }
+      }, 2600);
+    }
+
+    // ── Play/pause ownership (JS is the SOLE controller) ───────────────────
+    // The hero <video>s keep `loop muted playsinline` but NOT `autoplay`:
+    // playback is 100% JS-driven (startVideo → src + load() + play()), so the
+    // attribute did nothing at parse (lazy data-src) yet kept the browser's own
+    // autoplay controller live in PARALLEL with our JS — which is what made the
+    // earlier off-screen pause() bounce/flash (caeb065, reverted 7f3a454). With
+    // `autoplay` gone, pause() is sticky. Same proven pattern already shipped in
+    // casa-split-feature / casa-styled-spaces-home / casa-brand-story (native
+    // `loop` kept — only `autoplay` fought the JS owner, so no JS re-loop needed).
+
+    function motionAllowed() {
+      return !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    // Resume = play when (back) in view. In-card videos get their first start
+    // here; the BG video's first start is owned by the idle-kick below, so we
+    // only RESUME it here, never start it early.
+    function resumeVideo(video) {
+      if (!video.isConnected) return;   // dropped to poster on a confirmed LPM refusal
+      if (!motionAllowed()) return;     // reduced-motion enabled mid-session → stay paused
+      video.__casaShouldPlay = true;
+      video.__casaSuspended = false;
+      if (!video.dataset.casaVideoStarted) {
+        // The idle-kick owns the bg first start (LCP timing) — the initial
+        // geometry pass reaches here ~16ms after init, LONG before the kick,
+        // so an unconditional start would put the multi-MB fetch back on the
+        // LCP critical path. Only start the bg here AFTER the kick has run
+        // and skipped (user had scrolled past; __casaShouldPlay was false):
+        // that is the scroll-back case where nothing else will start it.
+        // startVideo is idempotent and its tryPlay honors __casaShouldPlay.
+        if (!video.closest('.casa-hero__bg') || video.__casaKickDone) startVideo(video);
+        return;
+      }
+      if (video.paused) {
+        video.muted = true;             // some iOS builds drop muted across pause/resume
+        video.playsInline = true;
+        var p = video.play();
+        if (p && p.then) p.then(function () {
+          // Scrolled back out while play() was resolving → honor the latest state.
+          if (!video.__casaShouldPlay && !video.paused) video.pause();
+        }, function () {});             // AbortError when a pending play() is interrupted by pause() — expected
+      }
+    }
+
+    // Suspend = pause when scrolled out so it stops decoding off-screen.
+    function suspendVideo(video) {
+      video.__casaShouldPlay = false;
+      video.__casaSuspended = true;     // marks this pause intentional so drop-to-poster won't fire
+      if (video.isConnected && video.dataset.casaVideoStarted && !video.paused) video.pause();
+    }
+
+    // One IntersectionObserver + one reduced-motion listener PER SECTION, tracked
+    // in a WeakMap so shopify:section:unload can disconnect them. A persistent
+    // (never-unobserve) observer would otherwise leak across theme-editor renders.
+    // The registry is SHARED on window.casa across every hero IIFE on the page:
+    // each script tag is emitted per section instance, so they must all consult one
+    // registry — otherwise initSection's teardown can't see (and disconnect) a
+    // sibling instance's observer for the same section, which would double-observe
+    // and leak when a merchant places two hero sections on one page.
+    window.casa = window.casa || {};
+    var sectionMedia = (typeof WeakMap !== 'undefined')
+      ? (window.casa.heroObservers || (window.casa.heroObservers = new WeakMap()))
+      : null;
+
+    // ── Overlay gate ──────────────────────────────────────────────────────────
+    // The hero owns its own playback (see the ownership note above), so the
+    // shared casa-offscreen-pause gate can't pause it for us. Consult the SAME
+    // predicate here — the single source of truth exposed on window.casa — and
+    // subscribe each section's scheduleEval to overlay open/close in initSection
+    // (opening an overlay fires no scroll/resize/IO edge, so nothing else would
+    // re-gate the hero). The delegating shim tolerates the deferred utility not
+    // having evaluated yet: it returns false, so the hero simply plays as before
+    // until the utility loads — never a wedged-paused state.
+    function overlayOpen() {
+      return !!(window.casa && window.casa.overlayOpen && window.casa.overlayOpen());
+    }
+
+    function teardownSection(sectionEl) {
+      if (!sectionMedia) return;
+      var rec = sectionMedia.get(sectionEl);
+      if (!rec) return;
+      if (rec.observer) rec.observer.disconnect();
+      if (rec.mql && rec.mqlHandler && rec.mql.removeEventListener) {
+        rec.mql.removeEventListener('change', rec.mqlHandler);
+      }
+      if (rec.scheduleEval) {
+        window.removeEventListener('scroll', rec.scheduleEval);
+        window.removeEventListener('resize', rec.scheduleEval);
+        document.removeEventListener('visibilitychange', rec.scheduleEval);
+      }
+      if (rec.overlayUnsub) { try { rec.overlayUnsub(); } catch (e) {} } // shared overlay-gate subscription
+      sectionMedia.delete(sectionEl);
+    }
+
+    function initSection(sectionEl) {
+      teardownSection(sectionEl); // re-render: never stack observers on the same section
+      var videos = sectionEl.querySelectorAll('video[data-casa-lazy-video]');
+      if (!videos.length) return;
+
+      // BG video: kick off the first start ASAP but off the critical path (keeps
+      // the first frame ready for LCP). Resume/pause afterwards is the observer's.
+      Array.prototype.forEach.call(videos, function (video) {
+        if (!video.closest('.casa-hero__bg')) return;
+        video.__casaShouldPlay = true; // a loop wrap before the first observe isn't swallowed
+        // Skip the load entirely if the user already scrolled past before the
+        // kick fired — startVideo would fetch megabytes for a video gated from
+        // playing off-screen. __casaKickDone tells resumeVideo the kick has had
+        // its chance, so scroll-back may start the bg video itself.
+        var kick = function () {
+          video.__casaKickDone = true;
+          if (video.isConnected && video.__casaShouldPlay !== false) startVideo(video);
+        };
+        if ('requestIdleCallback' in window) requestIdleCallback(kick, { timeout: 1500 });
+        else setTimeout(kick, 300);
+      });
+
+      var observer = null;
+      if ('IntersectionObserver' in window) {
+        // rootMargin 0 so the observer fires at the ACTUAL viewport edge. A
+        // positive margin (the old 200px, carried over from lazy-loading) keeps
+        // a scrolled-past video "intersecting" — and therefore PLAYING/decoding —
+        // for an extra 200px past the viewport. On a phone that reads as "the
+        // hero keeps playing after you scroll past it." Decide play/pause from
+        // the element's real getBoundingClientRect, NOT solely entry.isIntersecting:
+        // iOS re-fires this observer on every URL-bar collapse/expand and can
+        // report a stale isIntersecting=true for an element that is actually
+        // off-screen (memory reference_ios_urlbar_resizes_viewport_breaks_observers
+        // — gate on geometry). The rect is the source of truth.
+        observer = new IntersectionObserver(function (entries) {
+          var vh = window.innerHeight || document.documentElement.clientHeight;
+          // An IO edge can land while an overlay is open (iOS URL-bar reflow);
+          // gate it too so a stray tick can't resume the hero behind the panel.
+          var overlaid = overlayOpen();
+          entries.forEach(function (entry) {
+            var v = entry.target;
+            var r = v.getBoundingClientRect();
+            // Hysteresis: suspend only when fully past the edge, resume only
+            // once ≥32px is visible. A single boundary makes a slow drag at the
+            // hero's bottom edge toggle pause/play every frame — each Safari
+            // resume can paint a stale frame (micro-flash). Between the bands,
+            // keep the current state.
+            if (overlaid || r.width === 0 || r.bottom <= 0 || r.top >= vh) suspendVideo(v);
+            else if (r.bottom > 32 && r.top < vh - 32) resumeVideo(v);
+          });
+        }, { rootMargin: '0px' });
+        Array.prototype.forEach.call(videos, function (v) { observer.observe(v); });
+      } else {
+        // No IntersectionObserver: eager-start the in-card videos (bg already kicked).
+        Array.prototype.forEach.call(videos, function (v) { if (!v.closest('.casa-hero__bg')) startVideo(v); });
+      }
+
+      // Backstop for iOS — the load-bearing pause path. Safari does NOT reliably
+      // deliver IntersectionObserver exit callbacks during momentum scroll or
+      // URL-bar collapse, so the observer alone can leave a video PLAYING after it
+      // scrolls off-screen (reported on a real iPhone; emulators don't repro it).
+      // A rAF-throttled scroll/resize check re-evaluates geometry directly so a
+      // scrolled-past video always pauses, and visibilitychange pauses everything
+      // when the tab/app is backgrounded. The observer above is now an
+      // optimisation layered on top, not the sole driver.
+      var rafPending = false;
+      function evaluateGeometry() {
+        rafPending = false;
+        // Tab hidden OR a page-covering overlay open ⇒ suspend regardless of
+        // geometry (this is the path the body-class observer drives on open,
+        // and that re-runs on close to resume an in-view hero).
+        var blocked = document.hidden || overlayOpen();
+        var vh = window.innerHeight || document.documentElement.clientHeight;
+        Array.prototype.forEach.call(videos, function (v) {
+          if (!v.isConnected) return;
+          var r = v.getBoundingClientRect();
+          // Same hysteresis bands as the observer callback (see comment there).
+          if (blocked || r.width === 0 || r.bottom <= 0 || r.top >= vh) suspendVideo(v);
+          else if (r.bottom > 32 && r.top < vh - 32) resumeVideo(v);
+        });
+      }
+      function scheduleEval() {
+        if (rafPending) return;
+        rafPending = true;
+        if (window.requestAnimationFrame) window.requestAnimationFrame(evaluateGeometry);
+        else setTimeout(evaluateGeometry, 100);
+      }
+      window.addEventListener('scroll', scheduleEval, { passive: true });
+      window.addEventListener('resize', scheduleEval, { passive: true });
+      document.addEventListener('visibilitychange', scheduleEval);
+      // Overlay open/close → re-gate this hero via the shared subscription (the
+      // hero inits on window 'load', so the deferred utility is always present;
+      // guard defensively regardless). Unsubscribed in teardownSection.
+      var overlayUnsub = (window.casa && window.casa.onOverlayToggle)
+        ? window.casa.onOverlayToggle(scheduleEval) : null;
+      scheduleEval(); // set initial state without waiting for the first scroll
+
+      // Dynamic reduced-motion: if the user turns Reduce Motion on mid-session,
+      // pause every video now; resumeVideo re-checks motionAllowed so it stays paused.
+      var mql = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+      var mqlHandler = null;
+      if (mql && mql.addEventListener) {
+        mqlHandler = function (e) {
+          if (!e.matches) return;
+          Array.prototype.forEach.call(videos, function (v) {
+            v.__casaShouldPlay = false;
+            if (v.isConnected && !v.paused) v.pause();
+          });
+        };
+        mql.addEventListener('change', mqlHandler);
+      }
+
+      if (sectionMedia) sectionMedia.set(sectionEl, { observer: observer, mql: mql, mqlHandler: mqlHandler, scheduleEval: scheduleEval, overlayUnsub: overlayUnsub });
+    }
+
+    // Entry point: opt-out → drop videos; otherwise wire up each hero section.
+    function process(root) {
+      root = root || document;
+      if (mediaOptOut) { dropVideos(root); return; }
+      var videos = root.querySelectorAll ? root.querySelectorAll('video[data-casa-lazy-video]') : [];
+      if (!videos.length) return;
+      var sections = [];
+      Array.prototype.forEach.call(videos, function (v) {
+        var sec = v.closest('.shopify-section') || root;
+        if (sections.indexOf(sec) === -1) sections.push(sec);
+      });
+      sections.forEach(initSection);
+    }
+
+    if (document.readyState === 'complete') process(OWN_SECTION || document);
+    else window.addEventListener('load', function () { process(OWN_SECTION || document); });
+
+    // Theme editor re-renders a section's markup wholesale when the merchant edits
+    // it: re-wire on load, and DISCONNECT the observer + reduced-motion listener on
+    // unload so they don't leak across mount/unmount. Bind once, namespaced.
+    window.casa = window.casa || {};
+    if (!window.casa.heroVideoBound) {
+      window.casa.heroVideoBound = true;
+      document.addEventListener('shopify:section:load', function (e) {
+        if (e.target && e.target.querySelector && e.target.querySelector('video[data-casa-lazy-video]')) {
+          process(e.target);
+        }
+      });
+      document.addEventListener('shopify:section:unload', function (e) {
+        if (e.target) teardownSection(e.target);
+      });
+    }
+  })();
+</script>
+
+<script>
+  // Promo-strip countdown fill. The data-countdown span shipped with no
+  // consumer (rendered empty); this is the consumer. Liquid pre-converts
+  // the merchant's "YYYY-MM-DD HH:MM" to a store-timezone UTC epoch in
+  // data-countdown-ts, so JS only formats remaining time — no per-visitor
+  // timezone drift. When the deadline passes the whole strip hides, so
+  // the offer copy can't outlive the discount.
+  (function() {
+    function initCountdowns(root) {
+      var els = (root || document).querySelectorAll('.casa-hero__promo [data-countdown-ts]');
+      Array.prototype.forEach.call(els, function(el) {
+        if (el.dataset.casaCdInit) return;
+        el.dataset.casaCdInit = '1';
+        // The date filter passes unparseable input through VERBATIM, so a
+        // digit-leading typo ("2026-9-31 23:59") would parseInt to a tiny
+        // epoch and hide the strip. Only a pure epoch string may proceed.
+        if (!/^\d+$/.test(el.dataset.countdownTs || '')) return;
+        var ts = parseInt(el.dataset.countdownTs, 10) * 1000;
+        var strip = el.closest('.casa-hero__promo');
+        var timer;
+        function pad(n) { return n < 10 ? '0' + n : '' + n; }
+        function render() {
+          // Editor churn guard: the theme editor re-renders sections; a
+          // detached span means this instance is gone — stop its timer.
+          if (!el.isConnected) { if (timer) clearInterval(timer); return; }
+          var ms = ts - Date.now();
+          if (ms <= 0) {
+            if (strip) strip.style.display = 'none';
+            if (timer) clearInterval(timer);
+            return;
+          }
+          var m = Math.floor(ms / 60000);
+          var d = Math.floor(m / 1440);
+          var h = Math.floor((m % 1440) / 60);
+          var mm = m % 60;
+          el.textContent = d > 0
+            ? '· Ends in ' + d + 'd ' + pad(h) + 'h'
+            : (h > 0 ? '· Ends in ' + h + 'h ' + pad(mm) + 'm' : '· Ends in ' + mm + 'm');
+        }
+        render();
+        if (ts - Date.now() > 0) timer = setInterval(render, 30000);
+      });
+    }
+    initCountdowns(document);
+    window.casa = window.casa || {};
+    if (!window.casa.heroCountdownBound) {
+      window.casa.heroCountdownBound = true;
+      document.addEventListener('shopify:section:load', function(e) {
+        if (e.target) initCountdowns(e.target);
+      });
+    }
+  })();
+</script>
 
 {% schema %}
 {
@@ -517,6 +1323,35 @@
     {
       "type": "header",
       "content": "Mobile Layout"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_inline_image_mobile",
+      "label": "Show product image in content (mobile)",
+      "info": "Displays the visual image inside the text area between title and description on mobile",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "inline_image_max_width",
+      "label": "Inline image max width",
+      "info": "Only applies when inline image is enabled",
+      "min": 40,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 80
+    },
+    {
+      "type": "range",
+      "id": "inline_image_radius",
+      "label": "Inline image border radius",
+      "info": "Only applies when inline image is enabled",
+      "min": 0,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "default": 12
     },
     {
       "type": "select",
@@ -594,10 +1429,16 @@
       "info": "Recommended: 1920x1080 or larger"
     },
     {
+      "type": "video",
+      "id": "background_video_file",
+      "label": "Background video (file)",
+      "info": "Upload via Settings → Files. Faster than external URLs — served from Shopify's CDN."
+    },
+    {
       "type": "text",
       "id": "background_video",
-      "label": "Background video URL",
-      "info": "MP4 video URL. Overrides background image."
+      "label": "Background video (URL)",
+      "info": "External MP4 URL. Only used if no file is uploaded above."
     },
     {
       "type": "range",
@@ -608,6 +1449,74 @@
       "step": 5,
       "default": 70,
       "unit": "%"
+    },
+    {
+      "type": "header",
+      "content": "Content background"
+    },
+    {
+      "type": "checkbox",
+      "id": "glass_bg_desktop",
+      "label": "Glassmorphic background (desktop)",
+      "info": "Frosted glass behind text content on desktop",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "glass_bg_mobile",
+      "label": "Glassmorphic background (mobile)",
+      "info": "Frosted glass behind text content on mobile",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "glass_opacity",
+      "label": "Glass opacity",
+      "min": 5,
+      "max": 90,
+      "step": 5,
+      "default": 30,
+      "unit": "%"
+    },
+    {
+      "type": "range",
+      "id": "glass_blur",
+      "label": "Glass blur",
+      "min": 4,
+      "max": 40,
+      "step": 2,
+      "default": 16,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "glass_radius",
+      "label": "Glass border radius",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "default": 16,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "glass_padding",
+      "label": "Glass padding",
+      "min": 12,
+      "max": 60,
+      "step": 4,
+      "default": 28,
+      "unit": "px"
+    },
+    {
+      "type": "select",
+      "id": "glass_width",
+      "label": "Glass width",
+      "options": [
+        { "value": "fit", "label": "Fit content" },
+        { "value": "full", "label": "Full width" }
+      ],
+      "default": "fit"
     },
     {
       "type": "header",
@@ -650,20 +1559,20 @@
       "type": "color",
       "id": "custom_color_1",
       "label": "Primary accent",
-      "default": "#9333ea",
+      "default": "#B0C3FA",
       "info": "Used when 'Custom Colors' selected"
     },
     {
       "type": "color",
       "id": "custom_color_2",
       "label": "Secondary accent",
-      "default": "#ec4899"
+      "default": "#5E0A02"
     },
     {
       "type": "color",
       "id": "custom_color_3",
       "label": "Tertiary accent",
-      "default": "#06b6d4"
+      "default": "#F2FFA0"
     },
     {
       "type": "header",
@@ -679,16 +1588,30 @@
       "label": "Title color"
     },
     {
+      "type": "select",
+      "id": "title_gradient_style",
+      "label": "Accent word style",
+      "info": "Brand book defines three: shimmer (animated rainbow, default), text (static purple→pink→cyan), or custom (use the color pickers below). Brand book mandates one shimmer per page max.",
+      "options": [
+        { "value": "shimmer", "label": "Shimmer (animated, default)" },
+        { "value": "text",    "label": "Text gradient (static, 3-color)" },
+        { "value": "custom",  "label": "Custom (use color pickers below)" }
+      ],
+      "default": "shimmer"
+    },
+    {
       "type": "color",
       "id": "accent_word_color_1",
       "label": "Accent word color (start)",
-      "info": "Gradient start for the accent word. Leave blank for accent preset."
+      "info": "Custom gradient start. Only used when Accent word style = Custom. Brand book recommends shimmer or text gradient.",
+      "visible_if": "{{ section.settings.title_gradient_style == 'custom' }}"
     },
     {
       "type": "color",
       "id": "accent_word_color_2",
       "label": "Accent word color (end)",
-      "info": "Gradient end for the accent word."
+      "info": "Gradient end for the accent word.",
+      "visible_if": "{{ section.settings.title_gradient_style == 'custom' }}"
     },
     {
       "type": "color",
@@ -724,7 +1647,7 @@
       "type": "color",
       "id": "hero_bg_color",
       "label": "Section background color",
-      "default": "#0a0a0f"
+      "default": "#0A0A0F"
     },
     {
       "type": "header",
@@ -754,7 +1677,8 @@
       "type": "text",
       "id": "promo_text",
       "label": "Promo text",
-      "default": "Free shipping on all orders over $100"
+      "default": "Free shipping on all orders",
+      "info": "Never hardcode a dollar amount here (every market converts differently). Link to your shipping policy page instead."
     },
     {
       "type": "text",
@@ -838,14 +1762,46 @@
       "default": "Dimension"
     },
     {
+      "type": "select",
+      "id": "title_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "select",
+      "id": "accent_heading_level",
+      "label": "Accent heading scale",
+      "info": "Heading scale for the gradient accent word. Inherit is larger than the title.",
+      "options": [
+        { "value": "inherit", "label": "Inherit (bigger than title)" },
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "inherit"
+    },
+    {
       "type": "textarea",
       "id": "subtitle",
       "label": "Subtitle",
-      "default": "Transform your space with mesmerizing infinity mirrors. 16+ million colors, smart-controlled, and designed to captivate."
+      "info": "Page-specific — enter per instance. Pre-2026-05-17 defaulted to infinity-mirror copy which bled onto every hero usage."
     },
     {
       "type": "header",
-      "content": "Features List"
+      "content": "Features List",
+      "info": "Page-specific — enter per instance. Pre-2026-05-17 defaulted to smart-RGB chip labels."
     },
     {
       "type": "checkbox",
@@ -856,20 +1812,17 @@
     {
       "type": "text",
       "id": "feature_1",
-      "label": "Feature 1",
-      "default": "16+ Million Colors"
+      "label": "Feature 1"
     },
     {
       "type": "text",
       "id": "feature_2",
-      "label": "Feature 2",
-      "default": "App & Remote Control"
+      "label": "Feature 2"
     },
     {
       "type": "text",
       "id": "feature_3",
-      "label": "Feature 3",
-      "default": "Music Reactive Mode"
+      "label": "Feature 3"
     },
     {
       "type": "header",
@@ -885,7 +1838,7 @@
       "type": "text",
       "id": "price",
       "label": "Price",
-      "default": "$299"
+      "info": "Leave blank unless you need a static price label. Prefer pulling price from a linked Featured product where supported. Never hardcode a $ amount (frozen to USD across markets)."
     },
     {
       "type": "text",
@@ -907,7 +1860,7 @@
       "type": "text",
       "id": "button_primary_text",
       "label": "Button text",
-      "default": "Shop Infinity Mirrors"
+      "info": "Page-specific — enter per instance."
     },
     {
       "type": "url",
@@ -923,9 +1876,20 @@
         { "value": "cart", "label": "Cart" },
         { "value": "sparkles", "label": "Sparkles" },
         { "value": "zap", "label": "Lightning" },
-        { "value": "chevron-right", "label": "Arrow" }
+        { "value": "arrow-right", "label": "Arrow" }
       ],
       "default": "none"
+    },
+    {
+      "type": "select",
+      "id": "button_primary_icon_position",
+      "label": "Icon position",
+      "options": [
+        { "value": "right", "label": "Right (after text)" },
+        { "value": "left",  "label": "Left (before text)" }
+      ],
+      "default": "right",
+      "visible_if": "{{ section.settings.button_primary_icon != 'none' }}"
     },
     {
       "type": "select",
@@ -941,12 +1905,14 @@
       "type": "color",
       "id": "button_primary_bg",
       "label": "Button background",
-      "info": "Overrides style preset. Leave blank for default."
+      "info": "Overrides style preset. Leave blank for default.",
+      "visible_if": "{{ false }}"
     },
     {
       "type": "color",
       "id": "button_primary_text_color",
-      "label": "Button text color"
+      "label": "Button text color",
+      "visible_if": "{{ false }}"
     },
     {
       "type": "range",
@@ -956,7 +1922,8 @@
       "max": 50,
       "step": 2,
       "default": 12,
-      "unit": "px"
+      "unit": "px",
+      "visible_if": "{{ false }}"
     },
     {
       "type": "select",
@@ -992,9 +1959,20 @@
         { "value": "none", "label": "None" },
         { "value": "play", "label": "Play" },
         { "value": "eye", "label": "Eye" },
-        { "value": "chevron-right", "label": "Arrow" }
+        { "value": "arrow-right", "label": "Arrow" }
       ],
       "default": "none"
+    },
+    {
+      "type": "select",
+      "id": "button_secondary_icon_position",
+      "label": "Icon position",
+      "options": [
+        { "value": "right", "label": "Right (after text)" },
+        { "value": "left",  "label": "Left (before text)" }
+      ],
+      "default": "right",
+      "visible_if": "{{ section.settings.button_secondary_icon != 'none' }}"
     },
     {
       "type": "select",
@@ -1011,12 +1989,14 @@
       "type": "color",
       "id": "button_secondary_bg",
       "label": "Button background",
-      "info": "Overrides style preset. Leave blank for default."
+      "info": "Overrides style preset. Leave blank for default.",
+      "visible_if": "{{ false }}"
     },
     {
       "type": "color",
       "id": "button_secondary_text_color",
-      "label": "Button text color"
+      "label": "Button text color",
+      "visible_if": "{{ false }}"
     },
     {
       "type": "range",
@@ -1026,7 +2006,8 @@
       "max": 50,
       "step": 2,
       "default": 12,
-      "unit": "px"
+      "unit": "px",
+      "visible_if": "{{ false }}"
     },
     {
       "type": "select",
@@ -1085,7 +2066,7 @@
       "type": "text",
       "id": "social_proof_text",
       "label": "Social proof text",
-      "info": "e.g., 'Trusted by 50,000+ customers worldwide'"
+      "info": "e.g., 'Trusted by 12K+ homes worldwide'"
     },
     {
       "type": "checkbox",
@@ -1097,7 +2078,7 @@
       "type": "text",
       "id": "customer_count",
       "label": "Customer count",
-      "default": "50K"
+      "info": "Store-wide social proof number — enter per instance. Pre-2026-05-17 was hardcoded to '50K' as a Liquid default."
     },
     {
       "type": "header",
@@ -1177,10 +2158,16 @@
       "info": "Main visual. Leave empty for animated infinity mirror."
     },
     {
+      "type": "video",
+      "id": "visual_video_file",
+      "label": "Product video (file)",
+      "info": "Upload via Settings → Files. Faster than external URLs."
+    },
+    {
       "type": "text",
       "id": "visual_video",
-      "label": "Product video URL",
-      "info": "MP4 video. Overrides image."
+      "label": "Product video (URL)",
+      "info": "External MP4 URL. Only used if no file is uploaded above."
     },
     {
       "type": "checkbox",
@@ -1211,6 +2198,24 @@
       "unit": "px"
     },
     {
+      "type": "checkbox",
+      "id": "show_floor_glow",
+      "label": "Show light pool under image",
+      "info": "Soft glow beneath the floating image, as if it were casting light downward.",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "floor_glow_intensity",
+      "label": "Light pool strength",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "default": 55,
+      "unit": "%",
+      "visible_if": "{{ section.settings.show_floor_glow == true }}"
+    },
+    {
       "type": "select",
       "id": "mirror_shape",
       "label": "Mirror shape (if no image)",
@@ -1229,7 +2234,7 @@
       "type": "text",
       "id": "visual_badge_1",
       "label": "Floating badge 1",
-      "default": "Music Reactive"
+      "info": "Per-page — enter per instance. Pre-2026-05-17 defaulted to smart-RGB badges."
     },
     {
       "type": "select",
@@ -1246,8 +2251,7 @@
     {
       "type": "text",
       "id": "visual_badge_2",
-      "label": "Floating badge 2",
-      "default": "16M+ Colors"
+      "label": "Floating badge 2"
     },
     {
       "type": "select",
@@ -1264,8 +2268,7 @@
     {
       "type": "text",
       "id": "visual_badge_3",
-      "label": "Floating badge 3",
-      "default": "App Control"
+      "label": "Floating badge 3"
     },
     {
       "type": "select",
@@ -1307,9 +2310,9 @@
 /* ── CSS Custom Properties ── */
 .casa-hero {
   --hero-height: 90vh;
-  --hero-color-1: #9333ea;
-  --hero-color-2: #ec4899;
-  --hero-color-3: #06b6d4;
+  --hero-color-1: #B0C3FA;
+  --hero-color-2: #5E0A02;
+  --hero-color-3: #F2FFA0;
   --hero-overlay-opacity: 0.7;
   --hero-text-align: left;
 }
@@ -1324,7 +2327,7 @@
   max-width: 100vw;
   display: flex;
   align-items: center;
-  background: var(--hero-bg-color, #0a0a0f);
+  background: var(--hero-bg-color, var(--casa-ink));
   padding-top: var(--hero-padding-top, 0);
   padding-bottom: var(--hero-padding-bottom, 0);
 }
@@ -1343,9 +2346,89 @@
   object-fit: cover;
 }
 
+/* Lazy video: starts HIDDEN and is revealed only once it is actually
+   playing (JS adds .casa-video-visible on the 'playing' event). The
+   .casa-hero__bg-image poster underneath shows until then. This is what
+   kills the iOS Low Power Mode play-button FLASH: a hidden video element has no
+   rendered control layer, so iOS never paints the centre play button while
+   autoplay is blocked — the poster is simply all the user ever sees.
+   visibility (not opacity) is deliberate — it's a discrete swap, so it
+   cannot reintroduce the opacity-fade text recomposite flicker we removed. */
+.casa-hero__bg .casa-hero__video,
+.casa-hero__bg .casa-hero__bg-image {
+  position: absolute;
+  inset: 0;
+}
+.casa-hero__bg .casa-hero__video {
+  z-index: 1;
+  pointer-events: none;
+  visibility: hidden;
+}
+.casa-hero__bg .casa-hero__video.casa-video-visible {
+  visibility: visible;
+}
+
+/* Decorative hero videos (both the full-bleed background video and the
+   in-card visual video — same decorative, no-controls contract) autoplay
+   muted+inline and are NOT user-controlled. iOS/iPadOS Safari paints a
+   native centre play button (the "start-playback-button") whenever autoplay
+   is blocked — Low Power Mode, reduced-data, or a rejected programmatic
+   play(). Suppress every WebKit media-control pseudo-element so the poster
+   image is the clean fallback and no stray play/pause button ever appears.
+
+   CRITICAL: each pseudo-element gets its OWN rule. A comma-grouped selector
+   list is invalidated *in its entirety* by any one selector the engine
+   doesn't recognise (CSS Selectors spec). `-overlay-play-button` is a
+   Chromium pseudo-element that iOS Safari does NOT know — grouping it with
+   the iOS-only `-start-playback-button` made iOS drop the WHOLE rule, so the
+   button was never hidden on real iPhones (while Chromium, which knows both,
+   kept the rule and looked fine in testing). Splitting per pseudo-element
+   means an unknown selector only drops its own rule, never the others. */
+.casa-hero__video::-webkit-media-controls,
+.casa-hero__visual-media video::-webkit-media-controls {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+  opacity: 0 !important;
+}
+.casa-hero__video::-webkit-media-controls-enclosure,
+.casa-hero__visual-media video::-webkit-media-controls-enclosure {
+  display: none !important;
+}
+.casa-hero__video::-webkit-media-controls-panel,
+.casa-hero__visual-media video::-webkit-media-controls-panel {
+  display: none !important;
+}
+.casa-hero__video::-webkit-media-controls-play-button,
+.casa-hero__visual-media video::-webkit-media-controls-play-button {
+  display: none !important;
+}
+/* The iOS centre play button — the one in the screenshot. Standalone so it
+   is never poisoned by a sibling selector iOS rejects. */
+.casa-hero__video::-webkit-media-controls-start-playback-button,
+.casa-hero__visual-media video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+/* Chromium/Android overlay button — isolated so it can't take iOS down. */
+.casa-hero__video::-webkit-media-controls-overlay-play-button,
+.casa-hero__visual-media video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+}
+
+/* iOS: skip video fade to prevent text flicker during recomposite */
+@media (max-width: 749px) {
+  .casa-hero__bg .casa-hero__video {
+    transition: none;
+  }
+}
+
 .casa-hero__overlay {
   position: absolute;
   inset: 0;
+  z-index: 2;
+  pointer-events: none;
   background: linear-gradient(
     135deg,
     rgba(10, 10, 15, var(--hero-overlay-opacity)) 0%,
@@ -1490,10 +2573,25 @@
   75% { transform: translate(20px, 20px) scale(1.02); }
 }
 
-/* ── Gradient Flow ── */
+/* ── Gradient Flow ──
+   Compositor-only transform on an oversized pseudo (the
+   casa-announcement shimmer pattern) — background-position on the old
+   inset:0 element repainted the whole hero every frame. Geometry is
+   equivalent: 400%×400% pseudo at top:-150% ≡ background-size:400% 400%
+   at position-y 50%; translateX(-75%) ≡ background-position-x 100%. */
 .casa-hero__gradient-flow {
   position: absolute;
   inset: 0;
+  opacity: 0.15;
+  overflow: hidden;
+}
+.casa-hero__gradient-flow::before {
+  content: '';
+  position: absolute;
+  top: -150%;
+  left: 0;
+  width: 400%;
+  height: 400%;
   background: linear-gradient(
     45deg,
     var(--hero-color-1),
@@ -1501,15 +2599,20 @@
     var(--hero-color-3),
     var(--hero-color-1)
   );
-  background-size: 400% 400%;
-  opacity: 0.15;
+  will-change: transform;
+  /* perf-justified: compositor-only transform, viewport-gated via
+     data-casa-anim-gate on the section root */
   animation: gradient-flow 15s ease infinite;
 }
 
 @keyframes gradient-flow {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% { transform: translateX(0); }
+  50% { transform: translateX(-75%); }
+  100% { transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .casa-hero__gradient-flow::before { animation: none; }
 }
 
 /* ── Starfield ── */
@@ -1517,7 +2620,7 @@
   position: absolute;
   width: 2px;
   height: 2px;
-  background: #fff;
+  background: var(--casa-paper);
   border-radius: 50%;
   animation: star-twinkle 3s ease-in-out infinite;
 }
@@ -1624,6 +2727,12 @@
   left: 0;
   right: 0;
   z-index: 10;
+  padding: 10px 20px;
+  overflow: hidden;
+  /* Static fill only — the moving gradient is the ::before below
+     (compositor transform; background-position on the bar itself
+     repainted the strip every frame). Same 300% sizing as before so
+     the reduced-motion fallback is pixel-identical to the old bar. */
   background: linear-gradient(
     90deg,
     var(--hero-color-1),
@@ -1633,8 +2742,32 @@
     var(--hero-color-1)
   );
   background-size: 300% 100%;
-  animation: promo-shimmer 4s linear infinite;
-  padding: 10px 20px;
+}
+.casa-hero__promo::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 300%;
+  background: linear-gradient(
+    90deg,
+    var(--hero-color-1),
+    var(--hero-color-2),
+    var(--hero-color-3),
+    var(--hero-color-2),
+    var(--hero-color-1)
+  );
+  will-change: transform;
+  /* 2s (was 4s on background-position): the transform cycle covers half
+     the travel per loop, so halving the duration keeps the drift speed.
+     perf-justified: compositor-only transform, viewport-gated via
+     data-casa-anim-gate on the section root */
+  animation: promo-shimmer 2s linear infinite;
+}
+.casa-hero__promo > * {
+  position: relative;
+  z-index: 1;
 }
 
 .casa-hero__promo-inner {
@@ -1662,8 +2795,50 @@
 }
 
 @keyframes promo-shimmer {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-66.667%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .casa-hero__promo::before { animation: none; }
+}
+
+/* Solid promo strip. The promo_bg_color setting has always been emitted as
+   --hero-promo-bg but nothing consumed it — the strip painted the hero
+   COLOR-THEME gradient (with the live custom theme's white/black/black that
+   renders broken). When the merchant sets the color, the section adds
+   --solid: the strip takes the setting and drops the animated gradient
+   layer. With the setting blank the legacy gradient path is untouched. */
+.casa-hero__promo--solid {
+  background: var(--hero-promo-bg, #0A0A0F);
+}
+.casa-hero__promo--solid::before {
+  content: none;
+}
+
+.casa-hero__countdown {
+  /* Follow the merchant's promo_text_color; the opacity blend over the
+     opaque strip matches the old rgba(255,255,255,0.72) on Ink exactly. */
+  color: var(--hero-promo-text, #fff);
+  opacity: 0.72;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The strip is one flex line, budgeted against the overflow matrix
+   (280 / 320 / 375) plus the mainstream-phone band the review flagged:
+   ≤519px: drop the countdown — text + countdown need ~460px for a single
+   line, so 380–519px viewports would force a two-line strip that can
+   overlap the hero content's top padding. One clean line beats a timer.
+   ≤339px: drop the icon and step the type down so the text alone fits the
+   Galaxy Fold's 240px content box (280px viewport minus strip padding).
+   overflow:hidden is not a fix — clipped copy still renders broken. */
+@media (max-width: 519px) {
+  .casa-hero__countdown { display: none; }
+}
+@media (max-width: 339px) {
+  .casa-hero__promo-inner { font-size: 12.5px; }
+  .casa-hero__promo-inner > svg { display: none; }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -1678,7 +2853,15 @@
   margin: 0 auto;
   padding: 0 80px;
   box-sizing: border-box;
-  overflow: hidden;
+  /* overflow: visible so the levitating mirror's blurred glow halo
+     (`.casa-hero__glow-frame` is `inset: -30px` past the wrapper) is
+     not clipped against the container's top edge when `hero-float`
+     lifts the wrapper -15px, which otherwise exposes a visible hard
+     horizontal "blurred bar" at the top of the mirror. The section
+     itself still has `overflow: hidden` (~85px vertical headroom on
+     desktop), so the halo is contained at the section boundary
+     without any horizontal scroll regression. */
+  overflow: visible;
 }
 
 .casa-hero__content {
@@ -1722,8 +2905,46 @@
   flex-direction: column;
   align-items: var(--hero-flex-align, flex-start);
   text-align: var(--hero-text-align);
-  animation: hero-fadeInUp 1s ease-out;
+  /* Entrance animation shortened 2026-05-11 from 1s to 250ms after iOS
+     recording showed the entire hero text column (tag, subtitle, CTAs)
+     was invisible for ~3s on slow iOS connections. The 1s fade-in
+     compounded with CSS load latency to produce a multi-second blank
+     hero. 250ms still reads as a soft entrance, but doesn't extend the
+     "blank" window noticeably on slow networks. */
+  animation: hero-fadeInUp 250ms ease-out both;
 }
+
+/* prefers-reduced-motion: skip the fade so a dropped first frame can't
+   strand the text column at opacity:0 on iOS Safari. */
+@media (prefers-reduced-motion: reduce) {
+  .casa-hero__text {
+    animation: none;
+  }
+}
+
+/* ── Inline product image (mobile only) ── */
+.casa-hero__inline-image {
+  display: none;
+}
+
+@media (max-width: 749px) {
+  .casa-hero__inline-image {
+    display: block;
+    width: var(--hero-inline-img-width, 80%);
+    margin: 12px 0;
+    border-radius: var(--hero-inline-img-radius, 12px);
+    overflow: hidden;
+  }
+  .casa-hero__inline-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+    border-radius: var(--hero-inline-img-radius, 12px);
+  }
+}
+
+/* Glassmorphic content background — see the inline style block below, controlled by Liquid */
 
 @keyframes hero-fadeInUp {
   from { transform: translateY(40px); opacity: 0; }
@@ -1787,21 +3008,246 @@
 }
 
 /* ── Title ── */
+/*
+  FOUT no-show fix (DECISIVE).
+  ─────────────────────────────────────────────────────────────────
+  The merchant reported repeated complaints that "Light" enlarges
+  visibly when the page loads. Investigation via Playwright + the
+  PerformanceObserver layout-shift API identified the actual swap:
+    Phase 1 (FOUT): browser renders the H1 with -apple-system
+                    (the third entry in the cascade), width = 333px
+    Phase 2 (Inter loads, ~3.6s): swap to Inter, width = 361px
+    Net shift: +27px / +7.6% — clearly visible enlargement
+  We tried multiple metric-matched fallback strategies ('Inter
+  Fallback' via local Arial with size-adjust 113%) but the browser
+  skips that face during FOUT and goes straight to -apple-system,
+  whose metrics don't match Inter. document.fonts.check('Inter
+  Fallback') returns false during FOUT.
+
+  Decisive fix: hide the title until document.fonts.ready resolves.
+  The hero JS at the bottom of this section adds a `.fonts-ready`
+  class to the body once Inter has actually loaded; until then the
+  title is opacity:0. With our preload + fetchpriority="high" hints
+  in fonts.liquid, Inter typically arrives in <100ms so the
+  invisible window is barely perceptible. A no-JS fallback keeps
+  the title visible after a short delay so the page never silently
+  hides text. Keeps the metric-matched 'Inter Fallback' as a
+  backup for the rare case where JS is disabled AND fonts arrive
+  slowly.
+*/
+/*
+   2026-05-12 — REMOVED the `html:not(.fonts-ready) .casa-hero__title
+   { opacity: 0 }` rule and its associated 500ms CSS-animation
+   backstop.
+
+   Why: the rule was solving the wrong problem. It hid the title
+   to avoid FOUT (font-swap visual shift) when Inter loads, relying
+   on JS to add `.fonts-ready` once `document.fonts.check('700 16px
+   Inter')` returns true, with a 500ms CSS animation backstop as a
+   safety net.
+
+   On real iOS Safari devices (the user's actual environment), one
+   of those three things isn't firing reliably:
+     - The JS fonts.check() can return false negatives during
+       initial render due to font registration timing
+     - The 500ms CSS animation backstop has been observed to NOT
+       fire on some iOS Safari versions (the recorded 10s-blank
+       hero is the evidence)
+     - The JS setTimeout(ready, 500) backstop also relies on a
+       running JavaScript engine that can be stalled by main-
+       thread work during the same time window
+
+   Result: the user saw the hero title invisible for 10+ seconds.
+
+   The CORRECT fix is to never hide the title in the first place.
+   We already declare an `Inter-Fallback` @font-face in fonts.liquid
+   that's metric-matched (Arial @ ~113% size-adjust to match Inter's
+   x-height + width). When Inter swaps in, the visual shift is
+   minimal — far less perceptible than 10s of blank space.
+
+   Trade-off: brief FOUT on first paint vs. potential blank hero on
+   font-load failure. Showing the text always — even with the
+   fallback font — is strictly better UX.
+
+   The JS that adds `.fonts-ready` is left in place (it's harmless
+   and other components may consume it) but the title's opacity no
+   longer depends on it.
+*/
 .casa-hero__title {
-  font-size: clamp(36px, 6vw, 80px);
-  font-weight: 300;
+  /* No opacity:0 default. Title is visible from first paint with
+     the metric-matched Inter-Fallback font. Inter swaps in
+     seamlessly via `font-display: optional` in fonts.liquid. */
+  opacity: 1;
+}
+.casa-hero__title {
+  /* Title must NEVER wrap to two lines per design — see
+     .casa-hero__title-line below for the nowrap guarantee. The
+     font-size therefore needs to scale down enough to always fit
+     "Live in your own" inside the right-column width of the
+     split layout, which at the narrowest desktop+ viewport is
+     about 365px. Clamp upper bound stays at 56px (the merchant's
+     desktop H1 size) so wide screens are unchanged; the 4.4vw
+     middle term scales down through tablet and narrow-laptop
+     widths so the text always fits one line. The merchant's
+     --hero-title-fs token is intentionally NOT consumed here:
+     it can resolve to a value that's too big for narrow viewports
+     and break the no-wrap promise. */
+  font-size: clamp(28px, 4vw, 56px);
+  /* Metrics-matched fallback — see @font-face for 'Inter Fallback'
+     in snippets/fonts.liquid. We CANNOT use var(--font-heading--family)
+     here because Shopify expands it to "Inter, -apple-system,
+     BlinkMacSystemFont, ..., sans-serif" — the system fallbacks are
+     baked INSIDE the variable. Adding 'Inter Fallback' after the
+     variable puts it after sans-serif, where it never gets used.
+     Hardcoding 'Inter', 'Inter Fallback' as the first two stack
+     entries puts the metric-matched fallback exactly where we need
+     it: between the real font and the system fallbacks. When Inter
+     hasn't loaded yet, the browser uses 'Inter Fallback' (Arial
+     resized to match Inter's glyph metrics) so the visual size on
+     first paint equals the visual size after Inter swaps in — no
+     enlargement is visible. Inherited by .casa-hero__title-gradient
+     ("Light") which is the word that was visibly resizing in the
+     screen recording. */
+  font-family: var(--font-heading--family);
+  /* Brand book §Typography hero spec (docs/brand-book-v1.html:1102):
+     "Hero: 96 / 700-800, letter-spacing -0.025em, line-height 0.95."
+     Brand-locked — overrides Horizon's H1 token because the hero is
+     the loud moment per the quiet-chrome principle.
+     Locked typography rule: italic = hero accent ONLY (the gradient
+     span below). Title proper stays upright; the brand book's
+     "italic accent register" alternate is documented but not used
+     in this theme — see the locked decisions memory. */
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  text-transform: var(--hero-title-case, none);
   color: var(--hero-title-color, #fff);
-  line-height: 1.05;
-  margin: 0 0 24px 0;
-  letter-spacing: -3px;
+  /* Tighter to lead into the accent — the two lines should read as
+     one typographic gesture, not stacked sentences. */
+  margin: 0 0 8px 0;
 }
 
 .casa-hero__title-line {
   display: block;
+  /* Hard requirement: "Live in your own" never wraps to two lines
+     at any viewport. Combined with the title's clamp() font-size
+     this guarantees a single-line title from 320px up to any width. */
+  white-space: nowrap;
 }
 
 .casa-hero__title-gradient {
   display: block;
+  width: fit-content;
+  /* Accent word is italic, so it needs the italic-tuned metrics-matched
+     fallback ('Inter Fallback Italic' @ size-adjust 113%). The H1's
+     stack uses 'Inter Fallback' (upright @ 107%) which would over-widen
+     the italic accent on first paint. The -italic twin token carries
+     that fallback — defined in snippets/theme-styles-variables.liquid,
+     calibrated in snippets/fonts.liquid. */
+  font-family: var(--font-heading-italic--family);
+  /* Accent word is intentionally scaled larger than the title proper
+     for display-sized punch. clamp() ranges scale ~1.4x the default
+     title clamp(36px, 6vw, 80px) at every breakpoint. Tightened
+     line-height + letter-spacing pull the heavier glyphs together so
+     it reads as a single typographic gesture. Merchant-supplied
+     --hero-accent-* vars (set when accent_heading_level != 'inherit')
+     still win when present. */
+  font-size: var(--hero-accent-fs, clamp(52px, 9vw, 120px));
+  /* Brand book §Typography hero accent: 800 weight + italic.
+     Italic is reserved for hero accent word ONLY (see brand book
+     "what to avoid" line: italic in body / on buttons is a no).
+     The shimmer gradient is applied via the .text-grad-shimmer
+     utility class added by the section's Liquid template — do NOT
+     re-declare the gradient here.
+     ─────────────────────────────────────────────────────────────
+     FOUT FIX (was: font-weight: 800): Shopify's font_face filter
+     renders @font-face only for the weights it generates from the
+     merchant's font_picker — for inter_n7 those are 400 and 700
+     (regular / bold), with italic and bold-italic variants. There
+     is NO 800-weight @font-face declared, so a CSS request for
+     `font-weight: 800` resolves to the nearest available variant
+     (700 italic) and the browser layers SYNTHETIC bolding on top.
+     Synthetic bolding renders differently in the system-fallback
+     phase vs the loaded-Inter phase, producing a visible thickness
+     swap on the word "Light" between ~16ms and ~80ms after load.
+     Asking for 700 directly (which IS a real preloaded @font-face,
+     see snippets/fonts.liquid + theme-styles-variables.liquid line
+     ~100) eliminates the synthesis-mismatch entirely. The visual
+     loss of the extra 100 weight units in Inter Italic is barely
+     perceptible behind the shimmer gradient. */
+  font-weight: 700;
+  font-style: italic;
+  /* Disable synthetic font weight/style. The fallback should render
+     in its closest-available variant; we don't want the browser
+     fabricating a different glyph thickness, which is what created
+     the FOUT-style visual swap on first paint. */
+  font-synthesis-weight: none;
+  line-height: var(--hero-accent-lh, 1);
+  letter-spacing: var(--hero-accent-ls, -0.04em);
+  text-transform: var(--hero-accent-case, inherit);
+  /* Tighter coupling with the title — both run at line-height 0.95
+     so a fixed em margin reads as the same gap on every viewport. */
+  margin-top: 0.06em;
+  padding-bottom: 0.12em;
+  /* width:fit-content makes a block element shrink to its content,
+     which means parent text-align no longer positions it. Drive
+     auto-margins from --hero-text-align (set via the inline style block at
+     section top from the text_alignment setting). */
+  margin-inline-start: var(--hero-gradient-mstart, 0);
+  margin-inline-end:   var(--hero-gradient-mend, 0);
+}
+
+/* Brand-book gradient backgrounds.
+   IMPORTANT: background-image must come BEFORE background-clip / color, and
+   the `background` shorthand cannot be used here — the shorthand resets all
+   longhand background-* properties including background-clip, which would
+   undo the text-clipping. Use background-image to set just the image layer.
+   Pattern adapted from sections/casa-testimonials.liquid (.casa-test__accent--shimmer). */
+.casa-hero__title-gradient--shimmer {
+  /* Solid fallback first — if iOS misses the first paint of the gradient
+     image, the word stays readable instead of going invisible. */
+  color: var(--hero-accent-word-1, #fff);
+  -webkit-text-fill-color: var(--hero-accent-word-1, #fff);
+  background-image: var(--grad-shimmer);
+  background-size: 200% 100%;
+  animation: casa-text-shimmer 6s linear infinite;
+  /* Force its own compositor layer so the gradient paint can't race the
+     transparent text fill on iOS Safari. */
+  transform: translateZ(0);
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .casa-hero__title-gradient--shimmer {
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+}
+.casa-hero__title-gradient--text {
+  color: var(--hero-accent-word-1, #fff);
+  -webkit-text-fill-color: var(--hero-accent-word-1, #fff);
+  background-image: var(--grad-text);
+  transform: translateZ(0);
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .casa-hero__title-gradient--text {
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/* Hide spans with literally no children. */
+.casa-hero__title-gradient:empty {
+  display: none;
+}
+
+/* Custom gradient (legacy: merchant-picked colors).
+   Only applied when Accent word style = "custom" — the brand-book
+   .text-grad-shimmer / .text-grad-text classes handle the other two
+   options via assets/casa-buttons.css. */
+.casa-hero__title-gradient--custom {
   background: linear-gradient(
     90deg,
     var(--hero-accent-word-1, var(--hero-color-1)),
@@ -1811,7 +3257,6 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  font-weight: 400;
 }
 
 /* ── Subtitle ── */
@@ -1877,20 +3322,27 @@
   flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 32px;
+  /* Follow the section's text_alignment setting: 'left' → flex-start,
+     'center' → center, 'right' → flex-end. Without this, buttons stayed
+     left-aligned even when text was centered. */
+  justify-content: var(--hero-flex-align, flex-start);
 }
 
 .casa-hero__btn {
-  display: inline-flex;
-  align-items: center;
+  /* Hero-specific overrides on top of the brand .btn baseline (assets/casa-buttons.css).
+     KEEPING: gap (brand uses 8px, hero wants a touch more breathing room around the icon),
+              min-width (visual pairing — both CTAs the same width). */
   gap: 10px;
-  padding: 18px 36px;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-  border: none;
+  /* Uniform minimum width so buttons stay visually paired at every viewport.
+     220px wasn't enough — "Shop Infinity Mirrors" + chevron icon naturally
+     sizes to ~270-280px, so the shorter "See bestsellers" still looked
+     visibly narrower. 280px covers both labels with their icons. */
+  /* min() so the 280px pairing holds on real screens but collapses to the
+     container on very narrow ones. A bare 280px is wider than a folded
+     Galaxy Fold's 269px content box, which pushed both CTAs ~6px past the
+     right edge — .casa-hero's overflow: hidden masked the page h-scroll, so
+     it read as clean while still rendering clipped. */
+  min-width: min(280px, 100%);
 }
 
 .casa-hero__btn svg {
@@ -1899,14 +3351,14 @@
 }
 
 .casa-hero__btn--primary {
-  background: linear-gradient(135deg, var(--hero-color-1), var(--hero-color-2));
-  color: #fff;
-  box-shadow: 0 4px 20px rgba(147, 51, 234, 0.3);
+  /* background + color now inherited from .btn-featured (var(--grad-primary), white).
+     Hero adds an always-on resting glow that the brand class only applies on :hover. */
+  box-shadow: 0 4px 20px rgba(176, 195, 250, 0.3);
 }
 
 .casa-hero__btn--primary:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 40px rgba(147, 51, 234, 0.5);
+  box-shadow: 0 12px 40px rgba(176, 195, 250, 0.5);
 }
 
 .casa-hero__btn--primary[data-pulse] {
@@ -1914,15 +3366,19 @@
 }
 
 @keyframes btn-pulse {
-  0%, 100% { box-shadow: 0 4px 20px rgba(147, 51, 234, 0.3); }
-  50% { box-shadow: 0 8px 40px rgba(147, 51, 234, 0.6); }
+  0%, 100% { box-shadow: 0 4px 20px rgba(176, 195, 250, 0.3); }
+  50% { box-shadow: 0 8px 40px rgba(176, 195, 250, 0.6); }
 }
 
 .casa-hero__btn--secondary {
+  /* Hero secondary overrides .btn-secondary-on-dark with a frosted-glass treatment
+     (vs. the brand book's plain outline). Color comes from .btn-secondary-on-dark
+     (var(--t-on-dark) = #fff), so we don't restate it here. */
   background: rgba(255, 255, 255, 0.08);
-  color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur over the animated hero (perf, 2026-05-17 flicker-fix pattern) */
 }
 
 .casa-hero__btn--secondary:hover {
@@ -1931,6 +3387,8 @@
 }
 
 .casa-hero__btn--tertiary {
+  /* .btn-tertiary defaults to color: var(--bg-dark) — invisible on dark hero surface.
+     Override to the hero accent color (white-ish via --hero-color-1 or theme override). */
   background: transparent;
   color: var(--hero-color-1);
   padding: 12px 0;
@@ -2002,7 +3460,7 @@
   height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--hero-color-1), var(--hero-color-2));
-  border: 2px solid #0a0a0f;
+  border: 2px solid var(--casa-ink);
   margin-left: -10px;
   display: flex;
   align-items: center;
@@ -2025,10 +3483,19 @@
 .casa-hero__trust-row {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 24px;
   padding-top: 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+/* Default (≥901px = desktop / large tablet): show the trust-row variant
+   that's nested inside .casa-hero__text (column-1 of the split layout)
+   and hide the mobile-only duplicate that lives as a sibling of
+   .casa-hero__visual. The reverse rule lives inside the @media
+   (max-width: 900px) block below. */
+.casa-hero__trust-row--mobile-only { display: none; }
+.casa-hero__trust-row--desktop-only { display: flex; }
 
 .casa-hero__trust-item {
   display: flex;
@@ -2083,8 +3550,19 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
+  /* Static gradient angle + rotate the ELEMENT, instead of animating the angle
+     through @property. This ring is what painted an opaque square behind the
+     transparent mirror cutout in shipping Safari (confirmed 8adf8a0e). It is
+     currently switched off via show_glow_frame, so this rewrite is defensive:
+     if the merchant ever re-enables it, it no longer ships the exact recipe
+     that failed. The ring is an empty div, so rotating the element is visually
+     identical to rotating the gradient. Centring is by inset: 0, never by
+     transform, so the reduced-motion block's transform: none can't shift it.
+     NOTE: unverified in real Safari — the blur + border-radius pair is still
+     present, and only the @property animation was removed. Re-enable behind a
+     real-Safari check, not on the strength of this comment. */
   background: conic-gradient(
-    from var(--hero-angle, 0deg),
+    from 0deg,
     var(--hero-color-1),
     var(--hero-color-2),
     var(--hero-color-3),
@@ -2092,7 +3570,14 @@
   );
   filter: blur(calc(20px + var(--hero-glow-size, 30px)));
   opacity: var(--hero-glow-intensity, 0.5);
-  animation: glow-rotate 8s linear infinite;
+  /* perf-justified: compositor-only transform, viewport-gated via
+     data-casa-anim-gate on the section root */
+  animation: casa-hero-ring-spin 8s linear infinite;
+}
+
+@keyframes casa-hero-ring-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 .casa-hero__glow-ring:nth-child(2) {
@@ -2102,14 +3587,75 @@
   animation-duration: 12s;
 }
 
-@property --hero-angle {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
+/* @property --hero-angle and @keyframes glow-rotate lived here. Both are gone:
+   animating a conic gradient's angle through a registered custom property is
+   the recipe that made shipping Safari paint an opaque square behind the
+   transparent mirror cutout, and every consumer has been migrated off it (the
+   glow ring rotates the element; the fallback-mirror rings are static). Noted
+   here so the pattern isn't reintroduced by someone finding the keyframe name
+   in git history and assuming it was safe. */
+
+/* ── Floor Glow ──
+   Soft light pool beneath the floating mirror. Deliberately a radial-gradient
+   with NO filter: blur() — the softness comes from the colour stops. The old
+   .casa-hero__glow-frame paired blur() + border-radius:50% + an
+   @property-animated conic gradient, and shipping Safari rasterized that as an
+   opaque light square behind the transparent mirror cutout (350f59e8 chased the
+   wrong element; 8adf8a0e confirmed the glow frame was the source). Nothing
+   here builds a filter layer, so that failure mode cannot recur.
+   The animation touches transform + opacity only — PERF checkpoint 9. */
+.casa-hero__floor-glow {
+  position: absolute;
+  /* Centred by left+width arithmetic (20% + 60% + 20%), NOT by
+     translateX(-50%). The reduced-motion / <=749px block below sets
+     transform: none !important on this class, so any centring that relies on
+     transform is silently stripped on every phone -- which pushed this element
+     100px right and 17px past a 364px viewport. Keep centring transform-free;
+     transform here is reserved for the scale animation, which is safe to kill. */
+  left: 20%;
+  /* Negative so the pool clears the mirror's base. The image is a circle
+     inscribed in a square box, so anything sitting inside the box is occluded
+     by the opaque disc: at 9% up, the circle is still 326px wide against this
+     element's 306px and hides the gradient's bright core entirely. Pulling the
+     ellipse's centre just below the box bottom puts roughly half the pool in
+     clear space, which is what reads as light cast downward. There is ~100px
+     of hero below the visual column, so this cannot collide with content. */
+  bottom: -7%;
+  width: 60%;
+  aspect-ratio: 5 / 1;
+  /* Fallback first for engines without color-mix(); the token version wins
+     wherever it is supported so the merchant's hero colour drives the pool. */
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.30) 0%,
+    rgba(255, 255, 255, 0.10) 40%,
+    rgba(255, 255, 255, 0) 72%
+  );
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--hero-color-1) 30%, transparent) 0%,
+    color-mix(in srgb, var(--hero-color-1) 10%, transparent) 40%,
+    transparent 72%
+  );
+  opacity: var(--hero-floor-glow-opacity, 0.55);
+  pointer-events: none;
+  z-index: 1;
+  /* perf-justified: compositor-only transform + opacity, viewport-gated via
+     data-casa-anim-gate on the section root */
+  animation: hero-floor-glow 6s ease-in-out infinite;
 }
 
-@keyframes glow-rotate {
-  to { --hero-angle: 360deg; }
+/* Synced to hero-float's 6s cycle: the mirror peaks at 50%, so the pool
+   tightens and dims at 50% — reads as the object lifting off the surface. */
+@keyframes hero-floor-glow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: var(--hero-floor-glow-opacity, 0.55);
+  }
+  50% {
+    transform: scale(0.9);
+    opacity: calc(var(--hero-floor-glow-opacity, 0.55) * 0.7);
+  }
 }
 
 /* ── Visual Media ── */
@@ -2122,11 +3668,45 @@
   z-index: 2;
 }
 
+/* Image variant (e.g. the transparent circular infinity-mirror WebP): drop
+   the rounded-rect clip. A transparent cutout needs no clip, and on the
+   animated hero shipping Safari paints an OPAQUE backing box behind an
+   overflow:hidden + border-radius element once the wrapper's float
+   animation promotes it to a compositing layer — that surfaced as a dark
+   SQUARE behind the transparent mirror. Chromium + Playwright-WebKit never
+   render it (GPU-compositing-dependent, real-Safari only). Removing the
+   clip deletes the only box Safari can paint the square on; verified
+   render-identical in WebKit/Chromium. The --video variant keeps its
+   rounding (rectangular media that genuinely needs the clip). */
+.casa-hero__visual-media:not(.casa-hero__visual-media--video) {
+  border-radius: 0;
+  overflow: visible;
+}
+
 .casa-hero__visual-media img,
 .casa-hero__visual-media video {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* Visual-card lazy video: poster image sits behind; the video stays HIDDEN
+   until it is actually playing (same Low Power Mode no-flash contract as the
+   background video above). .casa-hero__visual-poster shows until then. */
+.casa-hero__visual-media--video {
+  position: relative;
+}
+.casa-hero__visual-media--video .casa-hero__visual-poster,
+.casa-hero__visual-media--video video {
+  position: absolute;
+  inset: 0;
+}
+.casa-hero__visual-media--video video {
+  z-index: 1;
+  visibility: hidden;
+}
+.casa-hero__visual-media--video video.casa-video-visible {
+  visibility: visible;
 }
 
 /* Product image inherits float animation from wrapper */
@@ -2165,14 +3745,20 @@
 .casa-hero__mirror-glow {
   width: 94%;
   height: 94%;
+  /* Static angle, no animation. This ring carries concentric CHILD elements
+     whose shape follows the mirror_shape setting (octagon, hexagon, …), so the
+     glow ring's trick of rotating the element is not available here — it would
+     visibly spin the nested polygons. Dropping the rotation is the safe move:
+     the @property-animated conic gradient is the Safari square recipe, and this
+     is the no-image fallback that renders only when no hero image is set. A
+     still iridescent ring reads fine; a square behind the mirror does not. */
   background: conic-gradient(
-    from var(--hero-angle, 0deg),
+    from 0deg,
     var(--hero-color-1),
     var(--hero-color-2),
     var(--hero-color-3),
     var(--hero-color-1)
   );
-  animation: glow-rotate 4s linear infinite;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2190,14 +3776,16 @@
 .casa-hero__mirror-depth {
   width: 85%;
   height: 85%;
+  /* Static angle, no animation — same reasoning as .casa-hero__mirror-glow
+     above: nested shape-following children rule out rotating the element, and
+     the @property-animated gradient is the Safari square recipe. */
   background: conic-gradient(
-    from var(--hero-angle, 0deg),
-    rgba(147, 51, 234, 0.5),
-    rgba(236, 72, 153, 0.5),
-    rgba(6, 182, 212, 0.5),
-    rgba(147, 51, 234, 0.5)
+    from 0deg,
+    rgba(176, 195, 250, 0.5),
+    rgba(94, 10, 2, 0.5),
+    rgba(242, 255, 160, 0.5),
+    rgba(176, 195, 250, 0.5)
   );
-  animation: glow-rotate 6s linear infinite reverse;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2210,6 +3798,14 @@
 }
 
 /* ── Floating Badges ── */
+/* Default (desktop): wrapper is structurally invisible so each badge's
+   absolute positioning resolves against .casa-hero__visual-inner just
+   like before the wrapper was added. The wrapper only "exists" at the
+   mobile breakpoint where it becomes a flex-wrap row. */
+.casa-hero__float-badges {
+  display: contents;
+}
+
 .casa-hero__float-badge {
   position: absolute;
   display: flex;
@@ -2218,6 +3814,8 @@
   padding: 10px 16px;
   background: rgba(10, 10, 15, 0.8);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: transform, backdrop-filter; /* animates (badge-float) AND frosted — hint both so the blur isn't re-composited every frame (perf, 2026-05-17 flicker-fix pattern) */
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   font-size: 12px;
@@ -2308,10 +3906,11 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   REDUCED MOTION
+   REDUCED MOTION + MOBILE — kill entrance & ambient animations
    ══════════════════════════════════════════════════════════════════════════ */
 
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce),
+       (max-width: 749px) {
   .casa-hero__particle,
   .casa-hero__aurora-layer,
   .casa-hero__orb,
@@ -2320,6 +3919,7 @@
   .casa-hero__wave,
   .casa-hero__promo,
   .casa-hero__glow-ring,
+  .casa-hero__floor-glow,
   .casa-hero__product-image,
   .casa-hero__mirror,
   .casa-hero__mirror-glow,
@@ -2329,8 +3929,35 @@
   .casa-hero__scroll-wheel,
   .casa-hero__text,
   .casa-hero__visual,
+  .casa-hero__visual-wrapper,
   .casa-hero__btn--primary[data-pulse] {
     animation: none !important;
+    transform: none !important;
+  }
+  /* transform: none above kills STATE transforms, not just motion. The
+     scroll indicator's horizontal centring IS a transform — left: 50% +
+     translateX(-50%) — so without this re-assert it parks its left edge
+     at the viewport midline (shifted right by half its width) for every
+     reduce-motion visitor AND on every phone ≤749px (this block doubles
+     as the mobile animation kill). Latent while show_scroll_indicator
+     is off on the homepage; fires the moment the merchant re-enables it.
+     Same class as the collection filter-drawer bug (b1d076b1). The
+     scroll-fade / scroll-wheel ambient animations stay killed — only
+     the static centring comes back. */
+  .casa-hero .casa-hero__scroll-indicator {
+    transform: translateX(-50%) !important;
+  }
+}
+
+/* Hide decorative particle/aurora/star layers entirely on mobile — lighter paint */
+@media (max-width: 749px) {
+  .casa-hero__animations,
+  .casa-hero__particle,
+  .casa-hero__star,
+  .casa-hero__wave,
+  .casa-hero__aurora,
+  .casa-hero__aurora-layer {
+    display: none !important;
   }
 }
 
@@ -2404,14 +4031,96 @@
   .casa-hero__visual {
     width: 100% !important;
     display: flex;
+    align-items: center;
     justify-content: center;
     order: 2;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .casa-hero__visual-wrapper {
-    max-width: var(--hero-mobile-visual-size, 250px);
+    /* Tablet / phone visual container. The badges float AROUND the
+       mirror (same as desktop), so we need:
+         - position: relative (positioning context for absolute badges)
+         - room around the mirror for the badge pills to live in
+         - the wrapper to NATURALLY size to the mirror (no aspect-ratio
+           override) so the mirror image renders at its true 1:1 ratio
+           without getting elongated to fill a forced-square box
+
+       Earlier iterations used `aspect-ratio: 1` + a max-width buffer +
+       `top: 50%; transform: translateY(-50%)` on the mirror to center
+       it. That trick made the wrapper square (350×350) and the mirror
+       inside it (250×auto). When the mirror image was even slightly
+       portrait-aspect, the height grew past the wrapper's 350px and
+       got visually clipped — the merchant saw an elongated/cropped
+       mirror.
+
+       New approach: padding INSIDE the wrapper creates the buffer for
+       badges to live in, and the wrapper's height grows naturally
+       with the mirror. Badges absolute-positioned at top: 0 / right: 0
+       etc sit inside the padding ring, OUTSIDE the mirror's edge.
+
+       SYMMETRIC TRIANGLE ARRANGEMENT (per merchant's "evenly spaced
+       and not touching the mirror" request):
+         TC (Music Reactive)  — top-center, ABOVE mirror's top edge
+         BL (16M+ Colors)     — bottom-left, BELOW mirror's bottom
+         BR (App Control)     — bottom-right, BELOW mirror's bottom
+       All three badges live in empty wrapper space OUTSIDE the
+       circle entirely. The mirror is centered with vertical padding
+       above (for TC) and below (for BL/BR). Perfect symmetry across
+       the vertical axis.
+
+       Padding 30px vertical / 50px horizontal:
+         - 30px top  → TC badge fits above mirror with clearance
+         - 30px bottom → BL/BR fit below mirror with clearance
+         - 50px each side → wrapper wide enough that BL/BR don't
+           collide at the bottom (mirror is 250px wide, wrapper
+           becomes 350px → BL and BR pills (~110px each) have a
+           130px gap between them)
+
+       At ≤900px breakpoint: wrapper 250+100=350 wide × 250+60=310
+       tall — fits any tablet portrait viewport (≥768px). */
+    max-width: calc(var(--hero-mobile-visual-size, 250px) + 100px);
+    width: 100%;
     margin: 0 auto;
+    padding: 30px 50px;
+    box-sizing: border-box;
+    /* Drop any earlier display:flex/aspect-ratio iterations. */
+    display: block;
+    aspect-ratio: auto;
+  }
+  /* Mirror media fills the wrapper's content box (the area inside
+     padding). At 350px wrapper - 100px horizontal padding = 250px
+     content area, which exactly matches mobile_visual_size. */
+  .casa-hero__visual-wrapper .casa-hero__visual-media,
+  .casa-hero__visual-wrapper .casa-hero__mirror {
+    max-width: var(--hero-mobile-visual-size, 250px);
+    width: 100%;
+    margin: 0 auto;
+    /* No vertical-centering hacks — wrapper is content-sized now. */
+    position: static;
+    top: auto;
+    transform: none;
+  }
+
+  /* Trust-row breakpoint toggle:
+     - .casa-hero__trust-row--desktop-only lives inside .casa-hero__text
+       and renders BEFORE the visual on mobile (wrong place per merchant)
+     - .casa-hero__trust-row--mobile-only is a sibling of .casa-hero__visual
+       and renders AFTER the visual (correct mobile order)
+     Show the mobile variant ≤900px, hide the desktop variant.
+     CRITICAL: order: 3 — without an explicit order it inherits the
+     default order: 0 in the .casa-hero__content flex-column. Since
+     .casa-hero__text already has order: 1 and .casa-hero__visual
+     order: 2 (set elsewhere), order: 0 lands the trust row ABOVE
+     both — exactly the bug the merchant reported in the screenshot
+     where the trust row was rendering at the top of the hero. */
+  .casa-hero__trust-row--desktop-only { display: none !important; }
+  .casa-hero__trust-row--mobile-only {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 16px;
+    order: 3;
   }
 
   .casa-hero--mobile-visual-first .casa-hero__text { order: 2 !important; }
@@ -2425,36 +4134,190 @@
   .casa-hero__social-proof { align-items: center; }
   .casa-hero__trust-row { justify-content: center; flex-wrap: wrap; }
 
-  .casa-hero__float-badge { display: none !important; }
+  /* Floating badges on mobile: KEEP the desktop floating-around-the-
+     mirror visual language. The merchant explicitly asked for the
+     badges to surround the mirror like they do on desktop, NOT to
+     stack as a row below.
+
+     Strategy:
+       - .casa-hero__float-badges wrapper stays `display: contents`
+         (inherited from the base rule) so each badge positions
+         absolutely against .casa-hero__visual-wrapper (which is
+         position: relative).
+       - Badges keep their desktop absolute positioning, just with
+         tighter offsets so they stay on-screen on a 414px phone
+         with a 250px mirror.
+       - Pill size shrunk for mobile (padding 5/9, font 10).
+       - Animation kept (subtle floating effect — same as desktop).
+  */
+  .casa-hero__float-badge {
+    /* Override the prior position:static iteration by REASSERTING
+       absolute positioning + the smaller mobile pill size. */
+    position: absolute;
+    display: flex;
+    padding: 5px 9px;
+    font-size: 10px;
+    gap: 5px;
+    border-radius: 9px;
+    /* Tighter against the mirror so the badges read as decorative
+       pills attached to it rather than floating off-screen. */
+    white-space: nowrap;
+  }
+  .casa-hero__float-badge svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  /* Mobile badge positions — SYMMETRIC TRIANGLE (TC + BL + BR).
+
+     Apex at top (Music Reactive centered above mirror), base at
+     bottom (16M+ Colors + App Control flanking the mirror's bottom
+     symmetrically across the vertical axis). All three badges live
+     in empty WRAPPER space OUTSIDE the mirror's circle — the
+     wrapper has 30px vertical padding above and below the mirror
+     (room for top + bottom badges) and 50px horizontal padding
+     (room for BL/BR to live in the bottom corners).
+
+     None of the three badges overlap the mirror because:
+       - TC sits in the 30px space ABOVE the mirror's top edge
+       - BL and BR sit in the 30px space BELOW the mirror's bottom
+       - All three positions are in geometric whitespace, not on
+         the circle's curve at all
+
+     CRITICAL: Reset ALL four position properties on each badge
+     before applying the new ones. Desktop rules set:
+       --1: top + right     (rest are auto)
+       --2: bottom + left   (rest are auto)
+       --3: bottom + right  (rest are auto)
+     If un-cleared, desktop values leak through and the badge
+     stretches between its set top + leaked bottom. */
+  .casa-hero__float-badge--1 {
+    /* Music Reactive — TOP CENTER, above the mirror.
+
+       Centering via the "absolute + symmetric left/right 0 +
+       margin: 0 auto + width: max-content" pattern. This is more
+       robust than left: 50% + translateX(-50%) because:
+         - No transform math = no rounding errors at fractional px
+         - No risk of `transform: none` from elsewhere overriding
+         - Works identically across all rendering engines
+       The badge shrinks to its content (max-content) and the
+       margin-auto then centers that block within the bounded
+       inset area (left:0 to right:0 = full wrapper width). */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: auto;
+    margin: 0 auto;
+    width: max-content;
+    transform: none;
+  }
+  .casa-hero__float-badge--2 {
+    /* 16M+ Colors — BOTTOM LEFT, pulled inward 6% from the
+       wrapper's left edge so the bottom of the triangle is
+       tighter than the absolute corners. Forms a clearer
+       apex-up triangle shape with --1 (TC) and --3 (BR). */
+    bottom: 0;
+    left: 6%;
+    top: auto;
+    right: auto;
+    transform: none;
+  }
+  .casa-hero__float-badge--3 {
+    /* App Control — BOTTOM RIGHT, mirrors --2 across the
+       vertical axis (same 6% offset, just from the right edge).
+       Triangle base = wrapper_width - 12% ≈ 88% of wrapper. */
+    bottom: 0;
+    right: 6%;
+    top: auto;
+    left: auto;
+    transform: none;
+  }
+
   .casa-hero__waves { display: none; }
-}
 }
 
 @media (max-width: 600px) {
+  /* COMPACT MOBILE: target is fitting the entire hero (badge → title
+     → gradient → subtitle → buttons → mirror with floating badges →
+     trust row) within a single iPhone viewport (~750px visible) so
+     no scroll is needed. Achieved by tightening padding, gap, and
+     subordinate element sizes. */
   .casa-hero {
-    padding-top: var(--hero-mobile-padding-top, 60px);
-    padding-bottom: var(--hero-mobile-padding-bottom, 48px);
+    padding-top: 28px !important;
+    padding-bottom: 20px !important;
   }
 
   .casa-hero__container { padding: 0 16px; }
-  .casa-hero__content { gap: 24px !important; }
+  .casa-hero__content { gap: 14px !important; }
 
   .casa-hero__title {
-    font-size: clamp(24px, 7vw, 36px) !important;
-    letter-spacing: -1px;
-    word-break: break-word;
+    /* Mobile cap. The Horizon H1 token can be very large (display
+       sizing for desktop), which makes "Live in your own" wrap to
+       2-3 lines on phones. Clamp keeps the line on one row at every
+       phone width down to 320px while staying display-sized.
+       History:
+         clamp(22px, 7vw, 42px)  — original, felt timid
+         clamp(28px, 9vw, 56px)  — too dominant under the new 72-120
+                                   "Light" accent on phones (37px at
+                                   iPhone 14 vs ~76px Light = only
+                                   2× ratio, weak hierarchy)
+         clamp(22px, 6.5vw, 42px) — current, ~27px at iPhone 14 vs
+                                   76px Light = ~2.8× ratio, clean
+       Below 600px the title sits visually quieter so the gradient
+       accent below carries the full display weight. */
+    font-size: clamp(22px, 6.5vw, 42px);
+    word-break: normal;
+  }
+  .casa-hero__title-line {
+    /* Belt-and-suspenders: never let "Live in your own" wrap on
+       mobile. With the clamp above the line is short enough to fit
+       even on the narrowest phones; nowrap is insurance. */
+    white-space: nowrap;
+  }
+  .casa-hero__title-gradient {
+    /* Accent is the hero gesture on mobile — still ~2× the title
+       size for hierarchy. Compacted from 56-110 → 44-84 so the
+       gradient + the rest of the hero fit in one phone viewport
+       without scrolling (the merchant explicitly asked for this).
+
+       padding-bottom restored to 0.18em: with line-height 0.92 the
+       line box is tight, and the italic 'g' in "Light" has a
+       descender that extends ~25% below the baseline. The earlier
+       padding-bottom: 0 was clipping the descender (the bottom of
+       the 'g' was getting cut off in the merchant's screenshot).
+       0.18em leaves room for the descender while still being
+       tighter than the desktop 0.12em padding which was tuned
+       against a 120px font + line-height 1 (more room either way). */
+    font-size: clamp(44px, 14vw, 84px);
+    line-height: 0.92;
+    margin-top: 0;
+    padding-bottom: 0.18em;
   }
 
-  .casa-hero__subtitle { font-size: 14px !important; }
+  .casa-hero__subtitle {
+    /* Tightened from clamp(15,4vw,17) to 14-15 for the one-frame-fit
+       goal — the subtitle is supporting copy under the gradient, not
+       a hero-weight element. Margin trimmed too. */
+    font-size: clamp(14px, 3.6vw, 15px) !important;
+    margin: 0 !important;
+  }
 
   .casa-hero__btn,
   .casa-hero__btn--small,
   .casa-hero__btn--medium,
   .casa-hero__btn--large {
+    /* Reduced vertical padding 14→11 so the two stacked buttons take
+       ~88px instead of ~112px — saves 24px of vertical space for the
+       one-frame-fit goal. Font-size stays 14 (touch-target friendly). */
     width: 100%;
     justify-content: center;
-    padding: 14px 20px;
+    padding: 11px 18px;
     font-size: 14px;
+  }
+
+  /* Tighter spacing between the buttons themselves (parent flex gap). */
+  .casa-hero__buttons {
+    gap: 8px !important;
   }
 
   .casa-hero__features {
@@ -2464,7 +4327,35 @@
   }
 
   .casa-hero__visual-wrapper {
-    max-width: var(--hero-mobile-visual-size, 200px);
+    /* Phone viewport (≤600px): tighter than the ≤900px block. The
+       wrapper content-sizes to the mirror image so it isn't clipped,
+       and the horizontal padding leaves room for the 3 floating
+       badges (16M+ Colors / Music Reactive / App Control) to sit
+       outside the mirror's edge.
+
+       Mirror size overridden to 175px (was 200) to keep the whole
+       hero (badge → title → gradient → subtitle → buttons → mirror+
+       badges → trust row) inside a single iPhone viewport with no
+       scroll. Horizontal padding bumped 45→55 to match the BL/BR
+       breathing room (the BL badge needs the same space the BR
+       badge gets so they read as a balanced pair). */
+    --hero-mobile-visual-size: 175px;
+    max-width: calc(var(--hero-mobile-visual-size) + 100px);
+    width: 100%;
+    padding: 30px 50px;
+    box-sizing: border-box;
+    aspect-ratio: auto;
+  }
+  .casa-hero__visual-wrapper .casa-hero__visual-media,
+  .casa-hero__visual-wrapper .casa-hero__mirror {
+    max-width: var(--hero-mobile-visual-size, 175px);
+  }
+  /* Tighter trust-row spacing on small phones so it doesn't push the
+     viewport too far. */
+  .casa-hero__trust-row--mobile-only {
+    margin-top: 16px;
+    gap: 16px;
+    padding-top: 16px;
   }
 }
 {% endstylesheet %}

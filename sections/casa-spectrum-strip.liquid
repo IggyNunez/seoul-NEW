@@ -1,0 +1,839 @@
+{%- comment -%}
+  Seoul Glow Lab — Spectrum strip (4-angle viewer + inline dichroic diagram)
+
+  Designed for products whose viewing angle changes the dominant color —
+  iridescent dichroic plexiglass (Calini), dichroic mirrors, future glass
+  pieces. The section answers two questions in one beat:
+
+    1. SHOWS the effect — a horizontal strip of 4 photos of the same
+       product at 4 different viewing angles, each tagged with its
+       dominant hue.
+    2. EXPLAINS the effect — a small SVG light-splitting diagram below
+       the strip showing how light enters the acrylic and a different
+       wavelength exits the other side.
+
+  Reusable across any dichroic / iridescent product. Brand v1 tokens.
+  Each block represents one angle frame. Default presets ship 4 angle
+  blocks pre-populated with Calini-friendly labels (Cyan / Pink / Amber /
+  Purple). The merchant can rename or rephoto per product.
+
+  Maps to: mockups/calini-coffee-table-v2-preview.html §03.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign surface_mode = s.surface_mode | default: 'paper'
+-%}
+
+<section
+  id="casa-spec-{{ section.id }}"
+  class="casa-spec casa-spec--{{ surface_mode }}"
+  style="
+    --casa-spec-paper:   {{ s.color_paper   | default: '#FAFAF7' }};
+    --casa-spec-paper-2: {{ s.color_paper_2 | default: '#FFFFFF' }};
+    --casa-spec-ink:     {{ s.color_ink     | default: '#0A0A0F' }};
+    --casa-spec-muted:   {{ s.color_muted   | default: '#6b6b76' }};
+    --casa-spec-purple:  {{ s.color_purple  | default: '#B0C3FA' }};
+    --casa-spec-pink:    {{ s.color_pink    | default: '#5E0A02' }};
+    --casa-spec-cyan:    {{ s.color_cyan    | default: '#F2FFA0' }};
+    --casa-spec-pt:      {{ s.padding_top    | default: 96 }}px;
+    --casa-spec-pb:      {{ s.padding_bottom | default: 96 }}px;
+  "
+>
+  <div class="casa-spec__cap">
+    {%- if s.kicker != blank or s.heading != blank or s.lede != blank -%}
+      <header class="casa-spec__head">
+        <div class="casa-spec__head-text">
+          {%- if s.kicker != blank -%}
+            <p class="casa-spec__mono">{{ s.kicker }}</p>
+          {%- endif -%}
+          {%- if s.heading != blank -%}
+            <h2 class="casa-spec__h2">{{ s.heading }}</h2>
+          {%- endif -%}
+        </div>
+        {%- if s.lede != blank -%}
+          <p class="casa-spec__lede">{{ s.lede }}</p>
+        {%- endif -%}
+      </header>
+    {%- endif -%}
+
+    {%- if section.blocks.size > 0 -%}
+      <div class="casa-spec__strip" data-block-count="{{ section.blocks.size }}">
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'angle' -%}
+            {%- liquid
+              assign b = block.settings
+              assign angle_label = b.angle_label
+              assign color_label = b.color_label
+              assign color_hex   = b.color_hex | default: '#B0C3FA'
+              assign image       = b.image
+              assign alt_text    = b.image.alt | default: color_label | default: 'Product viewing angle'
+              assign focus       = b.image_focus | default: 'center'
+            -%}
+            <figure class="casa-spec__frame" {{ block.shopify_attributes }}>
+              <div class="casa-spec__frame-media">
+                {%- if image != blank -%}
+                  <img
+                    src="{{ image | image_url: width: 900 }}"
+                    srcset="{{ image | image_url: width: 600 }} 600w,
+                            {{ image | image_url: width: 900 }} 900w,
+                            {{ image | image_url: width: 1200 }} 1200w"
+                    sizes="(min-width: 800px) 25vw, 50vw"
+                    alt="{{ alt_text | escape }}"
+                    width="{{ image.width }}"
+                    height="{{ image.height }}"
+                    loading="lazy"
+                    decoding="async"
+                    style="object-position: {{ focus | escape }};"
+                  >
+                {%- else -%}
+                  <div class="casa-spec__frame-placeholder" style="background: {{ color_hex }};"></div>
+                {%- endif -%}
+              </div>
+              <figcaption class="casa-spec__frame-meta">
+                {%- if angle_label != blank -%}
+                  <span class="casa-spec__angle">{{ angle_label }}</span>
+                {%- endif -%}
+                {%- if color_label != blank -%}
+                  <span class="casa-spec__color">
+                    <span class="casa-spec__swatch" style="background: {{ color_hex }};"></span>{{ color_label }}
+                  </span>
+                {%- endif -%}
+              </figcaption>
+            </figure>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+
+    {%- if s.show_diagram -%}
+      <aside class="casa-spec__diagram">
+        {%- comment -%}
+          Animated cross-section (rebuild 2026-05-16):
+          The diagram is the "how" of the dichroic effect. It needs
+          to feel alive, not schematic. So the colored stops inside
+          the leg + the exit rays + the floor puddles animate in
+          sync — cyan -> purple -> pink -> cyan over 12s. White light
+          beams from the sun pulse subtly into the leg. Everything
+          honors prefers-reduced-motion (animation pauses, leg
+          settles on a brand-mid gradient).
+        {%- endcomment -%}
+        <div class="casa-spec__diagram-svg" aria-hidden="true">
+          <svg viewBox="0 0 400 460" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="cs-{{ section.id }}-leg" x1="0" x2="0" y1="0" y2="1">
+                <stop class="cs-stop cs-stop--a" offset="0%"   stop-color="{{ s.color_cyan   | default: '#F2FFA0' }}" stop-opacity="0.85"/>
+                <stop class="cs-stop cs-stop--b" offset="50%"  stop-color="{{ s.color_purple | default: '#B0C3FA' }}" stop-opacity="0.85"/>
+                <stop class="cs-stop cs-stop--c" offset="100%" stop-color="{{ s.color_pink   | default: '#5E0A02' }}" stop-opacity="0.85"/>
+              </linearGradient>
+              <linearGradient id="cs-{{ section.id }}-floor-cyan" x1="0" x2="1" y1="0" y2="0">
+                <stop class="cs-stop cs-stop--a" offset="0%" stop-color="{{ s.color_cyan | default: '#F2FFA0' }}"/>
+                <stop offset="100%" stop-color="{{ s.color_cyan | default: '#F2FFA0' }}" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="cs-{{ section.id }}-floor-purple" x1="0.5" x2="0.5" y1="0" y2="1">
+                <stop class="cs-stop cs-stop--b" offset="0%" stop-color="{{ s.color_purple | default: '#B0C3FA' }}"/>
+                <stop offset="100%" stop-color="{{ s.color_purple | default: '#B0C3FA' }}" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="cs-{{ section.id }}-floor-pink" x1="1" x2="0" y1="0" y2="0">
+                <stop class="cs-stop cs-stop--c" offset="0%" stop-color="{{ s.color_pink | default: '#5E0A02' }}"/>
+                <stop offset="100%" stop-color="{{ s.color_pink | default: '#5E0A02' }}" stop-opacity="0"/>
+              </linearGradient>
+              <radialGradient id="cs-{{ section.id }}-puddle-cyan" cx="0.5" cy="0.5" r="0.5">
+                <stop class="cs-stop cs-stop--a" offset="0%" stop-color="{{ s.color_cyan | default: '#F2FFA0' }}" stop-opacity="0.9"/>
+                <stop class="cs-stop cs-stop--a" offset="100%" stop-color="{{ s.color_cyan | default: '#F2FFA0' }}" stop-opacity="0"/>
+              </radialGradient>
+              <radialGradient id="cs-{{ section.id }}-puddle-purple" cx="0.5" cy="0.5" r="0.5">
+                <stop class="cs-stop cs-stop--b" offset="0%" stop-color="{{ s.color_purple | default: '#B0C3FA' }}" stop-opacity="0.9"/>
+                <stop class="cs-stop cs-stop--b" offset="100%" stop-color="{{ s.color_purple | default: '#B0C3FA' }}" stop-opacity="0"/>
+              </radialGradient>
+              <radialGradient id="cs-{{ section.id }}-puddle-pink" cx="0.5" cy="0.5" r="0.5">
+                <stop class="cs-stop cs-stop--c" offset="0%" stop-color="{{ s.color_pink | default: '#5E0A02' }}" stop-opacity="0.9"/>
+                <stop class="cs-stop cs-stop--c" offset="100%" stop-color="{{ s.color_pink | default: '#5E0A02' }}" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+
+            {%- comment -%} Sun glyph — top center {%- endcomment -%}
+            <g transform="translate(200, 40)" stroke="#0A0A0F" stroke-width="1.4" stroke-linecap="round" fill="none">
+              <circle r="9"/>
+              <line x1="0"     y1="-14"  x2="0"     y2="-19"/>
+              <line x1="0"     y1="14"   x2="0"     y2="19"/>
+              <line x1="-14"   y1="0"    x2="-19"   y2="0"/>
+              <line x1="14"    y1="0"    x2="19"    y2="0"/>
+              <line x1="-9.9"  y1="-9.9" x2="-13.4" y2="-13.4"/>
+              <line x1="9.9"   y1="9.9"  x2="13.4"  y2="13.4"/>
+              <line x1="9.9"   y1="-9.9" x2="13.4"  y2="-13.4"/>
+              <line x1="-9.9"  y1="9.9"  x2="-13.4" y2="13.4"/>
+            </g>
+            <text x="200" y="80" text-anchor="middle" class="cs-label">DAYLIGHT</text>
+
+            {%- comment -%} White light beams pulsing down into the tabletop {%- endcomment -%}
+            <g class="cs-beams" stroke="#0A0A0F" stroke-width="1.1" stroke-linecap="round" opacity="0.35">
+              <line class="cs-beam cs-beam--1" x1="170" y1="88" x2="170" y2="150"/>
+              <line class="cs-beam cs-beam--2" x1="200" y1="88" x2="200" y2="150"/>
+              <line class="cs-beam cs-beam--3" x1="230" y1="88" x2="230" y2="150"/>
+            </g>
+
+            {%- comment -%}
+              Calini TABLETOP — also dichroic plexiglass.
+              Wide rounded slab. Filled with the same animated
+              gradient as the leg so the dichroic shift reads as
+              one continuous acrylic across both surfaces.
+              Locked memory 2026-05-16: top AND legs are dichroic.
+            {%- endcomment -%}
+            <rect x="95" y="150" width="210" height="20" rx="10"
+              fill="url(#cs-{{ section.id }}-leg)"
+              stroke="#0A0A0F" stroke-width="0.8" stroke-opacity="0.18"
+            />
+            <text x="200" y="142" text-anchor="middle" class="cs-label">TABLETOP</text>
+
+            {%- comment -%} Light continues from tabletop bottom into the leg top {%- endcomment -%}
+            <g class="cs-beams" stroke="#0A0A0F" stroke-width="1.1" stroke-linecap="round" opacity="0.35">
+              <line class="cs-beam cs-beam--1" x1="190" y1="170" x2="190" y2="205"/>
+              <line class="cs-beam cs-beam--2" x1="200" y1="170" x2="200" y2="205"/>
+              <line class="cs-beam cs-beam--3" x1="210" y1="170" x2="210" y2="205"/>
+            </g>
+
+            {%- comment -%}
+              Calini LEG — stylized vertical cross-section.
+              Flat top, rounded bottom (the J-curve hint), filled
+              with the same animated dichroic gradient as the
+              tabletop above.
+            {%- endcomment -%}
+            <path
+              d="M 168 205
+                 Q 168 203 170 203
+                 L 230 203
+                 Q 232 203 232 205
+                 L 232 335
+                 Q 232 355 220 365
+                 Q 200 377 180 365
+                 Q 168 355 168 335
+                 Z"
+              fill="url(#cs-{{ section.id }}-leg)"
+              stroke="#0A0A0F" stroke-width="0.8" stroke-opacity="0.18"
+            />
+            <text x="248" y="285" class="cs-label" text-anchor="start">{{ s.diagram_label_object | default: 'CALINI LEG' }}</text>
+
+            {%- comment -%} Color-shifted exit rays from the bottom of the leg {%- endcomment -%}
+            <g class="cs-rays" stroke-width="2.5" stroke-linecap="round" opacity="0.85">
+              <line x1="190" y1="375" x2="130" y2="412" stroke="url(#cs-{{ section.id }}-floor-cyan)"/>
+              <line x1="200" y1="377" x2="200" y2="414" stroke="url(#cs-{{ section.id }}-floor-purple)"/>
+              <line x1="210" y1="375" x2="270" y2="412" stroke="url(#cs-{{ section.id }}-floor-pink)"/>
+            </g>
+
+            {%- comment -%} Floor line + 3 colored puddles {%- endcomment -%}
+            <line x1="60" y1="418" x2="340" y2="418" stroke="#0A0A0F" stroke-width="0.6" stroke-opacity="0.28"/>
+            <ellipse cx="130" cy="420" rx="32" ry="9" fill="url(#cs-{{ section.id }}-puddle-cyan)"/>
+            <ellipse cx="200" cy="422" rx="28" ry="8" fill="url(#cs-{{ section.id }}-puddle-purple)"/>
+            <ellipse cx="270" cy="420" rx="32" ry="9" fill="url(#cs-{{ section.id }}-puddle-pink)"/>
+            <text x="200" y="452" text-anchor="middle" class="cs-label">FLOOR REFLECTION</text>
+          </svg>
+        </div>
+
+        <div class="casa-spec__diagram-copy">
+          {%- if s.diagram_kicker != blank -%}
+            <p class="casa-spec__mono">{{ s.diagram_kicker }}</p>
+          {%- endif -%}
+          {%- if s.diagram_heading != blank -%}
+            <h3 class="casa-spec__diagram-h3">{{ s.diagram_heading }}</h3>
+          {%- endif -%}
+          {%- if s.diagram_body != blank -%}
+            <div class="casa-spec__diagram-body">{{ s.diagram_body }}</div>
+          {%- endif -%}
+
+          {%- comment -%}
+            Three numbered steps render only when the merchant
+            populates them — so older PDPs using this section don't
+            grow a new empty list.
+          {%- endcomment -%}
+          {%- if s.step_1_title != blank or s.step_2_title != blank or s.step_3_title != blank -%}
+            <ol class="casa-spec__steps">
+              {%- if s.step_1_title != blank -%}
+                <li class="casa-spec__step">
+                  <span class="casa-spec__step-num">01</span>
+                  <div class="casa-spec__step-body">
+                    <p class="casa-spec__step-title">{{ s.step_1_title }}</p>
+                    {%- if s.step_1_body != blank -%}<p class="casa-spec__step-desc">{{ s.step_1_body }}</p>{%- endif -%}
+                  </div>
+                </li>
+              {%- endif -%}
+              {%- if s.step_2_title != blank -%}
+                <li class="casa-spec__step">
+                  <span class="casa-spec__step-num">02</span>
+                  <div class="casa-spec__step-body">
+                    <p class="casa-spec__step-title">{{ s.step_2_title }}</p>
+                    {%- if s.step_2_body != blank -%}<p class="casa-spec__step-desc">{{ s.step_2_body }}</p>{%- endif -%}
+                  </div>
+                </li>
+              {%- endif -%}
+              {%- if s.step_3_title != blank -%}
+                <li class="casa-spec__step">
+                  <span class="casa-spec__step-num">03</span>
+                  <div class="casa-spec__step-body">
+                    <p class="casa-spec__step-title">{{ s.step_3_title }}</p>
+                    {%- if s.step_3_body != blank -%}<p class="casa-spec__step-desc">{{ s.step_3_body }}</p>{%- endif -%}
+                  </div>
+                </li>
+              {%- endif -%}
+            </ol>
+          {%- endif -%}
+        </div>
+      </aside>
+    {%- endif -%}
+
+    {%- comment -%}
+      Video moment — "see it actually doing this." Placed AFTER the
+      diagram so the page flow is: strip (static evidence) -> diagram
+      (physics) -> video (continuous, live proof).
+
+      Uses Shopify's native `video` schema field which picks from
+      Files. Renders via `video_tag` so the browser gets proper
+      <source> elements at multiple resolutions + the auto-generated
+      preview poster.
+
+      Falls back to a `url` video_url if the merchant pastes a
+      raw CDN .mp4 link (useful for old uploads).
+    {%- endcomment -%}
+    {%- if s.video_clip != blank or s.video_url != blank -%}
+      <figure class="casa-spec__video-wrap">
+        {%- if s.video_clip != blank -%}
+          {%- comment -%} No autoplay attr: casa-spectrum-strip.js owns play/pause so the video
+              stops decoding off-screen. The browser's autoplay controller would fight that owner. {%- endcomment -%}
+          {{ s.video_clip | video_tag:
+              autoplay: false,
+              muted: true,
+              loop: true,
+              playsinline: true,
+              controls: false,
+              preload: 'metadata',
+              class: 'casa-spec__video',
+              image_size: '1600x'
+          }}
+        {%- elsif s.video_url != blank -%}
+          <video class="casa-spec__video" muted loop playsinline preload="metadata"
+            {%- if s.video_poster != blank %} poster="{{ s.video_poster | image_url: width: 1600 }}"{%- endif -%}
+          >
+            <source src="{{ s.video_url }}" type="video/mp4">
+          </video>
+        {%- endif -%}
+        {%- if s.video_caption != blank -%}
+          <figcaption class="casa-spec__video-caption">{{ s.video_caption }}</figcaption>
+        {%- endif -%}
+      </figure>
+    {%- endif -%}
+  </div>
+</section>
+
+<script src="{{ 'casa-spectrum-strip.js' | asset_url }}" defer></script>
+
+{% stylesheet %}
+  .casa-spec {
+    background: var(--casa-spec-paper);
+    color: var(--casa-spec-ink);
+    padding: var(--casa-spec-pt) 0 var(--casa-spec-pb);
+    position: relative;
+  }
+  .casa-spec--paper-2 { background: var(--casa-spec-paper-2); }
+  .casa-spec--ink {
+    background: var(--casa-spec-ink);
+    color: #fff;
+  }
+
+  .casa-spec__cap {
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 80px);
+  }
+
+  /* ----- Header --------------------------------------------- */
+  .casa-spec__head {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(20px, 2vw, 32px);
+    margin-bottom: clamp(40px, 5vw, 64px);
+  }
+  @media (min-width: 980px) {
+    .casa-spec__head { grid-template-columns: 1.1fr 1fr; align-items: end; }
+  }
+  .casa-spec__mono {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: inherit;
+    opacity: 0.5;
+    margin: 0 0 18px;
+  }
+  .casa-spec__h2 {
+    font-family: var(--casa-pdp-h2-family, 'Inter', sans-serif);
+    font-size: var(--casa-pdp-h2-size, clamp(28px, 4vw, 40px));
+    font-weight: var(--casa-pdp-h2-weight, 600);
+    letter-spacing: var(--casa-pdp-h2-tracking, -0.015em);
+    line-height: var(--casa-pdp-h2-line, 1.10);
+    margin: 0;
+    text-wrap: balance;
+    max-width: 18ch;
+  }
+  .casa-spec__h2 em {
+    display: block;
+    width: fit-content;
+    font-style: italic;
+    font-weight: 600;
+    background-image: linear-gradient(90deg, var(--casa-spec-purple), var(--casa-spec-pink), var(--casa-spec-cyan));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    padding-bottom: 0.06em;
+  }
+  .casa-spec__h2 em:empty { display: none; }
+  .casa-spec__lede {
+    font-size: clamp(15px, 1.2vw, 17px);
+    line-height: 1.6;
+    color: var(--casa-spec-muted);
+    margin: 0;
+    max-width: 44ch;
+  }
+  .casa-spec--ink .casa-spec__lede { color: rgba(255,255,255,0.7); }
+
+  /* ----- 4-up strip ---------------------------------------- */
+  .casa-spec__strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(10px, 1.2vw, 18px);
+  }
+  @media (min-width: 800px) {
+    .casa-spec__strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  .casa-spec__frame {
+    margin: 0;
+    position: relative;
+  }
+  .casa-spec__frame-media {
+    position: relative;
+    aspect-ratio: 3/4;
+    background: var(--casa-spec-paper-2);
+    overflow: hidden;
+    border-radius: 2px;
+  }
+  .casa-spec__frame-media img,
+  .casa-spec__frame-placeholder {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform .8s ease-out;
+  }
+  .casa-spec__frame:hover .casa-spec__frame-media img { transform: scale(1.02); }
+
+  .casa-spec__frame-meta {
+    margin-top: 14px;
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 0 2px;
+  }
+  .casa-spec__angle {
+    font-family: var(--font-body--family);
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 300;
+    letter-spacing: -0.025em;
+    line-height: 0.9;
+    color: var(--casa-spec-ink);
+  }
+  .casa-spec--ink .casa-spec__angle { color: #fff; }
+  .casa-spec__color {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--casa-spec-muted);
+  }
+  .casa-spec__swatch {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  /* ----- Diagram (the "how" — animated cross-section) ------ */
+  .casa-spec__diagram {
+    margin-top: clamp(56px, 6vw, 96px);
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(28px, 3vw, 64px);
+    align-items: center;
+  }
+  @media (min-width: 900px) {
+    .casa-spec__diagram { grid-template-columns: 1.05fr 1fr; }
+  }
+  .casa-spec__diagram-svg {
+    position: relative;
+    aspect-ratio: 400 / 460;
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    background: radial-gradient(ellipse at 50% 18%,
+                                rgba(255,255,255,0.95) 0%,
+                                var(--casa-spec-paper-2) 55%,
+                                var(--casa-spec-paper) 100%);
+    border-radius: 4px;
+  }
+  .casa-spec--ink .casa-spec__diagram-svg {
+    background: radial-gradient(ellipse at 50% 18%,
+                                rgba(255,255,255,0.06) 0%,
+                                rgba(255,255,255,0.02) 55%,
+                                transparent 100%);
+  }
+  .casa-spec__diagram-svg svg { width: 100%; height: 100%; display: block; }
+  .casa-spec__diagram-svg .cs-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    fill: var(--casa-spec-ink);
+    opacity: 0.55;
+  }
+  .casa-spec--ink .casa-spec__diagram-svg .cs-label { fill: #fff; opacity: 0.65; }
+
+  /* Animated dichroic shift — cyan -> purple -> pink -> cyan over 14s.
+     Each stop class is offset by 1/3 of the cycle so the three
+     stops always read as a moving rainbow through the leg. */
+  @keyframes casa-dichroic-a {
+    0%, 100% { stop-color: var(--casa-spec-cyan, #F2FFA0); }
+    33%      { stop-color: var(--casa-spec-purple, #B0C3FA); }
+    66%      { stop-color: var(--casa-spec-pink, #5E0A02); }
+  }
+  @keyframes casa-dichroic-b {
+    0%, 100% { stop-color: var(--casa-spec-purple, #B0C3FA); }
+    33%      { stop-color: var(--casa-spec-pink, #5E0A02); }
+    66%      { stop-color: var(--casa-spec-cyan, #F2FFA0); }
+  }
+  @keyframes casa-dichroic-c {
+    0%, 100% { stop-color: var(--casa-spec-pink, #5E0A02); }
+    33%      { stop-color: var(--casa-spec-cyan, #F2FFA0); }
+    66%      { stop-color: var(--casa-spec-purple, #B0C3FA); }
+  }
+  /* perf-justified: gated off-screen by assets/casa-spectrum-strip.js (IntersectionObserver
+     sets data-casa-anim="paused") + the [data-casa-anim="paused"] pause rule below. The regex
+     linter can't see the JS owner that lives in assets/, hence this annotation. */
+  .casa-spec__diagram-svg .cs-stop--a { animation: casa-dichroic-a 14s ease-in-out infinite; }
+  .casa-spec__diagram-svg .cs-stop--b { animation: casa-dichroic-b 14s ease-in-out infinite; }
+  .casa-spec__diagram-svg .cs-stop--c { animation: casa-dichroic-c 14s ease-in-out infinite; } /* perf-justified: JS-gated off-screen, see above */
+
+  /* White light beams pulse down into the leg — staggered. */
+  @keyframes casa-beam-pulse {
+    0%, 100% { opacity: 0.15; }
+    50%      { opacity: 0.55; }
+  }
+  /* perf-justified: same off-screen gate as the dichroic stops — paused via
+     assets/casa-spectrum-strip.js + the [data-casa-anim="paused"] rule below. */
+  .casa-spec__diagram-svg .cs-beam--1 { animation: casa-beam-pulse 3.0s ease-in-out infinite; }
+  .casa-spec__diagram-svg .cs-beam--2 { animation: casa-beam-pulse 3.0s ease-in-out infinite; animation-delay: 0.25s; }
+  .casa-spec__diagram-svg .cs-beam--3 { animation: casa-beam-pulse 3.0s ease-in-out infinite; animation-delay: 0.5s; }
+
+  /* Off-screen pause gate — casa-spectrum-strip.js sets data-casa-anim="paused" on the
+     diagram when it scrolls out of view, so these infinite animations stop compositing.
+     Default (no attribute) = running, so the effect still works if the JS asset fails to
+     load (graceful degradation). Higher specificity than the base rules → wins the cascade. */
+  .casa-spec__diagram-svg[data-casa-anim="paused"] .cs-stop--a,
+  .casa-spec__diagram-svg[data-casa-anim="paused"] .cs-stop--b,
+  .casa-spec__diagram-svg[data-casa-anim="paused"] .cs-stop--c,
+  .casa-spec__diagram-svg[data-casa-anim="paused"] .cs-beam--1,
+  .casa-spec__diagram-svg[data-casa-anim="paused"] .cs-beam--2,
+  .casa-spec__diagram-svg[data-casa-anim="paused"] .cs-beam--3 { animation-play-state: paused; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .casa-spec__diagram-svg .cs-stop--a,
+    .casa-spec__diagram-svg .cs-stop--b,
+    .casa-spec__diagram-svg .cs-stop--c,
+    .casa-spec__diagram-svg .cs-beam--1,
+    .casa-spec__diagram-svg .cs-beam--2,
+    .casa-spec__diagram-svg .cs-beam--3 { animation: none; }
+  }
+
+  /* ----- Copy column ---------------------------------------- */
+  .casa-spec__diagram-h3 {
+    font-family: var(--casa-pdp-h3-family, 'Inter', sans-serif);
+    font-size: clamp(26px, 2.8vw, 36px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.12;
+    margin: 0 0 18px;
+    color: inherit;
+    text-wrap: balance;
+    max-width: 18ch;
+  }
+  .casa-spec__diagram-h3 em {
+    font-style: italic;
+    font-weight: 600;
+    background-image: linear-gradient(90deg, var(--casa-spec-purple), var(--casa-spec-pink), var(--casa-spec-cyan));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    padding-bottom: 0.05em;
+  }
+  .casa-spec__diagram-h3 em:empty { display: none; }
+  .casa-spec__diagram-body { margin-bottom: 26px; }
+  .casa-spec__diagram-body p {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--casa-spec-muted);
+    margin: 0;
+    max-width: 46ch;
+  }
+  .casa-spec--ink .casa-spec__diagram-body p { color: rgba(255,255,255,0.72); }
+
+  /* Numbered steps — 01/02/03 editorial list, no chrome. */
+  .casa-spec__steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 18px;
+  }
+  .casa-spec__step {
+    display: grid;
+    grid-template-columns: 38px 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+  .casa-spec__step-num {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--casa-spec-ink);
+    opacity: 0.45;
+    padding-top: 2px;
+  }
+  .casa-spec--ink .casa-spec__step-num { color: #fff; opacity: 0.5; }
+  .casa-spec__step-title {
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.35;
+    margin: 0 0 4px;
+    color: inherit;
+  }
+  .casa-spec__step-desc {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--casa-spec-muted);
+    margin: 0;
+    max-width: 42ch;
+  }
+  .casa-spec--ink .casa-spec__step-desc { color: rgba(255,255,255,0.68); }
+
+  /* ----- Video moment --------------------------------------- */
+  .casa-spec__video-wrap {
+    margin: clamp(48px, 6vw, 96px) 0 0;
+    padding: 0;
+    position: relative;
+  }
+  .casa-spec__video {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 80vh;
+    border-radius: 4px;
+    background: var(--casa-spec-paper-2);
+    object-fit: cover;
+  }
+  .casa-spec__video-caption {
+    margin-top: 14px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--casa-spec-muted);
+    text-align: center;
+  }
+  .casa-spec--ink .casa-spec__video-caption { color: rgba(255,255,255,0.55); }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Spectrum strip",
+  "tag": "section",
+  "class": "casa-spectrum-strip-section",
+  "settings": [
+    { "type": "header", "content": "Heading" },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker (mono caps)",
+      "default": "03 · DICHROIC MOMENT · THE HOW"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading (use <em>word</em> for italic-gradient accent)",
+      "default": "One product. <em>Every color.</em>"
+    },
+    {
+      "type": "textarea",
+      "id": "lede",
+      "label": "Lede",
+      "default": "The dichroic plexiglass refracts white light into a different dominant hue depending on where you sit. No LED, no app, no power."
+    },
+    { "type": "header", "content": "Dichroic diagram" },
+    {
+      "type": "checkbox",
+      "id": "show_diagram",
+      "label": "Show the light-splitting diagram below the strip",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "diagram_kicker",
+      "label": "Diagram kicker (mono)",
+      "default": "How the color shifts"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "diagram_heading",
+      "label": "Diagram heading (use <em>word</em> for italic-gradient accent)",
+      "default": "Light passes <em>through</em> the legs. Color comes out the other side."
+    },
+    {
+      "type": "richtext",
+      "id": "diagram_body",
+      "label": "Diagram body",
+      "default": "<p>Dichroic plexiglass refracts white light into a different dominant wavelength on every face. No electronics. No app. No battery. Just acrylic, sun, and where you're standing.</p>"
+    },
+    {
+      "type": "text",
+      "id": "diagram_label_object",
+      "label": "Diagram object label",
+      "info": "The label under the diagram's centerpiece (e.g. CALINI LEG, MIRROR EDGE).",
+      "default": "CALINI LEG"
+    },
+    { "type": "header", "content": "Video moment (optional)" },
+    {
+      "type": "video",
+      "id": "video_clip",
+      "label": "Video clip",
+      "info": "Pick a Shopify-uploaded video. Autoplays muted + looped. Falls back to Video URL below if blank."
+    },
+    {
+      "type": "text",
+      "id": "video_url",
+      "label": "Video URL (fallback, optional)",
+      "info": "Use this when the clip isn't a Shopify upload — paste the full https:// .mp4 URL. (Shopify's `url` field type rejects external domains, so this is plain text.)"
+    },
+    {
+      "type": "image_picker",
+      "id": "video_poster",
+      "label": "Video poster (for URL fallback)",
+      "info": "Only used when Video URL is set. The Shopify video clip auto-generates its own poster."
+    },
+    {
+      "type": "text",
+      "id": "video_caption",
+      "label": "Video caption (mono caps, optional)",
+      "info": "Short editorial label under the clip, e.g. \"REAL CALINI · 10 SECONDS · NO FILTER\"."
+    },
+    { "type": "header", "content": "Numbered steps (optional)" },
+    { "type": "text",     "id": "step_1_title", "label": "Step 1 — title",   "default": "Daylight meets the acrylic" },
+    { "type": "textarea", "id": "step_1_body",  "label": "Step 1 — body",    "default": "Sunlight hits the dichroic surface at the angle it happens to be travelling. No setup, no power." },
+    { "type": "text",     "id": "step_2_title", "label": "Step 2 — title",   "default": "Coatings split the spectrum" },
+    { "type": "textarea", "id": "step_2_body",  "label": "Step 2 — body",    "default": "Five thin-film layers reflect certain wavelengths and let the rest pass through." },
+    { "type": "text",     "id": "step_3_title", "label": "Step 3 — title",   "default": "A different color exits" },
+    { "type": "textarea", "id": "step_3_body",  "label": "Step 3 — body",    "default": "What lands on your floor is not the white that hit the top. Walk around and the color shifts again." },
+    { "type": "header", "content": "Surface" },
+    {
+      "type": "select",
+      "id": "surface_mode",
+      "label": "Surface",
+      "options": [
+        { "value": "paper",   "label": "Paper (light, warm off-white)" },
+        { "value": "paper-2", "label": "Paper-2 (pure white)" },
+        { "value": "ink",     "label": "Ink (dark)" }
+      ],
+      "default": "paper"
+    },
+    { "type": "header", "content": "Colors" },
+    { "type": "color", "id": "color_paper",   "label": "Paper",      "default": "#FAFAF7" },
+    { "type": "color", "id": "color_paper_2", "label": "Paper-2",    "default": "#FFFFFF" },
+    { "type": "color", "id": "color_ink",     "label": "Ink",        "default": "#0A0A0F" },
+    { "type": "color", "id": "color_muted",   "label": "Muted text", "default": "#6b6b76" },
+    { "type": "color", "id": "color_purple",  "label": "Brand purple", "default": "#B0C3FA" },
+    { "type": "color", "id": "color_pink",    "label": "Brand pink",   "default": "#5E0A02" },
+    { "type": "color", "id": "color_cyan",    "label": "Brand cyan",   "default": "#F2FFA0" },
+    { "type": "header", "content": "Spacing" },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top (px)",
+      "min": 0, "max": 200, "step": 4,
+      "default": 96
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom (px)",
+      "min": 0, "max": 200, "step": 4,
+      "default": 96
+    }
+  ],
+  "blocks": [
+    {
+      "type": "angle",
+      "name": "Angle frame",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Photo"
+        },
+        {
+          "type": "text",
+          "id": "image_focus",
+          "label": "Image focal point (CSS object-position)",
+          "info": "Default 'center'. Use '50% 35%' to pull the product up in the frame.",
+          "default": "center"
+        },
+        {
+          "type": "text",
+          "id": "angle_label",
+          "label": "Angle label",
+          "info": "Shown big — e.g. 0°, 90°, 180°, 270°, or 'From the sofa', 'From the doorway'.",
+          "default": "0°"
+        },
+        {
+          "type": "text",
+          "id": "color_label",
+          "label": "Dominant hue label",
+          "default": "Cyan"
+        },
+        {
+          "type": "color",
+          "id": "color_hex",
+          "label": "Swatch dot color",
+          "default": "#F2FFA0"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Spectrum strip",
+      "category": "Seoul Glow Lab",
+      "blocks": [
+        { "type": "angle", "settings": { "angle_label": "0°",   "color_label": "Cyan",   "color_hex": "#06B6D4" } },
+        { "type": "angle", "settings": { "angle_label": "90°",  "color_label": "Pink",   "color_hex": "#EC4899" } },
+        { "type": "angle", "settings": { "angle_label": "180°", "color_label": "Amber",  "color_hex": "#F59E0B" } },
+        { "type": "angle", "settings": { "angle_label": "270°", "color_label": "Purple", "color_hex": "#9333EA" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

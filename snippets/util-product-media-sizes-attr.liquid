@@ -46,20 +46,29 @@
     assign calculate_grid_column = true
   endif
 
-  # Set up default sizes
+  # Set up default sizes.
+  # Casa 2026-07-19: the column-width terms key on (min-width: 1200px), NOT
+  # 750px, because the PDP gallery/details grid stacks below 1200
+  # (snippets/product-information-content.liquid — keep the two boundaries
+  # in sync). Stock Horizon's 750px key described the side-by-side column at
+  # every tablet width, so a 1013px-wide stacked gallery on iPad Pro
+  # portrait told the browser it was ~620px and srcset picked half-res
+  # candidates on DPR-2 screens. Between 750-1199 the gallery renders
+  # ~100vw (carousel/single) or ~50vw per cell (two-column grid, which
+  # stays 2-up at >=750).
   if calculate_single_column
     # Default for carousel or single column grid (or first image in large_first_image mode)
     if section.settings.equal_columns == false
-      assign default_sizes = '(min-width: 750px) calc(100vw - 25rem - [gap_half]), 100vw' | replace: '[gap_half]', gap_half
+      assign default_sizes = '(min-width: 1200px) calc(100vw - 25rem - [gap_half]), 100vw' | replace: '[gap_half]', gap_half
     else
-      assign default_sizes = '(min-width: 750px) calc(50vw - [gap_half]), 100vw' | replace: '[gap_half]', gap_half
+      assign default_sizes = '(min-width: 1200px) calc(50vw - [gap_half]), 100vw' | replace: '[gap_half]', gap_half
     endif
   else
     # Default for two column grid - includes image gap and quarter section gap
     if section.settings.equal_columns == false
-      assign default_sizes = '(min-width: 750px) calc((100vw - 25rem) / 2 - [gap_quarter] - [image_gap_half]), 100vw' | replace: '[gap_quarter]', gap_quarter | replace: '[image_gap_half]', image_gap_half
+      assign default_sizes = '(min-width: 1200px) calc((100vw - 25rem) / 2 - [gap_quarter] - [image_gap_half]), (min-width: 750px) calc(50vw - [gap_quarter] - [image_gap_half]), 100vw' | replace: '[gap_quarter]', gap_quarter | replace: '[image_gap_half]', image_gap_half
     else
-      assign default_sizes = '(min-width: 750px) calc(50vw / 2 - [gap_quarter] - [image_gap_half]), 100vw' | replace: '[gap_quarter]', gap_quarter | replace: '[image_gap_half]', image_gap_half
+      assign default_sizes = '(min-width: 1200px) calc(50vw / 2 - [gap_quarter] - [image_gap_half]), (min-width: 750px) calc(50vw - [gap_quarter] - [image_gap_half]), 100vw' | replace: '[gap_quarter]', gap_quarter | replace: '[image_gap_half]', image_gap_half
     endif
   endif
 
@@ -116,7 +125,9 @@
       else
         assign medium_size = 'calc([medium_base] - [page_margin] - [gap_quarter] - [image_gap_half])' | replace: '[medium_base]', medium_base | replace: '[page_margin]', page_margin | replace: '[gap_quarter]', gap_quarter | replace: '[image_gap_half]', image_gap_half
       endif
-      assign sizes = '(min-width: [breakpoint]) [large_size], (min-width: 750px) [medium_size], 100vw' | replace: '[breakpoint]', breakpoint | replace: '[large_size]', large_size | replace: '[medium_size]', medium_size
+      # Casa 2026-07-19: medium (side-by-side column) term moved 750 -> 1200
+      # to match the stacked-layout boundary; 750-1199 grid cells are ~50vw.
+      assign sizes = '(min-width: [breakpoint]) [large_size], (min-width: 1200px) [medium_size], (min-width: 750px) calc(50vw - [gap_quarter] - [image_gap_half]), 100vw' | replace: '[breakpoint]', breakpoint | replace: '[large_size]', large_size | replace: '[medium_size]', medium_size | replace: '[gap_quarter]', gap_quarter | replace: '[image_gap_half]', image_gap_half
     else
       # Single column calculation
       if block_settings.extend_media
@@ -130,7 +141,9 @@
       else
         assign medium_size = 'calc([medium_base] - [page_margin] - [gap_half] - [page_margin])' | replace: '[medium_base]', medium_base | replace: '[page_margin]', page_margin | replace: '[gap_half]', gap_half
       endif
-      assign sizes = '(min-width: [breakpoint]) [large_size], (min-width: 750px) [medium_size], 100vw' | replace: '[breakpoint]', breakpoint | replace: '[large_size]', large_size | replace: '[medium_size]', medium_size
+      # Casa 2026-07-19: medium (side-by-side column) term moved 750 -> 1200
+      # to match the stacked-layout boundary; 750-1199 renders ~100vw.
+      assign sizes = '(min-width: [breakpoint]) [large_size], (min-width: 1200px) [medium_size], 100vw' | replace: '[breakpoint]', breakpoint | replace: '[large_size]', large_size | replace: '[medium_size]', medium_size
     endif
   else
     # Use default sizes

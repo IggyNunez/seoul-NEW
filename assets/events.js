@@ -177,13 +177,15 @@ export class QuantitySelectorUpdateEvent extends Event {
   /**
    * Creates a new QuantitySelectorUpdateEvent
    * @param {number} quantity - Quantity value
-   * @param {number} [cartLine] - The id of the updated cart line
+   * @param {number} [cartLine] - The 1-based cart line index (legacy fallback addressing)
+   * @param {string} [lineKey] - The cart line-item key (RC-4: stable, index-free addressing)
    */
-  constructor(quantity, cartLine) {
+  constructor(quantity, cartLine, lineKey) {
     super(ThemeEvents.quantitySelectorUpdate, { bubbles: true });
     this.detail = {
       quantity,
       cartLine,
+      lineKey,
     };
   }
 }

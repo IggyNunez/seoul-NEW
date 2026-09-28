@@ -1,0 +1,34 @@
+{%- comment -%}
+  Casa Compare Fetch — tiny section used by Section Rendering API.
+  Returns product data + metafield specs as JSON for the interactive
+  comparison picker. Not rendered visually — only fetched via JS.
+{%- endcomment -%}
+
+{%- if product != blank -%}
+<script type="application/json" data-casa-compare-product>
+{
+  "title": {{ product.title | json }},
+  "handle": {{ product.handle | json }},
+  "url": {{ product.url | json }},
+  "image": {{ product.featured_image | image_url: width: 400 | json }},
+  "price": {{ product.price | json }},
+  "price_formatted": {{ product.price | money | json }},
+  "price_min": {{ product.price_min | json }},
+  "price_min_formatted": {{ product.price_min | money | json }},
+  "price_varies": {{ product.price_varies | json }},
+  "compare_at_price": {{ product.compare_at_price | json }},
+  "compare_at_price_formatted": {{ product.compare_at_price | money | json }},
+  "available": {{ product.available | json }},
+  "rating": {{ product.metafields.reviews.rating.value.rating | default: 0 | json }},
+  "rating_count": {{ product.metafields.reviews.rating_count.value | default: 0 | json }},
+  "specs_html": {{ product.metafields.custom.product_page_specifications | metafield_tag | json }}
+}
+</script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Compare Fetch",
+  "settings": []
+}
+{% endschema %}

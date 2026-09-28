@@ -1,0 +1,325 @@
+<script type="application/ld+json">
+  {{ closest.product | structured_data }}
+</script>
+
+{% capture media_gallery %}
+  {% content_for 'block',
+    type: '_casa-octa-gallery-v6',
+    id: 'media-gallery',
+    closest.product: closest.product
+  %}
+{% endcapture %}
+
+{% capture product_details %}
+  {% content_for 'block',
+    type: '_product-details',
+    id: 'product-details',
+    closest.product: closest.product
+  %}
+{% endcapture %}
+
+{% capture additional_blocks %}
+  {% content_for 'blocks' %}
+{% endcapture %}
+
+<div id="casa-octa-purchase" class="casa-octa-v6-purchase">
+  {% render 'product-information-content',
+    product_media_size: closest.product.media.size,
+    section_id: section.id,
+    settings: section.settings,
+    media_gallery: media_gallery,
+    product_details: product_details,
+    additional_blocks: additional_blocks
+  %}
+</div>
+
+{% stylesheet %}
+  .casa-octa-v6-purchase {
+    --v6-ink: #0a0a0f;
+    --v6-paper: #fafaf7;
+    --v6-rule: #e5e3de;
+    --v6-purple: #9333ea;
+    --v6-pink: #ec4899;
+    --v6-cyan: #06b6d4;
+    --v6-purchase-gap: clamp(18px, 1.5vw, 24px);
+    --v6-gallery-fold-reserve: 16px;
+    color: var(--v6-ink);
+    background: #fff;
+  }
+
+  .casa-octa-v6-purchase .product-information {
+    padding: 0;
+  }
+
+  .casa-octa-v6-purchase .product-information__grid {
+    column-gap: var(--v6-purchase-gap);
+    row-gap: 0;
+  }
+
+  .casa-octa-v6-purchase .product-information__media,
+  .casa-octa-v6-purchase .product-details {
+    min-width: 0;
+  }
+
+  .casa-octa-v6-purchase .product-details {
+    padding: clamp(20px, 1.6vw, 30px) clamp(24px, 3.2vw, 64px) 48px clamp(24px, 2vw, 40px) !important;
+  }
+
+  .casa-octa-v6-purchase .product-details > .group-block {
+    width: 100%;
+    max-width: 1080px;
+    margin-inline: 0 auto;
+  }
+
+  .casa-octa-v6-purchase .product-form-buttons {
+    display: grid;
+    grid-template-columns: clamp(112px, 28%, 136px) minmax(0, 1fr);
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .casa-octa-v6-purchase .product-form-buttons > .quantity-selector-wrapper {
+    grid-column: 1;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .casa-octa-v6-purchase .product-form-buttons > span:has(.add-to-cart-button) {
+    grid-column: 2;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .casa-octa-v6-purchase .product-form-buttons > .accelerated-checkout-block,
+  .casa-octa-v6-purchase .product-form-buttons > :is(.quantity-label, .quantity-rules, .volume-pricing, .product-form-text__error) {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .casa-octa-v6-purchase .product-form-buttons .quantity-selector,
+  .casa-octa-v6-purchase .product-form-buttons add-to-cart-component,
+  .casa-octa-v6-purchase .product-form-buttons .add-to-cart-button,
+  .casa-octa-v6-purchase .shopify-payment-button__button {
+    width: 100%;
+    min-width: 0;
+    min-height: 54px;
+    border-radius: 12px;
+  }
+
+  .casa-octa-v6-purchase .add-to-cart-button {
+    font-size: 13px;
+    font-weight: 720;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .casa-octa-v6-purchase .shopify-payment-button {
+    width: 100%;
+  }
+
+  .casa-octa-v6-purchase .shopify-payment-button__more-options {
+    min-height: 40px;
+  }
+
+  .casa-octa-v6-purchase .variant-option__button-label {
+    border-radius: 12px;
+  }
+
+  .casa-octa-v6-purchase .variant-option__button-label:has(input:checked) {
+    border-color: var(--v6-purple);
+    box-shadow: inset 0 0 0 1px var(--v6-purple);
+  }
+
+  @media screen and (min-width: 750px) and (min-aspect-ratio: 1/1) {
+    .casa-octa-v6-purchase .product-information__grid {
+      grid-template-columns:
+        minmax(
+          0,
+          min(
+            var(--media-width-pct, 54%),
+            calc(100svh - var(--header-group-height, var(--header-height, 108px)) - 100px - var(--v6-gallery-fold-reserve))
+          )
+        )
+        minmax(0, 1fr);
+    }
+
+    .casa-octa-v6-purchase .product-information__media {
+      width: 100%;
+      min-width: 0;
+      grid-column: auto;
+      align-self: stretch;
+    }
+
+    .casa-octa-v6-purchase .casa-v6-gallery.sticky-content {
+      --sticky-header-offset: var(--casa-chrome-top, var(--header-group-height, var(--header-height, 80px)));
+    }
+
+    .casa-octa-v6-purchase .product-details {
+      width: 100%;
+      min-width: 0;
+      grid-column: auto;
+    }
+  }
+
+  @media screen and (min-width: 960px) and (min-aspect-ratio: 1/1) {
+    .casa-octa-v6-purchase .product-information__grid:not(.product-information--media-none) {
+      grid-template-columns:
+        minmax(
+          0,
+          min(
+            var(--media-width-pct, 54%),
+            calc(100svh - var(--header-group-height, var(--header-height, 108px)) - 100px - var(--v6-gallery-fold-reserve))
+          )
+        )
+        minmax(0, 1fr) !important;
+    }
+  }
+
+  @media screen and (min-width: 1200px) and (min-aspect-ratio: 1/1) {
+    .casa-octa-v6-purchase .product-information__grid:not(.product-information--media-none) {
+      grid-template-columns:
+        minmax(
+          0,
+          min(
+            var(--media-width-pct, 54%),
+            calc(100svh - var(--header-group-height, var(--header-height, 108px)) - 100px - var(--v6-gallery-fold-reserve))
+          )
+        )
+        minmax(0, 1fr) !important;
+    }
+  }
+
+  body:has(#PBarNextFrame) .casa-octa-v6-purchase {
+    --v6-gallery-fold-reserve: 80px;
+  }
+
+  @media screen and (max-width: 749px), screen and (max-aspect-ratio: 1/1) {
+    .casa-octa-v6-purchase .product-information__grid {
+      display: block;
+      column-gap: 0;
+    }
+
+    .casa-octa-v6-purchase .product-information__media {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+    }
+
+    .casa-octa-v6-purchase .product-details {
+      max-width: none;
+      padding: 20px 16px 42px !important;
+      overflow: visible;
+    }
+  }
+
+  @media screen and (max-width: 359px) {
+    .casa-octa-v6-purchase .product-form-buttons {
+      grid-template-columns: 112px minmax(0, 1fr);
+    }
+
+    .casa-octa-v6-purchase .add-to-cart-button {
+      padding-inline: 8px;
+      font-size: 11px;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa OctaMirror V6 main",
+  "blocks": [
+    { "type": "@theme" },
+    { "type": "@app" }
+  ],
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  },
+  "settings": [
+    {
+      "type": "select",
+      "id": "content_width",
+      "label": "Width",
+      "options": [
+        { "value": "content-center-aligned", "label": "Page" },
+        { "value": "content-full-width", "label": "Full" }
+      ],
+      "default": "content-full-width"
+    },
+    {
+      "type": "select",
+      "id": "desktop_media_position",
+      "label": "Media position",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "checkbox",
+      "id": "equal_columns",
+      "label": "Equal columns",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "limit_details_width",
+      "label": "Limit details width",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "media_width_pct",
+      "label": "Gallery width",
+      "min": 44,
+      "max": 62,
+      "step": 1,
+      "unit": "%",
+      "default": 54
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "Gap",
+      "min": 0,
+      "max": 32,
+      "step": 4,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_sticky_add_to_cart",
+      "label": "Enable sticky add to cart",
+      "default": false
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "Top padding",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "Bottom padding",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": []
+}
+{% endschema %}

@@ -81,7 +81,6 @@
   }
   {%- endif -%}
   {%- if block.settings.reviews_color != blank -%}
-  #product-recommendations-{{ block.id }} .stamped-badge,
   #product-recommendations-{{ block.id }} [class*="review"],
   #product-recommendations-{{ block.id }} [class*="rating"] {
     color: {{ block.settings.reviews_color }} !important;
@@ -148,10 +147,36 @@
       {% capture list_items %}
         {% for product in products limit: block_settings.max_products %}
           <div class="resource-list__item">
-            {% content_for 'block',
-              type: '_product-card',
-              id: 'static-product-card',
-              closest.product: product
+            {%- comment -%}
+              Use Casa product card — same as sections/product-recommendations.liquid.
+              Inherits hover video, swatches, badges, ratings, and all
+              theme-level toggles automatically.
+            {%- endcomment -%}
+            {%- comment -%}
+              Compact in-buy-box widget: force-disable swatches, quick-add,
+              quick-view, savings-highlight, and installments. These extras
+              are designed for the full-page collection card; in a 200px-
+              wide carousel slide they're either illegible (swatches at
+              28px tap-target) or push some cards 50px taller than their
+              siblings — and the carousel forces equal slide height, so
+              shorter cards get a "massive gap" of empty space below their
+              content. Locking these to false here equalizes every card.
+            {%- endcomment -%}
+            {% render 'casa-product-card',
+              product: product,
+              variant: 'default',
+              index: forloop.index0,
+              show_rating: settings.card_show_rating,
+              show_hover_video: settings.card_show_hover_video,
+              show_badge: settings.card_show_badges,
+              show_sale_badge: settings.card_show_sale_badge,
+              show_variant_swatches: false,
+              show_quick_add: false,
+              show_quick_view: false,
+              show_wishlist: false,
+              show_stock_urgency: settings.card_show_stock_urgency,
+              show_savings_highlight: false,
+              show_installment: false
             %}
           </div>
           {% if block_settings.layout_type == 'carousel' or block_settings.carousel_on_mobile %}
@@ -191,11 +216,18 @@
           {% when 'grid' %}
             {{ list_items }}
           {% when 'carousel' %}
+            {% comment %}
+              Pass a smaller slide_width_max so the in-buy-box widget shows
+              ~2 cards + a peek of the third inside the cramped buy-box
+              column. Default in resource-list-carousel is 300px which only
+              fits 1.5 cards in a ~390px column. 200px fits 2 + peek.
+            {% endcomment %}
             {% render 'resource-list-carousel',
               ref: 'resourceListCarousel',
               slides: slides,
               slide_count: recommendations.products.size,
-              settings: block_settings
+              settings: block_settings,
+              slide_width_max: '200px'
             %}
         {% endcase %}
       </div>
@@ -216,7 +248,8 @@
             ref: 'resourceListCarouselMobile',
             slides: slides,
             slide_count: recommendations.products.size,
-            settings: block_settings
+            settings: block_settings,
+            slide_width_max: '200px'
           %}
         </div>
       {% endif %}
@@ -233,7 +266,116 @@
   </div>
 </product-recommendations>
 
+<style>
+  /* Mobile: card info flush to card edge across recommendation cards */
+  @media (max-width: 600px) {
+    .product-recommendations .product-card__info,
+    .product-recommendations [class*="product-card"] [class*="info"],
+    .product-recommendations .resource-list__slide product-card {
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+  }
+
+  /* ── Compact mode for the in-buy-box "You may also like" widget ──
+     Scoped to data-testid="product-recommendations-block" so this only
+     touches the embedded buy-box widget, NOT the standalone post-PDP
+     "More to love" section (which uses data-testid="product-recommendations-section"
+     and intentionally renders cards at full marketing scale).
+
+     The buy-box column on PDPs renders at ~360–500px wide on tablet and
+     small-laptop viewports. At default casa-product-card sizing, only
+     1.5 cards were visible and price/rating dominated the card. Tighten
+     everything one notch so two cards + a peek fit comfortably and the
+     hierarchy is title → price → rating instead of price → everything-else. */
+  product-recommendations[data-testid="product-recommendations-block"] {
+    /* Compact price scale — desktop default is 17px/600, knock it down
+       to the title's tier so price stops out-shouting the product name. */
+    --casa-price-size: 14px;
+    --casa-compare-size: 12px;
+    --casa-savings-size: 11px;
+    --casa-installment-size: 11px;
+    /* Carousel slide width — base.css uses
+         clamp(150px, var(--mobile-card-size, 60cqw), var(--slide-width-max))
+       at <750px container. Default 60cqw on a 353px PDP buy-box column
+       caps to ~200px, giving 1.5 cards. Drop to 44cqw so two ~155px
+       cards fit + a peek of the third. */
+    --mobile-card-size: 44cqw;
+  }
+  product-recommendations[data-testid="product-recommendations-block"] .casa-product-card__info {
+    /* Tighter padding — buy-box column is narrow, default 24px L/R inside
+       a 235px card eats too much real estate. */
+    padding: 12px 0;
+    gap: 4px;
+  }
+  product-recommendations[data-testid="product-recommendations-block"] .casa-product-card__title {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  product-recommendations[data-testid="product-recommendations-block"] .casa-product-card__price {
+    gap: 6px;
+  }
+  product-recommendations[data-testid="product-recommendations-block"] .casa-product-card__price-current {
+    font-weight: 600;
+  }
+  /* Judge.me badge in compact card — match the size hierarchy to title.
+     The metafield-rendered badge has its own font-size that bleeds in via
+     .jdgm-prev-badge defaults (typically 14–16px). Force compact so the
+     "★ 55 reviews" row stays under the price, not equal to it. */
+  product-recommendations[data-testid="product-recommendations-block"] .casa-product-card__rating,
+  product-recommendations[data-testid="product-recommendations-block"] .jdgm-widget,
+  product-recommendations[data-testid="product-recommendations-block"] .jdgm-prev-badge {
+    font-size: 12px !important;
+    line-height: 1.3;
+  }
+  /* Stars at the 12px legibility floor; review-count text one notch
+     smaller so it reads as supporting metadata. */
+  product-recommendations[data-testid="product-recommendations-block"] .jdgm-prev-badge__stars {
+    font-size: 12px !important;
+  }
+  product-recommendations[data-testid="product-recommendations-block"] .jdgm-prev-badge__text {
+    font-size: 11px !important;
+  }
+  product-recommendations[data-testid="product-recommendations-block"] .jdgm-prev-badge {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+  }
+  product-recommendations[data-testid="product-recommendations-block"] .jdgm-prev-badge__text {
+    color: var(--card-reviews-color, #6b7280);
+  }
+</style>
+
 {% stylesheet %}
+  /* iOS Safari repaint fix — Horizon's base.css sets
+       slideshow-slide { content-visibility: auto; contain-intrinsic-size: auto none; }
+     for perf, then re-asserts c-v:auto on peeking slides inside
+     .resource-list__carousel via a high-specificity rule (~line 4108).
+     The visible override only wins when slideshow-component has [actioned]
+     (set on pointerenter, line 816 of slideshow.js) OR the slide is
+     [aria-hidden="false"] — but the latter is defeated by the carousel
+     reset's higher specificity. The :hover/[dragging]/[transitioning]
+     fallback (~line 4119) doesn't fire during ordinary page scroll on
+     touch devices, where :hover never triggers.
+
+     Result on iOS Safari: a fresh page render shows the rec widget
+     correctly (slides paint on first measure), but scrolling past the
+     section and back leaves the inner cards blank — the placeholder box
+     keeps its height (via contain-intrinsic-size) so layout doesn't
+     collapse, but the cards never repaint (known WebKit content-visibility
+     bug). Merchant reproduced on iPhone 2026-05-19.
+
+     For these product-card carousels the perf gain from c-v:auto is
+     marginal (4–10 cards at ~155×270 each, images already loading="lazy"),
+     so force-paint to eliminate the blank-on-scroll-back bug.
+     `!important` is required: the carousel reset selector at base.css
+     ~4108 has specificity (0,2,2), one notch above anything that fits
+     in a normal scope chain here. */
+  .resource-list__carousel slideshow-slide {
+    content-visibility: visible !important;
+  }
+
   .block-resource-list {
     display: flex;
     flex-direction: column;
@@ -251,6 +393,65 @@
 
   .product-recommendations-wrapper:has(product-recommendations[data-shopify-editor-preview]) {
     width: 100vw;
+  }
+
+  /* ── Casa carousel arrows — match Recently Viewed / Categories / Products Grid ──
+     Horizon defaults slideshow-arrows to mix-blend-mode:difference, which is
+     what was producing the green/inverted halo around our arrows. Force
+     normal blend mode inside this block. */
+  .product-recommendations slideshow-arrows {
+    mix-blend-mode: normal !important;
+  }
+
+  .product-recommendations .slideshow-control {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 50% !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    background: rgba(10, 10, 15, 0.78) !important;
+    color: #fff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    z-index: 20;
+    cursor: pointer;
+  }
+
+  .product-recommendations .slideshow-control:hover:not(:disabled) {
+    background: #fff !important;
+    border-color: rgba(255, 255, 255, 0.6) !important;
+    color: #0a0a0a !important;
+    transform: scale(1.05);
+    box-shadow:
+      0 6px 20px rgba(0, 0, 0, 0.25),
+      0 0 0 4px rgba(176, 195, 250, 0.18),
+      0 0 22px rgba(94, 10, 2, 0.35);
+  }
+
+  .product-recommendations .slideshow-control:disabled,
+  .product-recommendations .slideshow-control[disabled] {
+    display: none !important;
+  }
+
+  .product-recommendations .slideshow-control .svg-wrapper,
+  .product-recommendations .slideshow-control svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  @media (max-width: 900px) {
+    .product-recommendations .slideshow-control {
+      /* 44×44 minimum tap target — Apple HIG / Google MWG spec. Was 40×40,
+         which the brand mobile pre-flight flags as below floor. */
+      width: 44px !important;
+      height: 44px !important;
+    }
   }
 {% endstylesheet %}
 
@@ -380,7 +581,7 @@
           "label": "t:options.none"
         }
       ],
-      "default": "arrow",
+      "default": "chevron",
       "visible_if": "{{ block.settings.layout_type == 'carousel' or block.settings.carousel_on_mobile == true }}"
     },
     {
@@ -563,76 +764,6 @@
           "settings": {
             "text": "t:html_defaults.may_also_like"
           }
-        },
-        "static-product-card": {
-          "type": "_product-card",
-          "static": true,
-          "settings": {
-            "product_card_gap": 4
-          },
-          "blocks": {
-            "product-card-gallery": {
-              "type": "_product-card-gallery",
-              "settings": {
-                "image_ratio": "adapt",
-                "border": "none",
-                "border_width": 1,
-                "border_opacity": 100,
-                "border_radius": 0,
-                "padding-block-start": 0,
-                "padding-block-end": 0,
-                "padding-inline-start": 0,
-                "padding-inline-end": 0
-              }
-            },
-            "product_title": {
-              "type": "product-title",
-              "name": "t:names.product_title",
-              "settings": {
-                "width": "fit-content",
-                "max_width": "normal",
-                "alignment": "left",
-                "type_preset": "rte",
-                "font": "var(--font-body--family)",
-                "font_size": "1rem",
-                "line_height": "normal",
-                "letter_spacing": "normal",
-                "case": "none",
-                "wrap": "pretty",
-                "color": "var(--color-foreground)",
-                "background": false,
-                "background_color": "#00000026",
-                "corner_radius": 0,
-                "padding-block-start": 4,
-                "padding-block-end": 0,
-                "padding-inline-start": 0,
-                "padding-inline-end": 0
-              }
-            },
-            "price": {
-              "type": "price",
-              "name": "t:names.product_price",
-              "settings": {
-                "show_sale_price_first": true,
-                "show_installments": false,
-                "show_tax_info": false,
-                "type_preset": "h6",
-                "width": "100%",
-                "alignment": "left",
-                "font": "var(--font-body--family)",
-                "font_size": "1rem",
-                "line_height": "normal",
-                "letter_spacing": "normal",
-                "case": "none",
-                "color": "var(--color-foreground)",
-                "padding-block-start": 0,
-                "padding-block-end": 0,
-                "padding-inline-start": 0,
-                "padding-inline-end": 0
-              }
-            }
-          },
-          "block_order": ["product-card-gallery", "product_title", "price"]
         }
       },
       "block_order": ["heading"]

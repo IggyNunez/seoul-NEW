@@ -3,12 +3,24 @@
   Bento grid with lightbox, hover captions, responsive layout.
 {% endcomment %}
 
-{{ 'section-casa-lookbook-gallery.css' | asset_url | stylesheet_tag }}
+{%- comment -%} Auto-hide when no gallery images exist {%- endcomment -%}
+{%- assign _has_content = false -%}
+{%- for block in section.blocks -%}
+  {%- if block.settings.image != blank -%}
+    {%- assign _has_content = true -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if _has_content == false and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
+{%- comment -%} CSS lives in the inline <style> block below; no external asset {%- endcomment -%}
 
 {%- liquid
   assign gap = section.settings.gap | default: 16
   assign radius = section.settings.border_radius | default: 8
-  assign bg = section.settings.bg_color | default: '#0a0a0a'
+  assign bg = section.settings.bg_color | default: '#0A0A0F'
   assign pt = section.settings.padding_top | default: 60
   assign pb = section.settings.padding_bottom | default: 60
   assign lightbox = section.settings.enable_lightbox
@@ -17,7 +29,7 @@
 <style>
   /* ── Casa Lookbook Gallery ── */
   .casa-lb-gal {
-    background: {{ bg }};
+  background: {{ bg }};
     padding-top: {{ pt }}px;
     padding-bottom: {{ pb }}px;
   }
@@ -35,11 +47,11 @@
   }
 
   .casa-lb-gal__title {
-    font-family: var(--font-heading-family, 'Times New Roman', serif);
+    font-family: var(--font-heading--family, 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif);
     font-size: clamp(2rem, 4vw, 3.25rem);
     font-weight: 300;
     letter-spacing: 0.04em;
-    color: #ffffff;
+    color: var(--casa-text-on-ink);
     margin: 0 0 16px;
     line-height: 1.15;
   }
@@ -202,8 +214,8 @@
     inset: 0;
     z-index: 9999;
     background: rgba(0, 0, 0, 0.92);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -438,6 +450,12 @@
 
           <div class="casa-lb-gal__img-wrap">
             {%- if block.settings.image != blank -%}
+              {%- comment -%}
+                alt precomputed: a piped fallback inside image_tag's arg
+                list terminates the args — the fallback never applied. No
+                | escape: image_tag escapes attribute values itself.
+              {%- endcomment -%}
+              {%- assign _gal_alt = block.settings.caption | default: block.settings.image.alt -%}
               {{
                 block.settings.image
                 | image_url: width: 1400
@@ -446,7 +464,7 @@
                   loading: 'lazy',
                   widths: '375, 550, 750, 1000, 1400',
                   sizes: '(max-width: 599px) 100vw, (max-width: 999px) 50vw, 25vw',
-                  alt: block.settings.caption | default: block.settings.image.alt | escape
+                  alt: _gal_alt
               }}
             {%- else -%}
               <div class="casa-lb-gal__placeholder">{{ 'lifestyle-' | append: forloop.index | placeholder_svg_tag }}</div>
@@ -483,7 +501,7 @@
         <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
 
-      <img class="casa-lb-gal__lightbox-img" src="" alt="" />
+      <img class="casa-lb-gal__lightbox-img" src="" alt="" width="1600" height="1067" />
 
       <button class="casa-lb-gal__lightbox-nav casa-lb-gal__lightbox-next" aria-label="Next image">
         <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"/></svg>
@@ -640,7 +658,7 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background color",
-      "default": "#0a0a0a"
+      "default": "#0A0A0F"
     },
     {
       "type": "range",
@@ -737,6 +755,6 @@
       ]
     }
   ],
-  "templates": ["page"]
+  "enabled_on": { "templates": ["page"] }
 }
 {% endschema %}

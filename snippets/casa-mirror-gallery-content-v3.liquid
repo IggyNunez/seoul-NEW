@@ -1,0 +1,1289 @@
+{% doc %}
+  Product Media Gallery Content
+
+  Renders product media gallery for the closest product.
+
+  @param {string} media_presentation - Either 'grid' or 'carousel'
+  @param {object} block_settings - Block settings object
+  @param {string} block_id - Block ID for unique element IDs
+  @param {string} block_shopify_attributes - Block shopify attributes
+
+  @example
+  {% render 'product-media-gallery-content',
+    media_presentation: 'carousel',
+    block_settings: block.settings,
+    block_id: block.id,
+    block_shopify_attributes: block.shopify_attributes,
+  %}
+{% enddoc %}
+{%- comment -%}
+  casa-mirror-gallery-content-v3.liquid — OctaMirror v3 ONLY copy of
+  product-media-gallery-content.liquid, plus the curated order / captions /
+  Lights off-on switch. The stock snippet is untouched.
+{%- endcomment -%}
+{%- if block_settings.zoom -%}
+  <script
+    src="{{ 'zoom-dialog.js' | asset_url }}"
+    type="module"
+  ></script>
+{%- endif -%}
+{%- liquid
+  assign selected_product = closest.product
+  assign selected_variant_media = selected_product.selected_or_first_available_variant.featured_media
+  assign first_3d_model = selected_product.media | where: 'media_type', 'model' | first
+
+  if block_settings.hide_variants
+    assign variant_images = selected_product.images | where: 'attached_to_variant?', true | map: 'src'
+  endif
+
+  if block_settings.slideshow_controls_style == 'thumbnails'
+    assign controls_on_media = false
+  else
+    assign controls_on_media = true
+  endif
+
+  if block_settings.slideshow_mobile_controls_style == 'thumbnails'
+    assign mobile_controls_on_media = false
+  else
+    assign mobile_controls_on_media = true
+  endif
+
+  assign render_slideshow_controls = false
+
+  if media_presentation == 'carousel' or block_settings.slideshow_controls_style == block_settings.slideshow_mobile_controls_style
+    assign render_slideshow_controls = true
+  endif
+
+  assign render_mobile_slideshow_controls = false
+
+  if block_settings.slideshow_controls_style != block_settings.slideshow_mobile_controls_style
+    assign slideshow_controls_class = 'mobile:hidden'
+
+    if block_settings.slideshow_mobile_controls_style != 'hint'
+      assign render_mobile_slideshow_controls = true
+    endif
+  endif
+
+  assign slideshow_controls_style = block_settings.slideshow_controls_style
+  # Use a counter instead of dots when there are many images to avoid cropping/overflow.
+  if slideshow_controls_style == 'dots' and selected_product.media.size > 15
+    assign slideshow_controls_style = 'counter'
+  endif
+
+  assign render_slideshow_arrows = false
+
+  if selected_product.media.size <= 1
+    assign slideshow_class = 'product-media-gallery__slideshow--single-media slideshow--single-media'
+  else
+    assign slideshow_class = ''
+
+    if media_presentation == 'carousel'
+      assign render_slideshow_arrows = true
+    endif
+  endif
+
+  if slideshow_controls_style == 'thumbnails'
+    assign pagination_position = block_settings.thumbnail_position
+  else
+    assign pagination_position = 'center'
+  endif
+
+  # correct discrepancy between position settings for thumbnails and other controls
+  if pagination_position == 'bottom'
+    assign pagination_position = 'center'
+  endif
+
+  assign icons_position = 'center'
+
+  # Put the icons on the opposite side of the pagination controls
+  if block_settings.slideshow_controls_position == 'on_media'
+    if pagination_position == 'left'
+      assign icons_position = 'right'
+    elsif pagination_position == 'right'
+      assign icons_position = 'left'
+    endif
+  endif
+
+  assign sorted_media = '' | split: ','
+  if selected_variant_media
+    assign sorted_media = sorted_media | concat: selected_product.media | where: 'id', selected_variant_media.id
+
+    for media in selected_product.media
+      if block_settings.hide_variants and variant_images contains media.src and sorted_media.size > 0
+        continue
+      endif
+
+      if media.id != selected_variant_media.id
+        assign found_media = selected_product.media | where: 'id', media.id
+        assign sorted_media = sorted_media | concat: found_media
+      endif
+    endfor
+  else
+    assign sorted_media = selected_product.media
+  endif
+
+  # ── Casa curated gallery (block settings casa_media_order / casa_captions /
+  # casa_toggle_on / casa_toggle_off — blocks/_product-media-gallery.liquid).
+  # Optional and per-template: tells the gallery a STORY order without
+  # touching the product's media in admin (a media edit would change every
+  # theme that reads the product at once). Positions are 1-based into
+  # selected_product.media; unknown positions are skipped. Blank keeps the
+  # stock order computed above, so every other PDP renders unchanged.
+  assign casa_order_raw = block_settings.casa_media_order | default: '' | strip
+  if casa_order_raw != blank
+    assign casa_sorted = '' | split: ','
+    assign casa_positions = casa_order_raw | split: ','
+    for casa_pos in casa_positions
+      assign casa_idx = casa_pos | strip | plus: 0 | minus: 1
+      if casa_idx >= 0 and casa_idx < selected_product.media.size
+        assign casa_m = selected_product.media[casa_idx]
+        assign casa_found = selected_product.media | where: 'id', casa_m.id
+        assign casa_sorted = casa_sorted | concat: casa_found
+      endif
+    endfor
+    if casa_sorted.size > 0
+      assign sorted_media = casa_sorted
+    endif
+  endif
+
+  # Off/on pair: the lights-ON media gets the lights-OFF frame layered over it
+  # and an Off / On switch under the gallery. Both must be the same framing.
+  assign casa_toggle_on_id = blank
+  assign casa_toggle_off_media = blank
+  if block_settings.casa_toggle_on != blank and block_settings.casa_toggle_off != blank
+    assign casa_on_idx = block_settings.casa_toggle_on | strip | plus: 0 | minus: 1
+    assign casa_off_idx = block_settings.casa_toggle_off | strip | plus: 0 | minus: 1
+    if casa_on_idx >= 0 and casa_on_idx < selected_product.media.size and casa_off_idx >= 0 and casa_off_idx < selected_product.media.size
+      assign casa_toggle_on_media = selected_product.media[casa_on_idx]
+      assign casa_toggle_on_id = casa_toggle_on_media.id
+      assign casa_toggle_off_media = selected_product.media[casa_off_idx]
+    endif
+  endif
+
+  assign casa_captions_raw = block_settings.casa_captions | default: ''
+  assign casa_gallery_enhanced = false
+  if casa_order_raw != blank or casa_captions_raw != blank or casa_toggle_on_id != blank
+    assign casa_gallery_enhanced = true
+  endif
+
+  assign has_image_drop = sorted_media | has: 'media_type', 'image'
+
+  # Determine if we're in single column mode (carousel or grid with one column)
+  assign is_single_column = false
+  if media_presentation == 'carousel' or sorted_media.size == 1 or media_presentation == 'grid' and block_settings.media_columns == 'one'
+    assign is_single_column = true
+  endif
+
+  # Check if we need both sizes (for large first image in two-column grid)
+  assign needs_both_sizes = false
+  if media_presentation == 'grid' and block_settings.media_columns == 'two' and block_settings.large_first_image
+    assign needs_both_sizes = true
+  endif
+
+  # Calculate sizes using utility snippet
+  if needs_both_sizes
+    # Calculate sizes for single column (first image)
+    capture sizes_single
+      render 'util-product-media-sizes-attr', block: block, section: section, settings: settings, is_first_image: true, is_single_column: true, needs_both_sizes: true
+    endcapture
+    assign sizes_single = sizes_single | strip
+  endif
+
+  # Calculate sizes value for regular grid/carousel items
+  capture sizes
+    render 'util-product-media-sizes-attr', block: block, section: section, settings: settings, is_first_image: false, is_single_column: is_single_column, needs_both_sizes: needs_both_sizes
+  endcapture
+  assign sizes = sizes | strip
+
+  assign product_media_container_class = 'product-media-container'
+  if block_settings.constrain_to_viewport
+    assign product_media_container_class = product_media_container_class | append: ' constrain-height'
+  endif
+  if block_settings.aspect_ratio != 'adapt'
+    assign product_media_container_class = product_media_container_class | append: ' media-fit-cover'
+  elsif block_settings.constrain_to_viewport
+    assign product_media_container_class = product_media_container_class | append: ' media-fit-' | append: block_settings.media_fit
+  else
+    assign product_media_container_class = product_media_container_class | append: ' media-fit-contain'
+  endif
+
+  if block_settings.aspect_ratio == 'adapt'
+    assign lowest_aspect_ratio = 50
+    assign lowest_aspect_ratio_index = 0
+
+    for media in sorted_media
+      # Find the media with the lowest aspect ratio (tallest)
+
+      if media.preview_image and media.preview_image.aspect_ratio
+        if media.preview_image.aspect_ratio < lowest_aspect_ratio
+          assign lowest_aspect_ratio = media.preview_image.aspect_ratio
+          assign lowest_aspect_ratio_index = forloop.index0
+        endif
+      endif
+    endfor
+  endif
+-%}
+{%- if has_image_drop -%}
+  <script
+    src="{{ 'drag-zoom-wrapper.js' | asset_url }}"
+    type="module"
+  ></script>
+{%- endif -%}
+
+{% style %}
+  {% unless block_settings.aspect_ratio == 'adapt' %}
+    .product-media-container {
+      --media-preview-ratio: {{ block_settings.aspect_ratio }};
+    }
+
+    {% if block_settings.constrain_to_viewport %}
+      .product-media-container.constrain-height {
+        background-color: var(--color-background);
+      }
+
+      .product-media-container.constrain-height:has(.product-media-constraint-wrapper) {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      /* Mobile constraint wrapper sizing - use width-based approach since max-height is disabled */
+      .product-media-constraint-wrapper {
+        width: 100%;
+        max-width: 100%;
+        flex-shrink: 0;
+      }
+
+      /* Desktop constraint wrapper sizing */
+      @media screen and (min-width: 750px) {
+        .product-media-constraint-wrapper {
+          width: min(100%, calc(var(--constrained-height) * {{ block_settings.aspect_ratio }}));
+        }
+      }
+    {% endif %}
+
+    /* Constrain all deferred-media content to parent bounds when specific aspect ratio is set */
+    .product-media-container:not(.dialog-zoomed-gallery *) .product-media deferred-media,
+    .product-media-container:not(.dialog-zoomed-gallery *) .product-media product-model {
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+    }
+
+    /* Ensure video and iframe elements respect container aspect ratio */
+    .product-media-container:not(.dialog-zoomed-gallery *) .product-media deferred-media video,
+    .product-media-container:not(.dialog-zoomed-gallery *) .product-media deferred-media iframe {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* 3D models need special handling since they don't support object-fit */
+    .product-media-container:not(.dialog-zoomed-gallery *) .product-media product-model model-viewer {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Clear gallery aspect ratio for zoom dialog - let media display at natural aspect ratios */
+    .dialog-zoomed-gallery .product-media {
+      --gallery-aspect-ratio: var(--ratio);
+    }
+  {% endunless %}
+
+  {% if block_settings.aspect_ratio == 'adapt' and block_settings.constrain_to_viewport %}
+    .media-fit-{{ block_settings.media_fit }} {
+      --product-media-fit: {{ block_settings.media_fit }};
+    }
+
+    /* Media fit for all media elements */
+    .media-fit-{{ block_settings.media_fit }} :is(img, video, iframe, .deferred-media__poster-image) {
+      object-fit: {{ block_settings.media_fit }};
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 3D Models (no object-fit support, just sizing) */
+    .media-fit-{{ block_settings.media_fit }} model-viewer {
+      width: 100%;
+      height: 100%;
+    }
+  {% endif %}
+
+  {% unless block_settings.aspect_ratio == 'adapt' and block_settings.constrain_to_viewport %}
+    .media-fit-cover {
+      --product-media-fit: cover;
+    }
+
+    /* Media fit for all media elements - default to cover */
+    .media-fit-cover :is(img, video, iframe, .deferred-media__poster-image) {
+      object-fit: cover;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 3D Models (no object-fit support, just sizing) */
+    .media-fit-cover model-viewer {
+      width: 100%;
+      height: 100%;
+    }
+  {% endunless %}
+
+  /* Add background color so carousel arrows' mix-blend-mode works correctly even on transparent areas. */
+  {% if block_settings.media_fit == 'contain' %}
+    .media-fit-contain :is(img, .deferred-media__poster-image) {
+      background-color: var(--color-background);
+    }
+  {% endif %}
+
+  {% capture view_transition_styles_contain %}
+    ::view-transition-old(gallery-item-open),
+    ::view-transition-new(gallery-item-open),
+    ::view-transition-old(gallery-item-close),
+    ::view-transition-new(gallery-item-close) {
+      height: auto;
+      width: 100%;
+      object-fit: contain;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+  {% endcapture %}
+  {% capture view_transition_styles_cover %}
+    ::view-transition-old(gallery-item-open),
+    ::view-transition-new(gallery-item-open),
+    ::view-transition-old(gallery-item-close),
+    ::view-transition-new(gallery-item-close) {
+      height: 100%;
+      width: 100%;
+      object-fit: cover;
+      object-position: var(--gallery-media-focal-point, center);
+    }
+  {% endcapture %}
+  {% if block_settings.aspect_ratio == 'adapt' and block_settings.constrain_to_viewport == false %}
+    {{ view_transition_styles_contain }}
+  {% elsif block_settings.aspect_ratio == 'adapt' and block_settings.constrain_to_viewport == true and block_settings.media_fit == 'contain' %}
+    {{ view_transition_styles_contain }}
+  {% else %}
+    {{ view_transition_styles_cover }}
+  {% endif %}
+
+  :root { --gallery-media-border-radius: {{ block_settings.media_radius }}px; }
+{% endstyle %}
+
+{% if closest.product == blank %}
+  <div
+    class="
+      {% if block_settings.extend_media %}
+        media-gallery--extend
+      {% endif %}
+    "
+    {{ block_shopify_attributes }}
+  >
+    {{ 'product-apparel-1' | placeholder_svg_tag: 'product-media-gallery__placeholder-image' }}
+  </div>
+{% else %}
+  <media-gallery
+    class="
+      spacing-style
+      sticky-content
+      {% if media_presentation == 'grid' %}
+        media-gallery--{{ block_settings.media_columns }}-column
+        {% if block_settings.media_columns == "two" and block_settings.large_first_image%}media-gallery--large-first-image{% endif %}
+      {% endif %}
+      media-gallery--{{ media_presentation }}
+      {% if block_settings.slideshow_mobile_controls_style == 'hint' %}
+        media-gallery--hint
+      {% endif %}
+      {% if block_settings.extend_media %}
+        media-gallery--extend
+      {% endif %}
+    "
+    style="{% render 'spacing-style', settings: block_settings %} --thumbnail-width: {{ block_settings.thumbnail_width }}px; --media-radius: {{ block_settings.media_radius }}px;{% if block_settings.icons_style contains 'large' %} --slideshow-icon-padding: 0px;{% endif %}--image-gap: {{ block_settings.image_gap }}px;{% unless block_settings.aspect_ratio == 'adapt' %} --gallery-aspect-ratio: {{ block_settings.aspect_ratio }};{% endunless %}"
+    data-presentation="{{ media_presentation }}"
+    {{ block_shopify_attributes }}
+  >
+    {%- comment -%} Casa PDP: Gallery image badge overlays {%- endcomment -%}
+    {%- if show_discount_badge == nil -%}{%- assign _show_discount_badge = true -%}{%- else -%}{%- assign _show_discount_badge = show_discount_badge -%}{%- endif -%}
+    {%- if show_custom_badges == nil -%}{%- assign _show_custom_badges = true -%}{%- else -%}{%- assign _show_custom_badges = show_custom_badges -%}{%- endif -%}
+    {%- comment -%}
+      Bubble Girls collections (classic, Parisian, Soulful) bake each girl's
+      name into the TOP-LEFT of every gallery photo. The default badge corner
+      is also top-left, so it covers the printed name. Detect the family by tag
+      and flip its badges to the top-right via .casa-gallery-badges--name-art.
+    {%- endcomment -%}
+    {%- comment -%} Case-insensitive: merchant tag casing is inconsistent (matches the multi-case bestseller check below). 'bubble girl' as a substring also catches the 'bubble girls' tag. {%- endcomment -%}
+    {%- assign _badges_name_art = false -%}
+    {%- assign _tags_dc = selected_product.tags | join: ',' | downcase -%}
+    {%- if _tags_dc contains 'bubble girl' -%}{%- assign _badges_name_art = true -%}{%- endif -%}
+    <div class="casa-gallery-badges{% if _badges_name_art %} casa-gallery-badges--name-art{% endif %}" aria-hidden="true">
+      {%- if _show_custom_badges -%}
+        {%- for tag in selected_product.tags -%}
+          {%- if tag == 'bestseller' or tag == 'Bestseller' or tag == 'BESTSELLER' -%}
+            <span class="casa-gallery-badge casa-gallery-badge--bestseller">BESTSELLER</span>
+          {%- endif -%}
+        {%- endfor -%}
+        {%- if selected_product.metafields.custom.badges.value != blank -%}
+          {%- for badge_item in selected_product.metafields.custom.badges.value limit: 3 -%}
+            {%- if badge_item != blank -%}
+              <span class="casa-gallery-badge casa-gallery-badge--custom">{{ badge_item }}</span>
+            {%- endif -%}
+          {%- endfor -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if _show_discount_badge -%}
+        {%- assign selected_variant = selected_product.selected_or_first_available_variant -%}
+        {%- if selected_variant.compare_at_price > selected_variant.price -%}
+          {%- assign discount_pct = selected_variant.compare_at_price | minus: selected_variant.price | times: 100 | divided_by: selected_variant.compare_at_price -%}
+          <span class="casa-gallery-badge casa-gallery-badge--discount">-{{ discount_pct }}%</span>
+        {%- endif -%}
+      {%- endif -%}
+    </div>
+
+    {%- liquid
+      assign gallery_last_index = sorted_media.size | minus: 1
+    -%}
+    {% capture slides %}
+      {% for media in sorted_media %}
+        {% capture children %}
+          {%- liquid
+              if needs_both_sizes and forloop.first
+                assign media_sizes = sizes_single
+              else
+                assign media_sizes = sizes
+              endif
+              assign is_neighbor = false
+              if forloop.index0 == 1
+                assign is_neighbor = true
+              endif
+              if sorted_media.size > 2 and forloop.index0 == gallery_last_index
+                assign is_neighbor = true
+              endif
+          -%}
+          {% if block_settings.aspect_ratio != 'adapt' and block_settings.constrain_to_viewport %}
+            <div
+              class="product-media-constraint-wrapper">
+              {%- render 'product-media', media: media, sizes: media_sizes, is_main_product_media: forloop.first, is_neighbor: is_neighbor -%}
+            </div>
+          {% else %}
+            {%- render 'product-media', media: media, sizes: media_sizes, is_main_product_media: forloop.first, is_neighbor: is_neighbor -%}
+          {% endif %}
+          {%- if casa_toggle_on_id != blank and media.id == casa_toggle_on_id -%}
+            {%- comment -%}
+              Casa off/on pair: the lights-off frame of the SAME scene sits
+              over the lit frame and fades in when the shopper taps "Lights
+              off" under the gallery (assets/casa-pdp.css .casa-gal-off).
+              It is the photograph itself, not chrome, so Rule 1 (no overlays
+              on hero photos) holds. Lazy: it is never the LCP image.
+            {%- endcomment -%}
+            <div class="casa-gal-off" data-casa-gal-off aria-hidden="true">
+              {{
+                casa_toggle_off_media.preview_image
+                | image_url: width: 1600
+                | image_tag:
+                  widths: '352, 832, 1200, 1600',
+                  sizes: media_sizes,
+                  loading: 'lazy',
+                  decoding: 'async',
+                  class: 'casa-gal-off__img',
+                  alt: ''
+              }}
+            </div>
+          {%- endif -%}
+        {% endcapture %}
+        {% capture class %}
+          {{ product_media_container_class }} product-media-container--{{ media.media_type }}{% if block_settings.zoom %} product-media-container--zoomable{% endif %}{% if forloop.index0 == lowest_aspect_ratio_index and block_settings.aspect_ratio == 'adapt' %} product-media-container--tallest{% endif %}
+        {% endcapture %}
+        {% if block_settings.aspect_ratio == 'adapt' %}
+          {% capture style %}
+            --media-preview-ratio: {{ media.preview_image.aspect_ratio | default: 1.0 }};
+          {% endcapture %}
+        {% endif %}
+        {%- comment -%}
+          Only IMAGES open the zoom lightbox. Videos (and 3D models) are
+          interactive in place: tapping a gallery video must play it, not
+          throw the shopper into a full-screen slideshow they then have to
+          back out of to return to the PDP (merchant, 2026-08-13 — surfaced
+          the moment `zoom` was switched on for these templates, since the
+          stock handler bound the open-click to every media type but model).
+          The zoom BUTTON below is already image-only, and the dialog still
+          contains every slide, so a video is reachable by swiping once
+          inside — it just isn't the entry point.
+        {%- endcomment -%}
+        {% if block_settings.zoom and media.media_type != 'image' %}
+          {%- capture attributes -%}"{% if settings.transition_to_main_product and forloop.first %} data-view-transition-type="product-image-transition"{% endif %}{% endcapture -%}
+        {% elsif block_settings.zoom %}
+          {%- capture attributes -%}on:click="#zoom-dialog-{{ block_id }}/open/{{ forloop.index0 }}"{% if settings.transition_to_main_product and forloop.first %} data-view-transition-type="product-image-transition"{% endif %}{% endcapture -%}
+        {% endif %}
+        {%- if casa_toggle_on_id != blank and media.id == casa_toggle_on_id -%}
+          {%- capture attributes -%}{{ attributes }} data-casa-gal-toggle-slide="{{ forloop.index0 }}"{%- endcapture -%}
+        {%- endif -%}
+
+        {% render 'slideshow-slide',
+          index: forloop.index0,
+          children: children,
+          class: class,
+          style: style,
+          attributes: attributes,
+          media_fit: block_settings.media_fit,
+        %}
+      {% endfor %}
+    {% endcapture %}
+
+    {% if sorted_media.size > 1 %}
+      {% capture controls %}
+        {% if render_slideshow_controls %}
+          {%- render 'slideshow-controls',
+            class: slideshow_controls_class,
+            style: slideshow_controls_style,
+            item_count: sorted_media.size,
+            thumbnails: sorted_media,
+            controls_on_media: controls_on_media,
+            pagination_position: pagination_position,
+            aspect_ratio: block_settings.aspect_ratio,
+            thumbnail_radius: block_settings.thumbnail_radius
+          -%}
+        {% endif %}
+
+        {% if render_mobile_slideshow_controls %}
+          {%- render 'slideshow-controls',
+            class: 'desktop:hidden media-gallery__mobile-controls',
+            style: block_settings.slideshow_mobile_controls_style,
+            item_count: sorted_media.size,
+            thumbnails: sorted_media,
+            controls_on_media: mobile_controls_on_media,
+            pagination_position: 'center',
+            aspect_ratio: block_settings.aspect_ratio,
+            thumbnail_radius: block_settings.thumbnail_radius
+          -%}
+        {% endif %}
+      {% endcapture %}
+    {% endif %}
+
+    {% if render_slideshow_arrows %}
+      {% capture slideshow_arrows %}
+        {% render 'slideshow-arrows', class: 'mobile:hidden', icon_style: block_settings.icons_style %}
+      {% endcapture %}
+    {% endif %}
+
+    {% render 'slideshow',
+      ref: 'slideshow',
+      class: slideshow_class,
+      slides: slides,
+      slide_count: sorted_media.size,
+      slideshow_arrows: slideshow_arrows,
+      arrows_position: icons_position,
+      controls: controls
+    %}
+
+    {%- if casa_gallery_enhanced and media_presentation == 'carousel' and sorted_media.size > 0 -%}
+      {%- comment -%}
+        Casa gallery caption row — sits BELOW the media (never over it): a
+        "1 / N" counter so the shopper knows more slides exist, the current
+        slide's caption, and the Off / On switch on the paired slide. Driven
+        by the slideshow's own 'slideshow:select' event, delegated at the
+        document level (assets/casa-pdp-analytics.js is separate) so a
+        Section-Rendering morph of the buy box can't orphan the listener.
+      {%- endcomment -%}
+      {%- liquid
+        assign casa_caption_lines = casa_captions_raw | newline_to_br | split: '<br />'
+        assign casa_toggle_index = -1
+        if casa_toggle_on_id != blank
+          for casa_media in sorted_media
+            if casa_media.id == casa_toggle_on_id
+              assign casa_toggle_index = forloop.index0
+            endif
+          endfor
+        endif
+        assign casa_first_caption = casa_caption_lines[0] | default: '' | strip
+      -%}
+      <div
+        class="casa-gal-cap"
+        data-casa-gal-cap
+        data-casa-gal-total="{{ sorted_media.size }}"
+        data-casa-gal-toggle-index="{{ casa_toggle_index }}"
+      >
+        <div class="casa-gal-cap__row">
+          <span class="casa-gal-cap__count"><span data-casa-gal-cur>1</span><span class="casa-gal-cap__sep" aria-hidden="true">/</span>{{ sorted_media.size }}</span>
+          <span class="casa-gal-cap__text" data-casa-gal-text aria-live="polite"{% if casa_first_caption == blank %} hidden{% endif %}>{{ casa_first_caption | escape }}</span>
+          {%- if casa_toggle_index >= 0 -%}
+            <div class="casa-gal-cap__toggle" data-casa-gal-toggle role="group" aria-label="Mirror lights"{% unless casa_toggle_index == 0 %} hidden{% endunless %}>
+              <button type="button" class="casa-gal-cap__tbtn" data-casa-gal-state="off" aria-pressed="false">{{ block_settings.casa_toggle_label_off | default: 'Lights off' | escape }}</button>
+              <button type="button" class="casa-gal-cap__tbtn" data-casa-gal-state="on" aria-pressed="true">{{ block_settings.casa_toggle_label_on | default: 'Lights on' | escape }}</button>
+            </div>
+          {%- endif -%}
+        </div>
+        <script type="application/json" data-casa-gal-captions>{{ casa_caption_lines | json }}</script>
+      </div>
+      <script>
+        (function () {
+          if (window.__casaGalCapBound) return;
+          window.__casaGalCapBound = true;
+          function capFor(node) {
+            var g = node && node.closest ? node.closest('media-gallery') : null;
+            return g ? { gallery: g, cap: g.querySelector('[data-casa-gal-cap]') } : null;
+          }
+          function captions(cap) {
+            var el = cap.querySelector('[data-casa-gal-captions]');
+            if (!el) return [];
+            try { return (JSON.parse(el.textContent) || []).map(function (c) { return String(c || '').trim(); }); } catch (e) { return []; }
+          }
+          function setIndex(cap, i) {
+            var cur = cap.querySelector('[data-casa-gal-cur]');
+            var text = cap.querySelector('[data-casa-gal-text]');
+            var toggle = cap.querySelector('[data-casa-gal-toggle]');
+            var caps = captions(cap);
+            if (cur) cur.textContent = String(i + 1);
+            if (text) { text.textContent = caps[i] || ''; text.hidden = !caps[i]; }
+            if (toggle) toggle.hidden = i !== parseInt(cap.dataset.casaGalToggleIndex, 10);
+          }
+          document.addEventListener('slideshow:select', function (e) {
+            if (e.target.closest && e.target.closest('dialog')) return;
+            var d = e.detail || {};
+            if (typeof d.index !== 'number') return;
+            var ctx = capFor(e.target);
+            if (ctx && ctx.cap) setIndex(ctx.cap, d.index);
+          });
+          document.addEventListener('click', function (e) {
+            var btn = e.target.closest && e.target.closest('[data-casa-gal-state]');
+            if (!btn) return;
+            var ctx = capFor(btn);
+            if (!ctx) return;
+            var off = btn.dataset.casaGalState === 'off';
+            var slide = ctx.gallery.querySelector('slideshow-slide[data-casa-gal-toggle-slide]');
+            if (slide) slide.toggleAttribute('data-casa-off', off);
+            ctx.cap.querySelectorAll('[data-casa-gal-state]').forEach(function (b) {
+              b.setAttribute('aria-pressed', String((b.dataset.casaGalState === 'off') === off));
+            });
+            document.dispatchEvent(new CustomEvent('casa:gallery:toggle', { bubbles: true, detail: { state: off ? 'off' : 'on' } }));
+          });
+        })();
+      </script>
+    {%- endif -%}
+
+    {% if media_presentation == 'grid' %}
+      <ul
+        class="media-gallery__grid list-unstyled"
+        data-testid="media-gallery-grid"
+      >
+        {% for media in sorted_media %}
+          <li
+            ref="media[]"
+            class="{{ product_media_container_class }} product-media-container--{{ media.media_type }}"
+            style="{% if block_settings.aspect_ratio == 'adapt' %} --media-preview-ratio: {{ media.preview_image.aspect_ratio | default: 1.0 }};{% endif %}"
+            {% if settings.transition_to_main_product and forloop.first %}
+              data-view-transition-type="product-image-transition"
+            {% endif %}
+            {% if media.presentation.focal_point != blank %}
+              data-focal-point="{{ media.presentation.focal_point }}"
+            {% endif %}
+          >
+            {%- if block_settings.zoom and media.media_type == 'image' -%}
+              <button
+                type="button"
+                class="button button-unstyled product-media-container__zoom-button"
+                aria-label="{{ 'actions.zoom' | t }}"
+                on:click="/zoom/{{ forloop.index0 }}"
+                {% if block_settings.zoom %}
+                  on:pointerenter="/preloadImage/{{ forloop.index0 }}"
+                {% endif %}
+              >
+                <span class="visually-hidden">{{ 'actions.open_image_in_full_screen' | t }}</span>
+              </button>
+            {%- endif -%}
+            {%- liquid
+              if needs_both_sizes and forloop.first
+                assign media_sizes = sizes_single
+              else
+                assign media_sizes = sizes
+              endif
+            -%}
+            {% if block_settings.aspect_ratio != 'adapt' and block_settings.constrain_to_viewport %}
+              <div class="product-media-constraint-wrapper">
+                {%- render 'product-media', media: media, sizes: media_sizes, is_main_product_media: forloop.first -%}
+              </div>
+            {% else %}
+              {%- render 'product-media', media: media, sizes: media_sizes, is_main_product_media: forloop.first -%}
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {%- if block_settings.zoom -%}
+      <zoom-dialog
+        ref="zoomDialogComponent"
+        id="zoom-dialog-{{ block_id }}"
+      >
+        <dialog
+          class="dialog-zoomed-gallery__dialog"
+          ref="dialog"
+          on:keydown="/handleKeyDown"
+          scroll-lock
+        >
+          <button
+            type="button"
+            class="button button-unstyled close-button dialog-zoomed-gallery__close-button"
+            aria-label="{{ 'actions.close' | t }}"
+            on:click="/close"
+          >
+            <span class="visually-hidden">{{ 'actions.close' | t }}</span>
+            {{ 'icon-close.svg' | inline_asset_content }}
+          </button>
+          {%- comment -%}
+            Desktop prev/next controls for the enlarged slideshow. The
+            gallery is a horizontal left/right slideshow on desktop (the
+            layout mobile already ships); a mouse can't swipe, so these
+            arrows are the desktop nav. CSS hides them ≤749px (touch swipe)
+            and when there's only one image. `on:click` maps to the
+            ZoomDialog component's next()/previous() (assets/zoom-dialog.js).
+          {%- endcomment -%}
+          {%- if sorted_media.size > 1 -%}
+            <button
+              type="button"
+              class="button button-unstyled dialog-zoomed-gallery__nav dialog-zoomed-gallery__nav--prev"
+              aria-label="{{ 'accessibility.slideshow_previous' | t }}"
+              on:click="/previous"
+            >
+              {{ 'icon-chevron-left.svg' | inline_asset_content }}
+            </button>
+            <button
+              type="button"
+              class="button button-unstyled dialog-zoomed-gallery__nav dialog-zoomed-gallery__nav--next"
+              aria-label="{{ 'accessibility.slideshow_next' | t }}"
+              on:click="/next"
+            >
+              {{ 'icon-chevron-right.svg' | inline_asset_content }}
+            </button>
+          {%- endif -%}
+          <div class="dialog-thumbnails-list-container">
+            <scroll-hint
+              class="dialog-thumbnails-list list-unstyled"
+              ref="thumbnails"
+            >
+              {% if sorted_media.size > 1 %}
+                {%- for media in sorted_media -%}
+                  {% liquid
+                    assign aspect_ratio = block_settings.aspect_ratio
+                    if block_settings.aspect_ratio == 'adapt'
+                      assign aspect_ratio = media.preview_image.aspect_ratio | default: 1.0
+                    endif
+                  %}
+                  <button
+                    type="button"
+                    class="button button-unstyled dialog-thumbnails-list__thumbnail"
+                    aria-label="{{ 'accessibility.scroll_to' | t: title: media.alt | default: media.media_type }}"
+                    on:click="/handleThumbnailClick/{{ forloop.index0 }}"
+                    on:pointerenter="/handleThumbnailPointerEnter/{{ forloop.index0 }}"
+                    style="--aspect-ratio: {{ aspect_ratio }}; --gallery-aspect-ratio: {{ aspect_ratio }};"
+                    {% if forloop.first %}
+                      aria-selected="true"
+                    {% endif %}
+                  >
+                    {% liquid
+                      assign focal_point_style = ''
+                      if media.presentation.focal_point != blank
+                        assign focal_point_style = 'object-position: ' | append: media.presentation.focal_point | append: ';'
+                      endif
+                    %}
+                    {{
+                      media.preview_image
+                      | image_url: width: 1024
+                      | image_tag:
+                        loading: 'lazy',
+                        sizes: 'auto, 110, (min-width: 750px) 160',
+                        widths: '240, 352, 832, 1200',
+                        alt: media.alt,
+                        style: focal_point_style
+                      | escape
+                    }}
+                  </button>
+                {%- endfor -%}
+              {% endif %}
+            </scroll-hint>
+          </div>
+          <ul
+            class="dialog-zoomed-gallery list-unstyled"
+          >
+            {%- for media in sorted_media -%}
+              <li
+                id="product-{{ media.id}}-{{ forloop.index }}"
+                class="{{ product_media_container_class | remove: 'media-fit-cover' }} product-media-container--{{ media.media_type }}{% if media.media_type == 'image' %} product-media-container--zoomable{% endif %}"
+                style="{% if block_settings.aspect_ratio == 'adapt' %} --media-preview-ratio: {{ media.preview_image.aspect_ratio | default: 1.0 }};{% endif %}"
+                ref="media[]"
+                {% if media.media_type == 'image' %}
+                  on:click="/close"
+                {% endif %}
+              >
+                {% if media.media_type == 'image' %}
+                  <drag-zoom-wrapper class="product-media__drag-zoom-wrapper">
+                    {%- render 'product-media',
+                      media: media,
+                      sizes: '100vw',
+                      loading: 'lazy',
+                      is_main_product_media: forloop.first
+                    -%}
+                  </drag-zoom-wrapper>
+                {% else %}
+                  {%- render 'product-media',
+                    media: media,
+                    sizes: '100vw',
+                    loading: 'lazy',
+                    is_main_product_media: forloop.first
+                  -%}
+                {% endif %}
+              </li>
+            {%- endfor -%}
+          </ul>
+        </dialog>
+      </zoom-dialog>
+    {%- endif -%}
+
+    {%- if first_3d_model -%}
+      <link
+        id="ModelViewerStyle"
+        rel="stylesheet"
+        href="https://cdn.shopify.com/shopifycloud/model-viewer-ui/assets/v1.0/model-viewer-ui.css"
+        media="print"
+        onload="this.media='all'"
+      >
+      <script>
+        window.ProductModel = {
+          loadShopifyXR() {
+            Shopify.loadFeatures([
+              {
+                name: 'shopify-xr',
+                version: '1.0',
+                onLoad: this.setupShopifyXR.bind(this),
+              },
+            ]);
+          },
+
+          setupShopifyXR(errors) {
+            if (errors) return;
+
+            if (!window.ShopifyXR) {
+              document.addEventListener('shopify_xr_initialized', () => this.setupShopifyXR());
+              return;
+            }
+
+            document.querySelectorAll('[id^="ProductModelJSON-"]').forEach((modelJSON) => {
+              window.ShopifyXR.addModels(JSON.parse(modelJSON.textContent));
+              modelJSON.remove();
+            });
+            window.ShopifyXR.setupXRElements();
+          },
+        };
+
+        window.ProductModel.loadShopifyXR();
+      </script>
+    {%- endif -%}
+  </media-gallery>
+{% endif %}
+
+{% stylesheet %}
+  .dialog-zoomed-gallery__dialog {
+    background-color: var(--color-background);
+  }
+
+  .dialog-zoomed-gallery {
+    cursor: zoom-out;
+  }
+
+  .dialog--preloading {
+    opacity: 0;
+  }
+
+  .product-media__drag-zoom-wrapper {
+    aspect-ratio: inherit;
+    min-height: inherit;
+    min-width: inherit;
+    display: inherit;
+    flex: inherit;
+  }
+
+  @media screen and (max-width: 749px) {
+    .dialog-zoomed-gallery {
+      /* Swipe left/right to page between images. Stock shipped this as
+         `overflow-x: hidden` ("prevent scroll wheel or swipe scrolling"),
+         which left the bottom thumbnail rail as the only way to move
+         between slides on a phone — the merchant expected to swipe and
+         couldn't (iPhone, 2026-08-13). `auto` restores native scroll-snap
+         paging; the scrollbar stays hidden below. Panning a zoomed-in
+         image still wins, because drag-zoom-wrapper.js only claims the
+         touch (preventDefault) while scale > 1. */
+      overscroll-behavior: none;
+      scrollbar-width: none;
+      display: flex;
+      scroll-snap-type: x mandatory;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      height: 100%;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+
+    .dialog-zoomed-gallery .product-media-container {
+      flex: 0 0 100%;
+      scroll-snap-align: start;
+      position: relative;
+    }
+
+    .dialog-zoomed-gallery .product-media-container--image .product-media {
+      aspect-ratio: auto;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .dialog-zoomed-gallery .product-media-container--video,
+    .dialog-zoomed-gallery .product-media-container--external_video {
+      align-content: center;
+    }
+
+    .dialog-zoomed-gallery
+      :is(.product-media-container--video, .product-media-container--external_video, .product-media-container--model)
+      .product-media {
+      aspect-ratio: auto;
+      align-items: center;
+      height: 100%;
+
+      .product-media__image {
+        height: 100%;
+      }
+    }
+
+    .product-media__drag-zoom-wrapper {
+      display: flex;
+      aspect-ratio: auto;
+      height: 100%;
+      width: 100%;
+      overflow: scroll;
+      scrollbar-width: none;
+      justify-content: center;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+
+    .product-media__drag-zoom-wrapper .product-media__image {
+      --product-media-fit: contain;
+
+      object-fit: var(--product-media-fit);
+      overflow: hidden;
+      transform: scale(var(--drag-zoom-scale))
+        translate(var(--drag-zoom-translate-x, 0), var(--drag-zoom-translate-y, 0));
+    }
+
+    .media-gallery--hint {
+      --slideshow-gap: var(--gap-2xs);
+
+      :not(.dialog-zoomed-gallery) > .product-media-container:not(:only-child) {
+        width: 90%;
+
+        .product-media img {
+          object-fit: cover;
+        }
+      }
+    }
+  }
+
+  /* ── Desktop: enlarged view is a horizontal left/right slideshow ──────
+     Horizon ships the desktop zoom as a VERTICAL scroll; the merchant
+     wants the same horizontal slideshow desktop that mobile already has
+     (2026-08-12, "a true click to enlarge slideshow where we can move
+     left right"). This promotes the mobile scroll-snap-x layout to
+     desktop. Navigation is the ‹ › controls / arrow keys, both routed
+     through the theme's own selectThumbnail() (zoom-dialog.js), so the
+     scroll mechanics are unchanged — this is layout only. The thumbnail
+     rail is position:fixed on the right (base.css) and floats over the
+     full-width panel, exactly as before. */
+  @media screen and (min-width: 750px) {
+    .dialog-zoomed-gallery {
+      display: flex;
+      flex-direction: row;
+      height: 100%;
+      /* auto (not hidden) makes the <ul> the unambiguous horizontal scroll
+         container, so the theme's scrollIntoView pages it horizontally on
+         open instead of walking up to the <dialog>. Scrollbar hidden below. */
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      overscroll-behavior: none;
+      scrollbar-width: none;
+    }
+
+    .dialog-zoomed-gallery::-webkit-scrollbar {
+      display: none;
+    }
+
+    .dialog-zoomed-gallery > .product-media-container {
+      flex: 0 0 100%;
+      scroll-snap-align: start;
+      height: 100%;
+      /* Center the fitted media in the panel (letterbox space is even). */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Fit the WHOLE product inside the window. Stock desktop zoom sizes the
+       image by width × aspect-ratio (e.g. 1512×1512 for a 1:1 product on a
+       1512-wide panel), which overflows a wide-short viewport (820px tall) —
+       "you can't see the product within the window" (merchant, 2026-08-12).
+       The stock design intends that overflow for pan-to-magnify; in
+       slideshow mode the panel must contain the image instead. Constrain
+       both the media box and the drag-zoom wrapper to the panel so
+       object-fit: contain letterboxes the product whole. The drag-zoom
+       transform still scales on top for magnify. */
+    .dialog-zoomed-gallery > .product-media-container--image .product-media,
+    .dialog-zoomed-gallery > .product-media-container--image .product-media__drag-zoom-wrapper {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      aspect-ratio: auto;
+    }
+
+    .dialog-zoomed-gallery > .product-media-container--image .product-media__image {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    /* Video panels — same fit. Stock zoom uses object-fit: cover (crops)
+       and sizes the deferred-media by aspect-ratio, so a 1:1 video rendered
+       1512×1512 object-fit:cover: zoomed in AND clipped top/bottom in the
+       820px window ("the video is so zoomed in", merchant 2026-08-12).
+       Contain it to the panel so the whole video is visible. */
+    .dialog-zoomed-gallery > .product-media-container--video .product-media,
+    .dialog-zoomed-gallery > .product-media-container--video deferred-media {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      aspect-ratio: auto;
+    }
+
+    /* The extra `.product-media` in the chain is load-bearing: a stock rule
+       sets the video to object-fit: cover, and only this deeper selector
+       out-specifies it to contain (verified — the shorter form lost). */
+    .dialog-zoomed-gallery > .product-media-container--video .product-media video {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .dialog-zoomed-gallery__nav {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: var(--layer-raised);
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(10, 10, 15, 0.55);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .dialog-zoomed-gallery__nav:hover {
+      background: rgba(10, 10, 15, 0.78);
+    }
+
+    .dialog-zoomed-gallery__nav--prev {
+      left: clamp(12px, 2vw, 32px);
+    }
+
+    /* Right offset clears the fixed thumbnail rail (base.css puts it at the
+       right edge, vertically centred). Tuned to a mirror PDP's rail width. */
+    .dialog-zoomed-gallery__nav--next {
+      right: clamp(96px, 11vw, 168px);
+    }
+
+    .dialog-zoomed-gallery__nav svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  /* Mobile keeps the native touch swipe — no on-screen arrows. */
+  @media screen and (max-width: 749px) {
+    .dialog-zoomed-gallery__nav {
+      display: none;
+    }
+  }
+
+  /* Video play affordance (all viewports). Shown only while a zoom video is
+     PAUSED — i.e. when autoplay was blocked (Safari Low Power Mode, strict
+     autoplay). Clicking it is a user gesture, so it plays reliably where
+     autoplay can't. zoom-dialog.js creates the button and toggles
+     .is-video-paused on the panel from the real play/pause state. */
+  .dialog-zoomed-gallery > .product-media-container--video {
+    position: relative;
+  }
+
+  .dialog-zoomed-gallery__play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: var(--layer-raised);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    padding-left: 4px;
+    border-radius: 50%;
+    background: rgba(10, 10, 15, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .dialog-zoomed-gallery__play:hover {
+    background: rgba(10, 10, 15, 0.78);
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+
+  .product-media-container--video.is-video-paused .dialog-zoomed-gallery__play {
+    display: flex;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dialog-zoomed-gallery {
+      scroll-behavior: auto;
+    }
+  }
+
+  .dialog-zoomed-gallery__close-button {
+    color: #fff;
+    mix-blend-mode: difference;
+    z-index: var(--layer-raised);
+  }
+
+  .media-gallery__mobile-controls {
+    grid-area: auto;
+  }
+
+  /* Mobile thumbnails styling */
+  @media screen and (max-width: 749px) {
+    .media-gallery__mobile-controls[thumbnails] {
+      --thumbnail-width: 44px;
+    }
+
+    .media-gallery__mobile-controls[thumbnails] .slideshow-controls__thumbnail {
+      width: var(--thumbnail-width);
+      height: auto;
+    }
+  }
+
+  .dialog-zoomed-gallery .product-media-container--zoomable.product-media-container--image {
+    cursor: zoom-out;
+  }
+
+  .product-media-container--zoomable.product-media-container--image {
+    cursor: zoom-in;
+  }
+
+  .dialog-zoomed-gallery .product-media-container--video deferred-media,
+  .dialog-zoomed-gallery .product-media-container--external_video deferred-media {
+    height: auto;
+    aspect-ratio: var(--ratio);
+  }
+
+  .dialog-zoomed-gallery .product-media-container--model .product-media__image {
+    /* Make the height match the height of the model-viewer */
+    height: 100vh;
+  }
+
+  .dialog-zoomed-gallery__dialog {
+    view-transition-name: zoom-dialog-ui;
+  }
+
+  :root:active-view-transition .dialog-zoomed-gallery__dialog {
+    background-color: transparent;
+  }
+
+  ::view-transition-group(zoom-dialog-ui) {
+    z-index: calc(var(--layer-overlay) + 1);
+  }
+
+  ::view-transition-old(gallery-item-open),
+  ::view-transition-new(gallery-item-open) {
+    animation-timing-function: step-start;
+  }
+
+  ::view-transition-old(gallery-item-close),
+  ::view-transition-new(gallery-item-close) {
+    animation-timing-function: step-end;
+  }
+
+  @media screen and (min-width: 749px) {
+    :root:active-view-transition .product-media__image {
+      background-color: transparent;
+    }
+  }
+
+  ::view-transition-group(gallery-item-open),
+  ::view-transition-group(gallery-item-close) {
+    z-index: var(--layer-overlay);
+    border-radius: var(--gallery-media-border-radius);
+    overflow: clip;
+  }
+
+  ::view-transition-group(gallery-item-open) {
+    animation-timing-function: var(--spring-d300-b0-easing);
+    animation-duration: var(--spring-d300-b0-duration);
+  }
+
+  ::view-transition-group(gallery-item-close) {
+    animation-timing-function: var(--spring-d220-b0-easing);
+    animation-duration: var(--spring-d220-b0-duration);
+  }
+
+  @media screen and (max-width: 749px) {
+    ::view-transition-group(gallery-item-open),
+    ::view-transition-group(gallery-item-close) {
+      animation-timing-function: step-start;
+      animation-duration: 0.1s;
+    }
+
+    ::view-transition-new(gallery-item-open) {
+      animation: fade-in var(--spring-d180-b0-duration) var(--spring-d180-b0-easing) forwards;
+      animation-timing-function: var(--spring-d180-b0-easing);
+      animation-duration: var(--spring-d180-b0-duration);
+    }
+
+    ::view-transition-old(gallery-item-close) {
+      animation: fade-out 0.08s linear forwards;
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      scale: 0.98;
+      opacity: 0.8;
+    }
+  }
+
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+{% endstylesheet %}

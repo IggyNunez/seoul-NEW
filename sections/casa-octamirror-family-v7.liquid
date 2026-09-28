@@ -1,0 +1,251 @@
+<section class="casa-v7-family" aria-labelledby="casa-v7-family-title-{{ section.id }}">
+  <div class="casa-v7-family__inner">
+    <div class="casa-v7-family__intro">
+      <span>{{ section.settings.eyebrow }}</span>
+      <h2 id="casa-v7-family-title-{{ section.id }}">{{ section.settings.heading }}</h2>
+      <p>{{ section.settings.lede }}</p>
+    </div>
+
+    <nav class="casa-v7-family__rail" aria-label="{{ section.settings.nav_label | escape }}">
+      {% for block in section.blocks %}
+        {% liquid
+          assign family_product = block.settings.product
+          assign family_image = block.settings.image
+          assign family_is_current = false
+          assign family_href = family_product.url
+
+          if family_image == blank and family_product != blank
+            assign family_image = family_product.featured_image
+          endif
+
+          if family_product != blank and family_product.handle == product.handle
+            assign family_is_current = true
+            assign family_href = ''
+          endif
+
+          assign family_alt = family_image.alt
+          if family_alt == blank
+            assign family_alt = block.settings.name | append: ' infinity mirror illuminated in a room'
+          endif
+        %}
+        {% capture family_card %}
+          <span class="casa-v7-family__visual">
+            {% if family_image != blank %}
+              {{ family_image
+                | image_url: width: 720
+                | image_tag:
+                  class: 'casa-v7-family__image',
+                  loading: 'lazy',
+                  widths: '240, 360, 480, 600, 720',
+                  sizes: '(max-width: 600px) 78vw, (max-width: 899px) 190px, 20vw',
+                  alt: family_alt
+              }}
+            {% else %}
+              <span class="casa-v7-family__placeholder">{{ block.settings.name }}</span>
+            {% endif %}
+            {% if family_is_current %}<span class="casa-v7-family__current">{{ section.settings.current_label }}</span>{% endif %}
+          </span>
+          <span class="casa-v7-family__meta">
+            <small>{{ block.settings.kicker }}</small>
+            <strong>{{ block.settings.name }}</strong>
+            {% unless family_is_current or family_href == blank %}<em>{{ section.settings.link_label }} →</em>{% endunless %}
+          </span>
+        {% endcapture %}
+        {% if family_is_current or family_href == blank %}
+          <div class="casa-v7-family__card{% if family_is_current %} is-current{% endif %}"{% if family_is_current %} aria-current="page"{% endif %} {{ block.shopify_attributes }}>{{ family_card }}</div>
+        {% else %}
+          <a href="{{ family_href }}" class="casa-v7-family__card" {{ block.shopify_attributes }}>{{ family_card }}</a>
+        {% endif %}
+      {% endfor %}
+    </nav>
+  </div>
+</section>
+
+{% stylesheet %}
+  .casa-v7-family {
+    --family-purple: #9333ea;
+    --family-pink: #ec4899;
+    --family-cyan: #06b6d4;
+    color: #fff;
+    background: #09090f;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .casa-v7-family__inner {
+    width: min(100% - 32px, 1440px);
+    margin-inline: auto;
+    padding-block: clamp(64px, 9vw, 118px);
+  }
+
+  .casa-v7-family__intro {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.65fr) minmax(0, 1.35fr);
+    gap: clamp(28px, 7vw, 112px);
+    align-items: end;
+    margin-bottom: clamp(34px, 5vw, 58px);
+  }
+
+  .casa-v7-family__intro > span {
+    color: var(--family-purple);
+    font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-family__intro h2 {
+    grid-column: 2;
+    margin: 0;
+    font-size: clamp(42px, 6vw, 82px);
+    font-weight: 440;
+    line-height: 0.96;
+    letter-spacing: -0.055em;
+    text-wrap: balance;
+  }
+
+  .casa-v7-family__intro h2 em {
+    color: var(--family-purple);
+    font-style: italic;
+  }
+
+  .casa-v7-family__intro p {
+    max-width: 58ch;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  .casa-v7-family__rail {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .casa-v7-family__card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 18px;
+    color: #fff;
+    background: #111117;
+    text-decoration: none;
+    transition: transform 180ms ease, border-color 180ms ease;
+  }
+
+  .casa-v7-family__card:hover { transform: translateY(-4px); border-color: rgba(255, 255, 255, 0.48); }
+  .casa-v7-family__card:focus-visible { outline: 3px solid var(--family-cyan); outline-offset: 3px; }
+  .casa-v7-family__card.is-current { border-color: var(--family-purple); background: linear-gradient(180deg, rgba(176, 195, 250, 0.2), #111117); }
+
+  .casa-v7-family__visual {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    background: #07070b;
+  }
+
+  .casa-v7-family__visual::after {
+    position: absolute;
+    inset: auto 0 0;
+    height: 42%;
+    background: linear-gradient(transparent, rgba(9, 9, 15, 0.72));
+    content: '';
+    pointer-events: none;
+  }
+
+  .casa-v7-family__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 260ms ease, opacity 180ms ease;
+  }
+
+  .casa-v7-family__card:hover .casa-v7-family__image { transform: scale(1.025); }
+  .casa-v7-family__card:not(.is-current) .casa-v7-family__image { opacity: 0.78; }
+  .casa-v7-family__card:not(.is-current):hover .casa-v7-family__image { opacity: 1; }
+
+  .casa-v7-family__current {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 2;
+    padding: 6px 9px;
+    border-radius: 999px;
+    color: #fff;
+    background: var(--family-purple);
+    font: 800 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-family__placeholder { display: grid; place-items: center; height: 100%; color: rgba(255,255,255,.58); }
+
+  .casa-v7-family__meta {
+    display: grid;
+    gap: 7px;
+    padding: 16px;
+  }
+
+  .casa-v7-family__card small,
+  .casa-v7-family__card em {
+    color: rgba(255, 255, 255, 0.48);
+    font: 700 9px/1.25 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-family__card strong { font-size: 16px; line-height: 1.15; }
+  .casa-v7-family__card em { color: var(--family-cyan); font-style: normal; }
+
+  @media (max-width: 899px) {
+    .casa-v7-family__intro { grid-template-columns: 1fr; gap: 16px; }
+    .casa-v7-family__intro h2 { grid-column: auto; }
+    .casa-v7-family__rail {
+      display: flex;
+      gap: 10px;
+      margin-inline: -16px;
+      padding: 0 16px 12px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: thin;
+    }
+    .casa-v7-family__card { flex: 0 0 min(78vw, 300px); scroll-snap-align: start; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .casa-v7-family__card,
+    .casa-v7-family__image { transition: none; }
+    .casa-v7-family__card:hover,
+    .casa-v7-family__card:hover .casa-v7-family__image { transform: none; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "OctaMirror V7 family",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "Infinity mirror specialists since 2020" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "Choose the shape that <em>owns your wall.</em>" },
+    { "type": "textarea", "id": "lede", "label": "Introduction", "default": "Five real mirrors, one shared infinity-light system. Compare each silhouette after you have explored the OctaMirror." },
+    { "type": "text", "id": "nav_label", "label": "Navigation label", "default": "Shop the Infinity Mirror family" },
+    { "type": "text", "id": "link_label", "label": "Product link label", "default": "View mirror" },
+    { "type": "text", "id": "current_label", "label": "Current product label", "default": "Viewing now" },
+    { "type": "text", "id": "current_cta", "label": "Current product action", "default": "Choose your size" }
+  ],
+  "blocks": [
+    {
+      "type": "family_product",
+      "name": "Infinity mirror product",
+      "limit": 5,
+      "settings": [
+        { "type": "product", "id": "product", "label": "Product" },
+        { "type": "image_picker", "id": "image", "label": "Card image" },
+        { "type": "text", "id": "kicker", "label": "Shape description", "default": "Distinct silhouette" },
+        { "type": "text", "id": "name", "label": "Display name", "default": "Infinity Mirror" }
+      ]
+    }
+  ],
+  "presets": [{ "name": "OctaMirror V7 family" }]
+}
+{% endschema %}

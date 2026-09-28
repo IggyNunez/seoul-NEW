@@ -69,15 +69,34 @@
     </div>
   {% endif %}
 
-  {%- if selected_variant != blank and block_settings.show_installments -%}
-    <div class="installments">
-      {%- assign product_form_installment_id = 'product-form-installment-' | append: block.id -%}
-      {%- form 'product', product_resource, id: product_form_installment_id, class: 'payment-terms' -%}
-        <input
-          type="hidden"
-          name="id"
-          value="{{ selected_variant.id }}"
-        >
+  {%- comment -%}
+    Real Shop Pay Installments badge — uses Shopify's payment_terms
+    filter inside a product form (id is required for the
+    shopify-payment-terms web component to bind). Same pattern as
+    Horizon's native blocks/price.liquid.
+  {%- endcomment -%}
+  {%- comment -%}
+    Installments render ONLY on the PDP buy-box price block — the
+    one place a shopper has committed to a variant and the BNPL
+    eligibility signal is accurate. Every product-card surface
+    (collection grids, search results, megamenu features, PDP
+    "you may also like" rails, predictive-search) is OFF, regardless
+    of the per-block setting or the global card_show_installment
+    toggle. Casa's snippets/casa-product-card.liquid is locked
+    likewise. The cart-summary path renders installments above the
+    checkout button via its own snippet and is unaffected.
+
+    Discriminator: on the PDP buy-box, the block's product_resource
+    is the same product as the page's `product` global. Inside a
+    Horizon `_product-card` block (used for related products on a
+    PDP, or for any grid surface), product_resource is the card's
+    product, not the page's — those cases fail the equality check.
+  {%- endcomment -%}
+  {%- if block_settings.show_installments and settings.card_show_installment and selected_variant != blank and selected_variant.price > 0 and template.name == 'product' and product.id != blank and product_resource.id == product.id -%}
+    {%- assign casa_installment_form_id = 'casa-price-installment-' | append: block.id -%}
+    <div class="casa-installments">
+      {%- form 'product', product_resource, id: casa_installment_form_id, class: 'casa-installments__form' -%}
+        <input type="hidden" name="id" value="{{ selected_variant.id }}">
         {{ form | payment_terms }}
       {%- endform -%}
     </div>
@@ -90,14 +109,28 @@
     display: none;
   }
 
-  form.payment-terms {
-    padding-top: 0.5em;
-    font-size: min(0.85em, var(--font-paragraph--size));
-    font-weight: var(--font-paragraph--weight);
-    color: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text));
+  product-price .casa-installments,
+  .casa-installments {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: 400;
+    color: #6b7280;
+    line-height: 1.5;
+    font-family: var(--font-body--family);
   }
-
-  .installments:not(:has(shopify-payment-terms)) {
+  .casa-installments__form {
+    margin: 0;
+  }
+  .casa-installments shopify-payment-terms {
+    --shopify-payment-terms-color: #6b7280;
+    font-size: 13px;
+    line-height: 1.5;
+    display: block;
+  }
+  /* Collapse when the variant isn't eligible (no shopify-payment-terms
+     element rendered by Shopify) */
+  .casa-installments:not(:has(shopify-payment-terms)) {
     display: none;
   }
 
@@ -138,7 +171,9 @@
       "type": "checkbox",
       "id": "show_installments",
       "label": "t:settings.installments",
-      "default": false
+      "info": "Locked OFF on product-card surfaces (per merchant rule 2026-05-16: BNPL appears only on PDP buy-box + cart). Setting kept in schema for compatibility with serialized template JSON but hidden from the editor.",
+      "default": false,
+      "visible_if": "{{ false }}"
     },
     {
       "type": "checkbox",

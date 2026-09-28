@@ -3,6 +3,11 @@
   Single quote per section instance. Add multiple sections for multiple quotes.
 {% endcomment %}
 
+{%- comment -%} Auto-hide when no quote text exists {%- endcomment -%}
+{%- if section.settings.quote_text == blank and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
 {%- liquid
   assign bg_style     = section.settings.bg_style
   assign bg_color     = section.settings.bg_color
@@ -53,7 +58,7 @@
           <defs>
             <linearGradient id="clbq-grad-{{ section.id }}" x1="0" y1="0" x2="72" y2="60" gradientUnits="userSpaceOnUse">
               <stop stop-color="{{ accent }}"/>
-              <stop offset="1" stop-color="#ec4899"/>
+              <stop offset="1" stop-color="#5E0A02"/>
             </linearGradient>
           </defs>
         </svg>
@@ -80,7 +85,12 @@
       <div class="casa-lb-quote__author">
         {%- if author_image != blank -%}
           <div class="casa-lb-quote__author-photo">
-            {{ author_image | image_url: width: 120 | image_tag: loading: 'lazy', class: 'casa-lb-quote__author-img' }}
+            {%- comment -%}
+              sizes: .casa-lb-quote__author-photo is a fixed 52×52 circle
+              the img fills; sizes-less srcset would default the slot to
+              100vw — see snippets/casa-cart-items.liquid.
+            {%- endcomment -%}
+            {{ author_image | image_url: width: 120 | image_tag: loading: 'lazy', class: 'casa-lb-quote__author-img', sizes: '52px' }}
           </div>
         {%- endif -%}
 
@@ -104,7 +114,7 @@
 <style>
   /* ===== Casa Lookbook Quote ===== */
   .casa-lb-quote {
-    position: relative;
+  position: relative;
     overflow: hidden;
     padding-top: var(--clbq-pt);
     padding-bottom: var(--clbq-pb);
@@ -167,8 +177,8 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
     padding: 48px 40px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   /* ---- Decorative quotation mark ---- */
@@ -201,7 +211,7 @@
     width: 80px;
     height: 3px;
     border-radius: 3px;
-    background: linear-gradient(90deg, var(--clbq-accent), #ec4899);
+    background: linear-gradient(90deg, var(--clbq-accent), #5E0A02);
     flex-shrink: 0;
   }
   .casa-lb-quote__inner--center .casa-lb-quote__deco-line {
@@ -300,7 +310,7 @@
   "tag": "section",
   "class": "casa-lb-quote-section",
   "limit": 2,
-  "templates": ["page"],
+  "enabled_on": { "templates": ["page"] },
   "settings": [
     {
       "type": "header",
@@ -357,7 +367,7 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background color",
-      "default": "#09090b"
+      "default": "#0A0A0F"
     },
     {
       "type": "image_picker",
@@ -382,13 +392,13 @@
       "type": "color",
       "id": "text_color",
       "label": "Text color",
-      "default": "#fafafa"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
       "id": "accent_color",
       "label": "Accent color",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "select",
@@ -460,7 +470,7 @@
         "bg_style": "solid",
         "bg_color": "#09090b",
         "text_color": "#fafafa",
-        "accent_color": "#9333ea",
+        "accent_color": "#B0C3FA",
         "quote_size": "large",
         "text_align": "center",
         "show_decorative_line": true,

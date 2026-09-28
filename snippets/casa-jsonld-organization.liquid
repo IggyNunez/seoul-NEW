@@ -1,0 +1,63 @@
+{%- doc -%}
+  Renders Organization JSON-LD on the homepage only.
+  Replaces the bare-bones one in sections/header.liquid (which still
+  fires on every page; that's fine, but we want a richer one once
+  per site too).
+
+  Pulls sameAs URLs from the Casa SEO theme settings panel. Pulls
+  description from theme settings, falling back to shop.description.
+{%- enddoc -%}
+
+{%- if request.page_type == 'index' -%}
+  {%- liquid
+    assign _description = settings.casa_seo_brand_description | default: shop.description | default: shop.name
+    assign _logo_url = ''
+    if settings.logo
+      assign _logo_url = settings.logo | image_url: width: 500 | prepend: 'https:'
+    endif
+
+    # Build sameAs array from any populated social settings
+    assign _social_keys = 'facebook,instagram,twitter,youtube,tiktok,pinterest,linkedin' | split: ','
+    assign _same_as = ''
+    for _k in _social_keys
+      assign _setting_id = 'casa_seo_social_' | append: _k
+      assign _val = settings[_setting_id]
+      if _val != blank
+        assign _val_json = _val | json
+        if _same_as == ''
+          assign _same_as = _val_json
+        else
+          assign _same_as = _same_as | append: ',' | append: _val_json
+        endif
+      endif
+    endfor
+  -%}
+
+<script type="application/ld+json">{
+"@context":"https://schema.org",
+"@type":"Organization",
+"name":{{ shop.name | json }},
+"url":{{ request.origin | json }}
+{%- if _logo_url != '' -%}
+,"logo":{{ _logo_url | json }}
+{%- endif -%}
+{%- if _description != blank -%}
+,"description":{{ _description | strip_html | json }}
+{%- endif -%}
+{%- if _same_as != '' -%}
+,"sameAs":[{{ _same_as }}]
+{%- endif -%}
+{%- if settings.casa_seo_contact_phone != blank or settings.casa_seo_contact_email != blank -%}
+,"contactPoint":{
+"@type":"ContactPoint",
+"contactType":"customer service"
+{%- if settings.casa_seo_contact_phone != blank -%}
+,"telephone":{{ settings.casa_seo_contact_phone | json }}
+{%- endif -%}
+{%- if settings.casa_seo_contact_email != blank -%}
+,"email":{{ settings.casa_seo_contact_email | json }}
+{%- endif -%}
+}
+{%- endif -%}
+}</script>
+{%- endif -%}

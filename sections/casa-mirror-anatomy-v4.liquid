@@ -1,0 +1,214 @@
+{%- comment -%}
+  casa-mirror-anatomy-v4.liquid
+  Seoul Glow Lab — Chapter 04 "Infinity explained" (OctaMirror v4 PDP)
+
+  A minimal optical explanation: one cross-section (you · part-mirror front
+  · LED ring · full mirror behind · the frame's real depth) and one front
+  view where the same ring recedes as reflections. Four short lines carry
+  the words. No sticky scroll, no counters, no dashed animation — a single
+  one-time reveal when the diagram enters the viewport, then it stays.
+  Ends on a real close-up so the drawing is checked against the object.
+
+  Physics as drawn, generic to the category: a partly reflective front
+  pane, an inward-facing LED ring inside the frame, a fully reflective
+  back. Light bounces between the two; a little escapes through the front
+  on every pass, so each ring you see is one round trip deeper and dimmer.
+  The only number is the frame depth, from product data (depth_label).
+
+  Used by: templates/product.infinity-octamirror-v4.json
+  Blocks:  none (four fixed lines)
+  Settings: kicker, heading, lede, line_N (1..4), depth_label, front_label,
+            back_label, led_label, you_label, photo, photo_alt, photo_caption,
+            padding.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign uid = section.id
+-%}
+
+<section
+  id="casa-ma-{{ uid }}"
+  class="casa-ma"
+  data-casa-section="anatomy"
+  style="--casa-ma-pt: {{ s.padding_top | default: 72 }}px; --casa-ma-pb: {{ s.padding_bottom | default: 64 }}px;"
+>
+  <div class="casa-ma__cap">
+    <header class="casa-ma__head">
+      {%- if s.kicker != blank -%}<p class="casa-ma__mono">{{ s.kicker | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="casa-ma__h2">{{ s.heading }}</h2>{%- endif -%}
+      {%- if s.lede != blank -%}<p class="casa-ma__lede">{{ s.lede | escape }}</p>{%- endif -%}
+    </header>
+
+    <div class="casa-ma__grid">
+      <figure class="casa-ma__fig" data-casa-ma-fig aria-hidden="true">
+        {%- comment -%} CROSS-SECTION: viewer on the left, the frame on the right {%- endcomment -%}
+        <svg class="casa-ma__svg casa-ma__svg--side" viewBox="0 0 720 400" focusable="false">
+          <g class="casa-ma__eye">
+            <circle cx="90" cy="200" r="15" fill="none" stroke="#FAFAF7" stroke-width="1.5"/>
+            <circle cx="90" cy="200" r="5" fill="#FAFAF7"/>
+            <text x="90" y="238" class="casa-ma__t" text-anchor="middle">{{ s.you_label | default: 'You' | escape }}</text>
+          </g>
+          {%- comment -%} frame depth: top and bottom edges, dimension below {%- endcomment -%}
+          <line x1="430" y1="88" x2="610" y2="88" stroke="#FAFAF7" stroke-opacity="0.28"/>
+          <line x1="430" y1="312" x2="610" y2="312" stroke="#FAFAF7" stroke-opacity="0.28"/>
+          <line x1="430" y1="368" x2="610" y2="368" stroke="#FAFAF7" stroke-opacity="0.45"/>
+          <line x1="430" y1="362" x2="430" y2="374" stroke="#FAFAF7" stroke-opacity="0.45"/>
+          <line x1="610" y1="362" x2="610" y2="374" stroke="#FAFAF7" stroke-opacity="0.45"/>
+          <text x="520" y="392" class="casa-ma__t" text-anchor="middle">{{ s.depth_label | default: '5 in' | escape }}</text>
+          {%- comment -%} front pane: thin, partly reflective {%- endcomment -%}
+          <line class="casa-ma__p casa-ma__p--1" x1="430" y1="88" x2="430" y2="312" stroke="#C9CCD6" stroke-width="2"/>
+          <text class="casa-ma__p casa-ma__p--1 casa-ma__t" x="414" y="52" text-anchor="end">{{ s.front_label | default: 'Front · part mirror' | escape }}</text>
+          {%- comment -%} LED ring, seen in section as two points on the inner edge {%- endcomment -%}
+          <circle class="casa-ma__p casa-ma__p--2" cx="446" cy="97" r="4.5" fill="#5E0A02"/>
+          <circle class="casa-ma__p casa-ma__p--2" cx="446" cy="303" r="4.5" fill="#5E0A02"/>
+          <text class="casa-ma__p casa-ma__p--2 casa-ma__t casa-ma__t--pink" x="446" y="338" text-anchor="start" dx="14">{{ s.led_label | default: 'LED ring inside the frame' | escape }}</text>
+          {%- comment -%} back mirror: full {%- endcomment -%}
+          <line class="casa-ma__p casa-ma__p--3" x1="610" y1="88" x2="610" y2="312" stroke="#FAFAF7" stroke-width="4"/>
+          <text class="casa-ma__p casa-ma__p--3 casa-ma__t" x="712" y="52" text-anchor="end">{{ s.back_label | default: 'Back · full mirror' | escape }}</text>
+          {%- comment -%} the light: bouncing between the two, escaping a little each pass {%- endcomment -%}
+          <g class="casa-ma__p casa-ma__p--4" stroke="#5E0A02" stroke-width="1.75" fill="none" stroke-linecap="round">
+            <line x1="446" y1="97" x2="609" y2="150" stroke-opacity="0.9"/>
+            <line x1="609" y1="150" x2="431" y2="205" stroke-opacity="0.7"/>
+            <line x1="431" y1="205" x2="609" y2="258" stroke-opacity="0.5"/>
+            <line x1="609" y1="258" x2="431" y2="303" stroke-opacity="0.32"/>
+            <line x1="431" y1="205" x2="110" y2="197" stroke-opacity="0.45"/>
+            <line x1="431" y1="303" x2="110" y2="209" stroke-opacity="0.22"/>
+          </g>
+        </svg>
+        {%- comment -%} FRONT VIEW: the same ring, receding {%- endcomment -%}
+        <svg class="casa-ma__svg casa-ma__svg--front" viewBox="0 0 400 400" focusable="false">
+          <g fill="none" stroke="#5E0A02" stroke-linejoin="miter">
+            {%- for i in (0..9) -%}
+              {%- assign rr = 188 -%}
+              {%- for k in (1..i) -%}{%- assign rr = rr | times: 0.84 -%}{%- endfor -%}
+              {%- assign a = rr | times: 0.9239 | round: 1 -%}
+              {%- assign b = rr | times: 0.3827 | round: 1 -%}
+              <polygon class="casa-ma__ring" style="--i: {{ i }};" stroke-width="{{ 3 | minus: i | times: 0.2 | at_least: 0.9 }}" stroke-opacity="{{ 100 | minus: i | times: 9 | divided_by: 100.0 | at_least: 0.14 }}" points="{{ 200 | plus: a }},{{ 200 | plus: b }} {{ 200 | plus: b }},{{ 200 | plus: a }} {{ 200 | minus: b }},{{ 200 | plus: a }} {{ 200 | minus: a }},{{ 200 | plus: b }} {{ 200 | minus: a }},{{ 200 | minus: b }} {{ 200 | minus: b }},{{ 200 | minus: a }} {{ 200 | plus: b }},{{ 200 | minus: a }} {{ 200 | plus: a }},{{ 200 | minus: b }}"/>
+            {%- endfor -%}
+          </g>
+        </svg>
+      </figure>
+
+      <ol class="casa-ma__lines">
+        {%- for i in (1..4) -%}
+          {%- assign k = 'line_' | append: i -%}
+          {%- if s[k] != blank -%}<li><span class="casa-ma__n" aria-hidden="true">0{{ i }}</span><p>{{ s[k] | escape }}</p></li>{%- endif -%}
+        {%- endfor -%}
+      </ol>
+    </div>
+
+    {%- if s.photo != blank -%}
+      <figure class="casa-ma__photo">
+        <div class="casa-ma__photo-crop">
+          {{ s.photo | image_url: width: 1600 | image_tag:
+            widths: '480, 768, 1080, 1440, 1600',
+            sizes: '(min-width: 990px) 50vw, 100vw',
+            loading: 'lazy',
+            decoding: 'async',
+            class: 'casa-ma__photo-img',
+            alt: s.photo_alt | default: 'Close-up of the lit Infinity OctaMirror: rings of reflected LEDs receding into the tunnel' }}
+        </div>
+        {%- if s.photo_caption != blank -%}<figcaption class="casa-ma__photo-cap">{{ s.photo_caption | escape }}</figcaption>{%- endif -%}
+      </figure>
+    {%- endif -%}
+  </div>
+</section>
+
+<script>
+  (function () {
+    'use strict';
+    var root = document.getElementById('casa-ma-{{ uid }}');
+    if (!root || root.dataset.casaMaInit === '1') return;
+    root.dataset.casaMaInit = '1';
+    var fig = root.querySelector('[data-casa-ma-fig]');
+    if (!fig) return;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce || !('IntersectionObserver' in window)) { fig.classList.add('is-in'); return; }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { fig.classList.add('is-in'); io.disconnect(); } });
+    }, { threshold: 0.4 });
+    io.observe(fig);
+  })();
+</script>
+
+{% stylesheet %}
+  .casa-ma { background: var(--bg-dark, #0A0A0F); color: var(--t-on-dark, #fff); padding-block: var(--casa-ma-pt) var(--casa-ma-pb); }
+  .casa-ma__cap { max-width: 1280px; margin-inline: auto; padding-inline: clamp(20px, 5vw, 48px); }
+  .casa-ma__head { max-width: 42ch; margin-bottom: clamp(24px, 4vw, 40px); }
+  .casa-ma__mono { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.6; margin: 0 0 12px; }
+  .casa-ma__h2 { font-family: var(--casa-pdp-h2-family); font-weight: var(--casa-pdp-h2-weight); font-size: var(--casa-pdp-h2-size); letter-spacing: var(--casa-pdp-h2-tracking); line-height: var(--casa-pdp-h2-line); margin: 0; text-wrap: balance; }
+  .casa-ma__h2 em { font-style: italic; font-weight: 800; background-image: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; padding-right: 0.05em; }
+  .casa-ma__lede { font-family: var(--font-body--family); font-size: 16px; line-height: 1.5; opacity: 0.8; margin: 12px 0 0; max-width: 46ch; }
+
+  .casa-ma__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .casa-ma__fig { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .casa-ma__svg { width: 100%; height: auto; display: block; }
+  .casa-ma__svg--side { aspect-ratio: 720 / 400; }
+  .casa-ma__svg--front { aspect-ratio: 1 / 1; max-width: 220px; margin-inline: auto; }
+  .casa-ma__t { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 21px; letter-spacing: 0.06em; fill: #A3A3AC; }
+  .casa-ma__t--pink { fill: #5E0A02; }
+  /* one reveal, staggered; nothing loops */
+  .casa-ma__p, .casa-ma__ring { opacity: 0; transition: opacity 600ms var(--ease-out, ease); }
+  .casa-ma__fig.is-in .casa-ma__p--1 { opacity: 1; transition-delay: 0ms; }
+  .casa-ma__fig.is-in .casa-ma__p--2 { opacity: 1; transition-delay: 350ms; }
+  .casa-ma__fig.is-in .casa-ma__p--3 { opacity: 1; transition-delay: 700ms; }
+  .casa-ma__fig.is-in .casa-ma__p--4 { opacity: 1; transition-delay: 1050ms; }
+  .casa-ma__fig.is-in .casa-ma__ring { opacity: 1; transition-delay: calc(1300ms + var(--i) * 110ms); }
+
+  .casa-ma__lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; max-width: 46ch; }
+  .casa-ma__lines li { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+  .casa-ma__n { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.1em; color: #5E0A02; }
+  .casa-ma__lines p { font-family: var(--font-body--family); font-size: 16px; line-height: 1.5; margin: 0; text-wrap: pretty; }
+
+  .casa-ma__photo { margin: 40px 0 0; }
+  .casa-ma__photo-crop { position: relative; aspect-ratio: 4 / 5; overflow: hidden; }
+  .casa-ma__photo-img { position: absolute; width: 170%; height: auto; left: -42%; top: -34%; max-width: none; display: block; }
+  .casa-ma__photo-cap { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.6; margin-top: 10px; }
+
+  @media (min-width: 990px) {
+    .casa-ma__grid { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 56px; align-items: center; }
+    .casa-ma__fig { grid-template-columns: minmax(0, 5fr) minmax(0, 2fr); align-items: center; gap: 28px; }
+    .casa-ma__svg--front { max-width: none; }
+    .casa-ma__lines { gap: 18px; }
+    .casa-ma__lines p { font-size: 17px; }
+    .casa-ma__photo { max-width: 48%; margin-top: 56px; }
+    .casa-ma__photo-crop { aspect-ratio: 1 / 1; }
+    .casa-ma__photo-img { width: 150%; left: -32%; top: -22%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .casa-ma__p, .casa-ma__ring { opacity: 1 !important; transition: none; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Mirror Anatomy v4",
+  "tag": "section",
+  "class": "casa-mirror-anatomy-section",
+  "settings": [
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "04 · Infinity explained" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "How can five inches look <em>endless?</em>" },
+    { "type": "textarea", "id": "lede", "label": "Lede", "default": "No screen, no trick lens. Two mirrors, one ring of light, and the way your eye counts reflections." },
+    { "type": "header", "content": "Four lines" },
+    { "type": "textarea", "id": "line_1", "label": "Line 1", "default": "The front is a mirror you can see through, slightly: most light bounces off it, a little passes through." },
+    { "type": "textarea", "id": "line_2", "label": "Line 2", "default": "Inside the frame, a ring of LEDs faces inward, between the front pane and the back." },
+    { "type": "textarea", "id": "line_3", "label": "Line 3", "default": "Behind them, a full mirror. Light bounces between the two, and a little escapes through the front on every pass." },
+    { "type": "textarea", "id": "line_4", "label": "Line 4", "default": "Every ring you see is the same LEDs, one round trip deeper and a little dimmer. The frame is still five inches." },
+    { "type": "header", "content": "Diagram labels" },
+    { "type": "text", "id": "depth_label", "label": "Frame depth (from product data)", "default": "5 in · 12.5 cm" },
+    { "type": "text", "id": "front_label", "label": "Front label", "default": "Front · part mirror" },
+    { "type": "text", "id": "led_label", "label": "LED label", "default": "LED ring inside the frame" },
+    { "type": "text", "id": "back_label", "label": "Back label", "default": "Back · full mirror" },
+    { "type": "text", "id": "you_label", "label": "Viewer label", "default": "You" },
+    { "type": "header", "content": "Real close-up" },
+    { "type": "image_picker", "id": "photo", "label": "Photograph (cropped tight to the tunnel)" },
+    { "type": "text", "id": "photo_alt", "label": "Alt text" },
+    { "type": "text", "id": "photo_caption", "label": "Caption", "default": "The rings, in a real one." },
+    { "type": "header", "content": "Layout" },
+    { "type": "range", "id": "padding_top", "label": "Top padding", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 72 },
+    { "type": "range", "id": "padding_bottom", "label": "Bottom padding", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 64 }
+  ],
+  "presets": [ { "name": "Casa Mirror Anatomy v4", "category": "Product" } ]
+}
+{% endschema %}

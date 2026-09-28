@@ -1,0 +1,559 @@
+{% liquid
+  assign craft_image = section.settings.craft_image
+  assign tunnel_image = section.settings.tunnel_image
+  assign optical_video = section.settings.optics_video
+  assign product_videos = product.media | where: 'media_type', 'video'
+
+
+  if craft_image == blank
+    assign craft_image = images['Scene_01_Qview_L_light-off-mirror.webp']
+  endif
+
+  if tunnel_image == blank
+    assign tunnel_image = images['Casa_Di_Lumo_-_Infinity_OctaMirror-12.jpg']
+  endif
+
+  if optical_video == blank
+    assign optical_video = product_videos | first
+  endif
+
+%}
+
+<div class="casa-v7-proof">
+  <div class="casa-v7-proof__inner">
+    <casa-optics-v7>
+    <section id="casa-v7-optics" class="casa-v7-optics" aria-labelledby="casa-v7-optics-title-{{ section.id }}">
+      <header class="casa-v7-optics__intro">
+        <span>{{ section.settings.optics_eyebrow }}</span>
+        <h2 id="casa-v7-optics-title-{{ section.id }}">{{ section.settings.optics_heading }}</h2>
+      </header>
+
+      <figure class="casa-v7-optics__film" style="--optics-film-ratio: {{ optical_video.aspect_ratio | default: tunnel_image.aspect_ratio | default: 1 }};">
+        {% if optical_video != blank %}
+          {{ optical_video | video_tag: image_size: '1200x', controls: true, autoplay: false, loop: true, muted: true, playsinline: true, preload: 'none', class: 'casa-v7-optics__video' }}
+        {% elsif tunnel_image != blank %}
+          {{ tunnel_image | image_url: width: 1400 | image_tag: widths: '480, 720, 960, 1200, 1400', sizes: '(min-width: 1440px) 736px, (min-width: 900px) 52vw, calc(100vw - 64px)', loading: 'lazy', decoding: 'async', alt: section.settings.tunnel_alt }}
+        {% endif %}
+        <figcaption>
+          <span>{% if optical_video != blank %}{{ section.settings.tunnel_caption }}{% else %}{{ section.settings.optics_proofline }}{% endif %}</span>
+          {% if optical_video != blank %}
+            <button type="button" class="casa-v7-optics__playback" data-optics-playback data-play-label="{{ 'accessibility.play_video' | t | escape }}" data-pause-label="{{ 'accessibility.pause_video' | t | escape }}" hidden>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path class="casa-v7-optics__play-icon" d="m6 3 11 7-11 7Z"/><path class="casa-v7-optics__pause-icon" d="M5 3h3v14H5zM12 3h3v14h-3z"/></svg>
+              <span data-optics-playback-label>{{ 'accessibility.play_video' | t }}</span>
+            </button>
+          {% endif %}
+        </figcaption>
+      </figure>
+
+      <div class="casa-v7-optics__story">
+        <p class="casa-v7-optics__lead">{{ section.settings.optics_caption }}</p>
+        <p class="casa-v7-optics__explanation">{{ section.settings.optics_lede }}</p>
+        <p class="casa-v7-optics__proofline">{{ section.settings.optics_proofline }}</p>
+
+        <details class="casa-v7-optics__mechanism">
+          <summary>{{ section.settings.optics_details_label }} <span aria-hidden="true">+</span></summary>
+          <div class="casa-v7-optics__mechanism-body">
+            <p>{{ section.settings.optics_detail_body }}</p>
+            <figure class="casa-v7-optics__profile">
+              {% if craft_image != blank %}
+                {{ craft_image | image_url: width: 480 | image_tag: widths: '240, 360, 480', sizes: '132px', loading: 'lazy', decoding: 'async', alt: section.settings.craft_alt }}
+              {% endif %}
+              <figcaption>
+                <span>{{ section.settings.optics_frame_label }}</span>
+                <strong>{{ section.settings.depth_label }}</strong>
+                <small>{{ section.settings.optics_depth_metric }}</small>
+              </figcaption>
+            </figure>
+          </div>
+        </details>
+      </div>
+
+    </section>
+    </casa-optics-v7>
+
+    {% render 'casa-octamirror-layers-v7', instance_id: section.id %}
+
+    {% render 'casa-octa-spaces-v6', goldberg_story: true, compact_details: true, living_image_asset: 'octa-home-living-listening-v7.jpg', living_image_width: 1086, living_image_height: 1448, living_image_alt_key: 'casa_octa_spaces.living_photo_v7_alt', gaming_image_asset: 'octa-home-gaming-studio-v7.jpg', gaming_image_width: 1086, gaming_image_height: 1448, gaming_image_alt_key: 'casa_octa_spaces.gaming_photo_v7_alt' %}
+    {% render 'casa-octa-assurance-v7', blocks: section.blocks, instance_id: section.id %}
+
+  </div>
+</div>
+
+{% stylesheet %}
+  .casa-v7-proof .os-dialog img {
+    /* Reserve the 44px close button, 15px gap and 40px dialog padding. */
+    max-height: min(78dvh, calc(95dvh - 99px));
+  }
+
+  .casa-v7-proof {
+    --proof-ink: #0a0a0f;
+    --proof-muted: #686873;
+    --proof-paper: #fafaf7;
+    --proof-rule: #e4e2dc;
+    --proof-purple: #9333ea;
+    --proof-pink: #ec4899;
+    --proof-cyan: #06b6d4;
+    color: var(--proof-ink);
+    background: #fff;
+  }
+
+  .casa-v7-proof__inner {
+    width: min(100% - 32px, 1440px);
+    margin-inline: auto;
+  }
+
+  .casa-v7-proof__inner {
+    padding-block: clamp(70px, 10vw, 130px);
+  }
+
+  .casa-v7-quality {
+    display: grid;
+    grid-area: quality;
+    align-self: start;
+    gap: 18px;
+    min-width: 0;
+    padding-top: 22px;
+    border-top: 1px solid rgb(255 255 255 / 0.18);
+    color: var(--proof-paper);
+    font-family: var(--font-body--family);
+  }
+
+  .casa-v7-quality__detail {
+    display: grid;
+    gap: 6px;
+  }
+
+  .casa-v7-quality__detail h3 {
+    margin: 0;
+    font-size: var(--casa-text-h4);
+    font-weight: var(--casa-font-semibold);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+
+  .casa-v7-quality__detail p {
+    margin: 0;
+    color: rgb(255 255 255 / 0.72);
+    font-size: max(16px, var(--casa-text-body));
+    line-height: 1.5;
+  }
+
+  .casa-v7-quality__cta {
+    width: fit-content;
+    max-width: 100%;
+    min-height: 44px;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .casa-v7-quality__cta:focus-visible {
+    outline: 3px solid var(--optics-accent);
+    outline-offset: 4px;
+  }
+
+  casa-optics-v7 { display: block; }
+
+  .casa-v7-optics {
+    --optics-accent: color-mix(in srgb, var(--casa-purple, #B0C3FA) 62%, white);
+    display: grid;
+    grid-template-areas: 'intro' 'film' 'story' 'layers';
+    gap: 26px;
+    padding: 30px 20px 22px;
+    border-radius: 12px;
+    color: var(--proof-paper);
+    background: var(--proof-ink);
+    font-family: var(--font-body--family);
+    scroll-margin-top: 48px;
+  }
+
+  .casa-v7-optics__intro {
+    grid-area: intro;
+    min-width: 0;
+  }
+
+  .casa-v7-optics__intro > span {
+    display: block;
+    margin-bottom: 12px;
+    color: var(--optics-accent);
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1.3;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-optics__intro h2 {
+    max-width: none;
+    margin: 0;
+    color: inherit;
+    font-family: var(--font-heading--family);
+    font-size: clamp(38px, 8vw, 58px);
+    font-weight: var(--font-heading--weight);
+    line-height: 1.04;
+    letter-spacing: -0.045em;
+    text-wrap: balance;
+  }
+
+  .casa-v7-optics__intro h2 em {
+    display: block;
+    color: var(--optics-accent);
+    font-style: italic;
+  }
+
+  .casa-v7-optics__film {
+    grid-area: film;
+    align-self: center;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .casa-v7-optics__film > video,
+  .casa-v7-optics__film > img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: var(--optics-film-ratio, 1);
+    border-radius: 6px;
+  }
+
+  .casa-v7-optics__film > figcaption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 52px;
+    padding-top: 8px;
+    color: rgb(255 255 255 / 0.65);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .casa-v7-optics__film > figcaption > span {
+    max-width: 25ch;
+  }
+
+  .casa-v7-optics__playback {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 4px;
+    border: 0;
+    border-radius: 0;
+    color: var(--proof-paper);
+    background: transparent;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .casa-v7-optics__playback[hidden],
+  .casa-v7-optics__pause-icon,
+  .casa-v7-optics__playback[data-playing='true'] .casa-v7-optics__play-icon {
+    display: none;
+  }
+
+  .casa-v7-optics__playback[data-playing='true'] .casa-v7-optics__pause-icon {
+    display: block;
+  }
+
+  .casa-v7-optics__playback svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+  }
+
+  .casa-v7-optics__playback:hover,
+  .casa-v7-optics__mechanism summary:hover {
+    color: var(--optics-accent);
+  }
+
+  .casa-v7-optics__playback:focus-visible,
+  .casa-v7-optics__mechanism summary:focus-visible {
+    outline: 2px solid var(--optics-accent);
+    outline-offset: 4px;
+  }
+
+  .casa-v7-optics__story {
+    grid-area: story;
+    min-width: 0;
+  }
+
+  .casa-v7-optics__lead {
+    max-width: 26ch;
+    margin: 0;
+    color: var(--proof-paper);
+    font-size: clamp(21px, 2vw, 26px);
+    font-weight: 550;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+    text-wrap: pretty;
+  }
+
+  .casa-v7-optics__explanation {
+    max-width: 40ch;
+    margin: 14px 0 0;
+    color: rgb(255 255 255 / 0.72);
+    font-size: clamp(15px, 1.2vw, 17px);
+    line-height: 1.6;
+  }
+
+  .casa-v7-optics__proofline {
+    margin: 20px 0 0;
+    color: var(--optics-accent);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .casa-v7-optics__mechanism {
+    margin-top: 24px;
+    border-top: 1px solid rgb(255 255 255 / 0.18);
+  }
+
+  .casa-v7-optics__mechanism summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 54px;
+    padding: 12px 0;
+    color: var(--proof-paper);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1.4;
+    list-style: none;
+  }
+
+  .casa-v7-optics__mechanism summary::-webkit-details-marker { display: none; }
+  .casa-v7-optics__mechanism summary > span { color: var(--optics-accent); font-size: 22px; }
+  .casa-v7-optics__mechanism[open] summary > span { transform: rotate(45deg); }
+
+  .casa-v7-optics__mechanism-body > p {
+    margin: 4px 0 22px;
+    color: rgb(255 255 255 / 0.72);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .casa-v7-optics__profile {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin: 0 0 10px;
+  }
+
+  .casa-v7-optics__profile img {
+    display: block;
+    width: 36%;
+    max-width: 132px;
+    height: auto;
+    border-radius: 4px;
+  }
+
+  .casa-v7-optics__profile figcaption {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .casa-v7-optics__profile figcaption > span {
+    color: rgb(255 255 255 / 0.6);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-optics__profile strong {
+    color: var(--proof-paper);
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .casa-v7-optics__profile small {
+    color: rgb(255 255 255 / 0.65);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .casa-v7-assurance__head > span {
+    display: block;
+    margin-bottom: 12px;
+    color: var(--proof-purple);
+    font: 500 11px/1.4 var(--font-mono--family, 'JetBrains Mono', ui-monospace, monospace);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  @media (min-width: 600px) {
+    .casa-v7-optics {
+      gap: 32px;
+      padding: 40px;
+    }
+
+    .casa-v7-optics__intro h2 { max-width: none; }
+
+    .casa-v7-optics__film > figcaption > span { max-width: none; }
+  }
+
+  @media (min-width: 900px) {
+    .casa-v7-optics {
+      grid-template-columns: minmax(0, min(54vw, 62svh)) minmax(0, 1fr);
+      grid-template-areas: 'film intro' 'film story' 'layers layers';
+      grid-template-rows: auto 1fr auto;
+      column-gap: clamp(36px, 5vw, 72px);
+      row-gap: 28px;
+      padding: clamp(36px, 4vw, 56px);
+      max-width: 1280px;
+      margin-inline: auto;
+    }
+
+    .casa-v7-optics__intro { align-self: end; }
+
+    .casa-v7-optics__intro h2 {
+      max-width: 12ch;
+      font-size: clamp(42px, 4.6vw, 64px);
+    }
+
+    .casa-v7-optics__story { align-self: start; }
+  }
+
+  @media (max-width: 600px) {
+    .casa-v7-proof__inner {
+      width: min(100% - 24px, 1440px);
+    }
+  }
+
+{% endstylesheet %}
+
+{% javascript %}
+  class CasaOpticsV7 extends HTMLElement {
+    connectedCallback() {
+      this.video = this.querySelector('video');
+      this.button = this.querySelector('[data-optics-playback]');
+      if (!this.video || !this.button) return;
+      this.abort = new AbortController();
+      const options = { signal: this.abort.signal };
+      this.motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      this.visible = false;
+      this.userChoice = null;
+      this.video.controls = false;
+      this.video.muted = true;
+      this.video.playsInline = true;
+      this.button.hidden = false;
+
+      this.button.addEventListener('click', () => {
+        this.userChoice = this.video.paused;
+        if (!this.observer) this.visible = true;
+        this.applyPlayback();
+      }, options);
+      ['play', 'pause', 'error', 'ended'].forEach((name) => this.video.addEventListener(name, () => this.syncControl(), options));
+      document.addEventListener('visibilitychange', () => this.applyPlayback(), options);
+      this.motion.addEventListener('change', () => {
+        this.userChoice = null;
+        this.applyPlayback();
+      }, options);
+      if ('IntersectionObserver' in window) {
+        this.observer = new IntersectionObserver((entries) => {
+          this.visible = entries[0].isIntersecting && entries[0].intersectionRatio >= 0.2;
+          this.applyPlayback();
+        }, { threshold: [0, 0.2] });
+        this.observer.observe(this.video);
+      }
+      const subscribeToOverlays = () => {
+        this.unsubscribeOverlay?.();
+        this.unsubscribeOverlay = window.casa?.onOverlayToggle?.(() => this.applyPlayback());
+      };
+      subscribeToOverlays();
+      document.addEventListener('DOMContentLoaded', subscribeToOverlays, { ...options, once: true });
+      this.syncControl();
+    }
+
+    applyPlayback() {
+      const permitted = this.userChoice === true || (this.userChoice !== false && !this.motion.matches);
+      if (this.visible && !document.hidden && !window.casa?.overlayOpen?.() && permitted) {
+        this.video.play().catch(() => this.syncControl());
+      } else {
+        this.video.pause();
+      }
+    }
+
+    syncControl() {
+      const playing = !this.video.paused;
+      const label = playing ? this.button.dataset.pauseLabel : this.button.dataset.playLabel;
+      this.button.dataset.playing = String(playing);
+      this.button.setAttribute('aria-label', label);
+      this.button.querySelector('[data-optics-playback-label]').textContent = label;
+    }
+
+    disconnectedCallback() {
+      this.abort?.abort();
+      this.observer?.disconnect();
+      this.unsubscribeOverlay?.();
+      this.video?.pause();
+    }
+  }
+
+  if (!customElements.get('casa-optics-v7')) customElements.define('casa-optics-v7', CasaOpticsV7);
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "OctaMirror V7 proof",
+  "settings": [
+    {"type": "inline_richtext", "id": "quality_frame_title", "label": "Frame detail heading", "default": "Matte aluminum frame"},
+    {"type": "textarea", "id": "quality_frame_body", "label": "Frame detail text", "default": "A defined black octagon frames the light on your wall."},
+    {"type": "inline_richtext", "id": "quality_mirror_title", "label": "Mirror detail heading", "default": "A mirror with the lights off"},
+    {"type": "textarea", "id": "quality_mirror_body", "label": "Mirror detail text", "default": "The reflective front gives you a mirror between light shows."},
+    {"type": "text", "id": "quality_cta_label", "label": "Size guide button label", "default": "Choose your size"},
+    { "type": "image_picker", "id": "craft_image", "label": "Three-quarter daylight image" },
+    { "type": "text", "id": "craft_alt", "label": "Daylight image alt", "default": "Infinity OctaMirror viewed from an angle with its LEDs off, showing its reflective surface and substantial frame" },
+    {"type":"text","id":"optics_eyebrow","label":"Optics eyebrow","default":"The infinity effect"},
+    {"type":"inline_richtext","id":"optics_heading","label":"Optics heading","default":"Look a little <em>deeper.</em>"},
+    {"type":"textarea","id":"optics_lede","label":"Optics explanation","default":"Two mirror surfaces reflect the light back and forth, creating a tunnel that appears to continue far beyond the frame."},
+    {"type":"text","id":"optics_proofline","label":"Optics proof line","default":"Real light. No screen or projection."},
+    {"type":"text","id":"optics_caption","label":"Optics lead","default":"One ring of light. Reflected again and again."},
+    {"type":"text","id":"optics_details_label","label":"Optics detail disclosure","default":"How does it go so deep?"},
+    {"type":"textarea","id":"optics_detail_body","label":"Optics detail explanation","default":"LEDs sit between a reflective back and a partly reflective front. Light bounces between them, with some passing through the front to your eyes. Each reflection appears farther away."},
+    {"type":"text","id":"optics_frame_label","label":"Frame label","default":"The physical frame"},
+    {"type":"text","id":"depth_label","label":"Frame depth","default":"Approx. 5 in deep"},
+    {"type":"text","id":"optics_depth_metric","label":"Frame depth secondary unit","default":"12.7 cm · front to back"},
+    { "type": "video", "id": "optics_video", "label": "Optics demonstration video" },
+    { "type": "image_picker", "id": "tunnel_image", "label": "Close tunnel photograph" },
+    { "type": "text", "id": "tunnel_alt", "label": "Tunnel image alt", "default": "Close view of the Infinity OctaMirror showing repeated illuminated rings receding into the optical tunnel" },
+    { "type": "text", "id": "tunnel_caption", "label": "Video viewing cue", "default": "Watch how the depth shifts." },
+    { "type": "text", "id": "assurance_eyebrow", "label": "Assurance eyebrow", "default": "Protected after purchase" },
+    { "type": "inline_richtext", "id": "assurance_heading", "label": "Assurance heading", "default": "Protected in transit. Supported for years." },
+    { "type": "textarea", "id": "assurance_lede", "label": "Assurance introduction", "default": "From delivery to everyday use, we're here to help." }
+  ],
+  "blocks": [
+    {
+      "type": "assurance",
+      "name": "Ownership assurance",
+      "limit": 3,
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icon",
+          "options": [
+            { "value": "guarantee", "label": "Guarantee" },
+            { "value": "crate", "label": "Protective packaging" },
+            { "value": "support", "label": "Human support" }
+          ],
+          "default": "guarantee"
+        },
+        { "type": "text", "id": "value", "label": "Optional label" },
+        { "type": "text", "id": "title", "label": "Title", "default": "2-year Casa Guarantee" },
+        { "type": "textarea", "id": "body", "label": "Text", "default": "Covers manufacturing defects and product malfunctions for two years." },
+        { "type": "text", "id": "link_label", "label": "Expand label", "default": "What's covered?" },
+        { "type": "richtext", "id": "details", "label": "Expanded details", "info": "Optional custom copy for guarantee and packaging cards." }
+      ]
+    }
+  ],
+  "presets": [{ "name": "OctaMirror V7 proof" }]
+}
+{% endschema %}

@@ -1,0 +1,528 @@
+{%- comment -%}
+  Seoul Glow Lab · Customer Room Reviews
+  ════════════════════════════════════
+
+  A net-new PDP section purpose-built for showing customer-submitted
+  room photography paired with the customer's review, where the
+  PHOTO MUST stay unobstructed at every viewport.
+
+  Pattern: photo-on-top + chrome-below.
+
+    [ Photo — 4:5 portrait ]
+    ★★★★★  VERIFIED PURCHASE
+    "Quote text from the customer."
+    Customer Name · City, State
+
+  Designed for the Calini PDP after the existing shared
+  `casa-styled-spaces` was found to render unreadably on mobile —
+  on a 390px viewport that section's absolute-positioned chrome
+  covered roughly the bottom 60% of every tile and the room photo
+  behind it was almost entirely hidden. This section never overlays
+  anything on the photo. Chrome lives in a separate flex column
+  below the photo. Same treatment on mobile and desktop.
+
+  Layout:
+    Desktop (>768px): up to 4-col responsive grid, photos side-by-side
+    Mobile (≤768px): horizontal scroll-snap carousel, one slide ≈ 82vw,
+                     next slide peeks past the right edge for swipe
+                     affordance, no JS
+
+  Block: `review`
+    image           — customer photo (image_picker)
+    focal_x/_y      — object-position percentage per block
+    customer_name   — first name + last initial
+    customer_location — city, state
+    quote           — textarea, free-form review text
+    show_verified   — toggles the 5-star + VERIFIED PURCHASE row
+
+  Schema names + block types are NEW — this section does NOT share
+  schema with casa-styled-spaces, so existing styled-spaces blocks
+  do NOT auto-port. Content is set explicitly per template instance.
+
+  Specifically NOT used on the homepage. If you want a homepage
+  variant of room photography, use `casa-styled-spaces-home`.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign kicker  = s.kicker
+  assign heading = s.heading
+  assign subtitle = s.subtitle
+
+  assign bg_color     = s.bg_color | default: '#FAFAF7'
+  assign text_color   = s.text_color | default: '#0A0A0F'
+  assign kicker_color = s.kicker_color | default: '#B0C3FA'
+  assign muted_color  = s.muted_color | default: '#6b6b76'
+
+  assign padding_top    = s.padding_top | default: 80
+  assign padding_bottom = s.padding_bottom | default: 80
+  assign padding_mt     = s.padding_mobile_top | default: 56
+  assign padding_mb     = s.padding_mobile_bottom | default: 56
+-%}
+
+<section
+  class="casa-crrev"
+  id="casa-crrev-{{ section.id }}"
+  style="
+    --crr-bg: {{ bg_color }};
+    --crr-text: {{ text_color }};
+    --crr-kicker: {{ kicker_color }};
+    --crr-muted: {{ muted_color }};
+    --crr-pt: {{ padding_top }}px;
+    --crr-pb: {{ padding_bottom }}px;
+    --crr-mpt: {{ padding_mt }}px;
+    --crr-mpb: {{ padding_mb }}px;
+  "
+>
+  <div class="casa-crrev__container">
+    {%- if kicker != blank or heading != blank or subtitle != blank -%}
+      <header class="casa-crrev__header">
+        {%- if kicker != blank -%}
+          <span class="casa-crrev__kicker">{{ kicker }}</span>
+        {%- endif -%}
+        {%- if heading != blank -%}
+          <h2 class="casa-crrev__heading">{{ heading }}</h2>
+        {%- endif -%}
+        {%- if subtitle != blank -%}
+          <div class="casa-crrev__subtitle">{{ subtitle }}</div>
+        {%- endif -%}
+      </header>
+    {%- endif -%}
+
+    <div class="casa-crrev__rail" data-crrev-rail>
+      {%- comment -%}
+        Prev / next arrows. Visible only on mobile (the carousel
+        viewport). On desktop the track renders as a 4-up grid so
+        everything is visible at once and the arrows hide. JS toggles
+        the `hidden` attribute based on actual scroll position so the
+        prev arrow disappears when at the start and the next arrow
+        disappears when scrolled to the end.
+      {%- endcomment -%}
+      <button
+        type="button"
+        class="casa-crrev__nav casa-crrev__nav--prev"
+        data-crrev-prev
+        aria-label="Previous review"
+        hidden
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button
+        type="button"
+        class="casa-crrev__nav casa-crrev__nav--next"
+        data-crrev-next
+        aria-label="Next review"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <div class="casa-crrev__track" data-crrev-track role="list">
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'review' -%}
+          {%- assign b = block.settings -%}
+          {%- assign fx = b.focal_x | default: 50 -%}
+          {%- assign fy = b.focal_y | default: 50 -%}
+          <article class="casa-crrev__card" role="listitem" {{ block.shopify_attributes }}>
+            {%- if b.image != blank -%}
+              <div class="casa-crrev__photo-wrap">
+                <img
+                  src="{{ b.image | image_url: width: 800 }}"
+                  srcset="
+                    {{ b.image | image_url: width: 400 }} 400w,
+                    {{ b.image | image_url: width: 600 }} 600w,
+                    {{ b.image | image_url: width: 800 }} 800w,
+                    {{ b.image | image_url: width: 1200 }} 1200w
+                  "
+                  sizes="(max-width: 768px) 82vw, (max-width: 1200px) 33vw, 25vw"
+                  alt="{%- if b.customer_name != blank -%}Customer room — {{ b.customer_name | escape }}{%- else -%}Customer room{%- endif -%}"
+                  class="casa-crrev__photo"
+                  loading="lazy"
+                  width="800"
+                  height="1000"
+                  style="object-position: {{ fx }}% {{ fy }}%;"
+                >
+              </div>
+            {%- endif -%}
+
+            <div class="casa-crrev__meta">
+              {%- if b.show_verified -%}
+                <div class="casa-crrev__trust" aria-hidden="true">
+                  <span class="casa-crrev__stars">
+                    {%- for i in (1..5) -%}
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    {%- endfor -%}
+                  </span>
+                  <span class="casa-crrev__verified">VERIFIED PURCHASE</span>
+                </div>
+              {%- endif -%}
+              {%- if b.quote != blank -%}
+                <p class="casa-crrev__quote">{{ b.quote }}</p>
+              {%- endif -%}
+              {%- if b.customer_name != blank or b.customer_location != blank -%}
+                <p class="casa-crrev__byline">
+                  {%- if b.customer_name != blank -%}{{ b.customer_name }}{%- endif -%}
+                  {%- if b.customer_name != blank and b.customer_location != blank %} · {% endif -%}
+                  {%- if b.customer_location != blank -%}{{ b.customer_location }}{%- endif -%}
+                </p>
+              {%- endif -%}
+            </div>
+          </article>
+        {%- endif -%}
+      {%- endfor -%}
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function() {
+  // Bind every casa-crrev section on the page. Idempotent — re-binding
+  // the same root is a no-op via the data-bound marker.
+  var sections = document.querySelectorAll('.casa-crrev');
+  for (var i = 0; i < sections.length; i++) {
+    var section = sections[i];
+    if (section.dataset.crrevBound === '1') continue;
+    section.dataset.crrevBound = '1';
+    var track = section.querySelector('[data-crrev-track]');
+    var prevBtn = section.querySelector('[data-crrev-prev]');
+    var nextBtn = section.querySelector('[data-crrev-next]');
+    if (!track || !prevBtn || !nextBtn) continue;
+
+    var getStep = function() {
+      var firstCard = track.querySelector('.casa-crrev__card');
+      if (!firstCard) return track.clientWidth * 0.8;
+      var gap = parseInt(getComputedStyle(track).gap || '12', 10) || 12;
+      return firstCard.getBoundingClientRect().width + gap;
+    };
+
+    var update = function() {
+      // Hide prev at start, next at end. 4px tolerance for sub-pixel
+      // scroll positions on touch devices.
+      var atStart = track.scrollLeft < 4;
+      var atEnd = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+      // Also hide BOTH if the track isn't actually scrollable (desktop
+      // grid mode, or few enough cards that they all fit).
+      var scrollable = track.scrollWidth > track.clientWidth + 4;
+      prevBtn.hidden = !scrollable || atStart;
+      nextBtn.hidden = !scrollable || atEnd;
+    };
+
+    prevBtn.addEventListener('click', function() {
+      track.scrollBy({ left: -getStep(), behavior: 'smooth' });
+    });
+    nextBtn.addEventListener('click', function() {
+      track.scrollBy({ left: getStep(), behavior: 'smooth' });
+    });
+    track.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  }
+})();
+</script>
+
+{% stylesheet %}
+  .casa-crrev {
+    background: var(--crr-bg, #FAFAF7);
+    color: var(--crr-text, #0A0A0F);
+    padding: var(--crr-pt, 80px) 0 var(--crr-pb, 80px);
+  }
+
+  .casa-crrev__container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .casa-crrev__header {
+    text-align: center;
+    margin: 0 auto clamp(32px, 4vw, 56px);
+    max-width: 56ch;
+  }
+
+  .casa-crrev__kicker {
+    display: inline-block;
+    font: 500 11px / 1 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--crr-kicker, #B0C3FA);
+    margin: 0 0 16px;
+  }
+
+  /* Heading uses Casa PDP H2 brand tokens so this section matches the
+     other PDP sections (casa-stats-grid, casa-faq-page-v2 etc.) without
+     needing per-section font size knobs. */
+  .casa-crrev__heading {
+    font-family: var(--font-body--family, 'Inter', sans-serif);
+    font-size: var(--casa-pdp-h2-size, clamp(28px, 4vw, 48px));
+    font-weight: var(--casa-pdp-h2-weight, 600);
+    line-height: var(--casa-pdp-h2-line, 1.05);
+    letter-spacing: var(--casa-pdp-h2-tracking, -0.025em);
+    color: var(--crr-text);
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+  .casa-crrev__heading em {
+    font-weight: 800;
+    font-style: italic;
+    background-image: linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .casa-crrev__subtitle {
+    color: var(--crr-muted, #6b6b76);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .casa-crrev__subtitle p { margin: 0; }
+
+  /* Rail wraps the track + nav arrows. Position-relative so the
+     absolute-positioned arrows can pin to the rail's edges. */
+  .casa-crrev__rail {
+    position: relative;
+  }
+
+  /* Desktop: responsive grid. auto-fit + minmax means it gracefully
+     drops from 4-col → 3-col → 2-col as the viewport narrows above
+     the 768px mobile breakpoint. */
+  .casa-crrev__track {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
+  }
+
+  /* Prev / next arrow buttons — only visible on mobile (carousel
+     mode). On desktop the grid shows every card at once so JS hides
+     both via the `hidden` attribute (track.scrollWidth ≤ clientWidth).
+     Buttons sit vertically centered on the photo half of the slide
+     (35% from rail top because the photo is the upper 4/5 of each
+     card and we want the arrow over photo center, not over the text
+     stack below). */
+  .casa-crrev__nav {
+    position: absolute;
+    top: 35%;
+    z-index: 5;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(10, 10, 15, 0.08);
+    box-shadow: 0 4px 16px rgba(10, 10, 15, 0.15);
+    color: var(--crr-text, #0A0A0F);
+    cursor: pointer;
+    display: none; /* hidden on desktop by default; mobile @media re-enables */
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transform: translateY(-50%);
+    transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .casa-crrev__nav:hover,
+  .casa-crrev__nav:focus-visible {
+    background: #FFFFFF;
+    transform: translateY(-50%) scale(1.05);
+    outline: none;
+  }
+  .casa-crrev__nav:active {
+    transform: translateY(-50%) scale(0.96);
+  }
+  .casa-crrev__nav[hidden] {
+    display: none;
+  }
+  .casa-crrev__nav svg { display: block; }
+  .casa-crrev__nav--prev { left: 4px; }
+  .casa-crrev__nav--next { right: 4px; }
+
+  .casa-crrev__card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .casa-crrev__photo-wrap {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.6);
+  }
+
+  .casa-crrev__photo {
+    /* height: auto + aspect-ratio instead of height: 100% — the wrapper's
+       height comes from its own aspect-ratio, and Safari 26 can fail to
+       resolve a %-height against that (the /cart flat-thumbnail class;
+       immune pattern from .cart-items__media-image in snippets/cart-products.liquid). */
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    display: block;
+  }
+
+  .casa-crrev__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 0 2px;
+  }
+
+  .casa-crrev__trust {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 2px;
+  }
+
+  .casa-crrev__stars {
+    display: inline-flex;
+    gap: 2px;
+    color: #F59E0B;
+    line-height: 0;
+  }
+  .casa-crrev__stars svg { display: block; }
+
+  .casa-crrev__verified {
+    font: 500 11px 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #16A34A;
+  }
+
+  .casa-crrev__quote {
+    font-family: var(--font-body--family, 'Inter', sans-serif);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--crr-text);
+    margin: 0;
+  }
+
+  .casa-crrev__byline {
+    font-family: var(--font-body--family, 'Inter', sans-serif);
+    font-size: 12px;
+    line-height: 1.4;
+    letter-spacing: 0.02em;
+    color: var(--crr-text);
+    opacity: 0.65;
+    margin: 0;
+  }
+
+  /* Mobile: horizontal scroll-snap carousel. The track becomes a flex
+     rail that overflows horizontally, each card snaps to the start of
+     the visible area, and the right-most card peeks past the viewport
+     edge to signal swipeability. No JS — native CSS scroll-snap. */
+  @media (max-width: 768px) {
+    .casa-crrev {
+      padding: var(--crr-mpt, 56px) 0 var(--crr-mpb, 56px);
+    }
+    .casa-crrev__container {
+      padding: 0 16px;
+    }
+    .casa-crrev__header {
+      margin-bottom: 28px;
+    }
+    .casa-crrev__heading {
+      font-size: var(--casa-pdp-h2-size, clamp(22px, 6vw, 32px));
+    }
+    .casa-crrev__track {
+      display: flex;
+      flex-direction: row;
+      grid-template-columns: none;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-padding-left: 16px;
+      gap: 12px;
+      padding: 4px 16px;
+      margin: 0 -16px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .casa-crrev__track::-webkit-scrollbar { display: none; }
+
+    .casa-crrev__card {
+      flex: 0 0 82%;
+      max-width: 82%;
+      scroll-snap-align: start;
+    }
+
+    /* Mobile: nav arrows visible when the track is actually
+       scrollable (JS toggles `hidden` per scroll position). */
+    .casa-crrev__nav {
+      display: flex;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .casa-crrev__track {
+      scroll-behavior: auto;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Customer Room Reviews",
+  "tag": "section",
+  "class": "casa-crrev-section",
+  "max_blocks": 12,
+  "settings": [
+    { "type": "header", "content": "Heading" },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker (mono caps eyebrow)",
+      "default": "05 · #CASAFAMILY · VERIFIED CUSTOMERS"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading",
+      "info": "Wrap one keyword in <em>…</em> for the brand italic-gradient accent.",
+      "default": "In <em>their</em> rooms. Not a studio."
+    },
+    {
+      "type": "richtext",
+      "id": "subtitle",
+      "label": "Subtitle",
+      "default": "<p>Real owners, real daylight, real prismatic puddles. Swipe to read the reviews.</p>"
+    },
+    { "type": "header", "content": "Surface" },
+    { "type": "color", "id": "bg_color",     "label": "Background",   "default": "#FAFAF7" },
+    { "type": "color", "id": "text_color",   "label": "Text",         "default": "#0A0A0F" },
+    { "type": "color", "id": "kicker_color", "label": "Kicker color", "default": "#B0C3FA" },
+    { "type": "color", "id": "muted_color",  "label": "Muted text",   "default": "#6b6b76" },
+    { "type": "header", "content": "Spacing" },
+    { "type": "range", "id": "padding_top",        "label": "Padding top (desktop)",    "min": 0, "max": 200, "step": 4, "unit": "px", "default": 80 },
+    { "type": "range", "id": "padding_bottom",     "label": "Padding bottom (desktop)", "min": 0, "max": 200, "step": 4, "unit": "px", "default": 80 },
+    { "type": "range", "id": "padding_mobile_top", "label": "Padding top (mobile)",     "min": 0, "max": 120, "step": 4, "unit": "px", "default": 56 },
+    { "type": "range", "id": "padding_mobile_bottom","label": "Padding bottom (mobile)","min": 0, "max": 120, "step": 4, "unit": "px", "default": 56 }
+  ],
+  "blocks": [
+    {
+      "type": "review",
+      "name": "Customer Review",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Customer photo (4:5 portrait works best)" },
+        { "type": "range", "id": "focal_x", "label": "Focal X", "min": 0, "max": 100, "step": 5, "unit": "%", "default": 50 },
+        { "type": "range", "id": "focal_y", "label": "Focal Y", "min": 0, "max": 100, "step": 5, "unit": "%", "default": 50 },
+        { "type": "text",     "id": "customer_name",     "label": "Customer name", "default": "Matthew D." },
+        { "type": "text",     "id": "customer_location", "label": "Location",      "default": "Boston, MA" },
+        { "type": "textarea", "id": "quote",             "label": "Review quote",  "info": "Short — 1–2 sentences. Quote marks optional, the layout doesn't force them." },
+        { "type": "checkbox", "id": "show_verified",    "label": "Show 5-star + VERIFIED PURCHASE", "default": true }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Customer Room Reviews",
+      "blocks": [
+        { "type": "review", "settings": { "customer_name": "Matthew D.", "customer_location": "Boston, MA", "quote": "The packaging was an art-handling case. It arrived perfect. The legs glow at sunset." } },
+        { "type": "review", "settings": { "customer_name": "Zoe M.",     "customer_location": "Brooklyn",   "quote": "Like having a portal in my room. Pictures don't do it justice." } },
+        { "type": "review", "settings": { "customer_name": "Priya K.",   "customer_location": "LA",         "quote": "My partner thought it was an art piece. We didn't correct him." } }
+      ]
+    }
+  ]
+}
+{% endschema %}

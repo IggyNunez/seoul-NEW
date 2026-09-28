@@ -88,6 +88,7 @@
   {% endif %}
   <div
     class="{{ product_grid_class }}"
+    style="--media-width-pct: {{ settings.media_width_pct | default: 60 }}%;"
     data-product-grid-content
   >
     {% assign render_order_array = render_order | split: ',' %}
@@ -122,6 +123,32 @@
     display: grid;
     grid-template-columns: subgrid;
     grid-column: 1 / -1;
+
+    /* Height budget for the gallery: the first viewport minus the header
+       group, the thumbnail strip and a little breathing room. Declared
+       UNCONDITIONALLY because both layout modes have to spend it —
+       two-column caps the gallery TRACK with it, stacked caps the media
+       column's width with it. It lived inside the two-column query until
+       2026-08-25 and that was a bug: stacked mode had no cap at all, so a
+       near-square viewport (750x800) rendered a 750px image in an 800px
+       window and pushed the thumbnails out of the fold. Read
+       --header-group-height from the token casa-header.liquid publishes —
+       the measured value moves between 89 and 100. */
+    /* Floor is 160px, not the 340px inherited from the old constrain
+       system. That floor existed to stop a short DESKTOP window shrinking
+       the media to nothing — it traded the fold rule away for a usable
+       image. Two columns serve that case now (a short window gives the
+       buy box the width instead), so the floor's only remaining effect was
+       to overrun the fold on a landscape phone: at 844x390 the budget is
+       189px and a 340px floor overrode it, pushing image and thumbs out of
+       view. 160px keeps it from collapsing without ever beating the
+       viewport. */
+    --casa-gallery-cap: max(
+      160px,
+      calc(
+        100svh - var(--header-group-height, var(--header-height, 100px)) - var(--casa-thumb-strip, 88px) - 24px
+      )
+    );
   }
 
   /* Default column positions */
@@ -140,10 +167,62 @@
     height: 100%;
   }
 
-  /* Mobile styles */
-  @media screen and (max-width: 749px) {
+  /* Casa 2026-08-25: stack on PORTRAIT, go side-by-side on LANDSCAPE.
+     Width alone was the wrong signal. The gallery image is square, so a
+     full-width stacked gallery is as tall as the viewport is wide — fine
+     on a tall screen, ruinous on a short one. What decides it is whether
+     there is spare HEIGHT, i.e. the aspect ratio:
+       768x1024  iPad portrait   -> stacked, 768px image, fits in 1024
+       1024x1366 iPad portrait   -> stacked, 1024px image
+       1194x834  iPad landscape  -> two columns
+       844x390   phone landscape -> stacked (fails the 600px height floor)
+     A width-only boundary gave portrait tablets a ~340px image with 600px
+     of height going unused. History: this rule stacked below 1024, then
+     below 1200 (2026-07-19) — both were width-only and both mis-served
+     portrait tablets. The July note blamed a "480px details column that
+     clips sibling/style card rows"; that turned out to be a working
+     carousel peeking (slideshow-slides, scrollWidth 1626 vs client 438),
+     not clipping. Design + measurements:
+     docs/superpowers/specs/2026-08-24-pdp-gallery-layout-design.md
+     The two conditions below are complements; they overlap only at
+     exactly 1:1, where the later two-column block wins and re-resets
+     everything this one sets. */
+  /* The min-height: 600px term was removed 2026-08-25. It kept landscape
+     phones stacked, which is backwards: on a short window the gallery is
+     height-bound and small either way, so stacking strands a 189px image
+     in 328px of white each side, while two columns spend that width on the
+     buy box. Same principle as the rest of this design — leftover width
+     belongs to the buy box, never to margin. Verified at 844x390.
+     2026-08-25, second pass: the width floor moved 750 -> 640 for exactly
+     the reason the height floor was removed. At 667x375 (a small phone in
+     landscape) the 750 floor forced stacking, and the height budget then
+     capped the image to 176px, leaving it marooned in 37% gutters on every
+     one of the 33 templates — the same defect, arriving through the other
+     door. 640 lets a landscape phone use two columns, where the width
+     becomes buy box instead of margin. The details track's 400px floor is
+     what stops it going lower: 667 - 400 - gap - padding leaves ~179px of
+     gallery, which is the practical limit. */
+  @media screen and (max-width: 639px), screen and (max-aspect-ratio: 1/1) {
     .product-information__media {
       grid-column: 1 / -1;
+
+      /* Spend the same height budget here. Without this the image is
+         width-driven and a square photo is as tall as the column is wide,
+         which overruns the fold on any near-square viewport. Centred, so
+         the remainder reads as page gutter rather than a slab on one side
+         — and it only appears in the narrow band where the viewport is
+         close to square (80px per side at 750x800). The wide-stacked case
+         that made this look bad is gone: anything landscape and >=750x600
+         is two columns now. */
+      /* The base rule sets `width: 0; min-width: 100%` so the column does
+         not contribute to intrinsic sizing. min-width BEATS max-width in
+         the CSS box model, so the cap below is inert until both are undone
+         — shipped that way once and the column stayed full width with the
+         cap computing correctly but never binding. */
+      width: 100%;
+      min-width: 0;
+      max-width: var(--casa-gallery-cap);
+      margin-inline: auto;
     }
 
     .product-details {
@@ -154,8 +233,23 @@
     }
   }
 
-  /* Desktop styles */
-  @media screen and (min-width: 750px) {
+  /* Side-by-side. Complement of the stacked query above. */
+  @media screen and (min-width: 640px) and (min-aspect-ratio: 1/1) {
+    /* The stacked block may still match at exactly 1:1 — undo it here so
+       the two rules can never half-apply. `overflow: hidden` in particular
+       must not survive onto desktop: it would clip the sibling carousel's
+       peek and any sticky child in the details column. */
+    .product-information__media {
+      grid-column: auto;
+    }
+
+    .product-details {
+      grid-column: auto;
+      overflow: visible;
+      max-width: none;
+      min-width: 0;
+    }
+
     .product-information__grid {
       grid-column: 2;
     }
@@ -170,9 +264,23 @@
 
     /* Position when there is media */
     .product-information__grid:not(.product-information--media-none) {
-      /* Media on the left side */
+      /* Casa: allow both grid tracks to shrink below their content's
+         intrinsic width. Without minmax(0, ...), CSS Grid lets a track
+         expand past its declared size whenever its content (variant
+         cards, ATC + Shop Pay buttons, etc.) has a min-content width
+         larger than the track. That was forcing the details column to
+         push wider than viewport at narrow widths and the right edge
+         of the browser would cover the ATC button. */
+      .product-details {
+        min-width: 0;
+      }
+
+      /* Media on the left side.
+         --pdp-sidebar-width is a PDP-only token (~480px). Don't reuse
+         --sidebar-width here — that's a global cart-drawer / nav-drawer
+         width and changing it has site-wide side effects. */
       &.product-information--media-left {
-        grid-template-columns: 1fr min(50vw, var(--sidebar-width));
+        grid-template-columns: minmax(0, 1fr) minmax(0, min(50vw, var(--pdp-sidebar-width, var(--sidebar-width))));
 
         .product-information__media {
           padding-right: calc(var(--gap, 0) / 2);
@@ -189,7 +297,7 @@
 
       /* Media on the right side */
       &.product-information--media-right {
-        grid-template-columns: min(50vw, var(--sidebar-width)) 1fr;
+        grid-template-columns: minmax(0, min(50vw, var(--pdp-sidebar-width, var(--sidebar-width)))) minmax(0, 1fr);
 
         .product-information__media {
           padding-left: calc(var(--gap, 0) / 2);
@@ -285,25 +393,49 @@
     }
   }
 
-  /* Wider sidebar for large screens */
-  @media screen and (min-width: 1200px) {
+  /* Wider sidebar for large screens — merchant-controllable ratio.
+     --media-width-pct is the gallery's share; details takes the rest.
+     Tracks wrapped in minmax(0, ...) so neither column expands past
+     the viewport when the merchant picks an aggressive ratio (e.g.,
+     80% gallery / 20% details would otherwise let the details column's
+     intrinsic min-content push the grid wider than viewport at narrow
+     desktop widths). */
+  @media screen and (min-width: 640px) and (min-aspect-ratio: 1/1) {
+    /* Casa 2026-08-25: the merchant ratio is now a CEILING, not a fixed
+       share — min()'d against the height budget so the gallery column can
+       never be taller than the first viewport. The details track carries a
+       400px floor: the spec strip (.casa-ss__strip) needs 353px plus
+       padding, and below that it cuts a pill mid-word. */
     .product-information__grid:not(
         .product-information__grid--half,
         .product-information--media-none
       ).product-information--media-left {
-      grid-template-columns: 2fr 1fr;
+      grid-template-columns: minmax(0, min(var(--media-width-pct, 60%), var(--casa-gallery-cap))) minmax(400px, 1fr);
     }
 
     .product-information__grid:not(
         .product-information__grid--half,
         .product-information--media-none
       ).product-information--media-right {
-      grid-template-columns: 1fr 2fr;
+      grid-template-columns: minmax(400px, 1fr) minmax(0, min(var(--media-width-pct, 60%), var(--casa-gallery-cap)));
+    }
+  }
+
+  /* Ultrawide guardrail: past 1920px a full-width PDP grid stops tracking
+     the viewport and centers at the global content cap. The gallery column
+     is a percentage of this grid, so without the cap its aspect-ratio'd
+     media grows taller than the (fixed-height) screen and pushes the
+     thumbnails below the fold on 2560/3440px monitors. No effect ≤1920px. */
+  @media screen and (min-width: 1920px) {
+    .product-information.section--full-width .product-information__grid {
+      width: 100%;
+      max-width: var(--casa-content-max-w, 1920px);
+      margin-inline: auto;
     }
   }
 
   .product-information__grid--limit-details .product-details > .group-block {
-    max-width: var(--sidebar-width);
+    max-width: var(--pdp-sidebar-width, var(--sidebar-width));
   }
 
   /* If the header is sticky, make product details content stick underneath the header */

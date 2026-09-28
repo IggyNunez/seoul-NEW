@@ -1,133 +1,275 @@
 {%- comment -%}
-  Seoul Glow Lab — About Page Section
-  Block-based: hero, image_text, stats_row, featured_collection
+  Seoul Glow Lab — About Page (editorial archetype)
+  Paper surface · Ink type · Inter only · mono kickers ·
+  italic-gradient <em> accent on every section heading ·
+  ink CTAs (.btn-primary).
+
+  Block types: hero · manifesto · pillars · image_text · stats_row ·
+  pull_quote · featured_collection · @app.
+
+  Title fields are inline_richtext so merchant <em> survives save
+  (text type strips <em>). One shimmer accent per page max (hero
+  only); section H2s use the static --grad-text.
 {%- endcomment -%}
 
 {%- liquid
-  assign bg = section.settings.bg_color | default: '#0a0a0f'
-  assign text = section.settings.text_color | default: '#f5f5f5'
-  assign muted = section.settings.muted_color | default: '#9ca3af'
-  assign accent1 = section.settings.accent_primary | default: '#9333ea'
-  assign accent2 = section.settings.accent_secondary | default: '#ec4899'
-  assign pt = section.settings.padding_top | default: 80
-  assign pb = section.settings.padding_bottom | default: 80
-  assign gap = section.settings.section_gap | default: 60
+  assign bg          = section.settings.bg_color          | default: '#FAFAF7'
+  assign text        = section.settings.text_color        | default: '#0A0A0F'
+  assign muted       = section.settings.muted_color       | default: '#525252'
+  assign rule        = section.settings.rule_color        | default: '#E5E3DC'
+  assign pt          = section.settings.padding_top       | default: 80
+  assign pb          = section.settings.padding_bottom    | default: 80
+  assign gap         = section.settings.section_gap       | default: 80
 
-  assign hero_sub_color = section.settings.hero_subheading_color | default: accent1
-  assign hero_head_color = section.settings.hero_heading_color | default: '#ffffff'
-  assign hero_desc_color = section.settings.hero_description_color | default: muted
-
-  assign iwt_sub = section.settings.iwt_subheading_color | default: accent1
-  assign iwt_head = section.settings.iwt_heading_color | default: '#ffffff'
-  assign iwt_content = section.settings.iwt_content_color | default: '#d1d5db'
-  assign iwt_btn_bg = section.settings.iwt_button_bg | default: accent1
-  assign iwt_btn_text = section.settings.iwt_button_text | default: '#ffffff'
-  assign iwt_img_radius = section.settings.iwt_image_radius | default: 12
-
-  assign stats_label = section.settings.stats_label_color | default: muted
-  assign stats_card_bg = section.settings.stats_card_bg | default: '#111118'
-  assign stats_card_border = section.settings.stats_card_border | default: '#1f1f2e'
-  assign stats_num_color = section.settings.stats_number_color
-
-  assign fc_heading = section.settings.fc_heading_color | default: '#ffffff'
-  assign fc_price = section.settings.fc_price_color | default: '#ffffff'
+  assign accent1     = section.settings.accent_primary    | default: '#B0C3FA'
+  assign accent2     = section.settings.accent_secondary  | default: '#5E0A02'
+  assign accent3     = section.settings.accent_tertiary   | default: '#F2FFA0'
 -%}
 
 <section
   class="casa-aboutp"
+  data-casa-anim-gate
   style="
     --cap-bg: {{ bg }};
     --cap-text: {{ text }};
     --cap-muted: {{ muted }};
+    --cap-rule: {{ rule }};
     --cap-a1: {{ accent1 }};
     --cap-a2: {{ accent2 }};
-    --cap-pt: {{ pt }}px;
-    --cap-pb: {{ pb }}px;
+    --cap-a3: {{ accent3 }};
+    --cap-grad-text: linear-gradient(90deg, {{ accent1 }} 0%, {{ accent2 }} 50%, {{ accent3 }} 100%);
+    --cap-grad-shimmer: linear-gradient(90deg, {{ accent1 }} 0%, {{ accent2 }} 25%, {{ accent3 }} 50%, {{ accent2 }} 75%, {{ accent1 }} 100%);
+    {%- if section.settings.override_spacing -%}
+      --cap-pt: {{ pt }}px;
+      --cap-pb: {{ pb }}px;
+      {%- if section.settings.padding_top_mobile %}--cap-pt-m: {{ section.settings.padding_top_mobile }}px;{% endif -%}
+      {%- if section.settings.padding_bottom_mobile %}--cap-pb-m: {{ section.settings.padding_bottom_mobile }}px;{% endif -%}
+    {%- endif -%}
     --cap-gap: {{ gap }}px;
-    --cap-hero-sub: {{ hero_sub_color }};
-    --cap-hero-head: {{ hero_head_color }};
-    --cap-hero-desc: {{ hero_desc_color }};
-    --cap-iwt-sub: {{ iwt_sub }};
-    --cap-iwt-head: {{ iwt_head }};
-    --cap-iwt-content: {{ iwt_content }};
-    --cap-iwt-btn-bg: {{ iwt_btn_bg }};
-    --cap-iwt-btn-text: {{ iwt_btn_text }};
-    --cap-iwt-radius: {{ iwt_img_radius }}px;
-    --cap-stats-label: {{ stats_label }};
-    --cap-stats-card-bg: {{ stats_card_bg }};
-    --cap-stats-card-border: {{ stats_card_border }};
-    {%- if stats_num_color != blank %}--cap-stats-num: {{ stats_num_color }};{% endif -%}
-    --cap-fc-heading: {{ fc_heading }};
-    --cap-fc-price: {{ fc_price }};
   "
 >
   {%- for block in section.blocks -%}
     {%- case block.type -%}
 
-      {%- comment -%} ── HERO ── {%- endcomment -%}
+      {%- comment -%} ────────────── HERO ────────────── {%- endcomment -%}
       {%- when 'hero' -%}
-        <div class="casa-aboutp__hero" {{ block.shopify_attributes }}>
-          <div class="casa-aboutp__hero-inner casa-aboutp__reveal">
-            {%- if block.settings.subheading != blank -%}
-              <span class="casa-aboutp__sub">{{ block.settings.subheading }}</span>
-            {%- endif -%}
-            {%- if block.settings.heading != blank -%}
-              <h1 class="casa-aboutp__hero-h">{{ block.settings.heading }}</h1>
-            {%- endif -%}
-            {%- if block.settings.description != blank -%}
-              <p class="casa-aboutp__hero-p">{{ block.settings.description }}</p>
+        {%- liquid
+          assign hero_align = block.settings.text_align | default: 'left'
+          assign has_image  = false
+          if block.settings.image != blank
+            assign has_image = true
+          endif
+        -%}
+        <div
+          class="casa-aboutp__hero casa-aboutp__hero--align-{{ hero_align }}{% if has_image %} casa-aboutp__hero--has-image{% endif %}"
+          {{ block.shopify_attributes }}
+        >
+          <div class="casa-aboutp__hero-inner">
+            <div class="casa-aboutp__hero-copy casa-aboutp__reveal">
+              {%- if block.settings.kicker != blank -%}
+                <span class="casa-aboutp__kicker">{{ block.settings.kicker }}</span>
+              {%- endif -%}
+              {%- if block.settings.heading != blank -%}
+                <h1 class="casa-aboutp__hero-h">{{ block.settings.heading }}</h1>
+              {%- endif -%}
+              {%- if block.settings.description != blank -%}
+                <div class="casa-aboutp__hero-p">{{ block.settings.description }}</div>
+              {%- endif -%}
+              {%- if block.settings.button_text != blank -%}
+                <div class="casa-aboutp__hero-cta">
+                  <a href="{{ block.settings.button_url | default: '/collections/all' }}" class="btn btn-primary">
+                    {{ block.settings.button_text }}
+                  </a>
+                  {%- if block.settings.button_text_secondary != blank -%}
+                    <a href="{{ block.settings.button_url_secondary | default: '#manifesto' }}" class="btn btn-tertiary">
+                      {{ block.settings.button_text_secondary }}
+                    </a>
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
+            </div>
+            {%- if has_image -%}
+              <div
+                class="casa-aboutp__hero-image casa-aboutp__reveal"
+                style="--cap-hero-img-pos: {{ block.settings.image_focus | default: 'center' }};"
+              >
+                <img
+                  src="{{ block.settings.image | image_url: width: 1200 }}"
+                  srcset="
+                    {{ block.settings.image | image_url: width: 600 }} 600w,
+                    {{ block.settings.image | image_url: width: 900 }} 900w,
+                    {{ block.settings.image | image_url: width: 1200 }} 1200w,
+                    {{ block.settings.image | image_url: width: 1600 }} 1600w
+                  "
+                  sizes="(max-width: 749px) 100vw, 48vw"
+                  alt="{{ block.settings.image.alt | default: 'Seoul Glow Lab · House of Light' | escape }}"
+                  width="{{ block.settings.image.width }}"
+                  height="{{ block.settings.image.height }}"
+                  loading="eager"
+                  decoding="async"
+                  fetchpriority="high"
+                >
+              </div>
             {%- endif -%}
           </div>
-          <div class="casa-aboutp__hero-glow"></div>
         </div>
 
-      {%- comment -%} ── IMAGE + TEXT ── {%- endcomment -%}
+      {%- comment -%} ────────────── MANIFESTO ────────────── {%- endcomment -%}
+      {%- when 'manifesto' -%}
+        <div
+          class="casa-aboutp__manifesto"
+          id="manifesto"
+          {{ block.shopify_attributes }}
+        >
+          <div class="casa-aboutp__manifesto-inner casa-aboutp__reveal">
+            {%- if block.settings.kicker != blank -%}
+              <span class="casa-aboutp__kicker">{{ block.settings.kicker }}</span>
+            {%- endif -%}
+            {%- if block.settings.heading != blank -%}
+              <h2 class="casa-aboutp__manifesto-h">{{ block.settings.heading }}</h2>
+            {%- endif -%}
+            {%- if block.settings.body != blank -%}
+              <div class="casa-aboutp__manifesto-body">{{ block.settings.body }}</div>
+            {%- endif -%}
+            {%- if block.settings.signature != blank -%}
+              <span class="casa-aboutp__signature">{{ block.settings.signature }}</span>
+            {%- endif -%}
+          </div>
+        </div>
+
+      {%- comment -%} ────────────── PILLARS (3-col triptych) ────────────── {%- endcomment -%}
+      {%- when 'pillars' -%}
+        <div class="casa-aboutp__pillars" {{ block.shopify_attributes }}>
+          <div class="casa-aboutp__pillars-head casa-aboutp__reveal">
+            {%- if block.settings.kicker != blank -%}
+              <span class="casa-aboutp__kicker">{{ block.settings.kicker }}</span>
+            {%- endif -%}
+            {%- if block.settings.heading != blank -%}
+              <h2 class="casa-aboutp__pillars-h">{{ block.settings.heading }}</h2>
+            {%- endif -%}
+          </div>
+          <div class="casa-aboutp__pillars-grid">
+            {%- for i in (1..3) -%}
+              {%- liquid
+                assign num   = i | prepend: '0' | append: ''
+                assign label_key = 'pillar_' | append: i | append: '_label'
+                assign head_key  = 'pillar_' | append: i | append: '_heading'
+                assign body_key  = 'pillar_' | append: i | append: '_body'
+                assign image_key = 'pillar_' | append: i | append: '_image'
+                assign label_val = block.settings[label_key]
+                assign head_val  = block.settings[head_key]
+                assign body_val  = block.settings[body_key]
+                assign image_val = block.settings[image_key]
+              -%}
+              {%- if head_val != blank -%}
+                <div class="casa-aboutp__pillar casa-aboutp__reveal">
+                  {%- if image_val != blank -%}
+                    {%- liquid
+                      assign focus_key = 'pillar_' | append: i | append: '_image_focus'
+                      assign focus_val = block.settings[focus_key] | default: 'center bottom'
+                    -%}
+                    <div class="casa-aboutp__pillar-img" style="--cap-pillar-img-pos: {{ focus_val }};">
+                      <img
+                        src="{{ image_val | image_url: width: 600 }}"
+                        srcset="
+                          {{ image_val | image_url: width: 400 }} 400w,
+                          {{ image_val | image_url: width: 600 }} 600w,
+                          {{ image_val | image_url: width: 900 }} 900w
+                        "
+                        sizes="(max-width: 749px) 100vw, 33vw"
+                        alt="{{ image_val.alt | default: head_val | escape }}"
+                        width="{{ image_val.width }}"
+                        height="{{ image_val.height }}"
+                        loading="lazy"
+                        decoding="async"
+                      >
+                    </div>
+                  {%- endif -%}
+                  <div class="casa-aboutp__pillar-meta">
+                    <span class="casa-aboutp__pillar-num">{{ num }}</span>
+                    {%- if label_val != blank -%}
+                      <span class="casa-aboutp__pillar-label">{{ label_val }}</span>
+                    {%- endif -%}
+                  </div>
+                  <h3 class="casa-aboutp__pillar-h">{{ head_val }}</h3>
+                  {%- if body_val != blank -%}
+                    <div class="casa-aboutp__pillar-body">{{ body_val }}</div>
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
+            {%- endfor -%}
+          </div>
+        </div>
+
+      {%- comment -%} ────────────── IMAGE + TEXT ────────────── {%- endcomment -%}
       {%- when 'image_text' -%}
         {%- liquid
           assign pos = block.settings.image_position | default: 'start'
         -%}
-        <div class="casa-aboutp__it casa-aboutp__it--{{ pos }}" {{ block.shopify_attributes }}>
-          {%- if block.settings.image != blank -%}
-            <div class="casa-aboutp__it-img casa-aboutp__reveal">
-              <img
-                src="{{ block.settings.image | image_url: width: 800 }}"
-                srcset="
-                  {{ block.settings.image | image_url: width: 400 }} 400w,
-                  {{ block.settings.image | image_url: width: 600 }} 600w,
-                  {{ block.settings.image | image_url: width: 800 }} 800w
-                "
-                sizes="(max-width: 749px) 100vw, 50vw"
-                alt="{{ block.settings.heading | escape }}"
-                loading="lazy"
-                width="800"
-                height="{{ 800 | divided_by: block.settings.image.aspect_ratio | round }}"
+        <div
+          class="casa-aboutp__it casa-aboutp__it--{{ pos }}"
+          {{ block.shopify_attributes }}
+        >
+          <div class="casa-aboutp__it-inner">
+            {%- if block.settings.image != blank -%}
+              <div
+                class="casa-aboutp__it-img casa-aboutp__reveal"
+                style="--cap-it-img-pos: {{ block.settings.image_focus | default: 'center bottom' }};"
               >
+                <img
+                  src="{{ block.settings.image | image_url: width: 1000 }}"
+                  srcset="
+                    {{ block.settings.image | image_url: width: 500 }} 500w,
+                    {{ block.settings.image | image_url: width: 800 }} 800w,
+                    {{ block.settings.image | image_url: width: 1000 }} 1000w,
+                    {{ block.settings.image | image_url: width: 1400 }} 1400w
+                  "
+                  sizes="(max-width: 749px) 100vw, 50vw"
+                  alt="{{ block.settings.image.alt | default: block.settings.heading | escape }}"
+                  width="{{ block.settings.image.width }}"
+                  height="{{ block.settings.image.height }}"
+                  loading="lazy"
+                  decoding="async"
+                >
+              </div>
+            {%- endif -%}
+            <div class="casa-aboutp__it-body casa-aboutp__reveal">
+              {%- if block.settings.kicker != blank -%}
+                <span class="casa-aboutp__kicker">{{ block.settings.kicker }}</span>
+              {%- endif -%}
+              {%- if block.settings.heading != blank -%}
+                <h2 class="casa-aboutp__it-h">{{ block.settings.heading }}</h2>
+              {%- endif -%}
+              {%- if block.settings.content != blank -%}
+                <div class="casa-aboutp__it-rt">{{ block.settings.content }}</div>
+              {%- endif -%}
+              {%- if block.settings.button_text != blank -%}
+                <div class="casa-aboutp__it-cta">
+                  <a href="{{ block.settings.button_url | default: '#' }}" class="btn btn-primary">
+                    {{ block.settings.button_text }}
+                  </a>
+                </div>
+              {%- endif -%}
             </div>
-          {%- endif -%}
-
-          <div class="casa-aboutp__it-body casa-aboutp__reveal">
-            {%- if block.settings.subheading != blank -%}
-              <span class="casa-aboutp__sub">{{ block.settings.subheading }}</span>
-            {%- endif -%}
-            {%- if block.settings.heading != blank -%}
-              <h2 class="casa-aboutp__it-h">{{ block.settings.heading }}</h2>
-            {%- endif -%}
-            {%- if block.settings.content != blank -%}
-              <div class="casa-aboutp__it-rt">{{ block.settings.content }}</div>
-            {%- endif -%}
-            {%- if block.settings.button_text != blank -%}
-              <a href="{{ block.settings.button_url | default: '#' }}" class="casa-aboutp__btn">
-                {{ block.settings.button_text }}
-              </a>
-            {%- endif -%}
           </div>
         </div>
 
-      {%- comment -%} ── STATS ROW ── {%- endcomment -%}
+      {%- comment -%} ────────────── STATS ROW ────────────── {%- endcomment -%}
       {%- when 'stats_row' -%}
+        {%- liquid
+          assign _stats_any = ''
+          for i in (1..4)
+            assign _key = 'stat_number_' | append: i
+            assign _v = block.settings[_key]
+            if _v != blank
+              assign _stats_any = 'yes'
+            endif
+          endfor
+        -%}
+        {%- if _stats_any == 'yes' -%}
         <div class="casa-aboutp__stats" {{ block.shopify_attributes }}>
           <div class="casa-aboutp__stats-inner">
-            {%- for i in (1..3) -%}
+            {%- for i in (1..4) -%}
               {%- liquid
                 assign num_key   = 'stat_number_' | append: i
                 assign label_key = 'stat_label_' | append: i
@@ -136,7 +278,7 @@
               -%}
               {%- if num_val != blank -%}
                 <div class="casa-aboutp__stat casa-aboutp__reveal">
-                  <span class="casa-aboutp__stat-num" data-target="{{ num_val }}">{{ num_val }}</span>
+                  <span class="casa-aboutp__stat-num">{{ num_val }}</span>
                   {%- if label_val != blank -%}
                     <span class="casa-aboutp__stat-lbl">{{ label_val }}</span>
                   {%- endif -%}
@@ -145,18 +287,38 @@
             {%- endfor -%}
           </div>
         </div>
+        {%- endif -%}
 
-      {%- comment -%} ── FEATURED COLLECTION ── {%- endcomment -%}
+      {%- comment -%} ────────────── PULL QUOTE ────────────── {%- endcomment -%}
+      {%- when 'pull_quote' -%}
+        <div class="casa-aboutp__quote" {{ block.shopify_attributes }}>
+          <figure class="casa-aboutp__quote-inner casa-aboutp__reveal">
+            {%- if block.settings.quote != blank -%}
+              <blockquote class="casa-aboutp__quote-q">
+                <span class="casa-aboutp__quote-mark" aria-hidden="true">“</span>{{ block.settings.quote }}<span class="casa-aboutp__quote-mark casa-aboutp__quote-mark--end" aria-hidden="true">”</span>
+              </blockquote>
+            {%- endif -%}
+            {%- if block.settings.attribution != blank -%}
+              <figcaption class="casa-aboutp__quote-attr">{{ block.settings.attribution }}</figcaption>
+            {%- endif -%}
+          </figure>
+        </div>
+
+      {%- comment -%} ────────────── FEATURED COLLECTION ────────────── {%- endcomment -%}
       {%- when 'featured_collection' -%}
         {%- liquid
-          assign fc = block.settings.collection
+          assign fc       = block.settings.collection
           assign fc_limit = block.settings.products_to_show | default: 4
         -%}
         <div class="casa-aboutp__fc" {{ block.shopify_attributes }}>
-          {%- if block.settings.heading != blank -%}
-            <h2 class="casa-aboutp__fc-h casa-aboutp__reveal">{{ block.settings.heading }}</h2>
-          {%- endif -%}
-
+          <div class="casa-aboutp__fc-head casa-aboutp__reveal">
+            {%- if block.settings.kicker != blank -%}
+              <span class="casa-aboutp__kicker">{{ block.settings.kicker }}</span>
+            {%- endif -%}
+            {%- if block.settings.heading != blank -%}
+              <h2 class="casa-aboutp__fc-h">{{ block.settings.heading }}</h2>
+            {%- endif -%}
+          </div>
           {%- if fc != blank and fc.products.size > 0 -%}
             <div class="casa-aboutp__fc-grid">
               {%- for product in fc.products limit: fc_limit -%}
@@ -164,11 +326,18 @@
                   {%- if product.featured_image != blank -%}
                     <div class="casa-aboutp__fc-img">
                       <img
-                        src="{{ product.featured_image | image_url: width: 400 }}"
-                        alt="{{ product.title | escape }}"
+                        src="{{ product.featured_image | image_url: width: 600 }}"
+                        srcset="
+                          {{ product.featured_image | image_url: width: 400 }} 400w,
+                          {{ product.featured_image | image_url: width: 600 }} 600w,
+                          {{ product.featured_image | image_url: width: 800 }} 800w
+                        "
+                        sizes="(max-width: 749px) 50vw, 25vw"
+                        alt="{{ product.featured_image.alt | default: product.title | escape }}"
+                        width="{{ product.featured_image.width }}"
+                        height="{{ product.featured_image.height }}"
                         loading="lazy"
-                        width="400"
-                        height="{{ 400 | divided_by: product.featured_image.aspect_ratio | round }}"
+                        decoding="async"
                       >
                     </div>
                   {%- endif -%}
@@ -179,15 +348,22 @@
                 </a>
               {%- endfor -%}
             </div>
+            {%- if block.settings.button_text != blank -%}
+              <div class="casa-aboutp__fc-cta casa-aboutp__reveal">
+                <a href="{{ block.settings.button_url | default: '/collections/all' }}" class="btn btn-primary">
+                  {{ block.settings.button_text }}
+                </a>
+              </div>
+            {%- endif -%}
           {%- else -%}
-            <p class="casa-aboutp__fc-empty">Select a collection in the theme editor.</p>
+            <p class="casa-aboutp__fc-empty">Pick a collection in the theme editor.</p>
           {%- endif -%}
         </div>
 
     {%- endcase -%}
   {%- endfor -%}
 
-  {%- comment -%} App blocks {%- endcomment -%}
+  {%- comment -%} App blocks (Judge.me, Klaviyo, etc.) {%- endcomment -%}
   {%- for block in section.blocks -%}
     {%- if block.type == '@app' -%}
       <div class="casa-app-block" {{ block.shopify_attributes }}>
@@ -197,262 +373,580 @@
   {%- endfor -%}
 </section>
 
-{%- comment -%} ═══════════════ STYLES ═══════════════ {%- endcomment -%}
-<style>
-  /* ── Base ── */
+{% stylesheet %}
+  /* ═══════════════ BASE ═══════════════ */
   .casa-aboutp {
-    --_bg: var(--cap-bg, #0a0a0f);
-    --_text: var(--cap-text, #f5f5f5);
-    --_a1: var(--cap-a1, #9333ea);
-    --_a2: var(--cap-a2, #ec4899);
+    --_bg: var(--cap-bg, #FAFAF7);
+    --_text: var(--cap-text, #0A0A0F);
+    --_muted: var(--cap-muted, #525252);
+    --_rule: var(--cap-rule, #E5E3DC);
+    --_a1: var(--cap-a1, #B0C3FA);
+    --_a2: var(--cap-a2, #5E0A02);
+    --_a3: var(--cap-a3, #F2FFA0);
+    --_grad-text: var(--cap-grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+    --_grad-shimmer: var(--cap-grad-shimmer, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0, #5E0A02, #B0C3FA));
+
     background: var(--_bg);
     color: var(--_text);
-    padding-top: var(--cap-pt, 80px);
-    padding-bottom: var(--cap-pb, 80px);
-    overflow: hidden;
-    font-family: inherit;
+    padding-top: var(--cap-pt, var(--casa-section-pt, 80px));
+    padding-bottom: var(--cap-pb, var(--casa-section-pb, 80px));
+    font-family: var(--font-body--family, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
     display: flex;
     flex-direction: column;
-    gap: var(--cap-gap, 60px);
+    gap: var(--cap-gap, 80px);
+    overflow: hidden;
   }
-  .casa-aboutp *, .casa-aboutp *::before, .casa-aboutp *::after { box-sizing: border-box; }
+  .casa-aboutp *,
+  .casa-aboutp *::before,
+  .casa-aboutp *::after { box-sizing: border-box; }
 
-  /* ── Scroll reveal ── */
-  .casa-aboutp__reveal {
-    opacity: 0;
-    transform: translateY(32px);
-    transition: opacity .7s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1);
-  }
-  .casa-aboutp__reveal.is-visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* ── Shared sub-label ── */
-  .casa-aboutp__sub {
+  /* ═══════════════ SHARED — mono kicker ═══════════════ */
+  .casa-aboutp__kicker {
     display: inline-block;
-    font-size: .75rem;
-    font-weight: 600;
-    letter-spacing: .15em;
+    font-family: var(--font-mono--family, 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--cap-iwt-sub, var(--_a1));
-    margin-bottom: .75rem;
+    color: var(--_muted);
+    margin-bottom: 1.5rem;
   }
 
-  /* ── Shared button ── */
-  .casa-aboutp__btn {
-    display: inline-flex;
-    align-items: center;
-    gap: .5rem;
-    margin-top: 1.5rem;
-    padding: .85rem 2rem;
-    font-size: .8rem;
-    font-weight: 600;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: var(--cap-iwt-btn-text, #fff);
-    background: var(--cap-iwt-btn-bg, var(--_a1));
-    border: none;
-    border-radius: 6px;
-    text-decoration: none;
-    transition: opacity .3s, transform .3s, box-shadow .3s;
-    cursor: pointer;
+  /* ═══════════════ SHARED — section heading em accent ═══════════════ */
+  /* Section H2s carry the static --grad-text accent.
+     The hero H1 gets its own shimmer (defined below in HERO block). */
+  .casa-aboutp__manifesto-h em,
+  .casa-aboutp__pillars-h em,
+  .casa-aboutp__it-h em,
+  .casa-aboutp__fc-h em,
+  .casa-aboutp__pillar-h em {
+    font-style: italic;
+    font-weight: 800;
+    background-image: var(--_grad-text);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
   }
-  .casa-aboutp__btn:hover { opacity: .88; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(147,51,234,0.3); }
 
-  /* ═══════════════════════ HERO ═══════════════════════ */
+  /* ═══════════════════════════════════════════════════ */
+  /* ═══════════════════ HERO ═════════════════════════ */
+  /* ═══════════════════════════════════════════════════ */
   .casa-aboutp__hero {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    min-height: 55vh;
-    padding: 4rem 1.5rem;
+    padding: 4rem 1.5rem 0;
   }
-  .casa-aboutp__hero-inner { position: relative; z-index: 2; max-width: 720px; }
-  .casa-aboutp__hero .casa-aboutp__sub {
-    color: var(--cap-hero-sub, var(--_a1));
+  .casa-aboutp__hero-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3rem;
+    align-items: center;
+  }
+  @media (min-width: 900px) {
+    .casa-aboutp__hero { padding: 6rem 2.5rem 0; }
+    .casa-aboutp__hero--has-image .casa-aboutp__hero-inner {
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+      gap: 5rem;
+    }
+  }
+  .casa-aboutp__hero--align-center .casa-aboutp__hero-copy { text-align: center; margin: 0 auto; }
+  .casa-aboutp__hero--align-center .casa-aboutp__hero-p { margin-left: auto; margin-right: auto; }
+  .casa-aboutp__hero--align-center .casa-aboutp__hero-cta { justify-content: center; }
+
+  .casa-aboutp__hero-copy {
+    max-width: 640px;
   }
   .casa-aboutp__hero-h {
-    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+    font-size: clamp(40px, 6vw, 80px);
     font-weight: 700;
-    line-height: 1.15;
-    margin: 0 0 1.25rem;
-    color: var(--cap-hero-head, #fff);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--_text);
+    margin: 0 0 1.5rem;
+    text-wrap: balance;
   }
-  .casa-aboutp__hero-p {
-    font-size: clamp(.95rem, 1.8vw, 1.15rem);
-    line-height: 1.7;
-    color: var(--cap-hero-desc, rgba(255,255,255,.7));
-    max-width: 600px;
-    margin: 0 auto;
+  /* Hero gets the shimmer treatment — one per page. */
+  .casa-aboutp__hero-h em {
+    font-style: italic;
+    font-weight: 800;
+    background-image: var(--_grad-shimmer);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+    /* perf-justified: above-the-fold (hero is first viewport), animates
+       a single short <em>, brand-locked one-per-page accent, and
+       prefers-reduced-motion disables it below. */
+    animation: casa-aboutp-shimmer 8s linear infinite;
   }
-  .casa-aboutp__hero-glow {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 1;
-    background:
-      radial-gradient(ellipse 50% 60% at 50% 40%, rgba(147,51,234,.12) 0%, transparent 70%),
-      radial-gradient(ellipse 40% 50% at 60% 70%, rgba(236,72,153,.08) 0%, transparent 70%);
+  @media (prefers-reduced-motion: reduce) {
+    .casa-aboutp__hero-h em {
+      animation: none;
+      background-image: var(--_grad-text);
+    }
+  }
+  @keyframes casa-aboutp-shimmer {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: -200% 50%; }
   }
 
-  /* ═══════════════════════ IMAGE + TEXT ═══════════════════════ */
-  .casa-aboutp__it {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 3rem 1.5rem;
+  .casa-aboutp__hero-p {
+    font-size: clamp(16px, 1.4vw, 19px);
+    line-height: 1.65;
+    color: var(--_muted);
+    max-width: 560px;
+    margin: 0 0 2.25rem;
+  }
+  .casa-aboutp__hero-p p { margin: 0 0 1rem; }
+  .casa-aboutp__hero-p p:last-child { margin-bottom: 0; }
+
+  .casa-aboutp__hero-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem;
     align-items: center;
   }
+
+  .casa-aboutp__hero-image {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    border-radius: 4px;
+    overflow: hidden;
+    background: rgba(10, 10, 15, 0.04);
+  }
+  .casa-aboutp__hero-image img {
+    /* height: auto + aspect-ratio instead of height: 100% — the parent's
+       height comes from its own aspect-ratio, and Safari 26 can fail to
+       resolve a %-height against that, falling back to the img's intrinsic
+       height (the /cart flat-thumbnail class; immune pattern from
+       .cart-items__media-image in snippets/cart-products.liquid). */
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    /* products are the standout shot of the frame — merchant picks
+       which portion of the source photo stays in the cropped 4:5 */
+    object-position: var(--cap-hero-img-pos, center);
+    display: block;
+  }
+
+  /* ═══════════════════════════════════════════════════ */
+  /* ═══════════════════ MANIFESTO ════════════════════ */
+  /* ═══════════════════════════════════════════════════ */
+  .casa-aboutp__manifesto {
+    padding: 2rem 1.5rem;
+  }
+  @media (min-width: 900px) {
+    .casa-aboutp__manifesto { padding: 4rem 2.5rem; }
+  }
+  .casa-aboutp__manifesto-inner {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .casa-aboutp__manifesto-h {
+    font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: var(--_text);
+    margin: 0 0 2rem;
+    text-wrap: balance;
+  }
+  .casa-aboutp__manifesto-body {
+    font-size: clamp(16px, 1.2vw, 19px);
+    line-height: 1.8;
+    color: var(--_text);
+  }
+  .casa-aboutp__manifesto-body p {
+    margin: 0 0 1.5rem;
+  }
+  .casa-aboutp__manifesto-body p:last-child { margin-bottom: 0; }
+  .casa-aboutp__signature {
+    display: block;
+    margin-top: 2.5rem;
+    font-family: var(--font-mono--family, 'JetBrains Mono', monospace);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--_muted);
+    border-top: 1px solid var(--_rule);
+    padding-top: 1.5rem;
+  }
+
+  /* ═══════════════════════════════════════════════════ */
+  /* ═══════════════════ PILLARS ══════════════════════ */
+  /* ═══════════════════════════════════════════════════ */
+  .casa-aboutp__pillars {
+    padding: 2rem 1.5rem;
+    max-width: 1280px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  @media (min-width: 900px) {
+    .casa-aboutp__pillars { padding: 2rem 2.5rem; }
+  }
+  .casa-aboutp__pillars-head {
+    max-width: 760px;
+    margin: 0 0 3rem;
+  }
+  .casa-aboutp__pillars-h {
+    font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: var(--_text);
+    margin: 0;
+    text-wrap: balance;
+  }
+  .casa-aboutp__pillars-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3rem 2rem;
+  }
   @media (min-width: 750px) {
-    .casa-aboutp__it { grid-template-columns: 1fr 1fr; gap: 3.5rem; }
+    .casa-aboutp__pillars-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  .casa-aboutp__pillar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .casa-aboutp__pillar-img {
+    aspect-ratio: 4 / 5;
+    overflow: hidden;
+    border-radius: 4px;
+    background: rgba(10, 10, 15, 0.04);
+    margin-bottom: 0.5rem;
+  }
+  .casa-aboutp__pillar-img img {
+    /* height: auto + aspect-ratio instead of height: 100% — the parent's
+       height comes from its own aspect-ratio, and Safari 26 can fail to
+       resolve a %-height against that (the /cart flat-thumbnail class;
+       immune pattern from .cart-items__media-image in snippets/cart-products.liquid). */
+    width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; display: block;
+    /* products are the standout — default to bottom for floor lamps */
+    object-position: var(--cap-pillar-img-pos, center bottom);
+    transition: transform .6s cubic-bezier(.22,1,.36,1);
+  }
+  .casa-aboutp__pillar:hover .casa-aboutp__pillar-img img { transform: scale(1.03); }
+  .casa-aboutp__pillar-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    font-family: var(--font-mono--family, 'JetBrains Mono', monospace);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--_muted);
+  }
+  .casa-aboutp__pillar-num {
+    color: var(--_text);
+  }
+  .casa-aboutp__pillar-label {
+    color: var(--_muted);
+  }
+  .casa-aboutp__pillar-h {
+    font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+    font-size: clamp(20px, 2vw, 26px);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--_text);
+    margin: 0;
+    text-wrap: balance;
+  }
+  .casa-aboutp__pillar-body {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--_muted);
+  }
+  .casa-aboutp__pillar-body p { margin: 0 0 1rem; }
+  .casa-aboutp__pillar-body p:last-child { margin-bottom: 0; }
+
+  /* ═══════════════════════════════════════════════════ */
+  /* ═══════════════ IMAGE + TEXT ═════════════════════ */
+  /* ═══════════════════════════════════════════════════ */
+  .casa-aboutp__it { padding: 2rem 1.5rem; }
+  @media (min-width: 900px) {
+    .casa-aboutp__it { padding: 2rem 2.5rem; }
+  }
+  .casa-aboutp__it-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.5rem;
+    align-items: center;
+  }
+  @media (min-width: 900px) {
+    .casa-aboutp__it-inner {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 5rem;
+    }
     .casa-aboutp__it--end .casa-aboutp__it-img { order: 2; }
     .casa-aboutp__it--end .casa-aboutp__it-body { order: 1; }
   }
   .casa-aboutp__it-img {
-    border-radius: var(--cap-iwt-radius, 14px);
+    aspect-ratio: 4 / 5;
     overflow: hidden;
-    background: rgba(255,255,255,.04);
-    border: 1px solid rgba(255,255,255,.06);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    border-radius: 4px;
+    background: rgba(10, 10, 15, 0.04);
   }
-  .casa-aboutp__it-img img { display: block; width: 100%; height: auto; object-fit: cover; }
+  .casa-aboutp__it-img img {
+    /* height: auto + aspect-ratio instead of height: 100% — the parent's
+       height comes from its own aspect-ratio, and Safari 26 can fail to
+       resolve a %-height against that (the /cart flat-thumbnail class;
+       immune pattern from .cart-items__media-image in snippets/cart-products.liquid). */
+    width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; display: block;
+    /* products are the standout — default to bottom for floor-standing
+       products; merchant can switch to "center" or "top" per image */
+    object-position: var(--cap-it-img-pos, center bottom);
+  }
+  .casa-aboutp__it-body { max-width: 560px; }
+  .casa-aboutp__it--end .casa-aboutp__it-body { margin-left: 0; }
   .casa-aboutp__it-h {
-    font-size: clamp(1.5rem, 3vw, 2.25rem);
-    font-weight: 700;
-    line-height: 1.2;
-    margin: 0 0 1rem;
-    color: var(--cap-iwt-head, var(--_text));
+    font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+    font-size: clamp(28px, 3.6vw, 42px);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: var(--_text);
+    margin: 0 0 1.5rem;
+    text-wrap: balance;
   }
   .casa-aboutp__it-rt {
-    font-size: .95rem;
+    font-size: 16px;
     line-height: 1.75;
-    color: var(--cap-iwt-content, rgba(255,255,255,.7));
+    color: var(--_muted);
   }
-  .casa-aboutp__it-rt p { margin: 0 0 1rem; }
+  .casa-aboutp__it-rt p { margin: 0 0 1.25rem; }
   .casa-aboutp__it-rt p:last-child { margin-bottom: 0; }
+  .casa-aboutp__it-cta { margin-top: 2rem; }
 
-  /* ═══════════════════════ STATS ═══════════════════════ */
+  /* ═══════════════════════════════════════════════════ */
+  /* ═══════════════════ STATS ════════════════════════ */
+  /* ═══════════════════════════════════════════════════ */
   .casa-aboutp__stats {
-    padding: 4rem 1.5rem;
-    position: relative;
+    padding: 3rem 1.5rem;
+    border-top: 1px solid var(--_rule);
+    border-bottom: 1px solid var(--_rule);
   }
-  .casa-aboutp__stats::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(147,51,234,.06), rgba(236,72,153,.06));
-    border-top: 1px solid rgba(255,255,255,.06);
-    border-bottom: 1px solid rgba(255,255,255,.06);
-    pointer-events: none;
+  @media (min-width: 900px) {
+    .casa-aboutp__stats { padding: 4rem 2.5rem; }
   }
   .casa-aboutp__stats-inner {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 2rem 3.5rem;
-    max-width: 900px;
+    max-width: 1280px;
     margin: 0 auto;
-    position: relative;
-    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2.5rem 1.5rem;
+  }
+  @media (min-width: 750px) {
+    .casa-aboutp__stats-inner { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2rem; }
   }
   .casa-aboutp__stat {
     text-align: center;
-    flex: 1 1 180px;
-    min-width: 140px;
-    padding: 1.5rem 1rem;
-    border-radius: 14px;
-    background: var(--cap-stats-card-bg, rgba(255,255,255,.03));
-    border: 1px solid var(--cap-stats-card-border, rgba(255,255,255,.06));
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
   }
+  /* Brand Book v1 canonical stat-number register (matches
+     casa-stats.liquid + casa-pdp-features.liquid:635):
+     · Inter weight 300 (light), -0.035em tracking, line-height 1
+     · 135deg 2-stop --grad-primary (purple→pink), NOT the 3-stop
+       --grad-text that section H2 <em> accents use. Brand book
+       reserves the 3-stop+cyan shimmer/text gradients for hero
+       and section H2 accents only; stats numbers stay primary. */
   .casa-aboutp__stat-num {
     display: block;
-    font-size: clamp(2rem, 4.5vw, 3rem);
-    font-weight: 700;
-    color: var(--cap-stats-num, transparent);
-    background: linear-gradient(135deg, var(--_a1), var(--_a2));
+    font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 300;
+    line-height: 1;
+    letter-spacing: -0.035em;
+    background-image: var(--grad-primary, linear-gradient(135deg, var(--_a1, #B0C3FA), var(--_a2, #5E0A02)));
     -webkit-background-clip: text;
-    -webkit-text-fill-color: var(--cap-stats-num, transparent);
+    -webkit-text-fill-color: transparent;
     background-clip: text;
-    line-height: 1.1;
-    margin-bottom: .35rem;
+    color: transparent;
   }
+  /* Spec-register label: JetBrains Mono UPPERCASE, 12px / 0.12em
+     — matches casa-stats.liquid label tokens so the about-page
+     stats row reads in the same spec register as the homepage. */
   .casa-aboutp__stat-lbl {
     display: block;
-    font-size: .8rem;
+    font-family: var(--font-mono--family, 'JetBrains Mono', monospace);
+    font-size: 12px;
     font-weight: 500;
-    letter-spacing: .06em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--cap-stats-label, rgba(255,255,255,.55));
+    color: var(--_muted);
   }
 
-  /* ═══════════════════════ FEATURED COLLECTION ═══════════════════════ */
-  .casa-aboutp__fc {
-    max-width: 1200px;
+  /* ═══════════════════════════════════════════════════ */
+  /* ═══════════════════ PULL QUOTE ═══════════════════ */
+  /* ═══════════════════════════════════════════════════ */
+  .casa-aboutp__quote {
+    padding: 3rem 1.5rem;
+  }
+  @media (min-width: 900px) {
+    .casa-aboutp__quote { padding: 4rem 2.5rem; }
+  }
+  .casa-aboutp__quote-inner {
+    max-width: 860px;
     margin: 0 auto;
-    padding: 3rem 1.5rem 1rem;
     text-align: center;
   }
-  .casa-aboutp__fc-h {
-    font-size: clamp(1.4rem, 3vw, 2rem);
+  .casa-aboutp__quote-q {
+    font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+    font-size: clamp(26px, 3.4vw, 42px);
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+    color: var(--_text);
+    margin: 0;
+    font-style: normal;
+    text-wrap: balance;
+    position: relative;
+  }
+  .casa-aboutp__quote-q em {
+    font-style: italic;
     font-weight: 700;
-    margin: 0 0 2rem;
+    background-image: var(--_grad-text);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+  }
+  .casa-aboutp__quote-mark {
+    color: var(--_a1);
+    opacity: 0.5;
+    font-weight: 400;
+    margin: 0 0.05em;
+  }
+  .casa-aboutp__quote-mark--end {
+    color: var(--_a3);
+  }
+  .casa-aboutp__quote-attr {
+    display: block;
+    margin-top: 2rem;
+    font-family: var(--font-mono--family, 'JetBrains Mono', monospace);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--_muted);
+  }
+
+  /* ═══════════════════════════════════════════════════ */
+  /* ═══════════════ FEATURED COLLECTION ══════════════ */
+  /* ═══════════════════════════════════════════════════ */
+  .casa-aboutp__fc {
+    padding: 2rem 1.5rem 4rem;
+    max-width: 1280px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  @media (min-width: 900px) {
+    .casa-aboutp__fc { padding: 2rem 2.5rem 4rem; }
+  }
+  .casa-aboutp__fc-head {
+    max-width: 760px;
+    margin: 0 0 3rem;
+  }
+  .casa-aboutp__fc-h {
+    font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: var(--_text);
+    margin: 0;
+    text-wrap: balance;
   }
   .casa-aboutp__fc-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.25rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
   }
   @media (min-width: 750px) {
-    .casa-aboutp__fc-grid { grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+    .casa-aboutp__fc-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.75rem; }
   }
   .casa-aboutp__fc-card {
     text-decoration: none;
     color: var(--_text);
-    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: transform .35s cubic-bezier(.22,1,.36,1);
+  }
+  .casa-aboutp__fc-card:hover { transform: translateY(-4px); }
+  .casa-aboutp__fc-img {
+    aspect-ratio: 1 / 1;
     overflow: hidden;
-    background: rgba(255,255,255,.03);
-    border: 1px solid rgba(255,255,255,.06);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    transition: transform .35s cubic-bezier(.22,1,.36,1), border-color .35s;
+    border-radius: 4px;
+    background: rgba(10, 10, 15, 0.04);
   }
-  .casa-aboutp__fc-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(147,51,234,.3);
+  .casa-aboutp__fc-img img {
+    /* height: auto + aspect-ratio instead of height: 100% — the parent's
+       height comes from its own aspect-ratio, and Safari 26 can fail to
+       resolve a %-height against that (the /cart flat-thumbnail class;
+       immune pattern from .cart-items__media-image in snippets/cart-products.liquid). */
+    width: 100%; height: auto; aspect-ratio: 1 / 1; object-fit: cover; display: block;
+    transition: transform .6s cubic-bezier(.22,1,.36,1);
   }
-  .casa-aboutp__fc-img { aspect-ratio: 1/1; overflow: hidden; }
-  .casa-aboutp__fc-img img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s; }
-  .casa-aboutp__fc-card:hover .casa-aboutp__fc-img img { transform: scale(1.05); }
-  .casa-aboutp__fc-info { padding: .75rem .75rem 1rem; text-align: left; }
-  .casa-aboutp__fc-title { display: block; font-size: .85rem; font-weight: 600; margin-bottom: .25rem; }
-  .casa-aboutp__fc-price { font-size: .8rem; color: rgba(255,255,255,.5); }
-  .casa-aboutp__fc-empty { color: rgba(255,255,255,.4); font-size: .9rem; }
-</style>
+  .casa-aboutp__fc-card:hover .casa-aboutp__fc-img img { transform: scale(1.04); }
+  .casa-aboutp__fc-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .casa-aboutp__fc-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--_text);
+    line-height: 1.4;
+  }
+  .casa-aboutp__fc-price {
+    font-family: var(--font-mono--family, 'JetBrains Mono', monospace);
+    font-size: 12px;
+    color: var(--_muted);
+    letter-spacing: 0.04em;
+  }
+  .casa-aboutp__fc-empty { color: var(--_muted); font-size: 14px; }
+  .casa-aboutp__fc-cta {
+    margin-top: 3rem;
+    text-align: center;
+  }
 
-{%- comment -%} ═══════════════ SCROLL REVEAL JS ═══════════════ {%- endcomment -%}
-<script>
-  (function(){
-    const els = document.querySelectorAll('.casa-aboutp__reveal');
-    if (!els.length) return;
-    const io = new IntersectionObserver(function(entries){
-      entries.forEach(function(e){
-        if (e.isIntersecting) {
-          e.target.classList.add('is-visible');
-          io.unobserve(e.target);
-        }
-      });
-    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-    els.forEach(function(el){ io.observe(el); });
-  })();
-</script>
+  /* ═══════════════════════════════════════════════════ */
+  /* ═══════════════════ MOBILE ═══════════════════════ */
+  /* ═══════════════════════════════════════════════════ */
+  @media (max-width: 749px) {
+    .casa-aboutp {
+      padding-top: var(--cap-pt-m, var(--casa-section-pt-m, 60px));
+      padding-bottom: var(--cap-pb-m, var(--casa-section-pb-m, 60px));
+      gap: 60px;
+    }
+    .casa-aboutp__hero { padding: 2rem 1.25rem 0; }
+    .casa-aboutp__hero-h { font-size: clamp(36px, 9vw, 56px); letter-spacing: -0.02em; }
+    .casa-aboutp__hero-p { font-size: 16px; }
+    .casa-aboutp__manifesto-h,
+    .casa-aboutp__pillars-h,
+    .casa-aboutp__fc-h { font-size: clamp(26px, 7vw, 36px); }
+    .casa-aboutp__it-h { font-size: clamp(24px, 6.5vw, 32px); }
+    .casa-aboutp__quote-q { font-size: clamp(22px, 5.5vw, 30px); line-height: 1.35; }
+    .casa-aboutp__manifesto-body,
+    .casa-aboutp__it-rt { font-size: 15.5px; line-height: 1.75; }
+  }
+{% endstylesheet %}
 
 {% schema %}
 {
@@ -460,36 +954,24 @@
   "tag": "section",
   "class": "casa-about-page-section",
   "settings": [
-    { "type": "header", "content": "Colors — General" },
-    { "type": "color", "id": "bg_color", "label": "Background color", "default": "#0a0a0f" },
-    { "type": "color", "id": "text_color", "label": "Body text color", "default": "#f5f5f5" },
-    { "type": "color", "id": "muted_color", "label": "Muted text color", "info": "Descriptions, subtitles", "default": "#9ca3af" },
-    { "type": "color", "id": "accent_primary", "label": "Primary accent", "default": "#9333ea" },
-    { "type": "color", "id": "accent_secondary", "label": "Secondary accent", "default": "#ec4899" },
-    { "type": "header", "content": "Colors — Hero" },
-    { "type": "color", "id": "hero_subheading_color", "label": "Hero subheading color", "default": "#9333ea" },
-    { "type": "color", "id": "hero_heading_color", "label": "Hero heading color", "default": "#ffffff" },
-    { "type": "color", "id": "hero_description_color", "label": "Hero description color", "default": "#9ca3af" },
-    { "type": "header", "content": "Colors — Image + Text sections" },
-    { "type": "color", "id": "iwt_subheading_color", "label": "Subheading color", "default": "#9333ea" },
-    { "type": "color", "id": "iwt_heading_color", "label": "Heading color", "default": "#ffffff" },
-    { "type": "color", "id": "iwt_content_color", "label": "Content text color", "default": "#d1d5db" },
-    { "type": "color", "id": "iwt_button_bg", "label": "Button background", "default": "#9333ea" },
-    { "type": "color", "id": "iwt_button_text", "label": "Button text color", "default": "#ffffff" },
-    { "type": "range", "id": "iwt_image_radius", "label": "Image border radius", "min": 0, "max": 32, "step": 2, "default": 12, "unit": "px" },
-    { "type": "header", "content": "Colors — Stats Row" },
-    { "type": "color", "id": "stats_number_color", "label": "Stats number color", "info": "Leave blank for gradient accent" },
-    { "type": "color", "id": "stats_label_color", "label": "Stats label color", "default": "#9ca3af" },
-    { "type": "color", "id": "stats_card_bg", "label": "Stats card background", "default": "#111118" },
-    { "type": "color", "id": "stats_card_border", "label": "Stats card border", "default": "#1f1f2e" },
-    { "type": "header", "content": "Colors — Featured Collection" },
-    { "type": "color", "id": "fc_heading_color", "label": "Heading color", "default": "#ffffff" },
-    { "type": "color", "id": "fc_card_bg", "label": "Product card background" },
-    { "type": "color", "id": "fc_price_color", "label": "Price color", "default": "#ffffff" },
+    { "type": "header", "content": "Surface" },
+    { "type": "color", "id": "bg_color", "label": "Background", "default": "#FAFAF7" },
+    { "type": "color", "id": "text_color", "label": "Body text", "default": "#0A0A0F" },
+    { "type": "color", "id": "muted_color", "label": "Muted text", "info": "Kickers, descriptions, secondary text", "default": "#525252" },
+    { "type": "color", "id": "rule_color", "label": "Rule / divider line", "default": "#E5E3DC" },
+    { "type": "header", "content": "Accents (gradient)" },
+    { "type": "paragraph", "content": "Used in the italic-em accent on section headings, the stats numbers, and the pull-quote highlight. Default is the brand purple → pink → cyan." },
+    { "type": "color", "id": "accent_primary",   "label": "Accent 1", "default": "#B0C3FA" },
+    { "type": "color", "id": "accent_secondary", "label": "Accent 2", "default": "#5E0A02" },
+    { "type": "color", "id": "accent_tertiary",  "label": "Accent 3", "default": "#F2FFA0" },
     { "type": "header", "content": "Spacing" },
-    { "type": "range", "id": "padding_top", "label": "Padding top", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 0 },
-    { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 40 },
-    { "type": "range", "id": "section_gap", "label": "Gap between sections", "min": 20, "max": 120, "step": 4, "unit": "px", "default": 60 }
+    { "type": "paragraph", "content": "Follows Theme settings → Casa Section Spacing by default. Toggle to override." },
+    { "type": "checkbox", "id": "override_spacing", "label": "Override theme spacing", "default": false },
+    { "type": "range", "id": "padding_top", "label": "Padding top (desktop)", "min": 0, "max": 200, "step": 4, "unit": "px", "default": 80 },
+    { "type": "range", "id": "padding_bottom", "label": "Padding bottom (desktop)", "min": 0, "max": 200, "step": 4, "unit": "px", "default": 80 },
+    { "type": "range", "id": "padding_top_mobile", "label": "Padding top (mobile)", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 60 },
+    { "type": "range", "id": "padding_bottom_mobile", "label": "Padding bottom (mobile)", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 60 },
+    { "type": "range", "id": "section_gap", "label": "Gap between blocks", "min": 20, "max": 160, "step": 4, "unit": "px", "default": 80 }
   ],
   "blocks": [
     {
@@ -498,22 +980,97 @@
       "limit": 1,
       "settings": [
         {
-          "type": "text",
-          "id": "subheading",
-          "label": "Subheading",
-          "default": "About Us"
+          "type": "select",
+          "id": "text_align",
+          "label": "Text alignment",
+          "options": [
+            { "value": "left",   "label": "Left" },
+            { "value": "center", "label": "Center" }
+          ],
+          "default": "left"
         },
+        { "type": "text", "id": "kicker", "label": "Mono kicker", "default": "EST. 2020 · HOUSE OF LIGHT" },
+        { "type": "inline_richtext", "id": "heading", "label": "Heading", "info": "Use <em>...</em> on one word/phrase for the brand italic-shimmer accent. One shimmer per page max.", "default": "We make light worth <em>living in.</em>" },
+        { "type": "richtext", "id": "description", "label": "Description", "default": "<p>Seoul Glow Lab is a House of Light — a curated catalog of sculptural lamps, portal mirrors, character figurines, and smart-light accents, chosen one piece at a time. Each one finds its way in for the same reason: anchor a room, not blend into its corner.</p>" },
+        { "type": "image_picker", "id": "image", "label": "Companion image", "info": "Optional. Shown right of the copy on desktop. Use a portrait crop (4:5)." },
         {
-          "type": "text",
-          "id": "heading",
-          "label": "Heading",
-          "default": "We Dream. We Envision. We Innovate."
+          "type": "select",
+          "id": "image_focus",
+          "label": "Keep in frame",
+          "info": "Which part of the photo stays visible when the 4:5 frame crops the source. Pick where the product sits.",
+          "options": [
+            { "value": "center top",    "label": "Top of photo" },
+            { "value": "center",        "label": "Center of photo" },
+            { "value": "center bottom", "label": "Bottom of photo" }
+          ],
+          "default": "center"
         },
+        { "type": "header", "content": "Call to action" },
+        { "type": "text", "id": "button_text", "label": "Primary button", "default": "SHOP EVERYTHING" },
+        { "type": "url",  "id": "button_url",  "label": "Primary link" },
+        { "type": "text", "id": "button_text_secondary", "label": "Secondary button (text link)", "default": "READ OUR STORY" },
+        { "type": "url",  "id": "button_url_secondary",  "label": "Secondary link" }
+      ]
+    },
+    {
+      "type": "manifesto",
+      "name": "Manifesto",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "kicker", "label": "Mono kicker", "default": "OUR THESIS" },
+        { "type": "inline_richtext", "id": "heading", "label": "Heading", "info": "Use <em>...</em> for the italic-gradient accent.", "default": "Light isn't a finish. It's <em>the room.</em>" },
+        { "type": "richtext", "id": "body", "label": "Body", "default": "<p>Most lighting fades into the background — that's the design brief. Disappear. Cast a beam. Do its job and stop. We work to the opposite brief: find the piece that catches your eye the second you walk in, and earns a second look every hour after that.</p><p>We're not a fixture company, and we're not a studio. We're a house — a curator with a roster. We hunt the pieces, photograph them against real walls and real evenings, and only carry the ones we'd live with ourselves. We do.</p><p>Some of what we carry plugs in. Some of it glows. Some of it just sits on a console table and changes the room's center of gravity. All of it is here to be looked at.</p>" },
+        { "type": "text", "id": "signature", "label": "Signature line", "info": "Mono caption beneath the body — CSS uppercases the display. Optional.", "default": "Seoul Glow Lab · House of Light" }
+      ]
+    },
+    {
+      "type": "pillars",
+      "name": "Pillars (3-column)",
+      "limit": 1,
+      "settings": [
+        { "type": "text", "id": "kicker", "label": "Mono kicker", "default": "WHAT WE MAKE" },
+        { "type": "inline_richtext", "id": "heading", "label": "Section heading", "info": "Use <em>...</em> for the italic-gradient accent.", "default": "Three things. <em>Done right.</em>" },
+        { "type": "header", "content": "Pillar 1" },
+        { "type": "text", "id": "pillar_1_label", "label": "Label", "default": "DAYLIT OBJECTS" },
+        { "type": "inline_richtext", "id": "pillar_1_heading", "label": "Heading", "default": "Sculptural lamps with a <em>day job.</em>" },
+        { "type": "richtext", "id": "pillar_1_body", "label": "Body", "default": "<p>Mushroom lamps, fluted glass, character figurines, hand-finished metals. Pieces that hold a room when the sun's still up — and quietly change it after dark.</p>" },
+        { "type": "image_picker", "id": "pillar_1_image", "label": "Image (4:5 portrait)" },
         {
-          "type": "textarea",
-          "id": "description",
-          "label": "Description",
-          "default": "We want the future of Home Decor to look different from its past. We partner with the finest artisans and materials around the globe to craft pieces that transform every room into a statement of elegance."
+          "type": "select", "id": "pillar_1_image_focus", "label": "Pillar 1 — Keep in frame",
+          "options": [
+            { "value": "center top",    "label": "Top of photo" },
+            { "value": "center",        "label": "Center of photo" },
+            { "value": "center bottom", "label": "Bottom of photo" }
+          ],
+          "default": "center bottom"
+        },
+        { "type": "header", "content": "Pillar 2" },
+        { "type": "text", "id": "pillar_2_label", "label": "Label", "default": "PORTALS" },
+        { "type": "inline_richtext", "id": "pillar_2_heading", "label": "Heading", "default": "Mirrors that turn into <em>something else.</em>" },
+        { "type": "richtext", "id": "pillar_2_body", "label": "Body", "default": "<p>Real mirrors by day. At night, they open into corridors of RGB light — wall-mounted, in seven shapes, controlled from your phone.</p>" },
+        { "type": "image_picker", "id": "pillar_2_image", "label": "Image (4:5 portrait)" },
+        {
+          "type": "select", "id": "pillar_2_image_focus", "label": "Pillar 2 — Keep in frame",
+          "options": [
+            { "value": "center top",    "label": "Top of photo" },
+            { "value": "center",        "label": "Center of photo" },
+            { "value": "center bottom", "label": "Bottom of photo" }
+          ],
+          "default": "center"
+        },
+        { "type": "header", "content": "Pillar 3" },
+        { "type": "text", "id": "pillar_3_label", "label": "Label", "default": "SMART LIGHT" },
+        { "type": "inline_richtext", "id": "pillar_3_heading", "label": "Heading", "default": "Color you can <em>script.</em>" },
+        { "type": "richtext", "id": "pillar_3_body", "label": "Body", "default": "<p>AuraPanels, Nexus floor lamps, smart bulbs. Light that responds to a scene, a song, or a Tuesday night — app-controlled, voice-friendly, color-matched to your own palette.</p>" },
+        { "type": "image_picker", "id": "pillar_3_image", "label": "Image (4:5 portrait)" },
+        {
+          "type": "select", "id": "pillar_3_image_focus", "label": "Pillar 3 — Keep in frame",
+          "options": [
+            { "value": "center top",    "label": "Top of photo" },
+            { "value": "center",        "label": "Center of photo" },
+            { "value": "center bottom", "label": "Bottom of photo" }
+          ],
+          "default": "center"
         }
       ]
     },
@@ -522,48 +1079,33 @@
       "name": "Image + Text",
       "settings": [
         {
-          "type": "image_picker",
-          "id": "image",
-          "label": "Image"
-        },
-        {
           "type": "select",
           "id": "image_position",
           "label": "Image position",
           "options": [
             { "value": "start", "label": "Left" },
-            { "value": "end", "label": "Right" }
+            { "value": "end",   "label": "Right" }
           ],
           "default": "start"
         },
+        { "type": "image_picker", "id": "image", "label": "Image" },
         {
-          "type": "text",
-          "id": "subheading",
-          "label": "Subheading",
-          "default": "Our Mission"
+          "type": "select",
+          "id": "image_focus",
+          "label": "Keep in frame",
+          "info": "Which part of the photo stays visible when the 4:5 frame crops the source. Pick where the product sits — \"Bottom of photo\" for floor-standing lamps, \"Center\" for centered products, \"Top\" for hanging fixtures.",
+          "options": [
+            { "value": "center top",    "label": "Top of photo" },
+            { "value": "center",        "label": "Center of photo" },
+            { "value": "center bottom", "label": "Bottom of photo" }
+          ],
+          "default": "center bottom"
         },
-        {
-          "type": "text",
-          "id": "heading",
-          "label": "Heading",
-          "default": "Excellence At Every Step"
-        },
-        {
-          "type": "richtext",
-          "id": "content",
-          "label": "Content",
-          "default": "<p>We partner with the finest artisans and materials around the globe. Every piece passes rigorous quality checks to ensure it meets the Seoul Glow Lab standard of excellence.</p>"
-        },
-        {
-          "type": "text",
-          "id": "button_text",
-          "label": "Button text"
-        },
-        {
-          "type": "url",
-          "id": "button_url",
-          "label": "Button link"
-        }
+        { "type": "text", "id": "kicker", "label": "Mono kicker", "default": "THE PROCESS" },
+        { "type": "inline_richtext", "id": "heading", "label": "Heading", "info": "Use <em>...</em> for the italic-gradient accent.", "default": "Materials we'd put in our <em>own home.</em>" },
+        { "type": "richtext", "id": "content", "label": "Body", "default": "<p>Every piece starts on paper, gets cardboard-prototyped against a living-room wall, and only goes into production when it earns its keep at three feet, ten feet, and across the room.</p><p>We over-spec the parts the eye sees and the parts it doesn't. Brass that won't tarnish. Acrylic edges polished to glass clarity. RGB chips rated for ten thousand hours so the mirror you mount today still glows the same way in 2034.</p>" },
+        { "type": "text", "id": "button_text", "label": "Button text" },
+        { "type": "url",  "id": "button_url",  "label": "Button link" }
       ]
     },
     {
@@ -571,42 +1113,23 @@
       "name": "Stats Row",
       "limit": 1,
       "settings": [
-        {
-          "type": "text",
-          "id": "stat_number_1",
-          "label": "Stat 1 — Number",
-          "default": "100+"
-        },
-        {
-          "type": "text",
-          "id": "stat_label_1",
-          "label": "Stat 1 — Label",
-          "default": "Premium Products"
-        },
-        {
-          "type": "text",
-          "id": "stat_number_2",
-          "label": "Stat 2 — Number",
-          "default": "31,200+"
-        },
-        {
-          "type": "text",
-          "id": "stat_label_2",
-          "label": "Stat 2 — Label",
-          "default": "Satisfied Customers"
-        },
-        {
-          "type": "text",
-          "id": "stat_number_3",
-          "label": "Stat 3 — Number",
-          "default": "161"
-        },
-        {
-          "type": "text",
-          "id": "stat_label_3",
-          "label": "Stat 3 — Label",
-          "default": "Countries"
-        }
+        { "type": "paragraph", "content": "Numbers are intentionally blank — fill in only verified counts. The stats row hides automatically if all four numbers are empty." },
+        { "type": "text", "id": "stat_number_1", "label": "Stat 1 — Number", "info": "Leave blank if not yet verified" },
+        { "type": "text", "id": "stat_label_1",  "label": "Stat 1 — Label",  "default": "Original Designs" },
+        { "type": "text", "id": "stat_number_2", "label": "Stat 2 — Number", "info": "Leave blank if not yet verified" },
+        { "type": "text", "id": "stat_label_2",  "label": "Stat 2 — Label",  "default": "Homes Lit" },
+        { "type": "text", "id": "stat_number_3", "label": "Stat 3 — Number", "info": "Leave blank if not yet verified" },
+        { "type": "text", "id": "stat_label_3",  "label": "Stat 3 — Label",  "default": "Countries Shipped" },
+        { "type": "text", "id": "stat_number_4", "label": "Stat 4 — Number", "info": "Leave blank if not yet verified" },
+        { "type": "text", "id": "stat_label_4",  "label": "Stat 4 — Label",  "default": "Customer Reviews" }
+      ]
+    },
+    {
+      "type": "pull_quote",
+      "name": "Pull Quote",
+      "settings": [
+        { "type": "inline_richtext", "id": "quote", "label": "Quote", "info": "Use <em>...</em> for the italic-gradient accent on the keyword.", "default": "We don't sell lighting. We sell <em>the moment a room turns on.</em>" },
+        { "type": "text", "id": "attribution", "label": "Attribution", "default": "Seoul Glow Lab · House of Light" }
       ]
     },
     {
@@ -614,84 +1137,45 @@
       "name": "Featured Collection",
       "limit": 1,
       "settings": [
-        {
-          "type": "text",
-          "id": "heading",
-          "label": "Heading",
-          "default": "Vouched By 10,000+ Previous Buyers"
-        },
-        {
-          "type": "collection",
-          "id": "collection",
-          "label": "Collection"
-        },
-        {
-          "type": "range",
-          "id": "products_to_show",
-          "label": "Products to show",
-          "min": 2,
-          "max": 12,
-          "step": 1,
-          "default": 4
-        }
+        { "type": "text", "id": "kicker", "label": "Mono kicker", "default": "WHAT'S IN 20,000 HOMES" },
+        { "type": "inline_richtext", "id": "heading", "label": "Heading", "info": "Use <em>...</em> for the italic-gradient accent.", "default": "The pieces we're known for, <em>and the ones still to come.</em>" },
+        { "type": "collection", "id": "collection", "label": "Collection" },
+        { "type": "range", "id": "products_to_show", "label": "Products to show", "min": 2, "max": 12, "step": 1, "default": 4 },
+        { "type": "header", "content": "Closing CTA (optional)" },
+        { "type": "text", "id": "button_text", "label": "Button text", "default": "SHOP EVERYTHING" },
+        { "type": "url",  "id": "button_url",  "label": "Button link" }
       ]
     },
-    {
-      "type": "@app"
-    }
+    { "type": "@app" }
   ],
   "presets": [
     {
       "name": "About Page",
       "blocks": [
-        {
-          "type": "hero",
-          "settings": {
-            "subheading": "About Us",
-            "heading": "We Dream. We Envision. We Innovate.",
-            "description": "We want the future of Home Decor to look different from its past. We partner with the finest artisans and materials around the globe to craft pieces that transform every room into a statement of elegance."
-          }
-        },
-        {
-          "type": "image_text",
+        { "type": "hero" },
+        { "type": "manifesto" },
+        { "type": "pillars" },
+        { "type": "stats_row" },
+        { "type": "image_text",
           "settings": {
             "image_position": "start",
-            "subheading": "Our Mission",
-            "heading": "Excellence At Every Step",
-            "content": "<p>We partner with the finest artisans and materials around the globe. Every piece passes rigorous quality checks to ensure it meets the Seoul Glow Lab standard of excellence. From sourcing to delivery, we oversee every detail so you receive nothing but the best.</p>",
-            "button_text": "TAKE A PEEK"
+            "kicker": "THE PROCESS",
+            "heading": "Materials we'd put in our <em>own home.</em>"
           }
         },
-        {
-          "type": "stats_row",
-          "settings": {
-            "stat_number_1": "100+",
-            "stat_label_1": "Premium Products",
-            "stat_number_2": "31,200+",
-            "stat_label_2": "Satisfied Customers",
-            "stat_number_3": "161",
-            "stat_label_3": "Countries"
-          }
-        },
-        {
-          "type": "image_text",
+        { "type": "pull_quote" },
+        { "type": "image_text",
           "settings": {
             "image_position": "end",
-            "subheading": "Our Belief",
-            "heading": "Stunning Home Essentials",
-            "content": "<p>Your home is your sanctuary. We believe every corner deserves to be adorned with pieces that inspire joy and comfort. Our curated collections bring together timeless design and modern sensibility to elevate your everyday living.</p>",
-            "button_text": "View Our Products"
+            "kicker": "WHO IT'S FOR",
+            "heading": "People who notice <em>the corner.</em>",
+            "content": "<p>Our customer rents in Brooklyn or owns in Lagos. They scroll their saved Instagram folder on a Sunday morning. They notice when a floor lamp doesn't quite belong, and they fix it.</p><p>They're not minimalists, they're not maximalists. They're editors. They pick one thing per corner, and they want it to be the right thing.</p>"
           }
         },
-        {
-          "type": "featured_collection",
-          "settings": {
-            "heading": "Vouched By 10,000+ Previous Buyers"
-          }
-        }
+        { "type": "featured_collection" }
       ]
     }
   ],
-  "templates": ["page"]
+  "enabled_on": { "templates": ["page"] }
 }
 {% endschema %}

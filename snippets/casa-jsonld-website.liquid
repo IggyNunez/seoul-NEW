@@ -1,0 +1,20 @@
+{%- doc -%}
+  Renders WebSite + SearchAction JSON-LD on the homepage only.
+  Tells Google about the site search URL pattern, which can earn a
+  "Sitelinks Search Box" directly under the brand name in search
+  results — high-impact CTR boost.
+
+  Only renders on the homepage to avoid duplication. Browsers and
+  crawlers only need this once per site.
+{%- enddoc -%}
+
+{%- if request.page_type == 'index' -%}
+  {%- comment -%}
+    Build the SearchAction urlTemplate via capture to avoid Shopify
+    Liquid parser tripping on the literal {search_term_string} braces
+    when used inline inside {{ ... }} output tags.
+  {%- endcomment -%}
+  {%- capture _search_url_template -%}{{ request.origin }}/search?q=__CASA_SEARCH_TERM__{%- endcapture -%}
+  {%- assign _search_url_template = _search_url_template | replace: '__CASA_SEARCH_TERM__', '{search_term_string}' -%}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":{{ shop.name | json }},"url":{{ request.origin | json }},"potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":{{ _search_url_template | json }}},"query-input":"required name=search_term_string"}}</script>
+{%- endif -%}

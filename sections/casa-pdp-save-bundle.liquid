@@ -1,0 +1,976 @@
+{%- comment -%}
+  Seoul Glow Lab — PDP "Save the bundle" upsell
+  Featured Full Collection card with currency-adaptive price math
+  (driven by the merchant-picked product + variant). Submitting the
+  CTA adds the variant to cart via /cart/add.js and opens the
+  cart drawer. Plus a 2x2 grid of pair photos as soft alternatives.
+
+  Built for Bubble Girls v5 PDP. Reusable for any set-priced PDP.
+{%- endcomment -%}
+
+{%- assign s = section.settings -%}
+{%- assign sid = section.id -%}
+
+{%- comment -%}
+  Resolve variant for price math. Prefers explicit variant_id setting,
+  else first variant of the picked product, else fall back to plain
+  text settings for the price labels.
+{%- endcomment -%}
+{%- liquid
+  assign selected_variant = nil
+  if s.featured_product != blank
+    if s.featured_variant_id != blank
+      assign vid = s.featured_variant_id | times: 1
+      for v in s.featured_product.variants
+        if v.id == vid
+          assign selected_variant = v
+          break
+        endif
+      endfor
+    endif
+    if selected_variant == nil
+      assign selected_variant = s.featured_product.selected_or_first_available_variant
+    endif
+  endif
+-%}
+
+<section
+  id="casa-save-{{ sid }}"
+  class="casa-save"
+  style="
+    --casa-save-paper: {{ s.color_paper | default: '#FAFAF7' }};
+    --casa-save-elevated: {{ s.color_elevated | default: '#FFFFFF' }};
+    --casa-save-ink: {{ s.color_ink | default: '#0A0A0F' }};
+    --casa-save-mute: {{ s.color_mute | default: '#8B8B92' }};
+    --casa-save-rule: {{ s.color_rule | default: '#E8E8E4' }};
+    --casa-save-pt: {{ s.padding_top | default: 64 }}px;
+    --casa-save-pb: {{ s.padding_bottom | default: 64 }}px;
+  "
+>
+  <div class="casa-save__cap">
+    {%- if s.heading != blank or s.kicker != blank or s.meta != blank -%}
+      <header class="casa-save__head">
+        <div>
+          {%- if s.kicker != blank -%}
+            <p class="casa-save__kicker">{{ s.kicker }}</p>
+          {%- endif -%}
+          {%- if s.heading != blank -%}
+            <h2 class="casa-save__heading">{{ s.heading }}</h2>
+          {%- endif -%}
+        </div>
+        {%- if s.meta != blank -%}
+          <p class="casa-save__head-meta">{{ s.meta }}</p>
+        {%- endif -%}
+      </header>
+    {%- endif -%}
+
+    <div class="casa-save__layout{% if section.blocks.size == 0 %} casa-save__layout--solo{% endif %}">
+      <div class="casa-save__hero">
+        <div class="casa-save__hero-media">
+          {%- if s.featured_image != blank -%}
+            {%- comment -%}
+              alt precomputed: a piped fallback inside image_tag's arg list
+              terminates the args — the fallback never applied. No | escape:
+              image_tag escapes attribute values itself.
+            {%- endcomment -%}
+            {%- assign _save_hero_alt = s.featured_image.alt | default: s.featured_headline -%}
+            {{ s.featured_image | image_url: width: 1400 | image_tag:
+                loading: 'lazy',
+                widths: '600, 900, 1200, 1400',
+                sizes: '(min-width: 990px) 58vw, 100vw',
+                class: 'casa-save__hero-img',
+                alt: _save_hero_alt
+            }}
+          {%- endif -%}
+          {%- if s.featured_badge != blank -%}
+            <span class="casa-save__hero-badge">{{ s.featured_badge }}</span>
+          {%- endif -%}
+        </div>
+
+        <div class="casa-save__hero-info">
+          {%- if s.featured_headline != blank -%}
+            <h3 class="casa-save__hero-headline">{{ s.featured_headline }}</h3>
+          {%- endif -%}
+          {%- if s.featured_body != blank -%}
+            <p class="casa-save__hero-body">{{ s.featured_body }}</p>
+          {%- endif -%}
+          <div class="casa-save__hero-pricerow">
+            {%- if selected_variant != nil -%}
+              <span class="casa-save__hero-now">{{ selected_variant.price | money_with_currency }}</span>
+              {%- if selected_variant.compare_at_price > selected_variant.price -%}
+                <span class="casa-save__hero-was">{{ selected_variant.compare_at_price | money_with_currency }}</span>
+                {%- assign _hero_save = selected_variant.compare_at_price | minus: selected_variant.price -%}
+                <span class="casa-save__hero-save">Save {{ _hero_save | money }}</span>
+              {%- endif -%}
+            {%- elsif s.featured_price_now != blank -%}
+              <span class="casa-save__hero-now">{{ s.featured_price_now }}</span>
+              {%- if s.featured_price_was != blank -%}
+                <span class="casa-save__hero-was">{{ s.featured_price_was }}</span>
+              {%- endif -%}
+            {%- endif -%}
+          </div>
+
+          {%- if selected_variant != nil -%}
+            {%- comment -%}
+              Plain Shopify form — JS below handles cart-add fetch,
+              cart:update dispatch (Horizon dev theme), and drawer-open
+              with multi-layer fallbacks. Works on BOTH dev (Horizon)
+              and live (Dawn) themes via theme-agnostic dispatch.
+            {%- endcomment -%}
+            <form
+              class="casa-save__hero-form"
+              action="{{ routes.cart_add_url }}"
+              method="post"
+              enctype="multipart/form-data"
+              data-casa-save-form="{{ sid }}"
+              id="casa-save-form-{{ sid }}"
+              novalidate
+            >
+              <input type="hidden" name="form_type" value="product">
+              <input type="hidden" name="utf8" value="&#x2713;">
+              <input type="hidden" name="id" value="{{ selected_variant.id }}">
+              <input type="hidden" name="quantity" value="1">
+              <button
+                type="submit"
+                name="add"
+                class="casa-save__hero-cta"
+                {% unless selected_variant.available %}disabled aria-disabled="true"{% endunless %}
+              >
+                <span class="casa-save__hero-cta-label">
+                  {%- if selected_variant.available -%}
+                    {{ s.featured_cta_text | default: 'Add the set' }}
+                  {%- else -%}
+                    Sold out
+                  {%- endif -%}
+                </span>
+              </button>
+            </form>
+          {%- elsif s.featured_cta_text != blank -%}
+            <a class="casa-save__hero-cta" href="{{ s.featured_cta_url | default: '#' }}">
+              <span class="casa-save__hero-cta-label">{{ s.featured_cta_text }}</span>
+            </a>
+          {%- endif -%}
+        </div>
+      </div>
+
+      {%- if section.blocks.size > 0 -%}
+        <div class="casa-save__pairs">
+          {%- for block in section.blocks limit: 4 -%}
+            {%- liquid
+              # Auto-map the pair name ("Ava + Lily") to the Featured
+              # product's variant IDs so each tile can add BOTH girls to
+              # cart with zero manual entry. Split on '+', match each half
+              # to a variant by title. Enable the Add button only when every
+              # name part maps AND all matched variants are available;
+              # otherwise fall back to the block Link, else a static tile.
+              assign _pair_ids = ''
+              assign _pair_matched = 0
+              assign _pair_available = true
+              assign _pair_price_total = 0
+              assign _pair_compare_total = 0
+              assign _pair_has_compare = false
+              assign _name_parts = block.settings.names | split: '+'
+              assign _name_part_count = _name_parts | size
+              if s.featured_product != blank and block.settings.names != blank
+                for _part in _name_parts
+                  assign _needle = _part | strip | downcase
+                  for v in s.featured_product.variants
+                    assign _vt = v.title | strip | downcase
+                    if _vt == _needle
+                      assign _pair_ids = _pair_ids | append: v.id | append: ','
+                      assign _pair_matched = _pair_matched | plus: 1
+                      assign _pair_price_total = _pair_price_total | plus: v.price
+                      if v.compare_at_price > v.price
+                        assign _pair_compare_total = _pair_compare_total | plus: v.compare_at_price
+                        assign _pair_has_compare = true
+                      else
+                        assign _pair_compare_total = _pair_compare_total | plus: v.price
+                      endif
+                      unless v.available
+                        assign _pair_available = false
+                      endunless
+                      break
+                    endif
+                  endfor
+                endfor
+              endif
+              assign _pair_ids = _pair_ids | split: ',' | join: ','
+
+              assign _pair_can_add = false
+              if _pair_matched >= 2 and _pair_matched == _name_part_count and _pair_available
+                assign _pair_can_add = true
+              endif
+
+              assign _pair_link = block.settings.link
+              if _pair_can_add
+                assign _pair_tag = 'div'
+                assign _pair_mod = ' casa-save__pair--buyable'
+              elsif _pair_link != blank
+                assign _pair_tag = 'a'
+                assign _pair_mod = ''
+              else
+                assign _pair_tag = 'div'
+                assign _pair_mod = ' casa-save__pair--static'
+              endif
+            -%}
+            <{{ _pair_tag }} class="casa-save__pair{{ _pair_mod }}"{% if _pair_tag == 'a' %} href="{{ _pair_link }}" aria-label="{{ block.settings.names | escape }}"{% endif %} {{ block.shopify_attributes }}>
+              <div class="casa-save__pair-media">
+                {%- if block.settings.image != blank -%}
+                  {%- comment -%} alt precomputed — piped fallback in the arg list never applied (see hero above) {%- endcomment -%}
+                  {%- assign _pair_alt = block.settings.image.alt | default: block.settings.names -%}
+                  {{ block.settings.image | image_url: width: 600 | image_tag:
+                      loading: 'lazy',
+                      widths: '300, 500, 600',
+                      sizes: '(min-width: 990px) 21vw, 50vw',
+                      class: 'casa-save__pair-img',
+                      alt: _pair_alt
+                  }}
+                {%- endif -%}
+              </div>
+              <div class="casa-save__pair-body">
+                <div class="casa-save__pair-text">
+                  {%- if block.settings.names != blank -%}
+                    <p class="casa-save__pair-names">{{ block.settings.names }}</p>
+                  {%- endif -%}
+                  {%- comment -%}
+                    Pricing. A custom price label wins (shown verbatim). Else,
+                    for a mapped pair, sum the two matched variants' price +
+                    compare-at from the live product so now / was / savings are
+                    real and currency-adaptive. Else fall back to 2 × cheapest.
+                    Now-price keeps the currency code (brand); the strikethrough
+                    was-price drops it to stay compact on the card.
+                  {%- endcomment -%}
+                  {%- if block.settings.price != blank -%}
+                    <span class="casa-save__pair-price">{{ block.settings.price }}</span>
+                  {%- elsif _pair_can_add -%}
+                    <span class="casa-save__pair-pricerow">
+                      <span class="casa-save__pair-now">{{ _pair_price_total | money_with_currency }}</span>
+                      {%- if _pair_has_compare and _pair_compare_total > _pair_price_total -%}
+                        <s class="casa-save__pair-was">{{ _pair_compare_total | money }}</s>
+                      {%- endif -%}
+                    </span>
+                    {%- if _pair_has_compare and _pair_compare_total > _pair_price_total -%}
+                      {%- assign _pair_save = _pair_compare_total | minus: _pair_price_total -%}
+                      <span class="casa-save__pair-save">Save {{ _pair_save | money }}</span>
+                    {%- endif -%}
+                  {%- elsif s.featured_product != blank and s.featured_product.price_min -%}
+                    {%- assign pair_price = s.featured_product.price_min | times: 2 -%}
+                    <span class="casa-save__pair-price">{{ pair_price | money_with_currency }}</span>
+                  {%- endif -%}
+                </div>
+                {%- if _pair_can_add -%}
+                  <button
+                    type="button"
+                    class="casa-save__pair-add"
+                    data-casa-pair-add="{{ _pair_ids }}"
+                    aria-label="{{ s.pair_cta_text | default: 'Add pair' | append: ' — ' | append: block.settings.names | escape }}"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="m1 1 4 4h16l-2 9H7"/></svg>
+                    <span class="casa-save__pair-add-label">{{ s.pair_cta_text | default: 'Add pair' }}</span>
+                  </button>
+                {%- endif -%}
+              </div>
+            </{{ _pair_tag }}>
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+
+<script>
+  /* Theme-agnostic cart-add for this section — works on Horizon dev
+     theme (<cart-drawer-component> + cart:update) AND Dawn live theme
+     (<cart-drawer> + cart:refresh). Two entry points share the same
+     drawer-refresh + broadcast helpers:
+       • hero form  → adds the featured variant (FormData, unchanged)
+       • pair tiles → add BOTH mapped variants (JSON items[] multi-add)
+     casa-edd.js fetch-intercepts both paths and normalises the
+     Estimated-delivery line-item property (buy-box FormData + JSON
+     items[]), so neither path needs local property handling. */
+  (function () {
+    var section = document.getElementById('casa-save-{{ sid }}');
+    if (!section || section.dataset.casaSaveBound) return;
+    section.dataset.casaSaveBound = '1';
+
+    /* Find every plausible cart-drawer / cart-icon section ID so the
+       cart-add response includes refreshed HTML for each of them. */
+    function collectSectionIds() {
+      var ids = new Set();
+      document.querySelectorAll('[data-section-id], [id^="shopify-section-"]').forEach(function (el) {
+        var sid = el.dataset.sectionId || (el.id && el.id.replace(/^shopify-section-/, ''));
+        if (!sid) return;
+        var tag = (el.tagName || '').toLowerCase();
+        var cls = (el.className || '').toString();
+        if (/cart/i.test(tag) || /cart/i.test(cls) || /header/i.test(cls)) ids.add(sid);
+      });
+      return Array.from(ids);
+    }
+
+    /* Aggressively try every possible drawer-open mechanism.
+       Horizon, Dawn, and theme variants all use different patterns. */
+    function openAnyDrawer() {
+      var horizon = document.querySelector('cart-drawer-component');
+      if (horizon) {
+        try { if (typeof horizon.open === 'function') { horizon.open(); return true; } } catch (e) {}
+        try { if (typeof horizon.showDialog === 'function') { horizon.showDialog(); return true; } } catch (e) {}
+      }
+      var dawn = document.querySelector('cart-drawer, #cart-drawer, #CartDrawer');
+      if (dawn) {
+        try { if (typeof dawn.open === 'function') { dawn.open(); return true; } } catch (e) {}
+        try { if (typeof dawn.show === 'function') { dawn.show(); return true; } } catch (e) {}
+        dawn.classList.add('active', 'is-open', 'animate');
+        dawn.classList.remove('hidden');
+        dawn.setAttribute('open', '');
+        if (dawn.tagName.toLowerCase() === 'dialog') { try { dawn.showModal(); return true; } catch (e) {} }
+        return true;
+      }
+      var cartBtn = document.querySelector('.casa-header__cart-btn, [aria-label*="cart" i][role="button"], [aria-label*="cart" i].header__icon, a[href$="/cart"]');
+      if (cartBtn) { try { cartBtn.click(); return true; } catch (e) {} }
+      console.warn('[casa-save] No drawer opened.');
+      return false;
+    }
+
+    /* Dispatch every cart event name a listener might watch for. */
+    function broadcastCartUpdate(response, variantId, count, productId) {
+      var detail = {
+        resource: response,
+        sourceId: section.id,
+        data: {
+          source: 'product-form-component',
+          itemCount: count || 1,
+          productId: productId || '',
+          variantId: variantId || '',
+          sections: response && response.sections ? response.sections : {}
+        }
+      };
+      ['cart:update', 'cart:refresh', 'cart-update', 'cart:item-added', 'cart-drawer:refresh'].forEach(function (name) {
+        try { document.dispatchEvent(new CustomEvent(name, { bubbles: true, detail: detail })); } catch (e) {}
+      });
+    }
+
+    /* Broadcast the refresh + open the drawer (or fall back to /cart). */
+    function afterAdd(response, variantId, count, productId) {
+      broadcastCartUpdate(response, variantId, count, productId);
+      /* Tiny defer so the cart-items-component receives the event
+         before the drawer animates in. */
+      setTimeout(function () { if (!openAnyDrawer()) window.location.href = '{{ routes.cart_url }}'; }, 60);
+    }
+
+    /* ── Hero: add the featured variant (FormData path) ── */
+    var form = section.querySelector('[data-casa-save-form="{{ sid }}"]');
+    if (form) {
+      var btn = form.querySelector('button[type="submit"]');
+      var label = form.querySelector('.casa-save__hero-cta-label');
+      var origLabel = label ? label.textContent : '';
+      var variantInput = form.querySelector('input[name="id"]');
+      if (btn && variantInput) {
+        var variantId = variantInput.value;
+        var setLabel = function (t) { if (label) label.textContent = t || origLabel; };
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          if (btn.disabled) return;
+          btn.disabled = true; setLabel('Adding…');
+          var fd = new FormData(form);
+          var ids = collectSectionIds();
+          if (ids.length) fd.append('sections', ids.join(','));
+          fetch('{{ routes.cart_add_url }}.js', {
+            method: 'POST', body: fd,
+            headers: { 'Accept': 'application/json, text/html', 'X-Requested-With': 'XMLHttpRequest' }
+          })
+            .then(function (res) { if (!res.ok && res.status !== 422) throw new Error('network'); return res.json(); })
+            .then(function (response) {
+              if (response && response.status) { setLabel(response.message || 'Unavailable'); setTimeout(function () { setLabel(); btn.disabled = false; }, 2000); return; }
+              setLabel('Added ✓');
+              afterAdd(response, variantId, 1, '{{ s.featured_product.id }}');
+              setTimeout(function () { setLabel(); btn.disabled = false; }, 1400);
+            })
+            .catch(function (err) { btn.disabled = false; setLabel(); if (err && err.message === 'network') form.submit(); });
+        });
+      }
+    }
+
+    /* ── Pair tiles: add BOTH mapped variants (JSON items[] path) ── */
+    section.querySelectorAll('[data-casa-pair-add]').forEach(function (pbtn) {
+      pbtn.addEventListener('click', function () {
+        if (pbtn.disabled) return;
+        var ids = (pbtn.getAttribute('data-casa-pair-add') || '').split(',')
+          .map(function (x) { return x.trim(); }).filter(Boolean);
+        if (!ids.length) return;
+        var lbl = pbtn.querySelector('.casa-save__pair-add-label');
+        var orig = lbl ? lbl.textContent : '';
+        var setP = function (t) { if (lbl) lbl.textContent = t || orig; };
+        pbtn.disabled = true; setP('Adding…');
+        var body = { items: ids.map(function (id) { return { id: id * 1, quantity: 1 }; }) };
+        var secIds = collectSectionIds();
+        if (secIds.length) body.sections = secIds.join(',');
+        fetch('{{ routes.cart_add_url }}.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(body)
+        })
+          .then(function (res) { if (!res.ok && res.status !== 422) throw new Error('network'); return res.json(); })
+          .then(function (response) {
+            if (response && response.status) { setP(response.description || 'Unavailable'); setTimeout(function () { setP(); pbtn.disabled = false; }, 2200); return; }
+            setP('Added ✓');
+            afterAdd(response, ids.join(','), ids.length, '{{ s.featured_product.id }}');
+            setTimeout(function () { setP(); pbtn.disabled = false; }, 1600);
+          })
+          .catch(function () { setP('Try again'); setTimeout(function () { setP(); pbtn.disabled = false; }, 2000); });
+      });
+    });
+  })();
+</script>
+
+{% stylesheet %}
+  .casa-save {
+    background: var(--casa-save-paper);
+    color: var(--casa-save-ink);
+    padding: var(--casa-save-pt) 0 var(--casa-save-pb);
+  }
+  .casa-save__cap {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 64px);
+  }
+  .casa-save__head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 32px;
+    margin-bottom: clamp(20px, 2.5vw, 32px);
+    padding-bottom: clamp(16px, 2vw, 24px);
+    border-bottom: 1px solid var(--casa-save-rule);
+  }
+  @media (max-width: 700px) {
+    .casa-save__head { grid-template-columns: 1fr; gap: 16px; }
+  }
+  .casa-save__kicker {
+    display: inline-block;
+    margin: 0 0 12px;
+    font: 500 11px 'JetBrains Mono', monospace;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--casa-save-mute);
+  }
+  .casa-save__heading {
+    font: 300 clamp(28px, 3.5vw, 44px)/1.05 var(--font-body--family);
+    letter-spacing: -0.025em;
+    color: var(--casa-save-ink);
+    margin: 0;
+    max-width: 18ch;
+    text-wrap: balance;
+  }
+  .casa-save__heading em {
+    font-style: italic;
+    font-weight: 500;
+  }
+  .casa-save__head-meta {
+    font: 500 11px 'JetBrains Mono', monospace;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    color: var(--casa-save-mute);
+    text-align: right;
+    line-height: 1.7;
+    margin: 0;
+  }
+  @media (max-width: 700px) { .casa-save__head-meta { text-align: left; } }
+
+  .casa-save__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 16px;
+    align-items: stretch;
+  }
+  /* Solo mode — no pair photos. Hero takes full width but keeps the
+     same vertical photo + info-card layout as the side-by-side mode. */
+  .casa-save__layout--solo {
+    grid-template-columns: 1fr;
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+  .casa-save__layout--solo .casa-save__hero-media {
+    aspect-ratio: 16 / 9;
+  }
+  @media (max-width: 989px) {
+    .casa-save__layout { grid-template-columns: 1fr; }
+    .casa-save__layout--solo .casa-save__hero-media { aspect-ratio: 4 / 3; }
+  }
+
+  .casa-save__hero {
+    display: flex;
+    flex-direction: column;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--casa-save-elevated);
+    border: 1px solid var(--casa-save-rule);
+  }
+  .casa-save__hero-media {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+  }
+  .casa-save__hero-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 32%;
+    transition: transform 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .casa-save__hero:hover .casa-save__hero-img { transform: scale(1.03); }
+  .casa-save__hero-badge {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    background: rgba(255, 255, 255, 0.94);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    color: var(--casa-save-ink);
+    font: 600 10px 'JetBrains Mono', monospace;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    padding: 7px 13px;
+    border-radius: 999px;
+    z-index: 2;
+  }
+  .casa-save__hero-info {
+    padding: 24px 22px 22px;
+    color: var(--casa-save-ink);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .casa-save__hero-headline {
+    font: 300 clamp(24px, 3vw, 32px)/1.1 var(--font-body--family);
+    letter-spacing: -0.025em;
+    margin: 0;
+    color: var(--casa-save-ink);
+    max-width: 22ch;
+  }
+  .casa-save__hero-headline em {
+    font-style: italic;
+    font-weight: 500;
+  }
+  .casa-save__hero-body {
+    font-size: 14px;
+    line-height: 1.55;
+    color: rgba(10, 10, 15, 0.72);
+    margin: 0;
+    max-width: 48ch;
+  }
+  .casa-save__hero-pricerow {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 4px 0 0;
+  }
+  .casa-save__hero-now {
+    font: 600 22px/1 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--casa-save-ink);
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .casa-save__hero-was {
+    font: 500 14px/1 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    /* rgba(10,10,15,.6) = 5.2:1 on Paper (AA); was 0.55 ≈ borderline. */
+    color: rgba(10, 10, 15, 0.6);
+    text-decoration: line-through;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .casa-save__hero-save {
+    align-self: center;
+    font: 600 11px/1 'JetBrains Mono', ui-monospace, monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    /* Brand purple — matches the pair chips and the store's price-save
+       badge (see .casa-save__pair-save). */
+    color: #B0C3FA;
+    background: rgba(176, 195, 250, 0.12);
+    padding: 5px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .casa-save__hero-form {
+    margin: 8px 0 0;
+    width: 100%;
+  }
+  .casa-save__hero-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    background: var(--casa-save-ink);
+    color: #fff;
+    font: 600 12px var(--font-body--family);
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    padding: 16px 22px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .casa-save__hero-cta:hover { transform: translateY(-1px); background: #1f1f25; }
+  .casa-save__hero-cta:active { transform: scale(0.99); }
+  .casa-save__hero-cta:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  @media (min-width: 990px) {
+    .casa-save__hero-info { padding: 28px 26px 26px; }
+    .casa-save__hero-cta { width: auto; align-self: flex-start; padding: 16px 28px; }
+  }
+
+  .casa-save__pairs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    align-content: stretch;
+  }
+  /* Each pair is a clean card: photo on top, caption + button below on the
+     card surface. The name no longer sits over the image (it read heavy on
+     phones), and the button gets real breathing room from the photo.
+     height:100% + the body's flex-grow lets the card fill the hero height
+     on desktop (no empty column gap) while the photo stays a fixed square —
+     the extra height is absorbed by the body, not by cropping the image. */
+  .casa-save__pair {
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--casa-save-elevated);
+    border: 1px solid var(--casa-save-rule);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+  }
+  .casa-save__pair-media {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+    flex: 0 0 auto;
+  }
+  .casa-save__pair-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .casa-save__pair:hover .casa-save__pair-img { transform: scale(1.04); }
+  .casa-save__pair--static { cursor: default; }
+  .casa-save__pair--static:hover .casa-save__pair-img { transform: none; }
+  /* Caption + button below the photo. The body padding is the spacing
+     between the image and the caption; the flex gap is the spacing between
+     the caption and the button. */
+  .casa-save__pair-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
+  .casa-save__pair-text {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .casa-save__pair-names {
+    font: 500 14px/1.2 var(--font-body--family);
+    color: var(--casa-save-ink);
+    margin: 0;
+    text-wrap: balance;
+  }
+  .casa-save__pair-price {
+    /* rgba(10,10,15,.6) ≈ 5.2:1 on the white card (AA); the mono-mute
+       token would fail AA at this size. */
+    font: 500 11px/1.3 'JetBrains Mono', monospace;
+    letter-spacing: 0.04em;
+    color: rgba(10, 10, 15, 0.6);
+    margin: 0;
+  }
+  /* now / was / savings for a mapped pair. The prominent ink now-price +
+     the struck was-price + an explicit "Save $X" pill spell out the deal. */
+  .casa-save__pair-pricerow {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .casa-save__pair-now {
+    font: 600 12px/1.2 'JetBrains Mono', monospace;
+    letter-spacing: 0.01em;
+    color: var(--casa-save-ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .casa-save__pair-was {
+    font: 500 11px/1.2 'JetBrains Mono', monospace;
+    /* rgba(10,10,15,.6) ≈ 5.2:1 on white (AA); matches the hero was-price. */
+    color: rgba(10, 10, 15, 0.6);
+    text-decoration: line-through;
+    font-variant-numeric: tabular-nums;
+  }
+  .casa-save__pair-save {
+    align-self: flex-start;
+    font: 600 10px/1 'JetBrains Mono', monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    /* Brand purple #B0C3FA on a light purple tint — matches the store's
+       .price-save-badge / .cpm__price-save chips for a consistent savings
+       treatment across the PDP. */
+    color: #B0C3FA;
+    background: rgba(176, 195, 250, 0.12);
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-variant-numeric: tabular-nums;
+  }
+  .casa-save__pair-add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    margin-top: auto;
+    padding: 11px 10px;
+    background: var(--casa-save-ink);
+    color: #fff;
+    font: 600 11px var(--font-body--family);
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .casa-save__pair-add:hover { background: #1f1f25; }
+  .casa-save__pair-add:active { transform: scale(0.99); }
+  .casa-save__pair-add:disabled { opacity: 0.6; cursor: default; }
+  .casa-save__pair-add svg { width: 15px; height: 15px; flex: 0 0 auto; }
+  /* Allow a long merchant label to wrap inside the button instead of
+     spilling past it — min-width:0 lets the flex item shrink below its
+     min-content. The default short label ("ADD PAIR") stays one line. */
+  .casa-save__pair-add-label { min-width: 0; }
+  @media (prefers-reduced-motion: reduce) {
+    .casa-save__pair-img,
+    .casa-save__pair-add { transition: none; }
+  }
+
+  @media (max-width: 540px) {
+    .casa-save { padding: 48px 0; }
+    .casa-save__pairs { gap: 8px; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa PDP Save Bundle",
+  "tag": "section",
+  "class": "casa-pdp-save-bundle-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Header"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker (mono uppercase)",
+      "default": "§ 3 · Together"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading",
+      "info": "Wrap one accent word in <em>.",
+      "default": "All four, <em>together.</em>"
+    },
+    {
+      "type": "text",
+      "id": "meta",
+      "label": "Header meta (right-aligned)",
+      "default": "The Full Collection ships at a set price."
+    },
+    {
+      "type": "header",
+      "content": "Featured card — Full Collection"
+    },
+    {
+      "type": "product",
+      "id": "featured_product",
+      "label": "Featured product",
+      "info": "Currency-adaptive price comes from this product's selected or first available variant."
+    },
+    {
+      "type": "text",
+      "id": "featured_variant_id",
+      "label": "Featured variant ID",
+      "info": "Optional. Numeric variant ID to lock the price to a specific variant. Leave blank for first available."
+    },
+    {
+      "type": "image_picker",
+      "id": "featured_image",
+      "label": "Featured image"
+    },
+    {
+      "type": "text",
+      "id": "featured_badge",
+      "label": "Top-left badge",
+      "default": "The set"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "featured_headline",
+      "label": "Headline",
+      "default": "Take all four, <em>together.</em>"
+    },
+    {
+      "type": "textarea",
+      "id": "featured_body",
+      "label": "Body",
+      "default": "Same studio, same height. They sit together like a family on a console, a shelf, or a long dinner table."
+    },
+    {
+      "type": "text",
+      "id": "featured_price_now",
+      "label": "Price · now (fallback only)",
+      "info": "Used only when no Featured product is picked. Prefer Featured product for currency adaptation."
+    },
+    {
+      "type": "text",
+      "id": "featured_price_was",
+      "label": "Price · was (fallback only)"
+    },
+    {
+      "type": "text",
+      "id": "featured_cta_text",
+      "label": "CTA button text",
+      "default": "Add the set"
+    },
+    {
+      "type": "url",
+      "id": "featured_cta_url",
+      "label": "CTA link (fallback only)",
+      "info": "Used only when no Featured product is picked. With a product picked, the CTA adds to cart via AJAX."
+    },
+    {
+      "type": "header",
+      "content": "Pairs"
+    },
+    {
+      "type": "text",
+      "id": "pair_cta_text",
+      "label": "Pair add-button text",
+      "info": "Shown on each pair tile when its name (e.g. \"Ava + Lily\") maps to two variants of the Featured product. Rendered uppercase.",
+      "default": "Add pair"
+    },
+    {
+      "type": "header",
+      "content": "Spacing & colors"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 24,
+      "max": 160,
+      "step": 4,
+      "default": 64,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 24,
+      "max": 160,
+      "step": 4,
+      "default": 64,
+      "unit": "px"
+    },
+    {
+      "type": "color",
+      "id": "color_paper",
+      "label": "Paper",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "color_elevated",
+      "label": "Elevated card",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "color_ink",
+      "label": "Ink",
+      "default": "#0A0A0F"
+    },
+    {
+      "type": "color",
+      "id": "color_mute",
+      "label": "Mono mute",
+      "default": "#8B8B92"
+    },
+    {
+      "type": "color",
+      "id": "color_rule",
+      "label": "Rule / border",
+      "default": "#E8E8E4"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "pair",
+      "name": "Pair photo",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Pair photo"
+        },
+        {
+          "type": "text",
+          "id": "names",
+          "label": "Names (e.g. Ava + Lily)",
+          "info": "Two variant titles of the Featured product joined with \"+\". When both match, the tile gets an Add-to-cart button that adds both.",
+          "default": "Ava + Lily"
+        },
+        {
+          "type": "text",
+          "id": "price",
+          "label": "Price label (optional)"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link (fallback)",
+          "info": "Used only when the names don't map to two variants of the Featured product. When they map, the tile shows an Add-to-cart button instead."
+        }
+      ]
+    }
+  ],
+  "max_blocks": 4,
+  "presets": [
+    {
+      "name": "Casa PDP Save Bundle",
+      "category": "Product",
+      "blocks": [
+        { "type": "pair", "settings": { "names": "Ava + Lily" } },
+        { "type": "pair", "settings": { "names": "Ava + Daisy" } },
+        { "type": "pair", "settings": { "names": "Daisy + Mia" } },
+        { "type": "pair", "settings": { "names": "Daisy + Lily" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

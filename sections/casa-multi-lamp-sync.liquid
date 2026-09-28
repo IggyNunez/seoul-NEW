@@ -1,0 +1,1563 @@
+{%- comment -%}
+  Seoul Glow Lab — Multi-lamp Sync
+  Three rooms each holding an Apōllō Floor Lamp silhouette. Two modes:
+    SYNC — every lamp glows the same scene
+    ZONE — each room runs an offset scene
+  Lamp SVG is the merchant-validated black-aluminium body with a continuous
+  RGB diffuser channel (Brand Book v1·2026 PDP design handoff).
+
+  Mood: Ink. Block-driven rooms (default 3) and explanation strip cards (default 3).
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign room_blocks  = section.blocks | where: 'type', 'room'
+  assign strip_blocks = section.blocks | where: 'type', 'strip'
+
+  comment
+  Build the cycle palette (max 6 hex stops). Keys: scene_hex_1..6.
+  Empty slots fall through default to brand accents so the cycle never breaks.
+  endcomment
+  assign cycle_hexes = ''
+  assign cycle_names = ''
+  for i in (1..6)
+    assign hex_key  = 'scene_hex_' | append: i
+    assign name_key = 'scene_name_' | append: i
+    assign hx = s[hex_key]
+    assign nm = s[name_key]
+    comment
+      Brand-aligned chromatic flow. In ZONE mode the 3 rooms always show
+      3 CONSECUTIVE entries from this list, so the cycle is ordered to
+      keep every adjacent triple harmonious against the Seoul Glow Lab
+      brand book trinity (purple / pink / cyan):
+        1 Cyan    2 Sky    3 Indigo
+        4 Purple  5 Magenta 6 Pink
+      Any window of 3 falls inside the brand spectrum (cool, transitional,
+      brand-grad, brand-text-grad, etc.).
+    endcomment
+    if hx == blank
+      case i
+        when 1
+          assign hx = '#F2FFA0'
+        when 2
+          assign hx = '#38BDF8'
+        when 3
+          assign hx = '#6366F1'
+        when 4
+          assign hx = '#B0C3FA'
+        when 5
+          assign hx = '#D946EF'
+        else
+          assign hx = '#5E0A02'
+      endcase
+    endif
+    if nm == blank
+      case i
+        when 1
+          assign nm = 'Cyan'
+        when 2
+          assign nm = 'Sky'
+        when 3
+          assign nm = 'Indigo'
+        when 4
+          assign nm = 'Purple'
+        when 5
+          assign nm = 'Magenta'
+        else
+          assign nm = 'Pink'
+      endcase
+    endif
+    if forloop.first
+      assign cycle_hexes = hx
+      assign cycle_names = nm
+    else
+      assign cycle_hexes = cycle_hexes | append: '|' | append: hx
+      assign cycle_names = cycle_names | append: '|' | append: nm
+    endif
+  endfor
+-%}
+
+<section
+  id="casa-mls-{{ section.id }}"
+  class="casa-mls"
+  data-cycle-hexes="{{ cycle_hexes }}"
+  data-cycle-names="{{ cycle_names | escape }}"
+  data-cycle-ms="{{ s.cycle_ms | default: 1300 }}"
+  data-default-mode="{{ s.default_mode | default: 'sync' }}"
+  style="
+    --mls-paper:  {{ s.color_paper  | default: '#FAFAF7' }};
+    --mls-ink:    {{ s.color_ink    | default: '#0A0A0F' }};
+    --mls-purple: {{ s.color_purple | default: '#B0C3FA' }};
+    --mls-pink:   {{ s.color_pink   | default: '#5E0A02' }};
+    --mls-cyan:   {{ s.color_cyan   | default: '#F2FFA0' }};
+    --mls-pt: {{ s.padding_top    | default: 72 }}px;
+    --mls-pb: {{ s.padding_bottom | default: 72 }}px;
+  "
+>
+  <header class="casa-mls__head">
+    {%- if s.kicker  != blank -%}<p class="casa-mls__mono">{{ s.kicker }}</p>{%- endif -%}
+    {%- if s.heading != blank -%}<h2 class="casa-mls__h2">{{ s.heading }}</h2>{%- endif -%}
+    {%- if s.lede    != blank -%}<p class="casa-mls__lede">{{ s.lede }}</p>{%- endif -%}
+  </header>
+
+  <div class="casa-mls__stage">
+    <div class="casa-mls__modes" role="tablist">
+      <button type="button" class="casa-mls__mode is-on" data-mls-mode="sync"  role="tab" aria-selected="true">
+        <span class="casa-mls__mono">A</span>
+        <span class="lab">{{ s.mode_a_label | default: 'Sync' }}</span>
+        <span class="hint">{{ s.mode_a_hint | default: 'All same color' }}</span>
+      </button>
+      <button type="button" class="casa-mls__mode" data-mls-mode="zone" role="tab" aria-selected="false">
+        <span class="casa-mls__mono">B</span>
+        <span class="lab">{{ s.mode_b_label | default: 'Zone' }}</span>
+        <span class="hint">{{ s.mode_b_hint | default: 'Each room its own mood' }}</span>
+      </button>
+    </div>
+
+    <div class="casa-mls__rooms">
+      {%- for block in room_blocks -%}
+        {%- assign b = block.settings -%}
+        <div class="casa-mls__room" data-mls-room data-room-offset="{{ forloop.index0 }}" data-lamp-shape="{{ s.lamp_shape | default: 'apollo' }}" {{ block.shopify_attributes }}>
+          <div class="casa-mls__room-glow" data-mls-glow></div>
+
+          {%- comment -%}
+            Apōllō silhouette — traced from the official product line drawing.
+            One slim vertical pole (FLAT top — the real product cap is flat,
+            not rounded; the RGB diffuser channel runs all the way to the top
+            edge) + two splayed legs forming a tripod base. Leg span ~75% of
+            viewBox width; legs angled ~28° below horizontal.
+
+            PHYSICS NOTE — this is critical and the merchant flagged it:
+            the entire visible body of the lamp (pole + legs) is matte black
+            aluminium. The LED diffuser is on the BACK of the pole, projecting
+            light onto the corner walls behind. From a face-on view we see:
+              - matte black silhouette (pole + legs) in front
+              - colored wall-wash behind, on the corner walls
+              - subtle scene-color rim along the pole's vertical edges where
+                the back-diffuser light wraps around the aluminium extrusion
+            We do NOT paint the pole's front face with the scene color — that
+            would imply the LED faces forward, which it doesn't.
+          {%- endcomment -%}
+          <svg viewBox="0 0 280 468" class="casa-mls__lamp" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+            <defs>
+              {%- comment -%}
+                Two SVG filters only:
+                - rim blur: soft halo on the lit pole edges
+                - floor blur: smears the contact shadow into a
+                  diffuse smudge under the legs so it never reads
+                  as a distinct floating shape
+                The earlier wall-wash filter + linearGradient are
+                gone — the room glow div (a CSS radial behind the
+                SVG) is the ONLY emission system now. Single
+                gradient = no "bars / banding" between layers.
+              {%- endcomment -%}
+              <filter id="mls-blur-rim-{{ section.id }}-{{ forloop.index }}" x="-300%" y="-5%" width="700%" height="110%">
+                <feGaussianBlur stdDeviation="1.5" />
+              </filter>
+              <filter id="mls-blur-floor-{{ section.id }}-{{ forloop.index }}" x="-50%" y="-100%" width="200%" height="300%">
+                <feGaussianBlur stdDeviation="6" />
+              </filter>
+              {%- comment -%}
+                Wide bloom filter for the infinity-floor diffuser's
+                outer aura layer. stdDeviation=6 keeps the visible
+                blur extent within ~12px of the bloom rect bounds —
+                small enough that the bloom stays inside the SVG
+                viewBox + panel overflow:hidden bounds without an
+                abrupt cutoff line at the top of the loop.
+              {%- endcomment -%}
+              <filter id="mls-blur-glow-{{ section.id }}-{{ forloop.index }}" x="-200%" y="-5%" width="500%" height="110%">
+                <feGaussianBlur stdDeviation="6" />
+              </filter>
+            </defs>
+
+            {%- comment -%}
+              Per-product silhouette geometry. Apollo (default) is the
+              V-shape pole-on-two-legs tripod. Nova is a slim column on
+              a round base disc — same RGB physics (back-diffuser pole,
+              edge rims wrap) but no splayed legs. Add new shapes as
+              the floor-lamp family ports continue.
+            {%- endcomment -%}
+            {%- case s.lamp_shape | default: 'apollo' -%}
+
+            {%- when 'nova' -%}
+            {%- comment -%}
+              NOVA silhouette — proportions derived from the spec sheet
+              (Scene_30 measurement diagram):
+                pole 147 cm × base 25 cm        → ratio 17%
+                pole diameter ~2.5 cm           → ratio 1.7%
+
+              In viewBox 280×468 with pole running y=6 → y=440
+              (height 434):
+                base radius  = 434 × 0.17 ≈ 37px  (rx=37)
+                pole width   = 434 × 0.017 ≈ 7px  (x=136.5 .. x=143.5)
+                floor shadow ≈ 50px (slightly wider than the disc)
+
+              PHYSICS — same as Apollo: front face matte black, LED
+              diffuser on the BACK projects wall-wash on the corner
+              wall behind. Edge rims wrap the LEFT and RIGHT edges
+              where the back-diffuser light bleeds around the
+              extrusion. The pole's center 4px (x=138.5 .. x=142.5)
+              stays unrimmed dark so the silhouette reads against
+              the bright wall behind.
+            {%- endcomment -%}
+            {%- comment -%} Floor shadow — tight under the small disc {%- endcomment -%}
+            <ellipse cx="140" cy="464" rx="50" ry="2.8"
+                     fill="rgba(0,0,0,0.45)"
+                     filter="url(#mls-blur-floor-{{ section.id }}-{{ forloop.index }})" />
+
+            {%- comment -%} Base — small round disc, slight perspective elevation {%- endcomment -%}
+            <ellipse cx="140" cy="444" rx="37" ry="4.5" fill="#050508" />
+            <ellipse cx="140" cy="440" rx="37" ry="4.5" fill="#15151B"
+                     stroke="rgba(255,255,255,0.18)" stroke-width="0.5" />
+            <path d="M 103 440 L 103 444" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="0.4" />
+            <path d="M 177 440 L 177 444" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="0.4" />
+
+            {%- comment -%}
+              POLE — 7px wide matte black aluminium column, flat top.
+              x=136.5 .. x=143.5. Bottom (y=440) meets new disc top.
+            {%- endcomment -%}
+            <path d="M 136.5 6 L 143.5 6 L 143.5 440 L 136.5 440 Z"
+                  fill="#15151B"
+                  stroke="rgba(255,255,255,0.32)" stroke-width="0.5" stroke-linejoin="round" />
+
+            {%- comment -%}
+              Edge rims — back-diffuser wrap on the LEFT and RIGHT
+              edges only. 2px wide each, overlapping the pole edges
+              by 1px. Run from y=6 to y=434 (stop 6px short of disc
+              top so rim doesn't bleed onto disc face). Pole's
+              center 4px stays unrimmed.
+            {%- endcomment -%}
+            <rect x="135.5" y="6" width="2" height="428" fill="currentColor" data-mls-rim
+                  filter="url(#mls-blur-rim-{{ section.id }}-{{ forloop.index }})" opacity="1" />
+            <rect x="142.5" y="6" width="2" height="428" fill="currentColor" data-mls-rim
+                  filter="url(#mls-blur-rim-{{ section.id }}-{{ forloop.index }})" opacity="1" />
+
+            {%- when 'genix' -%}
+            {%- comment -%}
+              GENIX silhouette — twin-helix on a central black aluminum spine.
+              Proportions from sizing metafield (135 cm tall × 25 cm base):
+                in viewBox 280×468 with pole height 434:
+                  base radius = 434 × 0.185 ≈ 40px
+                  spine width 4px central black bar
+                  helix envelope swings x=140 ± 30 (110 to 170)
+                  cross-overs at y=110, 200, 290, 380 → 4 visible rungs
+                  4 horizontal black "rungs" along the spine (visible in
+                  product photos — the aluminum frame's structural cross-bars)
+
+              PHYSICS: unlike Apollo/Nova where the LED is back-only and
+              edges glow, Genix's helix IS the light source — full-
+              circumference LED extrusion wrapping each helical curve.
+              The two helix paths render in currentColor (cycle with
+              scene) with rim blur for the wall-wash glow.
+            {%- endcomment -%}
+
+            {%- comment -%} Floor shadow — tight under the small base {%- endcomment -%}
+            <ellipse cx="140" cy="464" rx="55" ry="3"
+                     fill="rgba(0,0,0,0.45)"
+                     filter="url(#mls-blur-floor-{{ section.id }}-{{ forloop.index }})" />
+
+            {%- comment -%} Base disc — small round, proportional to 25cm/135cm ratio {%- endcomment -%}
+            <ellipse cx="140" cy="444" rx="40" ry="5" fill="#050508" />
+            <ellipse cx="140" cy="440" rx="40" ry="5" fill="#15151B"
+                     stroke="rgba(255,255,255,0.18)" stroke-width="0.5" />
+
+            {%- comment -%}
+              Helix 1 — right-leaning twist starting at top. Cubic-bezier
+              approximation of a sine wave, amplitude 30, wavelength 180,
+              4 visible cross-overs at y=110/200/290/380.
+            {%- endcomment -%}
+            <path d="M 140 6 C 175 30, 175 80, 140 110 C 105 140, 105 180, 140 200 C 175 220, 175 270, 140 290 C 105 310, 105 360, 140 380 L 140 440"
+                  fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"
+                  data-mls-rim filter="url(#mls-blur-rim-{{ section.id }}-{{ forloop.index }})" />
+
+            {%- comment -%} Helix 2 — left-leaning twist, phase-shifted to cross helix 1 {%- endcomment -%}
+            <path d="M 140 6 C 105 30, 105 80, 140 110 C 175 140, 175 180, 140 200 C 105 220, 105 270, 140 290 C 175 310, 175 360, 140 380 L 140 440"
+                  fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"
+                  data-mls-rim filter="url(#mls-blur-rim-{{ section.id }}-{{ forloop.index }})" />
+
+            {%- comment -%} Central spine — slim black aluminum bar, runs full height behind the helices {%- endcomment -%}
+            <path d="M 138 6 L 142 6 L 142 440 L 138 440 Z"
+                  fill="#15151B"
+                  stroke="rgba(255,255,255,0.32)" stroke-width="0.5" stroke-linejoin="round" />
+
+            {%- comment -%} 4 horizontal rungs at the helix cross-over points {%- endcomment -%}
+            <rect x="118" y="109" width="44" height="2" fill="#15151B" />
+            <rect x="118" y="199" width="44" height="2" fill="#15151B" />
+            <rect x="118" y="289" width="44" height="2" fill="#15151B" />
+            <rect x="118" y="379" width="44" height="2" fill="#15151B" />
+
+            {%- when 'infinity-floor' -%}
+            {%- comment -%}
+              INFINITY FLOOR silhouette — tall narrow pill loop on a
+              thin stem + small round base disc.
+
+              PRODUCT MODEL (from dim diagram + lit product photos):
+                · 140 cm tall total · 12 cm wide loop · 18 cm base disc
+                · Loop = matte black aluminium frame, pill shape
+                · LED diffuser is RECESSED inside the frame channel,
+                  facing INWARD into the loop's open center
+                · You do NOT see the diffuser as a visible bright strip
+                  — what photos catch as a "bright line" is the LIGHT
+                  RADIATING around the frame, not a visible component
+                · Loop interior is HOLLOW — viewer sees through to wall
+                · Wall behind picks up a SMOOTH organic color reflection
+                  from the inner diffuser bouncing light, not a centered
+                  hard radial peak (handled in the JS room-glow branch)
+
+              In viewBox 280×468 (effective height ~434):
+                loop body: x=121-159 (38 px wide), y=6-394 (388 px tall)
+                stem: 3 px wide y=394-414
+                base: ellipse rx=28 ry=4 at cy=414
+            {%- endcomment -%}
+
+            {%- comment -%}
+              Floor shadow — sized for the smaller base disc.
+              rx=45 (was 55) matches the new disc spread.
+            {%- endcomment -%}
+            <ellipse cx="140" cy="458" rx="45" ry="2.5"
+                     fill="rgba(0,0,0,0.45)"
+                     filter="url(#mls-blur-floor-{{ section.id }}-{{ forloop.index }})" />
+
+            {%- comment -%}
+              Base disc — corrected per the dim diagram (base=18cm,
+              loop=12cm → 1.5× ratio). Was 84px wide (way too
+              large); now 60px wide (rx=30), matching the product
+              photo proportions. ry=5 keeps it as a flat disc.
+            {%- endcomment -%}
+            <ellipse cx="140" cy="430" rx="30" ry="5" fill="#050508" />
+            <ellipse cx="140" cy="426" rx="30" ry="5" fill="#15151B"
+                     stroke="rgba(255,255,255,0.18)" stroke-width="0.5" />
+
+            {%- comment -%}
+              Stem — CONTINUOUS from the joint ball at the very
+              bottom of the loop's interior (top at y=376, the
+              ball's center) down to the top of the base disc
+              (y=421). Stem's upper portion sits inside the loop
+              at the very bottom of the U-curve, exits through
+              the matte frame's bottom at y=380, continues down
+              to the base.
+            {%- endcomment -%}
+            <rect x="137.5" y="376" width="5" height="45" fill="#15151B" />
+
+            {%- comment -%}
+              Joint ball at the VERY BOTTOM of the loop's open
+              interior, sitting at the U-curve's flattest point.
+              cy=376 r=3.5 places the ball with its bottom edge
+              right at the inner matte bottom curve (y=377-378),
+              so the ball reads as "resting at the bottom of the
+              loop" — matches the product photo where the ball
+              sits at the lowest point of the loop's interior,
+              not floating in the lower third.
+            {%- endcomment -%}
+            <circle cx="140" cy="376" r="3.5" fill="#15151B"
+                    stroke="rgba(255,255,255,0.32)" stroke-width="0.4" />
+
+            {%- comment -%}
+              The CYLINDRICAL frame channel has visible THICKNESS —
+              from the camera you see two parallel black outlines
+              (outer edge + inner edge of the channel wall). Both
+              painted in matte black aluminium. The LED diffuser
+              lives on the INNER face of the channel, between the
+              inner black outline and the loop's hollow center —
+              visible as a thin cycling-color line glowing into
+              the open middle. Nothing is filled.
+
+              Outer body edge:    rect at rx=20, sw=1.5
+              Inner body edge:    rect at rx=17, sw=1.5
+              Diffuser strip:     rect at rx=15, sw=1.5 currentColor
+                                  with rim-blur (the visible LED face)
+            {%- endcomment -%}
+
+            {%- comment -%}
+              Layer order (back to front):
+              1. Wide bloom aura — large stroke OUTSIDE the matte
+                 frame (rx=24), heavy blur. Spreads outward onto
+                 the wall, NEVER inward into the loop's open
+                 middle (wrong layer geometry was the previous
+                 bug — bloom rect was at rx=15 INSIDE the frame,
+                 so its blur filled the interior).
+              2. Outer matte black edge — defines the visible
+                 outer perimeter of the cylindrical frame.
+              3. Inner matte black edge — creates the visible
+                 channel thickness.
+              4. Sharp diffuser line — currentColor stroke just
+                 inside the inner black edge (rx=15). The visible
+                 LED line itself; no blur, no fill.
+
+              Result: bright glow radiating OUTWARD onto the wall,
+              defined frame outline, sharp LED line on the inside
+              face, hollow open middle untouched.
+            {%- endcomment -%}
+
+            {%- comment -%}
+              Loop body height is 365 (vs the prior 390) — the
+              real product photo shows the loop at ~78-80% of the
+              total lamp height (loop=125cm, total=140cm → 89%
+              just for the loop, but visually with the base disc
+              accounting for the bottom, the loop reads ~80%).
+              Loop spans y=15 (top) to y=380 (bottom curve junction
+              where it meets the joint ball at cy=383).
+            {%- endcomment -%}
+
+            {%- comment -%}
+              Layer 1 — wide bloom outside the matte frame.
+              rx=24 (outside matte's rx=20), y=15 height=365,
+              opacity 0.35, blur stdDev=6. Soft wall halo around
+              the body without overpowering the black frame.
+            {%- endcomment -%}
+            <rect x="116" y="15" width="48" height="365" rx="24" ry="24"
+                  fill="none" stroke="currentColor" stroke-width="10" opacity="0.35"
+                  filter="url(#mls-blur-glow-{{ section.id }}-{{ forloop.index }})" />
+
+            {%- comment -%}
+              Layer 2 — outer matte black edge.
+              sw=2.5 keeps the frame body visibly black against
+              the bloom outside it.
+            {%- endcomment -%}
+            <rect x="120" y="15" width="40" height="365" rx="20" ry="20"
+                  fill="none" stroke="#15151B" stroke-width="2.5" />
+
+            {%- comment -%}
+              Layer 3 — inner matte black edge.
+              sw=2.5 + 3px geometric gap to the outer edge = a
+              clearly visible matte black channel body (the
+              cylindrical frame profile).
+            {%- endcomment -%}
+            <rect x="123" y="18" width="34" height="359" rx="17" ry="17"
+                  fill="none" stroke="#15151B" stroke-width="2.5" />
+
+            {%- comment -%}
+              Layer 4 — sharp diffuser line (the visible LED).
+              Just inside the inner black edge, currentColor stroke
+              cascades from `lamp.style.color` (no data-mls-rim,
+              no fill — the open middle stays transparent).
+            {%- endcomment -%}
+            <rect x="125" y="20" width="30" height="355" rx="15" ry="15"
+                  fill="none" stroke="currentColor" stroke-width="1.8" />
+
+            {%- when 'halo' -%}
+            {%- comment -%}
+              HALO silhouette — circular LED ring on aluminum tripod.
+              Proportions from Scene_20 measurement diagram:
+                ring 13 in / 33 cm  ·  tripod base 21 in / 55 cm  ·  height 59 in / 150 cm
+              In viewBox 280×468 (1 cm ≈ 2.9 px on effective height 434):
+                ring diameter 95 px → radius 47, centered cx=140 cy=75
+                tripod base 160 px → legs to ±80 from center
+                joint hub at (140, 125) where 3 legs meet the ring stem
+              Physics: ring IS the light (full-circumference LED extrusion).
+              Outer matte black frame + inner LED ring in currentColor.
+            {%- endcomment -%}
+
+            {%- comment -%} Floor shadow — wider, tracks tripod spread {%- endcomment -%}
+            <ellipse cx="140" cy="464" rx="80" ry="3"
+                     fill="rgba(0,0,0,0.4)"
+                     filter="url(#mls-blur-floor-{{ section.id }}-{{ forloop.index }})" />
+
+            {%- comment -%} Tripod legs — 3 thin black bars from joint hub to floor {%- endcomment -%}
+            <line x1="140" y1="130" x2="60" y2="460" stroke="#15151B" stroke-width="3" stroke-linecap="round" />
+            <line x1="140" y1="130" x2="140" y2="460" stroke="#15151B" stroke-width="3" stroke-linecap="round" />
+            <line x1="140" y1="130" x2="220" y2="460" stroke="#15151B" stroke-width="3" stroke-linecap="round" />
+
+            {%- comment -%} Tripod joint hub — small block where legs meet ring stem {%- endcomment -%}
+            <rect x="135" y="124" width="10" height="12" fill="#15151B"
+                  stroke="rgba(255,255,255,0.32)" stroke-width="0.5" />
+
+            {%- comment -%} Side bracket arms — small mount detail on ring sides {%- endcomment -%}
+            <rect x="88" y="71" width="6" height="8" fill="#15151B" />
+            <rect x="186" y="71" width="6" height="8" fill="#15151B" />
+
+            {%- comment -%} Ring outer — matte black aluminium frame {%- endcomment -%}
+            <circle cx="140" cy="75" r="47"
+                    fill="none" stroke="#15151B" stroke-width="4" />
+
+            {%- comment -%}
+              Inner LED ring — currentColor (cycles with scene),
+              slight inset from outer frame, full 360° emission.
+            {%- endcomment -%}
+            <circle cx="140" cy="75" r="42"
+                    fill="none" stroke="currentColor" stroke-width="3" data-mls-rim
+                    filter="url(#mls-blur-rim-{{ section.id }}-{{ forloop.index }})" />
+
+            {%- when 'helix' -%}
+            {%- comment -%}
+              HELIX silhouette — gently S-twisted aluminum column on
+              small flat square base.
+
+              IMPORTANT: per Scene_31 measurement diagram, Helix is NOT
+              a tight spiral coil. Product name refers to the slight
+              helical twist of a single flat extrusion.
+
+              Spec: column 130 cm tall × square base 15 cm wide.
+              Helix is the SHORTEST lamp in the floor-lamp family
+              (vs Apollo 158, Halo 150, Nova 140, Infinity 140, Genix
+              135). The silhouette must read shorter than its siblings,
+              so the column starts at y=90 (not y=6), giving ~80px of
+              ceiling space above the lamp inside the viewBox.
+
+              In viewBox 280×468 / floor anchor y=442:
+                column height = 352px = (130/158) × 434, matching the
+                relative-to-Apollo ratio
+                column: S-curve from y=90 to y=442 (top to base)
+                stroke widths: outer matte black sw=10, inner LED sw=4
+                  (the earlier 6/2 was too thin to register as a visible
+                  pole next to the bigger silhouettes of other lamps)
+                base: flat square slab x=115-165 (50px wide), y=442-451
+                floor shadow: rx=35
+            {%- endcomment -%}
+
+            {%- comment -%} Floor shadow — small, tracks the slim base {%- endcomment -%}
+            <ellipse cx="140" cy="464" rx="35" ry="2.5"
+                     fill="rgba(0,0,0,0.45)"
+                     filter="url(#mls-blur-floor-{{ section.id }}-{{ forloop.index }})" />
+
+            {%- comment -%} Base — flat square slab, slight perspective {%- endcomment -%}
+            <rect x="115" y="448" width="50" height="3" fill="#050508" />
+            <rect x="115" y="442" width="50" height="6" fill="#15151B"
+                  stroke="rgba(255,255,255,0.18)" stroke-width="0.5" />
+
+            {%- comment -%}
+              Column — gentle S-curve from y=90 (top) to y=442 (base).
+              Two strokes: outer matte black aluminum sw=10 (thick
+              enough to read as a real pole) + inner LED stripe in
+              currentColor sw=4 (visible LED, rim-blurred for glow).
+              Control points scaled from the full-height variant by
+              0.807 (= 352/436) so the S-curve preserves its shape
+              just compressed to the shorter span.
+            {%- endcomment -%}
+            <path d="M 140 442 C 130 392, 152 311, 140 247 C 128 190, 152 134, 140 90"
+                  fill="none" stroke="#15151B" stroke-width="10" stroke-linecap="round" />
+            <path d="M 140 442 C 130 392, 152 311, 140 247 C 128 190, 152 134, 140 90"
+                  fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" data-mls-rim
+                  filter="url(#mls-blur-rim-{{ section.id }}-{{ forloop.index }})" />
+
+            {%- else -%}
+            {%- comment -%}
+              Single soft floor shadow. Wider, flatter, and heavily
+              blurred so it reads as "the floor near the legs is a
+              touch darker", not as a separate ellipse object. The
+              earlier two-ellipse stack rendered as a visible dark
+              shape under the lamp — exactly the "floating shadow"
+              the user kept flagging.
+            {%- endcomment -%}
+            <ellipse cx="140" cy="464" rx="110" ry="4"
+                     fill="rgba(0,0,0,0.45)"
+                     filter="url(#mls-blur-floor-{{ section.id }}-{{ forloop.index }})" />
+
+            {%- comment -%}
+              Geometry — continuous Y-junction (no gap at the pole↔leg seam).
+              Each leg's near-pole edge is set so its top stroke, when extended,
+              passes exactly through the pole's matching bottom-side corner:
+
+                pole bottom corners:  (137, 395) left   |   (143, 395) right
+                LEFT  leg far-end:    (28,  451)
+                RIGHT leg far-end:    (252, 451)
+                slope ±0.513 → at x=137 (or x=143) top edge = 395.08
+
+              Both legs cross UNDER the pole (LEFT extends to x=143, RIGHT
+              extends to x=137); the pole renders on top and hides the overlap,
+              so the only visible seam is the smooth meeting of leg top edges
+              with the pole's bottom corners.
+            {%- endcomment -%}
+
+            {%- comment -%} LEFT LEG — top face + thin front face for depth {%- endcomment -%}
+            <path d="M 143 392 L 28 451 L 28 455 L 143 396 Z" fill="#15151B" />
+            <path d="M 143 396 L 28 455 L 28 459 L 143 400 Z" fill="#050508" />
+            <path d="M 143 392 L 28 451" fill="none" stroke="rgba(255,255,255,0.32)" stroke-width="0.6" stroke-linecap="round" />
+            <path d="M 28 459 L 143 400" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.4" stroke-linecap="round" />
+
+            {%- comment -%} RIGHT LEG — mirror {%- endcomment -%}
+            <path d="M 137 392 L 252 451 L 252 455 L 137 396 Z" fill="#15151B" />
+            <path d="M 137 396 L 252 455 L 252 459 L 137 400 Z" fill="#050508" />
+            <path d="M 137 392 L 252 451" fill="none" stroke="rgba(255,255,255,0.32)" stroke-width="0.6" stroke-linecap="round" />
+            <path d="M 252 459 L 137 400" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.4" stroke-linecap="round" />
+
+            {%- comment -%}
+              POLE — solid matte black aluminium silhouette with a FLAT top
+              edge (the actual product is not capped/rounded; the RGB diffuser
+              channel runs to the very top). NO front diffuser, NO inner LED
+              stripe — the front face stays black; the lit moment lives in the
+              wall-wash behind and the edge rims.
+            {%- endcomment -%}
+            <path d="M 137 6 L 143 6 L 143 395 L 137 395 Z"
+                  fill="#15151B"
+                  stroke="rgba(255,255,255,0.32)" stroke-width="0.5" stroke-linejoin="round" />
+
+            {%- comment -%}
+              Edge rims — narrow strips along the left and right sides of the
+              pole picking up scene color (the back-diffuser light wrapping
+              around the aluminium extrusion edges). Run from the very top of
+              the pole down to the leg seam so the lit edge is unbroken.
+              Soft-blurred so they read as a photographic light wrap, not a
+              paint stripe on the pole.
+            {%- endcomment -%}
+            <rect x="135.5" y="6" width="2" height="389" fill="currentColor" data-mls-rim
+                  filter="url(#mls-blur-rim-{{ section.id }}-{{ forloop.index }})" opacity="1" />
+            <rect x="142.5" y="6" width="2" height="389" fill="currentColor" data-mls-rim
+                  filter="url(#mls-blur-rim-{{ section.id }}-{{ forloop.index }})" opacity="1" />
+
+            {%- comment -%}
+              NOTE: legs are pure matte black aluminium with NO RGB rim — the
+              LED diffuser only lives in the pole, so only the pole's edges
+              wrap with scene color. The legs sit in the wall-wash glow but
+              don't carry color of their own (merchant-confirmed physics).
+            {%- endcomment -%}
+
+            {%- endcase -%}
+          </svg>
+
+          <div class="casa-mls__room-label">
+            <span class="casa-mls__mono">{{ b.room_name | default: 'Room' }}</span>
+            <span class="scene" data-mls-scene>—</span>
+          </div>
+        </div>
+      {%- endfor -%}
+    </div>
+
+    {%- if strip_blocks.size > 0 -%}
+      <div class="casa-mls__strip">
+        {%- for block in strip_blocks -%}
+          {%- assign b = block.settings -%}
+          {%- comment -%}
+            Glue NBSP around any " — " in the body so the em-dash never
+            starts or ends a line on its own. CSS text-wrap: balance
+            does most of the orphan-prevention work, but the em-dash
+            is a special character the merchant explicitly chose as a
+            typographic pause — keeping it tied to its neighbour words
+            is a non-negotiable typographic rule that CSS alone can't
+            enforce reliably across browsers.
+          {%- endcomment -%}
+          {%- assign body_text = b.body | replace: ' — ', '&nbsp;—&nbsp;' -%}
+          <div class="casa-mls__strip-item" {{ block.shopify_attributes }}>
+            {%- if b.kicker != blank -%}<p class="casa-mls__mono">{{ b.kicker }}</p>{%- endif -%}
+            {%- if b.body   != blank -%}<p>{{ body_text }}</p>{%- endif -%}
+          </div>
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+  </div>
+</section>
+
+{% stylesheet %}
+/* Registered <color> custom property — UNLIKE a plain custom property
+   (or a gradient, which is a non-animatable background-image), a
+   registered color CAN be transitioned. One property drives the whole
+   lamp: wall-wash glow, column edge-rims (currentColor), and the scene
+   label. When JS retargets it, all of them cross-fade through vivid
+   intermediate hues in unison instead of the old hard cut. Browsers
+   without @property + relative-color fall back to the discrete swap
+   (JS modern-path detect + the @supports blocks below). */
+@property --mls-c {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #F2FFA0;
+}
+.casa-mls {
+  background: var(--mls-ink);
+  color: var(--mls-paper);
+  padding: var(--mls-pt) 0 var(--mls-pb);
+  font-family: var(--font-body--family);
+  /* Sticky add-to-cart bar height — matches casa-color-scene-player's
+     --csp-bar-offset. Subtracted from svh so the section bottom never
+     hides behind the bar at one-frame fit. */
+  --mls-bar-offset: 96px;
+  box-sizing: border-box;
+}
+
+/* One-frame fit — compress vertical rhythm so the section is close
+   to one viewport tall on a typical laptop without LOCKING the
+   section to viewport height. Locking caused two problems:
+     (1) On mobile portrait the section padded itself to 100svh,
+         leaving a wasted dark gap between section 4 and section 5.
+     (2) Flex-filling the rooms grid squashed the lamp SVG panels
+         into wide-short tiles, shrinking the lamp silhouettes.
+   Now the section sizes to content; aggressive typography
+   compression + sane room clamp keep total height close to one
+   viewport without artificially padding to viewport. */
+@media (min-width: 641px) and (min-height: 641px) {
+  .casa-mls {
+    padding: clamp(16px, 3.5vh, 40px) 0;
+  }
+}
+.casa-mls__head {
+  max-width: 1400px;
+  margin: 0 auto 16px;
+  padding: 0 clamp(20px, 5vw, 64px);
+  /* Left-aligned editorial composition — matches stats-grid /
+     scene-player / moods / faq so every section header on the
+     PDP shares the same alignment (2026-05-15).
+     Note: head goes full-width (no max-width, no auto margin) at
+     desktop ≥1025px only — see the @media block below the 1700px
+     room-label rule. 2026-05-16 scoping fix. */
+  text-align: left;
+}
+.casa-mls__mono {
+  /* Base mono — neutral defaults. Sub-context monos (mode toggles,
+     room labels, strip items, block kickers) override color and
+     letter-spacing per their context below. The SECTION HEAD kicker
+     is brand-quiet via the `.casa-mls__head .casa-mls__mono` rule
+     so only the head gets opacity 0.5 — sub-contexts stay full
+     opacity. */
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: inherit;
+  margin: 0 0 16px;
+}
+/* Brand-default quiet section-head kicker (cross-section unify pass,
+   brand book §03 .section .kicker). The mono number is chrome, not a
+   moment register. Brand color expression lives in the H2 italic-em
+   trinity accent, one per heading. */
+.casa-mls__head .casa-mls__mono { opacity: 0.5; }
+.casa-mls__h2 {
+  /* Brand-locked PDP H2 — uses the casa-pdp-h2-* tokens so this
+     heading matches stats-grid / faq / csp / am editorial scale.
+     2026-05-15: bumped from clamp(28,3.2vw,44) / 300 to the brand
+     token spec (clamp(36,4.5vw,56) / 600) for cross-section
+     header consistency. */
+  font-family:    var(--casa-pdp-h2-family);
+  font-size:      var(--casa-pdp-h2-size);
+  font-weight:    var(--casa-pdp-h2-weight);
+  letter-spacing: var(--casa-pdp-h2-tracking);
+  line-height:    var(--casa-pdp-h2-line);
+  /* 14 → 6 per merchant: lift the grey lede up against the
+     heading so the editorial header reads as one compact block,
+     not heading + air + paragraph. Per-breakpoint overrides
+     below tighten further on narrow viewports. */
+  margin: 0 0 6px;
+  color: var(--mls-paper);
+  text-wrap: balance;
+}
+.casa-mls__h2 em {
+  /* Inline em — the heading reads as one line on viewports that
+     can fit "Pair one. Pair ten. One remote." (~iPad and above).
+     At ≥1025px we force `white-space: nowrap` on the H2 below so
+     the whole headline is GUARANTEED to sit on one line. Below
+     1025px text-wrap: balance handles the natural break before
+     the em ("Pair one. Pair ten." / "One remote."). */
+  display: inline;
+  font-style: italic;
+  /* Brand book v1 §08: cap section-heading em weight at 600. */
+  font-weight: 600;
+  /* Gradient accent reads larger than surrounding text — merchant
+     directive 2026-05-15 (brand book emphasis register). */
+  font-size: 1.25em;
+  /* Brand-trinity gradient: purple → pink → cyan. Matches
+     --grad-text from the brand book (docs/brand-book-v1.html).
+     Earlier draft was only 2 stops (pink → cyan), missing the
+     purple anchor on the left.
+     background-image (longhand) — NOT the `background` shorthand —
+     so the shorthand can't silently reset background-clip later
+     in the cascade. (casa-brand-tokens skill, Bug 1.) */
+  background-image: linear-gradient(90deg, var(--mls-purple), var(--mls-pink), var(--mls-cyan));
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.casa-mls__lede {
+  font-size: clamp(14px, 1.5vw, 17px);
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.78);
+  max-width: 56ch;
+  /* Base (<1025px): head is `text-align: left` and the H2 starts at
+     the head's left padding edge. The lede MUST also be flush-left
+     so its first character lines up vertically with the H2's first
+     character — using `margin: 0` keeps the constrained 56ch block
+     at the head's left edge instead of auto-centering it (which
+     would shift the lede text ~190px right of the H2 at tablet
+     widths). Desktop ≥1025px re-enables `margin: 0 auto` so the
+     constrained block centers under the now-centered H2 — see the
+     @media block at the bottom of this stylesheet. */
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.casa-mls__stage {
+  display: grid;
+  gap: clamp(12px, 1.8vh, 20px);
+  padding: 0 clamp(20px, 5vw, 64px);
+}
+
+/* Ultrawide guardrail: the stage has no width cap, so the 3-up rooms grid
+   renders 1092px-wide room cards at 3440px (measured live 2026-07-12).
+   Cap at the global content ceiling — the head above is already 1400px
+   centered at desktop, so alignment holds. No effect ≤1920px. */
+@media (min-width: 1920px) {
+  .casa-mls__stage {
+    max-width: var(--casa-content-max-w, 1920px);
+    margin-inline: auto;
+  }
+}
+.casa-mls__modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 560px;
+  /* Center the toggle row inside the stage so it aligns with the
+     centered head above. */
+  margin: 0 auto;
+}
+.casa-mls__mode {
+  text-align: left;
+  background: #16161B;
+  border: 1px solid #1F1F25;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 14px;
+  align-items: baseline;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  color: var(--mls-paper);
+}
+.casa-mls__mode:hover { border-color: rgba(255, 255, 255, 0.2); }
+.casa-mls__mode.is-on {
+  background: var(--mls-ink);
+  border-color: var(--mls-cyan);
+  box-shadow: inset 0 0 0 1px var(--mls-cyan), 0 0 0 4px rgba(242, 255, 160, 0.12);
+}
+.casa-mls__mode .casa-mls__mono {
+  grid-row: 1 / 3;
+  font-size: 14px;
+  color: var(--mls-paper);
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0;
+  margin: 0;
+}
+.casa-mls__mode.is-on .casa-mls__mono {
+  background: var(--mls-cyan);
+  border-color: var(--mls-cyan);
+  color: var(--mls-ink);
+}
+.casa-mls__mode .lab {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--mls-paper);
+  letter-spacing: -0.005em;
+}
+.casa-mls__mode .hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.casa-mls__rooms {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  /* No outer frame — earlier draft wrapped the 3 rooms in a darker
+     padded container with a top-to-bottom gradient + border. That
+     created a faint horizontal band at the top of each card where
+     the gradient lifted, reading as "cut off / blurred edge".
+     Removing the frame lets the 3 cards sit side-by-side as
+     standalone panels with their own rounded backgrounds — they
+     flow into one another visually with just the gap between. */
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  position: relative;
+}
+.casa-mls__room {
+  position: relative;
+  /* Per-room scene color (each room can differ in ZONE mode). Seeded
+     to the first cycle hue; JS retargets it every tick and the
+     transition below morphs the whole lamp there. --mls-fade is set
+     from cycleMs in JS (~0.75× the dwell) for a continuous flowing
+     feel; the 700ms here is the SSR fallback before JS paints. */
+  --mls-c: var(--mls-cyan, #F2FFA0);
+  transition: --mls-c var(--mls-fade, 700ms) ease-in-out;
+  /* Fixed clamp — lamp SVG (viewBox 280×500, 1:1.79 portrait) gets
+     enough room to render the full silhouette dramatically. Bigger
+     than the previous clamp(320, 38vh, 480) because the merchant
+     said the lamps were rendering "very tiny"; the lamp is the
+     section's centerpiece and needs visual weight. dvh tracks iOS
+     Safari's dynamic toolbar; vh is the fallback. */
+  height: clamp(360px, 44vh, 540px);
+  height: clamp(360px, 44dvh, 540px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  /* Single smooth linear gradient — TOP starts at section ink so
+     the rounded top corners blend invisibly into the section
+     background (no visible cut-off edge). Brightens subtly down
+     the panel to suggest a floor plane. NO overlay radials here —
+     the room-glow div is the ONLY emission system, so there's no
+     "bars / banding" between competing gradients. */
+  background: linear-gradient(180deg, var(--mls-ink) 0%, #121218 60%, #16161D 100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  /* The cycle interval is already skipped under reduced motion; this
+     also snaps the color on the one remaining trigger (Sync/Zone switch). */
+  .casa-mls__room { transition: none; }
+}
+/* First-paint guard: JS holds this attribute across the initial color
+   set, then drops it after a reflow. Without it a template whose first
+   scene isn't the cyan seed would sweep cyan → scene-0 on hydration. */
+.casa-mls[data-mls-warmup] .casa-mls__room { transition: none; }
+.casa-mls__room-glow {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  /* Legacy path only: JS swaps the whole gradient string, and this
+     tries (in vain — background-image is discrete) to soften it. In
+     the modern path below JS never touches this inline, and the
+     wall-wash color comes from the animating --mls-c instead. */
+  transition: background 0.5s ease;
+}
+/* Modern path — the wall-wash gradient is authored ONCE here with the
+   scene color pulled live from --mls-c via relative-color syntax, so it
+   recomputes (and smoothly interpolates) every frame the property
+   animates. Gated on relative-color support, which the JS modern-path
+   detect mirrors exactly, so JS only sets --mls-c here and never writes
+   an inline background that would shadow these rules. */
+@supports (color: rgb(from white r g b / 1)) {
+  /* DEFAULT (apollo/nova/halo/helix/genix) — one strong centered
+     wall-wash; the solid body masks the peak so the viewer sees the
+     glow around it. Alphas match the legacy D0/99/66/3A/18 stops. */
+  .casa-mls__room-glow {
+    background: radial-gradient(ellipse 70% 100% at 50% 47%,
+      rgb(from var(--mls-c) r g b / 0.816) 0%,
+      rgb(from var(--mls-c) r g b / 0.6)   12%,
+      rgb(from var(--mls-c) r g b / 0.4)   25%,
+      rgb(from var(--mls-c) r g b / 0.227) 45%,
+      rgb(from var(--mls-c) r g b / 0.094) 70%,
+      transparent 95%);
+  }
+  /* INFINITY-FLOOR — hollow loop, diffuser inside the channel: two
+     bright radials flanking the frame + a wide low ambient wash, so
+     the open middle stays near-ambient. Alphas match A0/70/40/1A +
+     28/14 legacy stops. */
+  .casa-mls__room[data-lamp-shape="infinity-floor"] .casa-mls__room-glow {
+    background:
+      radial-gradient(ellipse 30% 85% at 41% 47%, rgb(from var(--mls-c) r g b / 0.627) 0%, rgb(from var(--mls-c) r g b / 0.439) 20%, rgb(from var(--mls-c) r g b / 0.251) 45%, rgb(from var(--mls-c) r g b / 0.102) 70%, transparent 95%),
+      radial-gradient(ellipse 30% 85% at 59% 47%, rgb(from var(--mls-c) r g b / 0.627) 0%, rgb(from var(--mls-c) r g b / 0.439) 20%, rgb(from var(--mls-c) r g b / 0.251) 45%, rgb(from var(--mls-c) r g b / 0.102) 70%, transparent 95%),
+      radial-gradient(ellipse 80% 95% at 50% 47%, rgb(from var(--mls-c) r g b / 0.157) 0%, rgb(from var(--mls-c) r g b / 0.078) 50%, transparent 90%);
+  }
+}
+.casa-mls__lamp {
+  position: absolute;
+  left: 50%;
+  /* Edge-rims are fill/stroke="currentColor"; driving color from the
+     animating --mls-c makes them cross-fade in lockstep with the
+     wall-wash. Legacy JS overrides this inline (hard cut, as before). */
+  color: var(--mls-c);
+  /* Anchored to the panel floor (bottom: 0) so the lamp's tripod
+     contact shadow sits at the actual bottom of the panel rather
+     than floating ~30-90px above it. The SVG uses
+     preserveAspectRatio="xMidYMax meet" which bottom-aligns the
+     viewBox to the container — combined with the floor-ellipse
+     fix above (cy 486 → 464), the lamp now reads as standing on
+     the floor of the room. */
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 92%;
+  max-width: 340px;
+  height: 92%;
+  /* overflow: visible — the infinity-floor's bloom layer (sw=10 +
+     blur stdDev=6) extends a few pixels ABOVE y=0 in the viewBox.
+     Default SVG overflow is hidden, which produced an abrupt
+     horizontal cutoff line where the bloom met the viewBox top.
+     Visible overflow lets the bloom fade naturally beyond the
+     viewBox into the surrounding panel space. Other lamp
+     silhouettes don't draw above y=0 so this is a no-op for
+     them. */
+  overflow: visible;
+  /* Single black drop-shadow for depth — the lamp casts a real
+     shadow onto the panel floor. The SVG's own wall-wash + edge
+     rims provide all the colored glow; stacking colored
+     drop-shadow filters on top fattened the silhouette into a
+     wide cyan blob and read as a saturated blur, not a slim
+     bright RGB column. Slim column wins over wide halo. */
+  filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.7));
+  z-index: 1;
+}
+.casa-mls__room-label {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+}
+.casa-mls__room-label .casa-mls__mono { margin: 0; color: rgba(255, 255, 255, 0.55); }
+.casa-mls__room-label .scene {
+  font-family: var(--font-body--family);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  text-transform: none;
+  /* Modern path: color follows the animating --mls-c, so no element
+     transition (that would lag it out of sync with the wall-wash). */
+  color: var(--mls-c);
+}
+/* Legacy path only: JS sets the label color inline, so give it a
+   local fade — the wall-wash can't fade there, but the label still can. */
+@supports not (color: rgb(from white r g b / 1)) {
+  .casa-mls__room-label .scene { transition: color 0.5s ease; }
+}
+
+.casa-mls__strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+.casa-mls__strip-item {
+  /* Minimal pill — kicker (cyan mono) on line 1, body (off-white)
+     on line 2. Column flex everywhere keeps the 3-up grid aligned
+     to the rooms above with title-on-top / text-below at every
+     viewport. Padding is tight so the lamps remain the visual
+     centerpiece and the pills stay accent-chrome. */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  border: 1px solid #1F1F25;
+  background: #16161B;
+  border-radius: 10px;
+  padding: 12px 14px;
+  min-width: 0;
+}
+.casa-mls__strip-item .casa-mls__mono {
+  color: var(--mls-cyan);
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.casa-mls__strip-item p {
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  min-width: 0;
+  text-wrap: pretty;
+}
+
+/* Mid-desktop panel-width fix. When the viewport falls below ~1700px the
+   per-panel width drops under ~500px, at which point the lamp's tripod
+   legs (which span ~152px from panel center at max-width 340px) reach
+   the bottom-left corner where the room label sits. Move the label to
+   top-left for any viewport below the threshold — only the narrow
+   centered V-tip lives up there, so labels stay clear at every width.
+   Above 1700px panels are wide enough that bottom-left labels read fine. */
+@media (max-width: 1700px) {
+  .casa-mls__room-label { top: 16px; left: 16px; bottom: auto; }
+}
+
+/* Desktop / laptop ≥1025px ONLY — all the merchant-requested
+   fixes are gated here so mobile + tablet behavior is guaranteed
+   unchanged.
+
+   1. Head text + lede CENTER-aligned (2026-05-17 reversal — was
+      left-flush from 2026-05-16). Head goes back to max-width
+      1400 + margin auto so the constrained block sits centered
+      on the viewport; text-align: center overrides the base
+      left-align; lede uses margin auto to recenter the
+      constrained-width paragraph within the head.
+   2. H2 forced to one line via white-space:nowrap.
+   3. Bottom strip kicker 11 → 13, body 12 → 15 so the strip
+      reads at the same visual register as the lede on big
+      screens. */
+@media (min-width: 1025px) {
+  .casa-mls__head {
+    max-width: 1400px;
+    margin: 0 auto 16px;
+    text-align: center;
+  }
+  .casa-mls__lede { margin: 0 auto; }
+  .casa-mls__h2   { white-space: nowrap; }
+  .casa-mls__strip-item .casa-mls__mono { font-size: 13px; }
+  .casa-mls__strip-item p { font-size: 15px; line-height: 1.5; }
+}
+
+/* 13" laptops (1280px and below).
+   Caps the base h2 clamp(28, 3.6vw, 52) so it doesn't blow the
+   one-frame budget on ~800px-tall laptops (after the 96px sticky
+   add-to-cart bar). 32px max H2 here = ~75px of heading height
+   on two lines — keeps total section ≤ ~680px. */
+@media (max-width: 1280px) {
+  .casa-mls__head { margin-bottom: 12px; }
+  .casa-mls__mono { font-size: 11px; margin-bottom: 10px; }
+  .casa-mls__h2 { margin-bottom: 4px; }
+  .casa-mls__lede { font-size: clamp(13px, 1.3vw, 15px); }
+  .casa-mls__stage { gap: 12px; }
+  .casa-mls__modes { gap: 10px; }
+  .casa-mls__mode { padding: 12px 14px; }
+  .casa-mls__rooms { gap: 10px; }
+  .casa-mls__room  {
+    height: clamp(320px, 42vh, 440px);
+    height: clamp(320px, 42dvh, 440px);
+  }
+  .casa-mls__lamp  { max-width: 280px; }
+}
+/* iPad portrait / landscape (1024px and below). Strip stays 3-up
+   (does NOT stack to 1-col) — three columns of small cards keep
+   the section close to one frame on iPad. */
+@media (max-width: 1024px) {
+  .casa-mls__head { margin-bottom: 10px; }
+  .casa-mls__mono { font-size: 11px; margin-bottom: 8px; }
+  .casa-mls__h2 { margin-bottom: 4px; }
+  /* Lede visible on iPad/tablet — sized down so it doesn't crowd
+     the rooms grid below. Was display:none in prior commits;
+     merchant wants it back to match the rest of the Apollo PDP
+     editorial rhythm (every section uses kicker + H2 + lede). */
+  .casa-mls__lede { font-size: clamp(12px, 1.3vw, 14px); line-height: 1.5; margin-bottom: 4px; }
+  .casa-mls__stage { gap: 10px; }
+  .casa-mls__rooms { gap: 8px; }
+  .casa-mls__room  {
+    height: clamp(300px, 40vh, 400px);
+    height: clamp(300px, 40dvh, 400px);
+  }
+  .casa-mls__lamp  { width: 95%; max-width: 240px; }
+  /* Tighter label at iPad widths — panels can drop to ~200px wide on
+     iPad mini portrait, where 11px BEDROOM would brush the V-tip. */
+  .casa-mls__room-label { font-size: 10px; letter-spacing: 0.06em; top: 12px; left: 12px; }
+  .casa-mls__room-label .scene { font-size: 12px; }
+  .casa-mls__strip-item { padding: 10px 12px; gap: 5px; }
+  .casa-mls__strip-item .casa-mls__mono { font-size: 10px; }
+  .casa-mls__strip-item p { font-size: 11px; line-height: 1.35; }
+}
+/* Mobile portrait (≤640px wide). Section sizes to natural content
+   height — NO min-height: 100svh, which was padding the section
+   to full viewport height and leaving a wasted dark gap between
+   sections 4 and 5. Flows seamlessly into section 5 (same Ink
+   surface, no border). */
+@media (max-width: 640px) {
+  .casa-mls { padding: 24px 0; }
+  .casa-mls__head { margin-bottom: 10px; }
+  .casa-mls__mono { font-size: 11px; margin-bottom: 10px; }
+  .casa-mls__h2 { margin-bottom: 4px; }
+  /* Lede sized for phone portrait — 12.5px reads cleanly at 375px
+     wide; max-width 100% so the merchant's 200-char paragraph
+     uses the full panel width instead of the 56ch desktop cap. */
+  .casa-mls__lede { font-size: 12.5px; line-height: 1.5; max-width: 100%; margin-bottom: 4px; }
+  .casa-mls__modes { grid-template-columns: 1fr 1fr; gap: 6px; max-width: none; }
+  .casa-mls__mode { padding: 8px 10px; column-gap: 8px; border-radius: 10px; }
+  .casa-mls__mode .casa-mls__mono { width: 22px; height: 22px; font-size: 11px; }
+  .casa-mls__mode .lab { font-size: 13px; }
+  .casa-mls__mode .hint { display: none; }
+  .casa-mls__rooms { gap: 5px; }
+  /* Mobile room height tuned to the lamp SVG's natural aspect
+     (viewBox 280×468 ≈ 1:1.67). At iPhone SE 375px each panel is
+     ~107px wide → ideal height ≈ 178px. Setting 180px keeps the
+     panel from reading as a tall narrow rectangle (the 260px value
+     in earlier commits gave 1:2.4 which the merchant flagged as
+     "too extended"). Lamp width: 100% fills the panel; SVG
+     preserveAspectRatio="xMidYMax meet" keeps the silhouette
+     anchored to the bottom even at the shorter height. */
+  .casa-mls__room  { height: 180px; border-radius: 10px; }
+  /* Lamp pulled down so the V-tip stays well below the label zone even
+     on the narrowest Android (≈320px viewport → ≈87px panels). Lower
+     bottom + shorter height = SVG content sits in the lower 60-70% of
+     the panel, leaving a clear ~50px band at the top for the label. */
+  .casa-mls__lamp  { width: 100%; max-width: none; bottom: 0; height: 92%; }
+  /* Wall-wash kept ON at mobile — the merchant explicitly wants the
+     RGB to read very bright, so the soft colored column behind the
+     pole is part of that read. (Was hidden in a prior commit.) */
+  /* Label moved to top-left (only the centered V-tip lives up there, so
+     left-anchored labels stay clear). Reduced font + tighter spacing so
+     "BEDROOM" doesn't reach panel center on tiny phones. */
+  .casa-mls__room-label {
+    left: 6px; top: 6px; bottom: auto;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+  }
+  .casa-mls__room-label .casa-mls__mono { font-size: 7.5px; margin: 0; }
+  .casa-mls__room-label .scene { font-size: 9px; letter-spacing: -0.005em; }
+  /* Mobile strip — 3-up under each lamp panel with single-line
+     bodies. Required template body shortening to make this work
+     (see commit "shorten strip bodies for 1-line 3-up mobile"):
+     bodies are now 17/15/22 chars, fitting in ~95px of text area
+     per card at iPhone SE 375px when padding + gap are tight.
+     Tight padding (6px×8px), 9px kicker, 10px body land all three
+     bodies on a single line per card while keeping the cards
+     aligned beneath their corresponding lamp panels. */
+  .casa-mls__strip {
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .casa-mls__strip-item {
+    padding: 6px 8px;
+    gap: 3px;
+    border-radius: 8px;
+  }
+  .casa-mls__strip-item .casa-mls__mono {
+    font-size: 9px;
+    letter-spacing: 0.06em;
+  }
+  .casa-mls__strip-item p {
+    font-size: 10px;
+    line-height: 1.3;
+  }
+}
+
+/* Phone (≤749px): keep "Pair one. Pair ten. One remote." on one line.
+   Per merchant 2026-05-15: every Apollo PDP section heading reads as a
+   single line on phones (it already does on tablet+desktop). Considered
+   per-section divergence from brand-book v1 §03 H2 floor (28px) —
+   applies only to viewports where the brand-spec floor visibly wraps. */
+@media (max-width: 749px) {
+  /* Floor lowered to 17px to absorb the 1.25em gradient-accent size
+     bump on "Pair one. Pair ten. One remote." (31-char title) without
+     wrapping at 375-430px phone widths. */
+  .casa-mls__h2 { font-size: clamp(17px, 4.8vw, 28px); }
+}
+
+/* Landscape phones (e.g. 844×390). Width hits the 1024 breakpoint but
+   height is way too short — tightens header + rooms so the section
+   doesn't push tabs out of viewport.
+   max-height-shorthand-justified: .casa-mls__head provides the side
+   gutter via its own clamp(20px, 5vw, 64px) padding. Section root with
+   0 side at this height is fine. */
+@media (max-height: 500px) {
+  .casa-mls { padding: 12px 0; }
+  .casa-mls__head { margin-bottom: 8px; }
+  .casa-mls__mono { margin-bottom: 6px; }
+  .casa-mls__h2 { margin-bottom: 2px; }
+  /* Landscape phones: lede stays visible but very compact —
+     10.5px / 1.3 line-height keeps the 200-char paragraph
+     within ~2 lines so it doesn't push the lamps + strip out
+     of viewport on the 390-430px tall landscape phone. */
+  .casa-mls__lede { font-size: 10.5px; line-height: 1.3; margin-bottom: 2px; }
+  .casa-mls__stage { gap: 8px; }
+  .casa-mls__rooms { gap: 6px; }
+  .casa-mls__room  {
+    height: clamp(140px, 38vh, 200px);
+    height: clamp(140px, 38dvh, 200px);
+  }
+  .casa-mls__mode { padding: 6px 10px; }
+  .casa-mls__mode .lab { font-size: 13px; }
+}
+
+{% endstylesheet %}
+
+{% javascript %}
+(function () {
+  function init(root) {
+    if (!root || root.dataset.mlsInit === '1') return;
+    root.dataset.mlsInit = '1';
+
+    var hexes = (root.dataset.cycleHexes || '').split('|').filter(Boolean);
+    var names = (root.dataset.cycleNames || '').split('|');
+    var totalScenes = hexes.length;
+    if (totalScenes < 1) return;
+    var cycleMs = parseInt(root.dataset.cycleMs, 10) || 1300;
+    var mode = root.dataset.defaultMode === 'zone' ? 'zone' : 'sync';
+
+    // Modern path: one animatable registered <color> (--mls-c) drives the
+    // whole lamp, and CSS transitions the cross-fade. This detect MUST
+    // mirror the stylesheet's @supports (relative-color) gate exactly, so
+    // we never write an inline gradient that shadows the CSS one — nor
+    // leave an unsupported browser with no wall-wash at all.
+    var MORPH = !!(window.CSS && CSS.supports && CSS.supports('color', 'rgb(from white r g b / 1)'));
+    // Fade ≈ 0.75× the dwell: colors flow almost continuously with a brief
+    // settle. Clamped so very fast / slow cycle settings still read well.
+    var fadeMs = Math.max(240, Math.min(1200, Math.round(cycleMs * 0.75)));
+    root.style.setProperty('--mls-fade', fadeMs + 'ms');
+
+    var rooms = Array.prototype.slice.call(root.querySelectorAll('[data-mls-room]'));
+    var modeBtns = Array.prototype.slice.call(root.querySelectorAll('[data-mls-mode]'));
+    var tick = 0;
+
+    function paint() {
+      rooms.forEach(function (room, i) {
+        var offset = mode === 'sync' ? 0 : i;
+        var idx = ((tick + offset) % totalScenes + totalScenes) % totalScenes;
+        var hex = hexes[idx] || '#F2FFA0';
+
+        // Modern path: retarget the one color property; CSS cross-fades
+        // the wall-wash gradient, the currentColor edge-rims, and the
+        // label color to `hex` together. Nothing else to write per tick.
+        // (The label TEXT is handled separately in paintLabels so it can
+        // snap at the fade midpoint instead of leading the color.)
+        if (MORPH) {
+          room.style.setProperty('--mls-c', hex);
+          return;
+        }
+
+        // ── Legacy discrete path (pre-@property browsers) ──
+        var sceneEl = room.querySelector('[data-mls-scene]');
+        var glow = room.querySelector('[data-mls-glow]');
+        var lampShape = room.dataset.lampShape || 'apollo';
+        // Wall-wash radial — the ONLY background emission system in
+        // the card. Configuration depends on lamp physics:
+        //
+        // DEFAULT (apollo, nova, halo, helix, genix) — back-diffuser
+        // lamps where the LED sits on the back face of a SOLID body
+        // in front of the wall. Strong centered radial, six-stop
+        // smooth falloff. The lamp body blocks the brightest peak so
+        // what the viewer sees is the wall-wash AROUND the body.
+        //
+        // INFINITY-FLOOR — the lamp is a hollow black pill frame
+        // with the LED diffuser hidden INSIDE the frame channel,
+        // facing inward. Light radiates around the frame in a soft
+        // organic bounce, not as a strong centered peak behind a
+        // solid body. Use a wider, dimmer, ultra-gradual ellipse so
+        // the wall reflects color smoothly without ever reading as
+        // a hard "filled" rectangle inside the loop's open middle.
+        // Max alpha drops from D0(82%) to 50(31%) and the stops
+        // taper across many intermediate values for a smooth wash.
+        if (glow) {
+          if (lampShape === 'infinity-floor') {
+            // Loop is hollow + the diffuser sits inside the frame
+            // channel. The wall behind the LOOP'S OPEN INTERIOR
+            // must stay close to ambient (no centered radial peak
+            // there — that would re-introduce the "filled middle"
+            // look). But the wall AROUND the loop body should
+            // glow brightly with the cycling color, because the
+            // diffuser actually radiates in all directions and
+            // the wall catches it.
+            //
+            // Three stacked gradients:
+            //   1+2: two bright radials flanking the loop's vertical
+            //        sides (41% / 59% horizontal) — peak alpha A0
+            //        (62%) so the wall by the lamp glows
+            //        distinctly. Wider 30%×85% than before so the
+            //        bleed reaches floor + ceiling of the panel.
+            //   3:   a wide low-alpha ambient wash centered on the
+            //        whole panel (alpha 28 = 16%) — adds room-level
+            //        color cast so the lamp feels like it's lighting
+            //        the whole space, not just two stripes.
+            // The two flanking radials fall off sharply at center
+            // (50%), so the loop's open middle still reads
+            // essentially as ambient, just gently tinted.
+            glow.style.background =
+              'radial-gradient(ellipse 30% 85% at 41% 47%, ' + hex + 'A0 0%, ' + hex + '70 20%, ' + hex + '40 45%, ' + hex + '1A 70%, transparent 95%), ' +
+              'radial-gradient(ellipse 30% 85% at 59% 47%, ' + hex + 'A0 0%, ' + hex + '70 20%, ' + hex + '40 45%, ' + hex + '1A 70%, transparent 95%), ' +
+              'radial-gradient(ellipse 80% 95% at 50% 47%, ' + hex + '28 0%, ' + hex + '14 50%, transparent 90%)';
+          } else {
+            glow.style.background =
+              'radial-gradient(ellipse 70% 100% at 50% 47%, ' + hex + 'D0 0%, ' + hex + '99 12%, ' + hex + '66 25%, ' + hex + '3A 45%, ' + hex + '18 70%, transparent 95%)';
+          }
+        }
+
+        var lit = room.querySelectorAll('[data-mls-halo], [data-mls-rim]');
+        lit.forEach(function (el) { el.setAttribute('fill', hex); });
+
+        // Set CSS color so any remaining `currentColor` references resolve to the scene hex
+        var lamp = room.querySelector('.casa-mls__lamp');
+        if (lamp) lamp.style.color = hex;
+
+        if (sceneEl) sceneEl.style.color = hex;
+      });
+    }
+
+    // Scene-label TEXT for the current tick. Kept out of paint() so the
+    // word can snap at the color-fade MIDPOINT (see scheduleLabels) — at
+    // the smooth fade duration the destination word would otherwise lead
+    // the color by nearly a full cycle (very visible on the palette wrap).
+    function paintLabels() {
+      rooms.forEach(function (room, i) {
+        var offset = mode === 'sync' ? 0 : i;
+        var idx = ((tick + offset) % totalScenes + totalScenes) % totalScenes;
+        var sceneEl = room.querySelector('[data-mls-scene]');
+        if (sceneEl) sceneEl.textContent = names[idx] || 'Scene';
+      });
+    }
+    // Modern: swap words half-way through the color fade so they track the
+    // hue. Legacy hard-cuts, so update immediately in lockstep.
+    function scheduleLabels() {
+      if (root.__mlsLabelT) { clearTimeout(root.__mlsLabelT); root.__mlsLabelT = null; }
+      if (MORPH) root.__mlsLabelT = setTimeout(paintLabels, Math.round(fadeMs * 0.5));
+      else paintLabels();
+    }
+
+    function setMode(next) {
+      mode = next;
+      modeBtns.forEach(function (b) {
+        var on = b.dataset.mlsMode === next;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      paint();
+      paintLabels();
+    }
+
+    modeBtns.forEach(function (b) {
+      b.addEventListener('click', function () { setMode(b.dataset.mlsMode); });
+    });
+
+    // Commit the first scene's colors WITHOUT a transition (warmup guard),
+    // then a reflow, then re-enable fades — so the initial hydration snaps
+    // to scene 0 instead of sweeping there from the cyan seed.
+    root.dataset.mlsWarmup = '';
+    paint();
+    paintLabels();
+    void root.offsetWidth;
+    delete root.dataset.mlsWarmup;
+
+    // Static first scene under reduced motion — the paint above renders
+    // the initial state; skip the cycling interval entirely.
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
+    // Cycle scene every cycleMs — gated by IntersectionObserver so the
+    // feGaussianBlur-filtered shapes aren't re-rastered while the
+    // section is off-screen (each repaint forces a CPU filter pass).
+    function startCycle() {
+      if (root.__mlsCycleId) return;
+      root.__mlsCycleId = setInterval(function () { tick = (tick + 1) % totalScenes; paint(); scheduleLabels(); }, cycleMs);
+    }
+    function stopCycle() {
+      if (root.__mlsCycleId) { clearInterval(root.__mlsCycleId); root.__mlsCycleId = null; }
+      if (root.__mlsLabelT) { clearTimeout(root.__mlsLabelT); root.__mlsLabelT = null; }
+    }
+
+    if ('IntersectionObserver' in window) {
+      root.__mlsIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) startCycle(); else stopCycle();
+        });
+      }, { threshold: 0.15 });
+      root.__mlsIO.observe(root);
+    } else {
+      startCycle();
+    }
+  }
+
+  function teardown(root) {
+    if (!root) return;
+    if (root.__mlsCycleId) { clearInterval(root.__mlsCycleId); root.__mlsCycleId = null; }
+    if (root.__mlsLabelT) { clearTimeout(root.__mlsLabelT); root.__mlsLabelT = null; }
+    if (root.__mlsIO) { root.__mlsIO.disconnect(); root.__mlsIO = null; }
+    delete root.dataset.mlsInit;
+  }
+
+  function bootAll() {
+    document.querySelectorAll('.casa-mls').forEach(init);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootAll);
+  } else {
+    bootAll();
+  }
+  document.addEventListener('shopify:section:load', function (ev) {
+    if (ev.target) ev.target.querySelectorAll('.casa-mls').forEach(function (node) { teardown(node); init(node); });
+  });
+  document.addEventListener('shopify:section:unload', function (ev) {
+    if (ev.target) ev.target.querySelectorAll('.casa-mls').forEach(teardown);
+  });
+})();
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "Casa Multi-lamp Sync",
+  "tag": "section",
+  "class": "casa-multi-lamp-sync-section",
+  "settings": [
+    { "type": "header", "content": "Heading" },
+    { "type": "text",     "id": "kicker",  "label": "Kicker (mono)", "default": "04 · WHAT MAKES IT APŌLLŌ" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading (use <em>word</em> for italic gradient accent)", "default": "Pair one. Pair ten. <em>One remote.</em>" },
+    { "type": "textarea", "id": "lede",    "label": "Lede", "default": "Every Apōllō Floor Lamp pairs to the same remote. Sync them across rooms for a unified ambiance, or zone them to give each space its own mood — bedroom hush, dinner glow, party blaze." },
+
+    { "type": "header", "content": "Mode toggle labels" },
+    { "type": "text", "id": "mode_a_label", "label": "Mode A label", "default": "Sync"  },
+    { "type": "text", "id": "mode_a_hint",  "label": "Mode A hint",  "default": "All same color" },
+    { "type": "text", "id": "mode_b_label", "label": "Mode B label", "default": "Zone" },
+    { "type": "text", "id": "mode_b_hint",  "label": "Mode B hint",  "default": "Each room its own mood" },
+    { "type": "select", "id": "default_mode", "label": "Default mode", "default": "sync",
+      "options": [
+        { "value": "sync", "label": "Sync" },
+        { "value": "zone", "label": "Zone" }
+      ]
+    },
+
+    { "type": "header", "content": "Lamp silhouette geometry" },
+    { "type": "select", "id": "lamp_shape", "label": "Lamp shape",
+      "info": "Switches the SVG silhouette per product. Apollo = pole + two splayed legs. Nova = slim pole + round disc base.",
+      "default": "apollo",
+      "options": [
+        { "value": "apollo", "label": "Apollo — pole + tripod legs" },
+        { "value": "nova",   "label": "Nova — slim pole + round base" },
+        { "value": "genix",  "label": "Genix — twin-helix on black aluminum spine" },
+        { "value": "halo",  "label": "Halo — ring on tripod" },
+        { "value": "helix", "label": "Helix — S-twist column on flat base" },
+        { "value": "infinity-floor", "label": "Infinity Floor — pill loop on stem + disc" }
+      ]
+    },
+
+    { "type": "header", "content": "Color cycle (up to 6 stops)" },
+    { "type": "paragraph", "content": "Each glow rotates through these scenes. Order matters — in Zone mode the 3 rooms always show 3 CONSECUTIVE entries, so keep adjacent stops harmonious. Default cycle (Cyan→Sky→Indigo→Purple→Magenta→Pink) walks the brand spectrum so every triple stays brand-aligned." },
+    { "type": "text",  "id": "scene_name_1", "label": "Scene 1 name", "default": "Cyan" },
+    { "type": "color", "id": "scene_hex_1",  "label": "Scene 1 hex",  "default": "#F2FFA0" },
+    { "type": "text",  "id": "scene_name_2", "label": "Scene 2 name", "default": "Sky" },
+    { "type": "color", "id": "scene_hex_2",  "label": "Scene 2 hex",  "default": "#38BDF8" },
+    { "type": "text",  "id": "scene_name_3", "label": "Scene 3 name", "default": "Indigo" },
+    { "type": "color", "id": "scene_hex_3",  "label": "Scene 3 hex",  "default": "#6366F1" },
+    { "type": "text",  "id": "scene_name_4", "label": "Scene 4 name", "default": "Purple" },
+    { "type": "color", "id": "scene_hex_4",  "label": "Scene 4 hex",  "default": "#B0C3FA" },
+    { "type": "text",  "id": "scene_name_5", "label": "Scene 5 name", "default": "Magenta" },
+    { "type": "color", "id": "scene_hex_5",  "label": "Scene 5 hex",  "default": "#D946EF" },
+    { "type": "text",  "id": "scene_name_6", "label": "Scene 6 name", "default": "Pink" },
+    { "type": "color", "id": "scene_hex_6",  "label": "Scene 6 hex",  "default": "#5E0A02" },
+    { "type": "range", "id": "cycle_ms", "label": "Cycle interval", "min": 600, "max": 6000, "step": 100, "default": 1300, "unit": "ms" },
+
+    { "type": "header", "content": "Colors" },
+    { "type": "color", "id": "color_paper",  "label": "Paper",         "default": "#FAFAF7" },
+    { "type": "color", "id": "color_ink",    "label": "Ink",           "default": "#0A0A0F" },
+    { "type": "color", "id": "color_purple", "label": "Accent purple", "default": "#B0C3FA" },
+    { "type": "color", "id": "color_pink",   "label": "Accent pink",   "default": "#5E0A02" },
+    { "type": "color", "id": "color_cyan",   "label": "Accent cyan",   "default": "#F2FFA0" },
+
+    { "type": "header", "content": "Spacing" },
+    { "type": "range", "id": "padding_top",    "label": "Padding top",    "min": 0, "max": 160, "step": 4, "default": 96, "unit": "px" },
+    { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 160, "step": 4, "default": 96, "unit": "px" }
+  ],
+  "blocks": [
+    {
+      "type": "room",
+      "name": "Room",
+      "limit": 6,
+      "settings": [
+        { "type": "text", "id": "room_name", "label": "Room name (mono uppercase)", "default": "BEDROOM" }
+      ]
+    },
+    {
+      "type": "strip",
+      "name": "Bottom strip card",
+      "limit": 6,
+      "settings": [
+        { "type": "text",     "id": "kicker", "label": "Kicker (mono)", "default": "→ ONE REMOTE" },
+        { "type": "textarea", "id": "body",   "label": "Body",          "default": "The same RF remote that ships in every box pairs to every Apōllō you own." }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Apollo · Sync vs Zone",
+      "blocks": [
+        { "type": "room", "settings": { "room_name": "BEDROOM" } },
+        { "type": "room", "settings": { "room_name": "DINING"  } },
+        { "type": "room", "settings": { "room_name": "LOUNGE"  } },
+        { "type": "strip", "settings": { "kicker": "→ ONE REMOTE", "body": "The same RF remote that ships in every box pairs to every Apōllō you own." } },
+        { "type": "strip", "settings": { "kicker": "→ NO HUB",     "body": "No app required. No bridge. No subscription. Just press, hold, link — done." } },
+        { "type": "strip", "settings": { "kicker": "→ 98 FT REACH (30 M)", "body": "RF passes through walls. Control the dining lamp from the couch." } }
+      ]
+    }
+  ]
+}
+{% endschema %}

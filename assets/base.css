@@ -29,7 +29,21 @@ html {
   /* Firefox */
   scrollbar-width: thin;
   scrollbar-color: rgb(var(--color-foreground-rgb) / var(--opacity-40)) var(--color-background);
-  scroll-behavior: smooth;
+  /* scroll-behavior intentionally NOT smooth on the root scroller. A global
+     smooth root-scroll makes third-party widgets' bare scrollTo restores
+     (e.g. Judge.me lightbox close) animate into a jump-to-top-then-glide-back.
+     Scroll animation is opt-in: pass behavior:'smooth' per call instead.
+     Removed 2026-06-19. */
+
+  /* Anchor / in-page-link landing offset. The sticky header overlays the top
+     of the viewport, so any `#id` jump (policy TOC, FAQ links, etc.) must clear
+     it or the target heading lands hidden behind the header. The header JS
+     measures the real pinned height onto --header-group-height (and
+     --header-height) on :root, so this self-corrects for the announcement bar,
+     tablet scaling, and any header-height setting change. +1.5rem breathing
+     room. When sticky is off the header scrolls away — the extra gap above an
+     anchor is harmless. Added 2026-06-27. */
+  scroll-padding-top: calc(var(--header-group-height, var(--header-height, 80px)) + 1.5rem);
 }
 
 html[scroll-lock] {
@@ -2633,6 +2647,7 @@ product-price.text-block:is(.h1, .h2, .h3, .h4, .h5, .h6) > *:not(.tax-note) {
   color: var(--compare-price-color);
   text-decoration-line: line-through;
   text-decoration-thickness: 1.5px;
+  font-size: 0.7em;
 }
 
 .card-gallery {
@@ -4678,11 +4693,11 @@ text-component {
   background-color: rgb(var(--color-foreground-rgb) / var(--opacity-60));
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  html {
-    scroll-behavior: smooth;
-  }
-}
+/* Removed @media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+   on 2026-06-19. It re-applied global smooth root-scroll for no-preference users,
+   which amplified the Judge.me lightbox-close scroll jump (and, paired with the
+   unguarded copy above, forced smooth onto reduced-motion users). See the note in
+   the html{} block near the top of this file. Opt into smooth per scroll instead. */
 
 /* Product card title truncation - applied only to zoom-out view */
 [product-grid-view='zoom-out'] :is(.product-card, .product-grid__card) :is(h4, .h4) {

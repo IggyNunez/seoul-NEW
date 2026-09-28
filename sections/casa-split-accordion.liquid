@@ -1,0 +1,801 @@
+{%- comment -%}
+  Seoul Glow Lab Split Accordion Section
+  Two-column split layout with image + accordion FAQ/features per panel
+  Inspired by Nanoleaf "App" / "Smart Home Ecosystem" design
+{%- endcomment -%}
+
+{%- comment -%} Auto-hide when no accordion items have content {%- endcomment -%}
+{%- assign _has_content = false -%}
+{%- for block in section.blocks -%}
+  {%- if block.settings.title != blank or block.settings.image != blank or block.settings.heading != blank or block.settings.question != blank or block.settings.text != blank -%}
+    {%- assign _has_content = true -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if _has_content == false and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
+{%- liquid
+  assign layout = section.settings.layout_style | default: 'side-by-side'
+  assign gap = section.settings.gap | default: 32
+  assign radius = section.settings.border_radius | default: 16
+  assign anim = section.settings.enable_animations
+-%}
+
+<section
+  id="sa-{{ section.id }}"
+  class="casa-splitacc casa-splitacc--{{ layout }}{% if anim %} casa-splitacc--animate{% endif %}"
+  style="
+    --csa-bg: {{ section.settings.bg_color | default: '#FAFAF7' }};
+    --csa-text: {{ section.settings.text_color | default: '#1F1F24' }};
+    --csa-accent: {{ section.settings.accent_color | default: '#6366f1' }};
+    --csa-muted: {{ section.settings.text_color | default: '#1F1F24' }}99;
+    --csa-border: {{ section.settings.text_color | default: '#1F1F24' }}1a;
+    --csa-gap: {{ gap }}px;
+    --csa-radius: {{ radius }}px;
+    --csa-pt: {{ section.settings.padding_top | default: 80 }}px;
+    --csa-pb: {{ section.settings.padding_bottom | default: 80 }}px;
+    --csa-max-w: {% case section.settings.section_width %}{% when 'full' %}100%{% when 'wide' %}1600px{% when 'narrow' %}1200px{% else %}1400px{% endcase %};
+  "
+>
+  <div class="casa-splitacc__inner">
+    {%- comment -%} Group blocks into panels {%- endcomment -%}
+    {%- assign panel_index = -1 -%}
+    {%- assign panels = '' -%}
+
+    {%- for block in section.blocks -%}
+      {%- if block.type == 'panel' -%}
+        {%- assign panel_index = panel_index | plus: 1 -%}
+      {%- endif -%}
+
+      {%- if block.type == 'panel' -%}
+        {%- if panel_index > 0 -%}
+          {%- comment -%} Close previous panel {%- endcomment -%}
+            </div>{%- comment -%}.casa-splitacc__accordion{%- endcomment -%}
+          </div>{%- comment -%}.casa-splitacc__body{%- endcomment -%}
+        </div>{%- comment -%}.casa-splitacc__panel{%- endcomment -%}
+        {%- endif -%}
+
+        {%- assign img_pos = block.settings.image_position | default: 'top' -%}
+        {%- assign title_size = block.settings.title_size | default: 32 -%}
+
+        <div class="casa-splitacc__panel casa-splitacc__panel--img-{{ img_pos }}" {{ block.shopify_attributes }}>
+          {%- comment -%} Panel image {%- endcomment -%}
+          <div class="casa-splitacc__image-wrap">
+            {%- if block.settings.image != blank -%}
+              <picture>
+                {%- if block.settings.mobile_image != blank -%}
+                  <source media="(max-width: 749px)" srcset="{{ block.settings.mobile_image | image_url: width: 800 }}">
+                {%- endif -%}
+                <img
+                  class="casa-splitacc__image"
+                  src="{{ block.settings.image | image_url: width: 1200 }}"
+                  srcset="{{ block.settings.image | image_url: width: 600 }} 600w, {{ block.settings.image | image_url: width: 900 }} 900w, {{ block.settings.image | image_url: width: 1200 }} 1200w"
+                  sizes="(max-width: 749px) 100vw, 50vw"
+                  alt="{{ block.settings.title | escape }}"
+                  loading="lazy"
+                  width="1200"
+                  height="800"
+                >
+              </picture>
+            {%- else -%}
+              <div class="casa-splitacc__image-placeholder">
+                {{ 'lifestyle-1' | placeholder_svg_tag: 'casa-splitacc__placeholder-svg' }}
+              </div>
+            {%- endif -%}
+          </div>
+
+          {%- comment -%} Panel body: title + accordion {%- endcomment -%}
+          <div class="casa-splitacc__body">
+            <div class="casa-splitacc__header">
+              {%- if block.settings.icon != blank -%}
+                <img
+                  class="casa-splitacc__panel-icon"
+                  src="{{ block.settings.icon | image_url: width: 80 }}"
+                  alt=""
+                  width="40"
+                  height="40"
+                  loading="lazy"
+                >
+              {%- endif -%}
+              {%- if block.settings.title != blank -%}
+                <h2 class="casa-splitacc__title" style="font-size: {{ title_size }}px;">
+                  {{ block.settings.title }}
+                </h2>
+              {%- endif -%}
+            </div>
+            <div class="casa-splitacc__accordion" data-accordion-group="{{ panel_index }}">
+
+      {%- elsif block.type == 'accordion_item' and panel_index >= 0 -%}
+        {%- comment -%} Accordion item inside current panel {%- endcomment -%}
+        <div
+          class="casa-splitacc__item{% if block.settings.open_by_default %} casa-splitacc__item--open{% endif %}"
+          data-accordion-item
+          {{ block.shopify_attributes }}
+        >
+          <button class="casa-splitacc__trigger" type="button" aria-expanded="{{ block.settings.open_by_default }}">
+            <span class="casa-splitacc__trigger-left">
+              {%- if block.settings.icon != blank -%}
+                <img
+                  class="casa-splitacc__item-icon"
+                  src="{{ block.settings.icon | image_url: width: 48 }}"
+                  alt=""
+                  width="20"
+                  height="20"
+                  loading="lazy"
+                >
+              {%- endif -%}
+              <span class="casa-splitacc__item-title">{{ block.settings.title }}</span>
+            </span>
+            <span class="casa-splitacc__plus" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <line class="casa-splitacc__plus-h" x1="3" y1="8" x2="13" y2="8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <line class="casa-splitacc__plus-v" x1="8" y1="3" x2="8" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </span>
+          </button>
+          <div class="casa-splitacc__content" {% unless block.settings.open_by_default %}style="height: 0;"{% endunless %}>
+            <div class="casa-splitacc__content-inner">
+              {{ block.settings.content }}
+            </div>
+          </div>
+        </div>
+      {%- endif -%}
+    {%- endfor -%}
+
+    {%- comment -%} Close final panel {%- endcomment -%}
+    {%- if panel_index >= 0 -%}
+          </div>{%- comment -%}.casa-splitacc__accordion{%- endcomment -%}
+        </div>{%- comment -%}.casa-splitacc__body{%- endcomment -%}
+      </div>{%- comment -%}.casa-splitacc__panel{%- endcomment -%}
+    {%- endif -%}
+  </div>
+</section>
+
+{% stylesheet %}
+  /* ===== Casa Split Accordion ===== */
+  .casa-splitacc {
+    background: var(--csa-bg);
+    color: var(--csa-text);
+    padding-top: var(--csa-pt);
+    padding-bottom: var(--csa-pb);
+  }
+
+  .casa-splitacc__inner {
+    max-width: var(--csa-max-w);
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* --- Side-by-side layout --- */
+  .casa-splitacc--side-by-side .casa-splitacc__inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--csa-gap);
+    align-items: start;
+  }
+
+  /* --- Single layout: 1 panel, image left/right + accordion --- */
+  .casa-splitacc--single .casa-splitacc__inner {
+    display: block;
+  }
+  .casa-splitacc--single .casa-splitacc__panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--csa-gap);
+    align-items: start;
+  }
+  .casa-splitacc--single .casa-splitacc__panel--img-right {
+    direction: rtl;
+  }
+  .casa-splitacc--single .casa-splitacc__panel--img-right > * {
+    direction: ltr;
+  }
+  .casa-splitacc--single .casa-splitacc__panel--img-top {
+    grid-template-columns: 1fr;
+  }
+
+  /* --- Stacked layout: full-width panels stacked --- */
+  .casa-splitacc--stacked .casa-splitacc__inner {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--csa-gap) * 2);
+  }
+  .casa-splitacc--stacked .casa-splitacc__panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--csa-gap);
+    align-items: start;
+  }
+  .casa-splitacc--stacked .casa-splitacc__panel:nth-child(even) {
+    direction: rtl;
+  }
+  .casa-splitacc--stacked .casa-splitacc__panel:nth-child(even) > * {
+    direction: ltr;
+  }
+
+  /* --- Panel --- */
+  .casa-splitacc__panel {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* In side-by-side, panels are columns */
+  .casa-splitacc--side-by-side .casa-splitacc__panel {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* --- Image --- */
+  .casa-splitacc__image-wrap {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--csa-radius);
+    background: var(--csa-border);
+    aspect-ratio: 4 / 3;
+  }
+  /* height: auto + aspect-ratio: inherit instead of height: 100% — the
+     wrap's height comes from its own aspect-ratio (4/3 base, 16/10 at the
+     narrow breakpoint), and Safari 26 can fail to resolve a %-height
+     against that (the /cart flat-thumbnail class; immune pattern from
+     .cart-items__media-image in snippets/cart-products.liquid).
+     aspect-ratio: inherit reads the DOM parent, so the <picture> wrapper
+     must pass the wrap's ratio down the chain. */
+  .casa-splitacc__image-wrap picture {
+    aspect-ratio: inherit;
+  }
+  .casa-splitacc__image {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: inherit;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .casa-splitacc--animate .casa-splitacc__image-wrap:hover .casa-splitacc__image {
+    transform: scale(1.03);
+  }
+  .casa-splitacc__image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--csa-border);
+  }
+  .casa-splitacc__placeholder-svg {
+    width: 60%;
+    height: auto;
+    opacity: 0.3;
+  }
+
+  /* --- Header (icon + title) --- */
+  .casa-splitacc__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 4px;
+  }
+  .casa-splitacc__panel-icon {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+  .casa-splitacc__title {
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin: 0;
+    color: var(--csa-text);
+  }
+
+  /* --- Body --- */
+  .casa-splitacc__body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* --- Accordion --- */
+  .casa-splitacc__accordion {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--csa-border);
+  }
+  .casa-splitacc__item {
+    border-bottom: 1px solid var(--csa-border);
+  }
+
+  /* Trigger button */
+  .casa-splitacc__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 16px 4px;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    color: var(--csa-text);
+    font: inherit;
+    text-align: left;
+    gap: 12px;
+    transition: opacity 0.2s;
+  }
+  .casa-splitacc__trigger:hover {
+    opacity: 0.7;
+  }
+  .casa-splitacc__trigger-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .casa-splitacc__item-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+  .casa-splitacc__item-title {
+    font-size: var(--font-h5--size, 16px);
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: normal;
+  }
+
+  /* Plus / minus icon */
+  .casa-splitacc__plus {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--csa-text);
+    opacity: 0.5;
+  }
+  .casa-splitacc__plus-v {
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s;
+    transform-origin: center;
+  }
+  .casa-splitacc__item--open .casa-splitacc__plus-v {
+    transform: rotate(90deg);
+    opacity: 0;
+  }
+
+  /* Content */
+  .casa-splitacc__content {
+    overflow: hidden;
+    transition: height 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .casa-splitacc__content-inner {
+    padding: 0 4px 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--csa-muted);
+  }
+  .casa-splitacc__content-inner p {
+    margin: 0 0 8px;
+  }
+  .casa-splitacc__content-inner p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* --- Animations on scroll --- */
+  .casa-splitacc--animate .casa-splitacc__panel {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .casa-splitacc--animate .casa-splitacc__panel:nth-child(2) {
+    transition-delay: 0.15s;
+  }
+  .casa-splitacc--animate .casa-splitacc__panel.casa-splitacc--visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* --- Responsive --- */
+  @media (max-width: 749px) {
+    .casa-splitacc__inner {
+      padding: 0 16px;
+    }
+
+    .casa-splitacc--side-by-side .casa-splitacc__inner {
+      grid-template-columns: 1fr;
+      gap: 48px;
+    }
+
+    .casa-splitacc--single .casa-splitacc__panel,
+    .casa-splitacc--stacked .casa-splitacc__panel {
+      grid-template-columns: 1fr;
+    }
+    .casa-splitacc--single .casa-splitacc__panel--img-right,
+    .casa-splitacc--stacked .casa-splitacc__panel:nth-child(even) {
+      direction: ltr;
+    }
+
+    .casa-splitacc__image-wrap {
+      aspect-ratio: 16 / 10;
+    }
+
+    .casa-splitacc__title {
+      font-size: var(--font-h3--size, 24px) !important;
+    }
+  }
+
+  @media (min-width: 750px) and (max-width: 989px) {
+    .casa-splitacc--side-by-side .casa-splitacc__inner {
+      gap: 24px;
+    }
+    .casa-splitacc__title {
+      font-size: clamp(22px, 3vw, var(--csa-title-size, 32px));
+    }
+  }
+{% endstylesheet %}
+
+<script>
+  (function () {
+    const section = document.getElementById('sa-{{ section.id }}');
+    if (!section) return;
+
+    /* ---- Accordion ---- */
+    function initAccordion() {
+      const groups = section.querySelectorAll('[data-accordion-group]');
+      groups.forEach(function (group) {
+        const items = group.querySelectorAll('[data-accordion-item]');
+        items.forEach(function (item) {
+          const trigger = item.querySelector('.casa-splitacc__trigger');
+          const content = item.querySelector('.casa-splitacc__content');
+          if (!trigger || !content) return;
+
+          /* Set initial height for open items */
+          if (item.classList.contains('casa-splitacc__item--open')) {
+            content.style.height = content.scrollHeight + 'px';
+          }
+
+          trigger.addEventListener('click', function () {
+            const isOpen = item.classList.contains('casa-splitacc__item--open');
+
+            /* Close all siblings in same group */
+            items.forEach(function (sib) {
+              if (sib !== item && sib.classList.contains('casa-splitacc__item--open')) {
+                sib.classList.remove('casa-splitacc__item--open');
+                var sibContent = sib.querySelector('.casa-splitacc__content');
+                var sibTrigger = sib.querySelector('.casa-splitacc__trigger');
+                if (sibContent) {
+                  sibContent.style.height = sibContent.scrollHeight + 'px';
+                  requestAnimationFrame(function () {
+                    sibContent.style.height = '0';
+                  });
+                }
+                if (sibTrigger) sibTrigger.setAttribute('aria-expanded', 'false');
+              }
+            });
+
+            /* Toggle current */
+            if (isOpen) {
+              item.classList.remove('casa-splitacc__item--open');
+              content.style.height = content.scrollHeight + 'px';
+              requestAnimationFrame(function () {
+                content.style.height = '0';
+              });
+              trigger.setAttribute('aria-expanded', 'false');
+            } else {
+              item.classList.add('casa-splitacc__item--open');
+              content.style.height = '0';
+              requestAnimationFrame(function () {
+                content.style.height = content.scrollHeight + 'px';
+              });
+              trigger.setAttribute('aria-expanded', 'true');
+              /* Remove fixed height after animation */
+              content.addEventListener('transitionend', function handler() {
+                if (item.classList.contains('casa-splitacc__item--open')) {
+                  content.style.height = 'auto';
+                }
+                content.removeEventListener('transitionend', handler);
+              });
+            }
+          });
+        });
+      });
+    }
+
+    /* ---- Scroll animation ---- */
+    function initAnimations() {
+      if (!section.classList.contains('casa-splitacc--animate')) return;
+      var panels = section.querySelectorAll('.casa-splitacc__panel');
+      if (!panels.length) return;
+
+      if ('IntersectionObserver' in window) {
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('casa-splitacc--visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.15 });
+        panels.forEach(function (p) { observer.observe(p); });
+      } else {
+        panels.forEach(function (p) { p.classList.add('casa-splitacc--visible'); });
+      }
+    }
+
+    initAccordion();
+    initAnimations();
+
+    /* Re-init on Shopify editor events */
+    if (Shopify && Shopify.designMode) {
+      document.addEventListener('shopify:section:load', function (e) {
+        if (e.target === section || section.contains(e.target)) {
+          initAccordion();
+          initAnimations();
+        }
+      });
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Split Accordion",
+  "tag": "section",
+  "class": "casa-splitacc-section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "layout_style",
+      "label": "Layout Style",
+      "default": "side-by-side",
+      "options": [
+        { "value": "side-by-side", "label": "Side by Side (2 panels)" },
+        { "value": "single", "label": "Single Panel (image + accordion)" },
+        { "value": "stacked", "label": "Stacked (full-width panels)" }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "Section Width",
+      "default": "contained",
+      "options": [
+        { "value": "full", "label": "Full Width" },
+        { "value": "wide", "label": "Wide (1600px)" },
+        { "value": "contained", "label": "Contained (1400px)" },
+        { "value": "narrow", "label": "Narrow (1200px)" }
+      ]
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background Color",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text Color",
+      "default": "#1F1F24"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent Color",
+      "default": "#6366f1"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Image Border Radius",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "default": 16,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "Gap Between Panels",
+      "min": 16,
+      "max": 60,
+      "step": 4,
+      "default": 32,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding Top",
+      "min": 0,
+      "max": 160,
+      "step": 8,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding Bottom",
+      "min": 0,
+      "max": 160,
+      "step": 8,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_animations",
+      "label": "Enable Scroll Animations",
+      "default": true
+    }
+  ],
+  "blocks": [
+    {
+      "type": "panel",
+      "name": "Panel",
+      "limit": 2,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "image_picker",
+          "id": "mobile_image",
+          "label": "Mobile Image (optional)"
+        },
+        {
+          "type": "select",
+          "id": "image_position",
+          "label": "Image Position",
+          "default": "top",
+          "options": [
+            { "value": "top", "label": "Top" },
+            { "value": "left", "label": "Left" },
+            { "value": "right", "label": "Right" }
+          ],
+          "info": "Left/Right only applies in Single and Stacked layouts"
+        },
+        {
+          "type": "image_picker",
+          "id": "icon",
+          "label": "Title Icon"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Panel Title"
+        },
+        {
+          "type": "range",
+          "id": "title_size",
+          "label": "Title Size",
+          "min": 24,
+          "max": 48,
+          "step": 2,
+          "default": 32,
+          "unit": "px"
+        }
+      ]
+    },
+    {
+      "type": "accordion_item",
+      "name": "Accordion Item",
+      "limit": 16,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "icon",
+          "label": "Icon (optional)"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Feature title"
+        },
+        {
+          "type": "richtext",
+          "id": "content",
+          "label": "Content",
+          "default": "<p>Describe this feature or answer in detail.</p>"
+        },
+        {
+          "type": "checkbox",
+          "id": "open_by_default",
+          "label": "Open by Default",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Split Accordion",
+      "settings": {
+        "layout_style": "side-by-side",
+        "bg_color": "#ffffff",
+        "text_color": "#1a1a1a",
+        "accent_color": "#6366f1",
+        "border_radius": 16,
+        "gap": 32,
+        "padding_top": 80,
+        "padding_bottom": 80,
+        "enable_animations": true
+      },
+      "blocks": [
+        {
+          "type": "panel",
+          "settings": {
+            "title": "Smart App Control",
+            "image_position": "top",
+            "title_size": 32
+          }
+        },
+        {
+          "type": "accordion_item",
+          "settings": {
+            "title": "Dynamic Scenes",
+            "content": "<p>Choose from a rich library of dynamic lighting scenes that shift colors in real time, creating immersive atmospheres for any mood or occasion.</p>",
+            "open_by_default": true
+          }
+        },
+        {
+          "type": "accordion_item",
+          "settings": {
+            "title": "Custom Colors",
+            "content": "<p>Pick any color from the spectrum with precision controls. Save your favorite palettes and apply them across all your connected devices instantly.</p>"
+          }
+        },
+        {
+          "type": "accordion_item",
+          "settings": {
+            "title": "Music Sync",
+            "content": "<p>Lights react to your music in real time, pulsing and shifting with the beat. Perfect for parties, relaxation, or turning any room into a concert experience.</p>"
+          }
+        },
+        {
+          "type": "panel",
+          "settings": {
+            "title": "Smart Home",
+            "image_position": "top",
+            "title_size": 32
+          }
+        },
+        {
+          "type": "accordion_item",
+          "settings": {
+            "title": "Voice Control",
+            "content": "<p>Works seamlessly with Alexa, Google Assistant, and Siri. Simply speak to adjust brightness, change colors, or activate your favorite scenes hands-free.</p>",
+            "open_by_default": true
+          }
+        },
+        {
+          "type": "accordion_item",
+          "settings": {
+            "title": "App Control",
+            "content": "<p>Manage all your devices from one unified dashboard. Group rooms, set favorites, and control everything from anywhere in the world with the mobile app.</p>"
+          }
+        },
+        {
+          "type": "accordion_item",
+          "settings": {
+            "title": "Scheduling",
+            "content": "<p>Set automated routines to wake up gently with warm light, simulate occupancy while away, or dim lights at bedtime. Set it once and forget it.</p>"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

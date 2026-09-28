@@ -1,13 +1,28 @@
 {%- comment -%}
   Seoul Glow Lab — Character / Product Showcase
   Premium section for named product collections (Bubble Girls, etc.)
-  Layout modes: spotlight, grid-reveal, scroll-story
+  Layout modes: spotlight, grid-reveal, scroll-story, sunset-trio
 {%- endcomment -%}
+
+{%- comment -%} Auto-hide when no characters have content {%- endcomment -%}
+{%- assign _has_content = false -%}
+{%- for block in section.blocks -%}
+  {%- if block.settings.name != blank or block.settings.image != blank or block.settings.title != blank -%}
+    {%- assign _has_content = true -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if _has_content == false and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
 
 {%- liquid
   assign layout = section.settings.layout_style | default: 'spotlight'
   assign cols = section.settings.grid_columns | default: 3
   assign ratio = section.settings.image_ratio | default: '3:4'
+  assign img_fit = section.settings.image_fit | default: 'cover'
+  assign img_pos = section.settings.image_position | default: 'center'
+  assign img_bg = section.settings.image_bg | default: ''
   assign anim = section.settings.enable_animations
   assign auto_rotate = section.settings.auto_rotate
   assign rotate_speed = section.settings.rotate_speed | default: 5
@@ -21,6 +36,8 @@
       assign ratio_css = '3 / 4'
     when '4:5'
       assign ratio_css = '4 / 5'
+    when '4:3'
+      assign ratio_css = '4 / 3'
     else
       assign ratio_css = 'auto'
   endcase
@@ -30,13 +47,14 @@
   id="casa-char-{{ sid }}"
   class="casa-char casa-char--{{ layout }}{% if anim %} casa-char--animated{% endif %}"
   data-layout="{{ layout }}"
+  data-img-fit="{{ img_fit }}"
   data-auto-rotate="{{ auto_rotate }}"
   data-rotate-speed="{{ rotate_speed }}"
   style="
-    --cc-bg: {{ section.settings.bg_color | default: '#0a0a0a' }};
+    --cc-bg: {{ section.settings.bg_color | default: '#0A0A0F' }};
     --cc-text: {{ section.settings.text_color | default: '#f5f0eb' }};
-    --cc-title-color: {{ section.settings.title_color | default: '#ffffff' }};
-    --cc-name-color: {{ section.settings.name_color | default: '#ffffff' }};
+    --cc-title-color: {{ section.settings.title_color | default: '#FAFAF7' }};
+    --cc-name-color: {{ section.settings.name_color | default: '#FAFAF7' }};
     --cc-desc-color: {{ section.settings.description_color | default: 'rgba(245,240,235,0.8)' }};
     --cc-tag-bg: {{ section.settings.tag_bg | default: 'rgba(255,255,255,0.1)' }};
     --cc-tag-text: {{ section.settings.tag_text | default: '#f5f0eb' }};
@@ -46,8 +64,20 @@
     --cc-accent: {{ section.settings.accent_color | default: '#c49b63' }};
     --cc-ratio: {{ ratio_css }};
     --cc-cols: {{ cols }};
+    --cc-img-fit: {{ img_fit }};
+    --cc-img-pos: {{ img_pos }};
+    {% if img_bg != blank %}--cc-img-bg: {{ img_bg }};{% endif %}
     --cc-pt: {{ section.settings.padding_top | default: 80 }}px;
     --cc-pb: {{ section.settings.padding_bottom | default: 80 }}px;
+    {%- comment -%}
+      Heading-scale dropdown: merchant picks H1-H6 from Theme Settings -> Typography.
+    {%- endcomment -%}
+    {%- assign _char_title_h = section.settings.char_heading_level | default: 'h1' -%}
+    --char-title-fs:   var(--font-{{ _char_title_h }}--size);
+    --char-title-fw:   var(--font-{{ _char_title_h }}--weight);
+    --char-title-lh:   var(--font-{{ _char_title_h }}--line-height);
+    --char-title-ls:   var(--font-{{ _char_title_h }}--letter-spacing);
+    --char-title-case: var(--font-{{ _char_title_h }}--case);
   "
 >
   {%- comment -%} ── Section header ── {%- endcomment -%}
@@ -111,7 +141,8 @@
               </div>
             {%- endif -%}
             {%- if block.settings.link != blank -%}
-              <a href="{{ block.settings.link }}" class="casa-char__cta" style="background: {{ accent }}; color: #0a0a0a;">
+              {%- assign char_cta_treatment = section.settings.char_cta_treatment | default: 'featured' -%}
+              <a href="{{ block.settings.link }}" class="btn btn-{{ char_cta_treatment }} casa-char__cta">
                 Shop {{ block.settings.name }}
               </a>
             {%- endif -%}
@@ -153,9 +184,9 @@
           <div class="casa-char__card-img-wrap">
             {%- if block.settings.image != blank -%}
               <img
-                src="{{ block.settings.image | image_url: width: 800 }}"
-                srcset="{{ block.settings.image | image_url: width: 400 }} 400w, {{ block.settings.image | image_url: width: 600 }} 600w, {{ block.settings.image | image_url: width: 800 }} 800w"
-                sizes="(max-width: 749px) 50vw, calc(100vw / {{ cols }})"
+                src="{{ block.settings.image | image_url: width: 1200 }}"
+                srcset="{{ block.settings.image | image_url: width: 600 }} 600w, {{ block.settings.image | image_url: width: 900 }} 900w, {{ block.settings.image | image_url: width: 1200 }} 1200w, {{ block.settings.image | image_url: width: 1600 }} 1600w"
+                sizes="(max-width: 749px) 100vw, calc(min(100vw, 1400px) / {{ cols }})"
                 alt="{{ block.settings.name | escape }}"
                 class="casa-char__card-img"
                 loading="lazy"
@@ -243,7 +274,8 @@
               </div>
             {%- endif -%}
             {%- if block.settings.link != blank -%}
-              <a href="{{ block.settings.link }}" class="casa-char__cta" style="background: {{ accent }}; color: #0a0a0a;">
+              {%- assign char_cta_treatment = section.settings.char_cta_treatment | default: 'featured' -%}
+              <a href="{{ block.settings.link }}" class="btn btn-{{ char_cta_treatment }} casa-char__cta">
                 Shop {{ block.settings.name }}
               </a>
             {%- endif -%}
@@ -263,11 +295,66 @@
         ></button>
       {%- endfor -%}
     </div>
+
+  {%- elsif layout == 'sunset-trio' -%}
+    {%- comment -%}
+      SUNSET-TRIO: Apollo-style cards — 2px conic-gradient orbit
+      border per card + continuous full-width sunset ribbon under
+      the trio (desktop) / per-card 2-stop band (mobile). Desktop
+      levitates; mobile becomes a horizontal marquee with seamless
+      Liquid-rendered clones. Each card carries --cc-c1 + --cc-c2
+      inline so the per-card palette stops compose into one cross-
+      card sunset when card N's c2 equals card N+1's c1.
+    {%- endcomment -%}
+    <div
+      class="casa-char__st-viewport"
+      data-st-viewport
+    >
+      <div class="casa-char__st-grid" data-st-track data-st-cloned="1" data-st-count="{{ chars.size }}" style="--cc-st-count: {{ chars.size }};">
+        {%- for pass in (1..2) -%}
+          {%- for block in chars -%}
+            {%- liquid
+              assign c1 = block.settings.accent_color    | default: '#F59E0B'
+              assign c2 = block.settings.accent_color_2  | default: c1
+            -%}
+            <article
+              class="casa-char__st-card{% if pass == 2 %} casa-char__st-card--clone{% endif %}"
+              {% if pass == 1 %}{{ block.shopify_attributes }}{% else %}aria-hidden="true"{% endif %}
+              style="--cc-c1: {{ c1 }}; --cc-c2: {{ c2 }};"
+            >
+              <div class="casa-char__st-photo-wrap">
+                {%- if block.settings.image != blank -%}
+                  <img
+                    class="casa-char__st-photo"
+                    src="{{ block.settings.image | image_url: width: 800 }}"
+                    srcset="{{ block.settings.image | image_url: width: 400 }} 400w, {{ block.settings.image | image_url: width: 600 }} 600w, {{ block.settings.image | image_url: width: 800 }} 800w, {{ block.settings.image | image_url: width: 1200 }} 1200w"
+                    sizes="(max-width: 640px) 60vw, 30vw"
+                    alt="{{ block.settings.name | escape }}"
+                    loading="lazy"
+                    decoding="async"
+                    width="{{ block.settings.image.width }}"
+                    height="{{ block.settings.image.height }}"
+                  >
+                {%- else -%}
+                  <div class="casa-char__placeholder">{{ block.settings.name | default: 'Mood' | slice: 0 }}</div>
+                {%- endif -%}
+                {%- if block.settings.badge_text != blank -%}
+                  <span class="casa-char__st-badge">{{ block.settings.badge_text }}</span>
+                {%- endif -%}
+              </div>
+              {%- if block.settings.name != blank -%}
+                <h3 class="casa-char__st-name">{{ block.settings.name }}</h3>
+              {%- endif -%}
+            </article>
+          {%- endfor -%}
+        {%- endfor -%}
+      </div>
+    </div>
   {%- endif -%}
 </section>
 
 {%- comment -%} ═══════════════════════════ STYLES ═══════════════════════════ {%- endcomment -%}
-<style>
+{% stylesheet %}
   /* ── Base ── */
   .casa-char {
     position: relative;
@@ -300,10 +387,13 @@
     font-weight: 600;
   }
   .casa-char__section-title {
-    font-size: clamp(28px, 4.5vw, 48px);
-    font-weight: 300;
-    letter-spacing: -0.02em;
-    line-height: 1.15;
+    /* Heading scale comes from Theme Settings -> Typography via the
+       char_heading_level dropdown; legacy clamp/weight preserved as fallback. */
+    font-size: var(--char-title-fs, clamp(28px, 4.5vw, 48px));
+    font-weight: var(--char-title-fw, 300);
+    line-height: var(--char-title-lh, 1.15);
+    letter-spacing: var(--char-title-ls, -0.02em);
+    text-transform: var(--char-title-case, none);
     color: var(--cc-title-color);
     margin: 0 0 16px;
   }
@@ -335,17 +425,12 @@
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
+  /* Brand class .btn .btn-[treatment] provides display, padding, font,
+     radius, transition, text-transform, letter-spacing, hover.
+     Section-specific override: margin-top spacer + heavier hover lift
+     on character cards. */
   .casa-char__cta {
-    display: inline-block;
     margin-top: 24px;
-    padding: 14px 36px;
-    border-radius: 100px;
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-decoration: none;
-    text-transform: uppercase;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
   .casa-char__cta:hover {
     transform: translateY(-2px);
@@ -355,8 +440,8 @@
     position: absolute;
     top: 16px;
     left: 16px;
-    background: var(--cc-accent);
-    color: #0a0a0a;
+    background: var(--cc-block-accent, var(--cc-accent));
+    color: var(--casa-ink);
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.1em;
@@ -500,6 +585,32 @@
     white-space: nowrap;
   }
 
+  /* Spotlight desktop — thumbnails vertical on the left */
+  @media (min-width: 750px) {
+    .casa-char__spotlight-wrap {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      grid-template-areas: "thumbs content";
+      gap: 48px;
+      align-items: center;
+    }
+    .casa-char__thumbs {
+      grid-area: thumbs;
+      flex-direction: column;
+      gap: 20px;
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+      overflow-x: visible;
+      overflow-y: auto;
+      max-height: 600px;
+      align-self: center;
+    }
+    .casa-char__spotlight-panel {
+      grid-area: content;
+    }
+  }
+
   /* Spotlight mobile */
   @media (max-width: 749px) {
     .casa-char__spotlight-panel {
@@ -529,8 +640,14 @@
     border: 1px solid var(--cc-card-border);
     cursor: pointer;
     transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.4s ease;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    /* blur ≤10px + will-change: the card also animates transform on
+       hover; without a pre-promoted layer WebKit re-blurs the backdrop
+       every animation frame (the PDP backdrop-filter re-blur bug).
+       will-change: transform keeps the card on its own compositor
+       layer so the hover lift doesn't force a filter re-raster. */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    will-change: transform;
   }
   .casa-char__card:hover {
     transform: translateY(-8px);
@@ -539,15 +656,18 @@
   .casa-char__card-img-wrap {
     position: relative;
     overflow: hidden;
+    background: var(--cc-img-bg, transparent);
   }
   .casa-char__card-img {
     width: 100%;
     display: block;
     aspect-ratio: var(--cc-ratio, 3/4);
-    object-fit: cover;
+    object-fit: var(--cc-img-fit, cover);
+    object-position: var(--cc-img-pos, center);
     transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
   }
-  .casa-char__card:hover .casa-char__card-img {
+  /* Only scale on hover when cover is used — contain with scale leaves ugly letterbox gaps */
+  .casa-char[data-img-fit="cover"] .casa-char__card:hover .casa-char__card-img {
     transform: scale(1.04);
   }
 
@@ -620,21 +740,52 @@
   }
   .casa-char__card-btn:hover {
     background: var(--cc-block-accent);
-    color: #0a0a0a !important;
+    color: var(--casa-ink) !important;
   }
 
-  /* Grid mobile */
+  /* Grid mobile — honor per-section --cc-cols at every viewport so Three-Moods PDPs stay 3-up (canon §0.1).
+     Image-first: chrome (H2 / MOOD badge / name overlay) shrinks aggressively on phones
+     so the scene photo is the visual centerpiece per canon Rule 1. */
   @media (max-width: 749px) {
     .casa-char__grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 14px;
-      padding: 0 16px;
+      grid-template-columns: repeat(var(--cc-cols, 3), minmax(0, 1fr));
+      gap: 8px;
+      padding: 0 8px;
     }
-    .casa-char__card-overlay { padding: 24px 16px 16px; }
-    .casa-char__card-reveal { padding: 20px 16px; }
+    .casa-char__section-title {
+      font-size: clamp(22px, 5.8vw, 30px);
+      line-height: 1.1;
+      text-wrap: balance;
+      margin-bottom: 12px;
+    }
+    .casa-char__card-badge {
+      top: 8px;
+      left: 8px;
+      font-size: 8px;
+      letter-spacing: 0.08em;
+      padding: 3px 8px;
+    }
+    .casa-char__card-overlay { padding: 14px 8px 6px; }
+    .casa-char__card-reveal { padding: 10px 8px; }
+    .casa-char__card-name { font-size: 13px; line-height: 1.15; }
   }
   @media (max-width: 449px) {
-    .casa-char__grid { grid-template-columns: 1fr; }
+    .casa-char__grid {
+      grid-template-columns: repeat(var(--cc-cols, 3), minmax(0, 1fr));
+      gap: 4px;
+      padding: 0 4px;
+    }
+    .casa-char__section-title {
+      font-size: clamp(20px, 6.4vw, 26px);
+    }
+    .casa-char__card-badge {
+      top: 6px;
+      left: 6px;
+      font-size: 7px;
+      padding: 2px 6px;
+    }
+    .casa-char__card-overlay { padding: 10px 6px 5px; }
+    .casa-char__card-name { font-size: 11px; }
   }
 
   /* ════════════════════ SCROLL-STORY MODE ════════════════════ */
@@ -776,6 +927,7 @@
   }
 
   /* ── Hover glow pulse (spotlight / scroll-story) ── */
+  /* perf-justified: hover-only, paused outside :hover; no off-screen cost */
   .casa-char--animated .casa-char__spotlight-img-wrap:hover .casa-char__spotlight-glow,
   .casa-char--animated .casa-char__story-img-wrap:hover .casa-char__story-glow {
     animation: ccGlowPulse 2.5s ease-in-out infinite;
@@ -784,7 +936,285 @@
     0%, 100% { opacity: 0.6; transform: scale(1); }
     50%      { opacity: 1;   transform: scale(1.06); }
   }
-</style>
+
+  /* WCAG 2.3.3 — disable card-entry + hover-pulse animations for users
+     who prefer reduced motion. */
+  @media (prefers-reduced-motion: reduce) {
+    .casa-char--animated .casa-char__spotlight-panel.is-active,
+    .casa-char--animated .casa-char__card,
+    .casa-char--animated .casa-char__spotlight-img-wrap:hover .casa-char__spotlight-glow,
+    .casa-char--animated .casa-char__story-img-wrap:hover .casa-char__story-glow {
+      animation: none;
+      transition: none;
+    }
+    .casa-char--animated .casa-char__card { opacity: 1; }
+  }
+
+  /* ════════════════════ SUNSET-TRIO MODE ════════════════════
+     Apollo-style cards: gradient orbit border + continuous sunset
+     ribbon (desktop) / per-card 2-stop band (mobile marquee).
+     All selectors scoped to .casa-char--sunset-trio so zero blast
+     radius on the other three layouts. Perf patterns lifted from
+     casa-apollo-moods.liquid (already justified in that file). */
+
+  .casa-char--sunset-trio {
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .casa-char__st-viewport {
+    position: relative;
+    z-index: 1;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 64px);
+  }
+  /* Header sits above the per-card emissions so the kicker / H2 / lede
+     stays legible against the colored ambient that bleeds upward. */
+  .casa-char--sunset-trio .casa-char__header {
+    position: relative;
+    z-index: 1;
+  }
+  .casa-char__st-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--cc-st-count, 3), minmax(0, 1fr));
+    gap: 24px;
+  }
+
+  /* Clones hidden on desktop; shown by the mobile marquee block below. */
+  .casa-char__st-card.casa-char__st-card--clone { display: none; }
+
+  /* ── Card surface ──
+     Solid card (Ink / Paper from section bg) with a faint per-card hue
+     border. Cards no longer carry a rotating conic ring (removed
+     2026-05-18 8th pass — merchant rejected the orbiting RGB; wants
+     cards to EMIT their sunset colors outward into the background
+     instead). The emission lives in `box-shadow` (large soft colored
+     halo using the card's own --cc-c1 / --cc-c2) so all three cards'
+     halos overlap in the gutters + behind/around the trio to form one
+     continuous blended sunset wash — without a separate backdrop
+     pseudo-element. */
+  .casa-char__st-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--cc-bg, #0A0A0F);
+    border: 1px solid color-mix(in srgb, var(--cc-c1) 22%, transparent);
+    /* perf-justified: 3 cards on desktop, paint-only colored shadow,
+       no animation on the emission itself (cards levitate via the
+       translate longhand rule below; the box-shadow scales with that
+       transform but the shadow values are static). */
+    box-shadow:
+      0 0 60px 10px  color-mix(in srgb, var(--cc-c1) 36%, transparent),
+      0 0 140px 30px color-mix(in srgb, var(--cc-c2) 24%, transparent),
+      0 0 260px 60px color-mix(in srgb, var(--cc-c1) 14%, transparent);
+    transition:
+      transform 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+      box-shadow 0.4s ease;
+  }
+  .casa-char__st-card:hover {
+    transform: translateY(-4px);
+    /* Hover ramps the halo intensity — the card "lights up" the room
+       a bit harder when the viewer leans in. */
+    box-shadow:
+      0 18px 40px rgba(0,0,0,0.45),
+      0 0 80px 15px  color-mix(in srgb, var(--cc-c1) 50%, transparent),
+      0 0 180px 40px color-mix(in srgb, var(--cc-c2) 34%, transparent),
+      0 0 320px 80px color-mix(in srgb, var(--cc-c1) 20%, transparent);
+  }
+
+  /* ── Photo ── */
+  .casa-char__st-photo-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: #08080E;
+  }
+  .casa-char__st-photo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    z-index: 0;
+  }
+  /* Soft dark fade at the bottom so the name label reads against any photo. */
+  .casa-char__st-photo-wrap::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 45%;
+    background: linear-gradient(180deg, transparent 0%, rgba(8,8,14,0.78) 78%, rgba(8,8,14,0.92) 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .casa-char__st-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 2;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--cc-c1) 18%, rgba(8,8,14,0.7));
+    color: var(--cc-c1);
+    border: 1px solid color-mix(in srgb, var(--cc-c1) 38%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .casa-char__st-name {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    z-index: 3;
+    margin: 0;
+    font-size: clamp(20px, 2.4vw, 30px);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+    color: var(--cc-paper, #FAFAF7);
+    text-wrap: balance;
+  }
+
+  /* ── Continuous sunset ribbon (desktop) ──
+     Single full-width 4-stop linear-gradient under the trio. Drawn
+     by the grid container, NOT each card, so the ribbon visually
+     spans the whole trio + gaps as one continuous sunset. Stops
+     hardcoded to the punchier sunset palette by default; merchant
+     can override per-card via accent_color + accent_color_2 (each
+     card's --cc-c2 should equal the next card's --cc-c1 for a true
+     seamless cross-card sunset, which the Phoenix preset does). */
+  .casa-char__st-grid::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -10px;
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(
+      90deg,
+      #F59E0B 0%,
+      #F97316 33%,
+      #5E0A02 66%,
+      #B0C3FA 100%
+    );
+    box-shadow: 0 0 24px rgba(243, 132, 24, 0.35);
+    pointer-events: none;
+  }
+
+  /* ── Desktop levitate ──
+     Slow vertical bob on cards ≥641px, staggered so the trio reads
+     as 3 distinct moods. Uses translate longhand (not transform) so
+     it composes with the hover translateY(-4px) without overriding. */
+  @media (min-width: 641px) and (prefers-reduced-motion: no-preference) {
+    .casa-char__st-card {
+      /* perf-justified: compositor-only translate, 3 cards on
+         desktop, paused via prefers-reduced-motion below */
+      animation: ccSunsetLevitate 6s ease-in-out infinite;
+    }
+    .casa-char__st-card:nth-of-type(2) { animation-delay: 1.2s; }
+    .casa-char__st-card:nth-of-type(3) { animation-delay: 2.4s; }
+    .casa-char__st-card:nth-of-type(4) { animation-delay: 3.6s; }
+  }
+  @keyframes ccSunsetLevitate {
+    0%, 100% { translate: 0 0; }
+    50%      { translate: 0 -10px; }
+  }
+
+  /* ── Tablet ── */
+  @media (max-width: 1024px) {
+    .casa-char__st-grid { gap: 16px; }
+    .casa-char__st-name { font-size: clamp(18px, 3vw, 24px); }
+  }
+
+  /* ── Phone (≤640px) — horizontal marquee ──
+     Cards become a marquee with seamless Liquid-rendered clones.
+     Levitation auto-disabled because its rule is gated to ≥641px.
+     The desktop ribbon hides; each card grows its own 2-stop band. */
+  @media (max-width: 640px) {
+    .casa-char__st-viewport {
+      overflow: hidden;
+      padding: 0;
+      /* Fade left + right edges so cards entering / leaving feel
+         like they materialize, not pop in. */
+      -webkit-mask-image: linear-gradient(90deg, transparent 0, black 5%, black 95%, transparent 100%);
+              mask-image: linear-gradient(90deg, transparent 0, black 5%, black 95%, transparent 100%);
+    }
+    .casa-char__st-grid {
+      --cc-st-card: 220px;
+      --cc-st-gap: 14px;
+      --cc-st-shift: calc(var(--cc-st-count, 3) * (var(--cc-st-card) + var(--cc-st-gap)));
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: stretch;
+      gap: var(--cc-st-gap);
+      grid-template-columns: none;
+      width: max-content;
+      max-width: none;
+      /* perf-justified: GPU translate3d only, 6 cards (3 + 3 clones)
+         on phone only, paused on touch + prefers-reduced-motion */
+      animation: ccSunsetMarquee 14s linear infinite;
+      will-change: transform;
+    }
+    .casa-char__st-grid::after { display: none; }
+    .casa-char__st-card {
+      flex: 0 0 var(--cc-st-card);
+      width: var(--cc-st-card);
+      /* Trim the colored halo on phones — at 220px card widths in
+         a marquee the full-strength desktop glow would smear into
+         adjacent cards and wash out the photos. */
+      box-shadow:
+        0 0 30px 4px  color-mix(in srgb, var(--cc-c1) 28%, transparent),
+        0 0 70px 14px color-mix(in srgb, var(--cc-c2) 18%, transparent);
+    }
+    /* Per-card bottom band on phone — each card's own c1→c2.
+       Because each card's c2 equals the next card's c1 (when the
+       merchant sets the colors correctly), the bands read as the
+       same continuous sunset, just chunked per card. */
+    .casa-char__st-card::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--cc-c1) 0%, var(--cc-c2) 100%);
+      pointer-events: none;
+      z-index: 4;
+    }
+    .casa-char__st-card.casa-char__st-card--clone { display: flex; }
+    .casa-char__st-viewport:hover .casa-char__st-grid,
+    .casa-char__st-viewport:focus-within .casa-char__st-grid,
+    .casa-char__st-viewport.is-paused .casa-char__st-grid {
+      animation-play-state: paused;
+    }
+  }
+  @keyframes ccSunsetMarquee {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(calc(-1 * var(--cc-st-shift, 702px)), 0, 0); }
+  }
+
+  /* WCAG 2.3.3 — kill every sunset-trio animation for reduced-motion users. */
+  @media (prefers-reduced-motion: reduce) {
+    .casa-char__st-card,
+    .casa-char__st-grid {
+      animation: none !important;
+    }
+  }
+{% endstylesheet %}
 
 {%- comment -%} ═══════════════════════════ SCRIPT ═══════════════════════════ {%- endcomment -%}
 <script>
@@ -893,6 +1323,29 @@
       vPanels.forEach(function(p) { vObs.observe(p); });
     }
   }
+
+  /* ── Sunset-trio: pause mobile marquee on touch ──
+     Clones are already in the DOM via Liquid's dual-pass `for` loop,
+     so no client-side cloning needed. We only bind a touch handler
+     that pauses the marquee while the user is interacting with a
+     card, then auto-resumes 1.2s after touchend. */
+  if (layout === 'sunset-trio') {
+    var stViewport = root.querySelector('[data-st-viewport]');
+    if (stViewport && !stViewport.dataset.stTouchBound) {
+      var stResumeTimer;
+      stViewport.addEventListener('touchstart', function () {
+        stViewport.classList.add('is-paused');
+        clearTimeout(stResumeTimer);
+      }, { passive: true });
+      stViewport.addEventListener('touchend', function () {
+        clearTimeout(stResumeTimer);
+        stResumeTimer = setTimeout(function () {
+          stViewport.classList.remove('is-paused');
+        }, 1200);
+      }, { passive: true });
+      stViewport.dataset.stTouchBound = '1';
+    }
+  }
 })();
 </script>
 
@@ -908,15 +1361,46 @@
       "options": [
         { "value": "spotlight", "label": "Spotlight" },
         { "value": "grid-reveal", "label": "Grid reveal" },
-        { "value": "scroll-story", "label": "Scroll story" }
+        { "value": "scroll-story", "label": "Scroll story" },
+        { "value": "sunset-trio", "label": "Sunset trio (gradient bands + levitate)" }
       ],
       "default": "spotlight"
     },
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "title",
-      "label": "Section title",
-      "default": "Meet the Collection"
+      "label": "Section title (use <em>word</em> for italic gradient accent)",
+      "default": "Meet the <em>Collection</em>"
+    },
+    {
+      "type": "select",
+      "id": "char_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "select",
+      "id": "char_cta_treatment",
+      "label": "Button treatment",
+      "info": "Brand-book button style for the per-character CTAs. Featured (gradient) is rare per brand book — reserved for hero/launch CTAs.",
+      "options": [
+        { "value": "primary",            "label": "Primary — solid ink (light surface)" },
+        { "value": "primary-on-dark",    "label": "Primary — solid white (dark surface)" },
+        { "value": "secondary",          "label": "Secondary — outline (light surface)" },
+        { "value": "secondary-on-dark",  "label": "Secondary — outline (dark surface)" },
+        { "value": "tertiary",           "label": "Tertiary — underlined link" },
+        { "value": "featured",           "label": "Featured — purple→pink gradient" }
+      ],
+      "default": "featured"
     },
     {
       "type": "textarea",
@@ -945,11 +1429,42 @@
       "label": "Image aspect ratio",
       "options": [
         { "value": "1:1", "label": "Square (1:1)" },
+        { "value": "4:3", "label": "Landscape (4:3)" },
         { "value": "3:4", "label": "Portrait (3:4)" },
         { "value": "4:5", "label": "Tall portrait (4:5)" },
         { "value": "auto", "label": "Auto (original)" }
       ],
       "default": "3:4"
+    },
+    {
+      "type": "select",
+      "id": "image_fit",
+      "label": "Image fit",
+      "info": "Use Contain when the subject must show fully (no cropping). Cover crops to fill.",
+      "options": [
+        { "value": "cover", "label": "Cover (fill, may crop)" },
+        { "value": "contain", "label": "Contain (show whole subject)" }
+      ],
+      "default": "cover"
+    },
+    {
+      "type": "select",
+      "id": "image_position",
+      "label": "Image position",
+      "options": [
+        { "value": "center", "label": "Center" },
+        { "value": "top", "label": "Top" },
+        { "value": "bottom", "label": "Bottom" },
+        { "value": "left", "label": "Left" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "color",
+      "id": "image_bg",
+      "label": "Image area background",
+      "info": "Shown around the image when 'Contain' is selected. Leave blank to inherit section background."
     },
     {
       "type": "checkbox",
@@ -977,7 +1492,7 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background",
-      "default": "#0a0a0a"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
@@ -989,13 +1504,13 @@
       "type": "color",
       "id": "title_color",
       "label": "Title color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
       "id": "name_color",
       "label": "Name color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
@@ -1105,6 +1620,12 @@
           "id": "badge_text",
           "label": "Badge text",
           "info": "e.g. Most Popular, New"
+        },
+        {
+          "type": "color",
+          "id": "accent_color_2",
+          "label": "Accent color 2 (sunset-trio gradient end)",
+          "info": "Only used by the Sunset trio layout. Set Card N's value to Card N+1's primary accent for a seamless cross-card sunset. Other layouts ignore this field."
         }
       ]
     }

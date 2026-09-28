@@ -14,6 +14,10 @@
   assign padding_mobile_bottom = section.settings.padding_mobile_bottom | default: 60
 -%}
 
+{%- comment -%}
+  Heading-scale dropdown: merchant picks H1-H6 from Theme Settings -> Typography.
+{%- endcomment -%}
+{%- assign _ccs_title_h = section.settings.ccs_heading_level | default: 'h1' -%}
 <section
   class="casa-collection-scroll"
   id="casa-collection-scroll-{{ section.id }}"
@@ -22,6 +26,11 @@
     --ccs-padding-bottom: {{ padding_bottom }}px;
     --ccs-padding-mobile-top: {{ padding_mobile_top }}px;
     --ccs-padding-mobile-bottom: {{ padding_mobile_bottom }}px;
+    --ccs-title-fs:   var(--font-{{ _ccs_title_h }}--size);
+    --ccs-title-fw:   var(--font-{{ _ccs_title_h }}--weight);
+    --ccs-title-lh:   var(--font-{{ _ccs_title_h }}--line-height);
+    --ccs-title-ls:   var(--font-{{ _ccs_title_h }}--letter-spacing);
+    --ccs-title-case: var(--font-{{ _ccs_title_h }}--case);
   "
 >
   <div class="casa-collection-scroll__container">
@@ -47,6 +56,8 @@
               {%- if product.featured_image != blank -%}
                 <img
                   src="{{ product.featured_image | image_url: width: 400 }}"
+                  width="{{ product.featured_image.width }}"
+                  height="{{ product.featured_image.height }}"
                   alt="{{ product.title | escape }}"
                   class="casa-collection-scroll__product-image"
                   loading="lazy"
@@ -75,7 +86,8 @@
           </div>
           <div class="casa-collection-scroll__info">
             <h3 class="casa-collection-scroll__name">Infinity HexaMirror</h3>
-            <p class="casa-collection-scroll__price">From <span>$249.99</span></p>
+            {%- assign _csp1 = all_products['infinity-hexamirror'] -%}
+            {%- if _csp1.price_min > 0 -%}<p class="casa-collection-scroll__price">From <span>{{ _csp1.price_min | money_with_currency }}</span></p>{%- endif -%}
           </div>
         </div>
         <div class="casa-collection-scroll__card">
@@ -84,7 +96,8 @@
           </div>
           <div class="casa-collection-scroll__info">
             <h3 class="casa-collection-scroll__name">Infinity TriMirror</h3>
-            <p class="casa-collection-scroll__price">From <span>$249.99</span></p>
+            {%- assign _csp2 = all_products['infinity-trimirror'] -%}
+            {%- if _csp2.price_min > 0 -%}<p class="casa-collection-scroll__price">From <span>{{ _csp2.price_min | money_with_currency }}</span></p>{%- endif -%}
           </div>
         </div>
         <div class="casa-collection-scroll__card">
@@ -93,7 +106,8 @@
           </div>
           <div class="casa-collection-scroll__info">
             <h3 class="casa-collection-scroll__name">Infinity 360</h3>
-            <p class="casa-collection-scroll__price">From <span>$299.99</span></p>
+            {%- assign _csp3 = all_products['infinity-360-mirror'] -%}
+            {%- if _csp3.price_min > 0 -%}<p class="casa-collection-scroll__price">From <span>{{ _csp3.price_min | money_with_currency }}</span></p>{%- endif -%}
           </div>
         </div>
         <div class="casa-collection-scroll__card">
@@ -102,7 +116,8 @@
           </div>
           <div class="casa-collection-scroll__info">
             <h3 class="casa-collection-scroll__name">Infinity Cube</h3>
-            <p class="casa-collection-scroll__price">From <span>$349.99</span></p>
+            {%- assign _csp4 = all_products['infinity-cube'] -%}
+            {%- if _csp4.price_min > 0 -%}<p class="casa-collection-scroll__price">From <span>{{ _csp4.price_min | money_with_currency }}</span></p>{%- endif -%}
           </div>
         </div>
       {%- endif -%}
@@ -144,6 +159,21 @@
       "id": "title",
       "label": "Title",
       "default": "Complete Your Collection"
+    },
+    {
+      "type": "select",
+      "id": "ccs_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
     },
     {
       "type": "textarea",
@@ -237,7 +267,7 @@
   --ccs-padding-mobile-top: 60px;
   --ccs-padding-mobile-bottom: 60px;
 
-  background: #fafafa;
+  background: var(--casa-paper);
   padding: var(--ccs-padding-top) 0 var(--ccs-padding-bottom);
 }
 
@@ -257,19 +287,22 @@
   display: inline-block;
   font-size: 12px;
   font-weight: 600;
-  color: #9333ea;
+  color: #B0C3FA;
   text-transform: uppercase;
   letter-spacing: 2px;
   margin-bottom: 12px;
 }
 
 .casa-collection-scroll__title {
-  font-size: clamp(28px, 5vw, 42px);
-  font-weight: 300;
+  /* Heading scale comes from Theme Settings -> Typography via the
+     ccs_heading_level dropdown; old clamp() preserved as fallback. */
+  font-size: var(--ccs-title-fs, clamp(28px, 5vw, 42px));
+  font-weight: var(--ccs-title-fw, 300);
+  line-height: var(--ccs-title-lh, 1.2);
+  letter-spacing: var(--ccs-title-ls, -0.5px);
+  text-transform: var(--ccs-title-case, none);
   margin: 0 0 12px 0;
-  letter-spacing: -0.5px;
-  color: #0a0a0a;
-  line-height: 1.2;
+  color: var(--casa-ink);
 }
 
 .casa-collection-scroll__subtitle {
@@ -326,25 +359,25 @@
 /* Octagon — purple → pink */
 .casa-collection-scroll__shape--1 {
   clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
-  background: linear-gradient(135deg, #9333ea, #ec4899);
+  background: var(--grad-primary, linear-gradient(135deg, #B0C3FA, #5E0A02));
 }
 
 /* Triangle — cyan → purple */
 .casa-collection-scroll__shape--2 {
   clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-  background: linear-gradient(135deg, #06b6d4, #6366f1);
+  background: linear-gradient(135deg, #F2FFA0, #6366f1);
 }
 
 /* Circle — pink → purple */
 .casa-collection-scroll__shape--3 {
   border-radius: 50%;
-  background: linear-gradient(135deg, #ec4899, #9333ea);
+  background: linear-gradient(135deg, #5E0A02, #B0C3FA);
 }
 
 /* Rounded square — green → teal */
 .casa-collection-scroll__shape--4 {
   border-radius: 16%;
-  background: linear-gradient(135deg, #22c55e, #06b6d4);
+  background: linear-gradient(135deg, #22c55e, #F2FFA0);
 }
 
 /* ── Product Info ── */
@@ -357,7 +390,7 @@
 .casa-collection-scroll__name {
   font-size: 14px;
   font-weight: 500;
-  color: #0a0a0a;
+  color: var(--casa-ink);
   margin: 0;
 }
 

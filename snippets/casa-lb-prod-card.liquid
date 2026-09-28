@@ -52,35 +52,18 @@
 
       <div class="casa-lb-prod__card-price">
         {%- if on_sale and show_compare_price -%}
-          <span class="casa-lb-prod__price casa-lb-prod__price--sale">{{ product.price | money }}</span>
-          <s class="casa-lb-prod__compare-price">{{ product.compare_at_price | money }}</s>
+          <span class="casa-lb-prod__price casa-lb-prod__price--sale">{{ product.price | money_with_currency }}</span>
+          <s class="casa-lb-prod__compare-price">{{ product.compare_at_price | money_with_currency }}</s>
           {%- assign save_amount = product.compare_at_price | minus: product.price -%}
-          <span class="casa-lb-prod__save-badge">Save {{ save_amount | money }}</span>
+          <span class="casa-lb-prod__save-badge">Save {% render 'casa-money', amount: save_amount %}</span>
         {%- else -%}
-          <span class="casa-lb-prod__price">{{ product.price | money }}</span>
+          <span class="casa-lb-prod__price">{{ product.price | money_with_currency }}</span>
         {%- endif -%}
       </div>
 
       {%- if show_rating -%}
-        {%- assign rating_value = product.metafields.reviews.rating.value.rating | default: 0 | round -%}
-        {%- assign rating_count = product.metafields.reviews.rating_count.value | default: 0 -%}
-        <div class="casa-lb-prod__rating" aria-label="{{ rating_value }} out of 5 stars">
-          <div class="casa-lb-prod__stars">
-            {%- for i in (1..5) -%}
-              {%- if i <= rating_value -%}
-                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z"/>
-                </svg>
-              {%- else -%}
-                <svg class="casa-lb-prod__stars--empty" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.063 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.286-3.957z"/>
-                </svg>
-              {%- endif -%}
-            {%- endfor -%}
-          </div>
-          {%- if rating_count > 0 -%}
-            <span class="casa-lb-prod__rating-count">({{ rating_count }})</span>
-          {%- endif -%}
+        <div class="casa-lb-prod__rating">
+          {% render 'casa-judgeme-rating', product: product %}
         </div>
       {%- endif -%}
 

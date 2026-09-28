@@ -1,0 +1,1150 @@
+{% liquid
+  assign selected_product = product
+  assign selected_variant = selected_product.selected_or_first_available_variant
+  assign selected_size_key = 'S'
+  assign selected_role = section.settings.small_role
+  assign selected_placement = section.settings.small_placement
+  assign selected_atc_measure = '11.8 in'
+  assign size_on_image = section.settings.size_image
+  assign size_off_image = section.settings.size_off_image
+
+  if size_on_image == blank
+    assign size_on_image = images['InfinityMirror_3_sizes_2.webp']
+  endif
+
+  if size_off_image == blank
+    assign size_off_image = images['InfinityMirror_3_sizes_light-off.webp']
+  endif
+
+  if selected_variant.title contains '70'
+    assign selected_size_key = 'L'
+    assign selected_role = section.settings.large_role
+    assign selected_placement = section.settings.large_placement
+    assign selected_atc_measure = '27.6 in'
+  elsif selected_variant.title contains '50'
+    assign selected_size_key = 'M'
+    assign selected_role = section.settings.medium_role
+    assign selected_placement = section.settings.medium_placement
+    assign selected_atc_measure = '19.7 in'
+  endif
+
+  assign selected_size_parts = selected_variant.title | split: '/'
+  assign selected_size_primary = selected_size_parts.first | strip
+  assign selected_size_secondary = ''
+  if selected_size_parts.size > 1
+    assign selected_size_secondary = selected_size_parts.last | strip
+    assign selected_size_primary_lower = selected_size_primary | downcase
+    if selected_size_primary_lower contains 'cm'
+      assign selected_size_swap = selected_size_primary
+      assign selected_size_primary = selected_size_secondary
+      assign selected_size_secondary = selected_size_swap
+    endif
+  endif
+
+  assign use_currency = settings.currency_code_enabled_product_pages
+  assign selected_price_display = selected_variant.price | money
+  assign selected_compare_display = selected_variant.compare_at_price | money
+  assign selected_savings = selected_variant.compare_at_price | minus: selected_variant.price
+  assign selected_savings_display = selected_savings | money
+  if use_currency
+    assign selected_price_display = selected_variant.price | money_with_currency
+    assign selected_compare_display = selected_variant.compare_at_price | money_with_currency
+    assign selected_savings_display = selected_savings | money_with_currency
+  endif
+
+  assign selected_on_sale = false
+  if selected_variant.compare_at_price > selected_variant.price
+    assign selected_on_sale = true
+  endif
+
+  assign show_selected_gift = false
+  if localization.country.iso_code == 'US' and selected_size_key == 'L' and section.settings.large_gift_text != blank
+    assign show_selected_gift = true
+  endif
+%}
+
+<section id="casa-v7-size-guide" class="casa-v7-story color-{{ section.settings.color_scheme }}" aria-labelledby="casa-v7-size-title-{{ section.id }}">
+  <div class="casa-v7-story__inner">
+    <header class="casa-v7-story__head">
+      <span>{{ section.settings.size_eyebrow }}</span>
+      <h2 id="casa-v7-size-title-{{ section.id }}">{{ section.settings.size_heading }}</h2>
+      <p>{{ section.settings.size_lede }}</p>
+    </header>
+
+    <casa-octa-size-v7 class="casa-v7-size" data-purchase-target="#casa-octa-purchase" data-selected-size="{{ selected_size_key }}" data-product-id="{{ selected_product.id }}" data-sold-out-label="{{ 'products.product.sold_out' | t | escape }}">
+      <figure class="casa-v7-size__figure">
+        <div class="casa-v7-size__scene">
+          <div class="casa-v7-size__canvas">
+            {% if size_off_image != blank %}
+              {{ size_off_image | image_url: width: 1800 | image_tag: widths: '480, 720, 960, 1200, 1600, 1800', sizes: '(min-width: 900px) 68vw, 100vw', loading: 'lazy', class: 'casa-v7-size__image casa-v7-size__image--off', alt: section.settings.size_image_alt }}
+            {% elsif size_on_image != blank %}
+              {{ size_on_image | image_url: width: 1800 | image_tag: widths: '480, 720, 960, 1200, 1600, 1800', sizes: '(min-width: 900px) 68vw, 100vw', loading: 'lazy', class: 'casa-v7-size__image casa-v7-size__image--off', alt: section.settings.size_image_alt }}
+            {% endif %}
+
+            {% if size_on_image != blank %}
+              {{ size_on_image | image_url: width: 1800 | image_tag: widths: '480, 720, 960, 1200, 1600, 1800', sizes: '(min-width: 900px) 68vw, 100vw', loading: 'lazy', class: 'casa-v7-size__image casa-v7-size__image--on', alt: '' }}
+            {% endif %}
+
+            <button class="casa-v7-size__hotspot" type="button" data-v7-size-hotspot="S" aria-label="Select the 11.8 inch / 30 centimetre OctaMirror" aria-pressed="{% if selected_size_key == 'S' %}true{% else %}false{% endif %}" style="--size-x: 6.625%; --size-y: 20.875%; --size-width: 13.875%; --size-height: 12.625%;">
+              <svg class="casa-v7-size__outline" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false"><polygon points="26,0 63,0 100,33 100,72 76,100 27,100 1,71 0,28" vector-effect="non-scaling-stroke" /></svg>
+            </button>
+            <button class="casa-v7-size__hotspot" type="button" data-v7-size-hotspot="M" aria-label="Select the 19.7 inch / 50 centimetre OctaMirror" aria-pressed="{% if selected_size_key == 'M' %}true{% else %}false{% endif %}" style="--size-x: 71.625%; --size-y: 16.375%; --size-width: 22%; --size-height: 21.25%;">
+              <svg class="casa-v7-size__outline" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false"><polygon points="33,0 73,0 100,29 99,71 70,100 27,99 0,71 1,32" vector-effect="non-scaling-stroke" /></svg>
+            </button>
+            <button class="casa-v7-size__hotspot" type="button" data-v7-size-hotspot="L" aria-label="Select the 27.6 inch / 70 centimetre OctaMirror" aria-pressed="{% if selected_size_key == 'L' %}true{% else %}false{% endif %}" style="--size-x: 31.125%; --size-y: 12.375%; --size-width: 28.875%; --size-height: 29.25%;">
+              <svg class="casa-v7-size__outline" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false"><polygon points="29,0 71,0 100,30 99,71 71,100 29,100 0,71 0,30" vector-effect="non-scaling-stroke" /></svg>
+            </button>
+
+            <figcaption class="casa-v7-size__labels" aria-hidden="true">
+              <span class="casa-v7-size__label casa-v7-size__label--small{% if selected_size_key == 'S' %} is-selected{% endif %}" data-v7-size-label="S"><strong>11.8″</strong><small>30 cm</small></span>
+              <span class="casa-v7-size__label casa-v7-size__label--large{% if selected_size_key == 'L' %} is-selected{% endif %}" data-v7-size-label="L"><strong>27.6″</strong><small>70 cm</small></span>
+              <span class="casa-v7-size__label casa-v7-size__label--medium{% if selected_size_key == 'M' %} is-selected{% endif %}" data-v7-size-label="M"><strong>19.7″</strong><small>50 cm</small></span>
+            </figcaption>
+          </div>
+
+          <span class="casa-v7-size__status" aria-live="polite">
+            <small>{{ section.settings.viewing_label }}</small>
+            <strong><span data-v7-size-status-primary>{{ selected_size_primary }}</span><small data-v7-size-status-secondary>{{ selected_size_secondary }}</small></strong>
+          </span>
+
+          <span class="casa-v7-size__scene-fade" aria-hidden="true"></span>
+        </div>
+        <p class="casa-v7-size__scene-note">{{ section.settings.size_scene_note }}</p>
+      </figure>
+
+      <div class="casa-v7-size__decision">
+        <div class="casa-v7-size__selected" aria-live="polite" aria-atomic="true">
+          <div class="casa-v7-size__selected-topline">
+            <span data-v7-size-selected-role>{{ selected_role }}</span>
+            <em data-v7-size-selected-bestseller{% unless selected_size_key == 'L' %} hidden{% endunless %}>{{ section.settings.bestseller_label }}</em>
+          </div>
+          <div class="casa-v7-size__selected-main">
+            <strong><span data-v7-size-selected-primary>{{ selected_size_primary }}</span><small data-v7-size-selected-secondary>{{ selected_size_secondary }}</small></strong>
+            <div class="casa-v7-size__selected-price">
+              <span data-v7-size-selected-price>{{ selected_price_display }}</span>
+              <s data-v7-size-selected-compare{% unless selected_on_sale %} hidden{% endunless %}>{{ selected_compare_display }}</s>
+            </div>
+          </div>
+          <p data-v7-size-selected-placement>{{ selected_placement }}</p>
+          <span class="casa-v7-size__saving" data-v7-size-selected-saving{% unless selected_on_sale %} hidden{% endunless %}>{{ section.settings.savings_label }} {{ selected_savings_display }}</span>
+          <span class="casa-v7-size__gift" data-v7-size-gift{% unless show_selected_gift %} hidden{% endunless %}>{{ section.settings.large_gift_text }}</span>
+        </div>
+
+        <div class="casa-v7-size__options" role="group" aria-label="{{ section.settings.size_selector_label | escape }}">
+          <span class="casa-v7-size__rail" data-v7-size-rail aria-hidden="true"></span>
+          {% for variant in selected_product.variants %}
+            {% liquid
+              assign variant_role = section.settings.small_role
+              assign variant_placement = section.settings.small_placement
+              assign variant_size_key = 'S'
+              assign variant_order_number = '01'
+              assign variant_accessible_size = '11.8 inches / 30 centimeters'
+              assign variant_atc_label = 'Add 11.8 in to cart'
+              if variant.title contains '50'
+                assign variant_role = section.settings.medium_role
+                assign variant_placement = section.settings.medium_placement
+                assign variant_size_key = 'M'
+                assign variant_order_number = '02'
+                assign variant_accessible_size = '19.7 inches / 50 centimeters'
+                assign variant_atc_label = 'Add 19.7 in to cart'
+              elsif variant.title contains '70'
+                assign variant_role = section.settings.large_role
+                assign variant_placement = section.settings.large_placement
+                assign variant_size_key = 'L'
+                assign variant_order_number = '03'
+                assign variant_accessible_size = '27.6 inches / 70 centimeters'
+                assign variant_atc_label = 'Add 27.6 in to cart'
+              endif
+
+              assign variant_size_parts = variant.title | split: '/'
+              assign variant_size_primary = variant_size_parts.first | strip
+              assign variant_size_secondary = ''
+              if variant_size_parts.size > 1
+                assign variant_size_secondary = variant_size_parts.last | strip
+                assign variant_size_primary_lower = variant_size_primary | downcase
+                if variant_size_primary_lower contains 'cm'
+                  assign variant_size_swap = variant_size_primary
+                  assign variant_size_primary = variant_size_secondary
+                  assign variant_size_secondary = variant_size_swap
+                endif
+              endif
+
+              assign variant_price_display = variant.price | money
+              assign variant_compare_display = variant.compare_at_price | money
+              assign variant_savings = variant.compare_at_price | minus: variant.price
+              assign variant_savings_display = variant_savings | money
+              if use_currency
+                assign variant_price_display = variant.price | money_with_currency
+                assign variant_compare_display = variant.compare_at_price | money_with_currency
+                assign variant_savings_display = variant_savings | money_with_currency
+              endif
+
+              assign variant_on_sale = false
+              if variant.compare_at_price > variant.price
+                assign variant_on_sale = true
+              endif
+
+              assign show_variant_gift = false
+              if localization.country.iso_code == 'US' and variant_size_key == 'L' and section.settings.large_gift_text != blank
+                assign show_variant_gift = true
+              endif
+            %}
+            <button
+              class="casa-v7-size__option{% if variant.id == selected_variant.id %} is-selected{% endif %}{% unless variant.available %} is-unavailable{% endunless %}"
+              type="button"
+              data-v7-size-option
+              data-v7-size-key="{{ variant_size_key }}"
+              data-variant-id="{{ variant.id }}"
+              data-variant-title="{{ variant.title | escape }}"
+              data-variant-size-primary="{{ variant_size_primary | escape }}"
+              data-variant-size-secondary="{{ variant_size_secondary | escape }}"
+              data-variant-role="{{ variant_role | escape }}"
+              data-variant-placement="{{ variant_placement | escape }}"
+              data-variant-price="{{ variant_price_display | strip_html | escape }}"
+              data-variant-compare="{% if variant_on_sale %}{{ variant_compare_display | strip_html | escape }}{% endif %}"
+              data-variant-saving="{% if variant_on_sale %}{{ section.settings.savings_label | escape }} {{ variant_savings_display | strip_html | escape }}{% endif %}"
+              data-variant-available="{{ variant.available }}"
+              data-variant-atc-label="{{ variant_atc_label }}"
+              data-variant-show-bestseller="{% if variant_size_key == 'L' %}true{% else %}false{% endif %}"
+              data-variant-show-gift="{{ show_variant_gift }}"
+              aria-label="{{ variant_role }} — {{ variant_accessible_size }} — {{ variant_price_display | strip_html | escape }}"
+              aria-pressed="{% if variant.id == selected_variant.id %}true{% else %}false{% endif %}"
+            >
+              <span class="casa-v7-size__option-number">{{ variant_order_number }}</span>
+              <span class="casa-v7-size__option-copy">
+                <small>{{ variant_role }}{% if variant_size_key == 'L' %}<em>{{ section.settings.bestseller_label }}</em>{% endif %}</small>
+                <strong><span>{{ variant_size_primary }}</span><small>{{ variant_size_secondary }}</small></strong>
+              </span>
+              <span class="casa-v7-size__option-price">
+                <strong>{{ variant_price_display }}</strong>
+                {% if variant_on_sale %}<s>{{ variant_compare_display }}</s>{% endif %}
+              </span>
+              <span class="casa-v7-size__check" aria-hidden="true">✓</span>
+            </button>
+          {% endfor %}
+        </div>
+
+        <div class="casa-v7-size__foot">
+          <product-form-component
+            class="casa-v7-size__product-form"
+            data-section-id="{{ section.id }}"
+            data-product-id="{{ selected_product.id }}"
+            data-product-url="{{ selected_product.url }}"
+            on:submit="/handleSubmit"
+          >
+            <div class="visually-hidden" aria-live="assertive" role="status" aria-atomic="true" ref="liveRegion"></div>
+            {% assign size_form_id = 'CasaOctaSizeForm-' | append: section.id %}
+            {% assign size_atc_text = 'Add ' | append: selected_atc_measure | append: ' to cart' %}
+            {% form 'product', selected_product, id: size_form_id, data-type: 'add-to-cart-form' %}
+              <input type="hidden" name="id" ref="variantId" value="{{ selected_variant.id }}" data-v7-size-form-variant>
+              <input type="hidden" name="quantity" value="1">
+              {% render 'add-to-cart-button',
+                add_to_cart_text: size_atc_text,
+                class: 'casa-v7-size__atc add-to-cart-button',
+                can_add_to_cart: selected_variant.available,
+                product: selected_product
+              %}
+            {% endform %}
+          </product-form-component>
+        </div>
+      </div>
+    </casa-octa-size-v7>
+  </div>
+</section>
+
+{% stylesheet %}
+  .casa-v7-story {
+    --story-paper: var(--color-background);
+    --story-ink: var(--color-foreground);
+    --story-heading: var(--color-foreground-heading, var(--color-foreground));
+    --story-muted: rgb(var(--color-foreground-rgb) / var(--opacity-subdued-text));
+    --story-rule: rgb(var(--color-border-rgb) / var(--opacity-40-60));
+    --story-purple: var(--casa-purple, #B0C3FA);
+    --story-pink: var(--casa-pink, #5E0A02);
+    --story-cyan: var(--casa-cyan, #F2FFA0);
+    --story-accent: var(--story-purple);
+    --story-accent-hover: var(--story-pink);
+    --story-gradient: linear-gradient(110deg, var(--story-purple), var(--story-pink) 58%, var(--story-cyan));
+    padding: clamp(64px, 8vw, 112px) 0;
+    color: var(--story-ink);
+    background: var(--story-paper);
+  }
+
+  .casa-v7-story__inner {
+    width: min(100% - 32px, 1440px);
+    margin-inline: auto;
+  }
+
+  .casa-v7-story__head {
+    max-width: 920px;
+    margin-bottom: clamp(30px, 4.4vw, 52px);
+  }
+
+  .casa-v7-story__head > span {
+    display: block;
+    margin-bottom: 13px;
+    color: var(--story-accent);
+    font-family: var(--font-body--family);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-story__head h2 {
+    margin: 0;
+    color: var(--story-heading);
+    font-family: var(--font-heading--family);
+    font-size: clamp(38px, 6.2vw, 80px);
+    font-weight: var(--font-heading--weight);
+    line-height: 0.98;
+    letter-spacing: -0.05em;
+    text-wrap: balance;
+  }
+
+  .casa-v7-story__head h2 em {
+    color: var(--story-accent);
+    font-style: italic;
+  }
+
+  .casa-v7-story__head p {
+    max-width: 66ch;
+    margin: 20px 0 0;
+    color: var(--story-muted);
+    font-size: clamp(15px, 1.45vw, 20px);
+    line-height: 1.5;
+  }
+
+  .casa-v7-size {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.72fr);
+    gap: clamp(28px, 4vw, 62px);
+    align-items: center;
+  }
+
+  .casa-v7-size [hidden] {
+    display: none !important;
+  }
+
+  .casa-v7-size__figure {
+    min-width: 0;
+    margin: 0;
+  }
+
+  .casa-v7-size__scene {
+    --mask-x: 13.5625%;
+    --mask-y: 27.1875%;
+    --mask-width: 15%;
+    --mask-height: 15%;
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16 / 10;
+    isolation: isolate;
+    container-type: inline-size;
+  }
+
+  .casa-v7-size[data-selected-size='M'] .casa-v7-size__scene {
+    --mask-x: 82.625%;
+    --mask-y: 27%;
+    --mask-width: 24%;
+    --mask-height: 24%;
+  }
+
+  .casa-v7-size[data-selected-size='L'] .casa-v7-size__scene {
+    --mask-x: 45.5625%;
+    --mask-y: 27%;
+    --mask-width: 31%;
+    --mask-height: 31%;
+  }
+
+  .casa-v7-size__canvas {
+    position: absolute;
+    top: 17%;
+    left: 0;
+    width: 100%;
+    aspect-ratio: 1;
+    transform: translateY(-17%);
+  }
+
+  .casa-v7-size__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .casa-v7-size__image--off {
+    filter: saturate(0.9) contrast(0.98);
+  }
+
+  .casa-v7-size__image--on {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    -webkit-mask-image: radial-gradient(ellipse var(--mask-width) var(--mask-height) at var(--mask-x) var(--mask-y), currentColor 0 43%, color-mix(in srgb, currentColor 90%, transparent) 62%, transparent 100%);
+    mask-image: radial-gradient(ellipse var(--mask-width) var(--mask-height) at var(--mask-x) var(--mask-y), currentColor 0 43%, color-mix(in srgb, currentColor 90%, transparent) 62%, transparent 100%);
+    transition: opacity 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .casa-v7-size.is-entered:not(.is-switching) .casa-v7-size__image--on {
+    opacity: 1;
+  }
+
+  .casa-v7-size__scene-fade {
+    position: absolute;
+    z-index: 3;
+    inset: -1px;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, var(--story-paper) 0, transparent 8%, transparent 92%, var(--story-paper) 100%),
+      linear-gradient(180deg, var(--story-paper) 0, transparent 9%, transparent 88%, var(--story-paper) 100%);
+  }
+
+  .casa-v7-size__hotspot {
+    position: absolute;
+    z-index: 6;
+    top: var(--size-y);
+    left: var(--size-x);
+    width: var(--size-width);
+    height: var(--size-height);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .casa-v7-size__outline {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    fill: none;
+    stroke: var(--story-purple);
+    stroke-width: 1.5px;
+    stroke-linejoin: round;
+    opacity: 0;
+    pointer-events: none;
+    filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 4px var(--story-purple));
+  }
+
+  .casa-v7-size__hotspot[aria-pressed='true'] .casa-v7-size__outline,
+  .casa-v7-size__hotspot:focus-visible .casa-v7-size__outline {
+    opacity: 1;
+  }
+
+  .casa-v7-size__hotspot:focus-visible {
+    outline: none;
+  }
+
+  .casa-v7-size__hotspot:focus-visible .casa-v7-size__outline {
+    stroke: var(--story-ink);
+    stroke-width: 3px;
+  }
+
+  .casa-v7-size__option:focus-visible,
+  .casa-v7-size__product-form .casa-v7-size__atc:focus-visible {
+    outline: 3px solid var(--story-accent);
+    outline-offset: 3px;
+  }
+
+  .casa-v7-size__status {
+    position: absolute;
+    z-index: 7;
+    top: 18px;
+    left: 18px;
+    display: grid;
+    gap: 3px;
+    padding: 9px 12px;
+    border: 1px solid color-mix(in srgb, var(--story-purple) 44%, transparent);
+    border-radius: 999px;
+    color: var(--story-ink);
+    background: color-mix(in srgb, #fff 90%, transparent);
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--story-purple) 10%, transparent),
+      0 10px 28px rgb(var(--color-shadow-rgb) / 0.16);
+    backdrop-filter: blur(12px);
+  }
+
+  .casa-v7-size__status > small {
+    color: var(--story-purple);
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-size__status strong {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+    font-size: 12px;
+    line-height: 1.1;
+  }
+
+  .casa-v7-size__status strong small {
+    color: var(--story-muted);
+    font-size: 0.72em;
+    font-weight: 500;
+  }
+
+  .casa-v7-size__labels {
+    position: absolute;
+    z-index: 7;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .casa-v7-size__label {
+    position: absolute;
+    display: inline-flex;
+    gap: 5px;
+    align-items: baseline;
+    padding: 7px 10px;
+    border: 1px solid color-mix(in srgb, var(--story-purple) 24%, transparent);
+    border-radius: 999px;
+    color: var(--story-ink);
+    background: color-mix(in srgb, #fff 86%, transparent);
+    opacity: 0.68;
+    box-shadow: 0 8px 22px rgb(var(--color-shadow-rgb) / 0.14);
+    transform: translateX(-50%);
+    backdrop-filter: blur(10px);
+    white-space: nowrap;
+    transition: opacity 220ms ease, border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+  }
+
+  .casa-v7-size__label.is-selected {
+    border-color: var(--story-purple);
+    opacity: 1;
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--story-purple) 18%, transparent),
+      0 10px 28px color-mix(in srgb, var(--story-purple) 20%, transparent);
+    transform: translateX(-50%) translateY(-2px);
+  }
+
+  .casa-v7-size__label strong {
+    font-size: clamp(11px, 1.3vw, 18px);
+  }
+
+  .casa-v7-size__label small {
+    color: var(--story-muted);
+    font-size: 0.6em;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-size__label--small { top: 36%; left: 13.5625%; }
+  .casa-v7-size__label--large { top: 44.125%; left: 45.5625%; }
+  .casa-v7-size__label--medium { top: 40.125%; left: 82.625%; }
+
+  .casa-v7-size__scene-note {
+    margin: 6px 8% 0 0;
+    color: var(--story-muted);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-align: right;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-size__decision {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .casa-v7-size__selected {
+    display: grid;
+    gap: 10px;
+    padding: 0 2px 17px;
+    border-bottom: 1px solid var(--story-rule);
+    transition: opacity 160ms ease, transform 160ms ease;
+  }
+
+  .casa-v7-size.is-switching .casa-v7-size__selected {
+    opacity: 0.42;
+    transform: translateY(3px);
+  }
+
+  .casa-v7-size__selected-topline {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    min-height: 22px;
+    color: var(--story-accent);
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-size__selected-topline em,
+  .casa-v7-size__option-copy > small em {
+    display: inline-flex;
+    padding: 5px 8px;
+    border-radius: 999px;
+    color: #fff;
+    background: var(--story-gradient);
+    font-size: 8px;
+    font-style: normal;
+    letter-spacing: 0.08em;
+  }
+
+  .casa-v7-size__selected-main {
+    display: flex;
+    gap: 18px;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+
+  .casa-v7-size__selected-main > strong {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    color: var(--story-heading);
+    font-family: var(--font-heading--family);
+    font-size: clamp(28px, 3vw, 46px);
+    font-weight: var(--font-heading--weight);
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+  }
+
+  .casa-v7-size__selected-main > strong small {
+    color: var(--story-muted);
+    font-family: var(--font-body--family);
+    font-size: 0.38em;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  .casa-v7-size__selected-price {
+    display: grid;
+    gap: 2px;
+    justify-items: end;
+    white-space: nowrap;
+  }
+
+  .casa-v7-size__selected-price span {
+    color: var(--story-heading);
+    font-size: clamp(17px, 1.7vw, 23px);
+    font-weight: 720;
+  }
+
+  .casa-v7-size__selected-price s {
+    color: var(--story-muted);
+    font-size: 12px;
+  }
+
+  .casa-v7-size__selected > p {
+    margin: 0;
+    color: var(--story-muted);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .casa-v7-size__saving,
+  .casa-v7-size__gift {
+    width: fit-content;
+    padding: 6px 9px;
+    border-radius: 999px;
+    color: var(--story-accent);
+    background: color-mix(in srgb, var(--story-purple) 9%, var(--story-paper));
+    font-size: 9px;
+    font-weight: 750;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-size__gift {
+    color: color-mix(in srgb, var(--story-purple) 65%, #000);
+    background: color-mix(in srgb, var(--story-purple) 10%, #fff);
+  }
+
+  .casa-v7-size__options {
+    position: relative;
+    display: grid;
+    gap: 2px;
+    padding-left: 9px;
+  }
+
+  .casa-v7-size__rail {
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 0;
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--story-purple), var(--story-pink) 58%, var(--story-cyan));
+    box-shadow: 0 0 18px color-mix(in srgb, var(--story-purple) 34%, transparent);
+    transition: height 320ms cubic-bezier(0.22, 1, 0.36, 1), transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .casa-v7-size__option {
+    position: relative;
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr) auto 22px;
+    gap: 10px;
+    align-items: center;
+    min-width: 0;
+    padding: 11px 9px 11px 12px;
+    border: 0;
+    border-radius: 10px;
+    color: var(--story-ink);
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+  }
+
+  .casa-v7-size__option:hover {
+    background: rgb(var(--color-foreground-rgb) / var(--opacity-5-15));
+  }
+
+  .casa-v7-size__option.is-selected {
+    color: var(--story-ink);
+    background: linear-gradient(
+      105deg,
+      color-mix(in srgb, var(--story-purple) 12%, var(--story-paper)),
+      color-mix(in srgb, var(--story-pink) 6%, var(--story-paper)) 58%,
+      color-mix(in srgb, var(--story-cyan) 7%, var(--story-paper))
+    );
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--story-purple) 18%, transparent);
+  }
+
+  .casa-v7-size__option.is-unavailable {
+    opacity: 0.58;
+  }
+
+  .casa-v7-size__option-number {
+    color: var(--story-muted);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  .casa-v7-size__option-copy {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .casa-v7-size__option-copy > small {
+    display: flex;
+    gap: 7px;
+    align-items: center;
+    color: var(--story-muted);
+    font-size: 8px;
+    font-weight: 720;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-size__option-copy > strong {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+    color: inherit;
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .casa-v7-size__option-copy > strong small {
+    color: var(--story-muted);
+    font-size: 0.64em;
+    font-weight: 500;
+  }
+
+  .casa-v7-size__option-price {
+    display: grid;
+    gap: 2px;
+    justify-items: end;
+    white-space: nowrap;
+  }
+
+  .casa-v7-size__option-price strong {
+    font-size: 12px;
+  }
+
+  .casa-v7-size__option-price s {
+    color: var(--story-muted);
+    font-size: 9px;
+  }
+
+  .casa-v7-size__check {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--story-rule);
+    border-radius: 50%;
+    color: transparent;
+    background: var(--story-paper);
+    font-size: 10px;
+  }
+
+  .casa-v7-size__option.is-selected .casa-v7-size__check {
+    border-color: transparent;
+    color: #fff;
+    background: var(--story-gradient);
+  }
+
+  .casa-v7-size__foot {
+    padding-top: 2px;
+  }
+
+  .casa-v7-size__product-form,
+  .casa-v7-size__product-form form,
+  .casa-v7-size__product-form add-to-cart-component {
+    display: block;
+    width: 100%;
+  }
+
+  .casa-v7-size__product-form .casa-v7-size__atc {
+    width: 100%;
+    min-height: 56px;
+    border-color: var(--color-primary-button-border);
+    border-radius: 12px;
+    color: var(--color-primary-button-text);
+    background: var(--color-primary-button-background);
+    font-size: 12px;
+    font-weight: 760;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-size__product-form .casa-v7-size__atc:hover {
+    border-color: var(--color-primary-button-hover-border);
+    color: var(--color-primary-button-hover-text);
+    background: var(--color-primary-button-hover-background);
+  }
+
+  @media (max-width: 899px) {
+    .casa-v7-size {
+      grid-template-columns: 1fr;
+      gap: 22px;
+    }
+
+    .casa-v7-size__figure {
+      width: min(100%, 760px);
+      margin-inline: auto;
+    }
+
+    .casa-v7-size__decision {
+      width: min(100%, 660px);
+      margin-inline: auto;
+    }
+  }
+
+  @media (max-width: 540px) {
+    .casa-v7-story {
+      padding: 56px 0;
+    }
+
+    .casa-v7-story__inner {
+      width: min(100% - 24px, 1440px);
+    }
+
+    .casa-v7-story__head {
+      margin-bottom: 24px;
+    }
+
+    .casa-v7-story__head h2 {
+      font-size: clamp(38px, 12vw, 54px);
+    }
+
+    .casa-v7-story__head p {
+      margin-top: 14px;
+      font-size: 14px;
+    }
+
+    .casa-v7-size__scene {
+      aspect-ratio: 4 / 3;
+    }
+
+    .casa-v7-size__status {
+      top: 8px;
+      left: 8px;
+      padding: 7px 9px;
+    }
+
+    .casa-v7-size__status strong {
+      font-size: 10px;
+    }
+
+    .casa-v7-size__label {
+      padding: 5px 7px;
+    }
+
+    .casa-v7-size__label strong {
+      font-size: 10px;
+    }
+
+    .casa-v7-size__scene-note {
+      margin-right: 4%;
+      font-size: 8px;
+    }
+
+    .casa-v7-size__selected-main > strong {
+      font-size: 30px;
+    }
+
+    .casa-v7-size__selected-price span {
+      font-size: 16px;
+    }
+
+    .casa-v7-size__option {
+      grid-template-columns: 20px minmax(0, 1fr) auto 20px;
+      gap: 7px;
+      padding-inline: 9px 5px;
+    }
+
+    .casa-v7-size__option-copy > small em {
+      padding: 4px 6px;
+      font-size: 7px;
+    }
+
+    .casa-v7-size__option-price strong {
+      font-size: 11px;
+    }
+
+    .casa-v7-size__product-form .casa-v7-size__atc {
+      min-height: 54px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .casa-v7-size__image--on,
+    .casa-v7-size__selected,
+    .casa-v7-size__rail,
+    .casa-v7-size__label,
+    .casa-v7-size__option {
+      transition: none;
+    }
+  }
+
+  @container (max-width: 360px) {
+    .casa-v7-size__label {
+      display: grid;
+      justify-items: center;
+      gap: 2px;
+      padding: 5px 7px;
+    }
+
+    .casa-v7-size__label strong {
+      font-size: 11px;
+    }
+
+    .casa-v7-size__label small {
+      font-size: 9px;
+    }
+  }
+
+  @container (max-width: 280px) {
+    .casa-v7-size__status {
+      top: auto;
+      bottom: 8px;
+    }
+  }
+{% endstylesheet %}
+
+{% javascript %}
+  class CasaOctaSizeV7 extends HTMLElement {
+    connectedCallback() {
+      if (this.initialized) return;
+      this.initialized = true;
+      this.options = Array.from(this.querySelectorAll('[data-v7-size-option]'));
+      this.hotspots = Array.from(this.querySelectorAll('[data-v7-size-hotspot]'));
+      this.labels = Array.from(this.querySelectorAll('[data-v7-size-label]'));
+      this.statusPrimary = this.querySelector('[data-v7-size-status-primary]');
+      this.statusSecondary = this.querySelector('[data-v7-size-status-secondary]');
+      this.selectedRole = this.querySelector('[data-v7-size-selected-role]');
+      this.selectedPrimary = this.querySelector('[data-v7-size-selected-primary]');
+      this.selectedSecondary = this.querySelector('[data-v7-size-selected-secondary]');
+      this.selectedPrice = this.querySelector('[data-v7-size-selected-price]');
+      this.selectedCompare = this.querySelector('[data-v7-size-selected-compare]');
+      this.selectedPlacement = this.querySelector('[data-v7-size-selected-placement]');
+      this.selectedSaving = this.querySelector('[data-v7-size-selected-saving]');
+      this.selectedBestseller = this.querySelector('[data-v7-size-selected-bestseller]');
+      this.gift = this.querySelector('[data-v7-size-gift]');
+      this.formVariant = this.querySelector('[data-v7-size-form-variant]');
+      this.atc = this.querySelector('.casa-v7-size__atc');
+      this.rail = this.querySelector('[data-v7-size-rail]');
+      this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      this.options.forEach((option) => option.addEventListener('click', () => this.select(option)));
+      this.hotspots.forEach((hotspot) => hotspot.addEventListener('click', () => {
+        const option = this.options.find((item) => item.dataset.v7SizeKey === hotspot.dataset.v7SizeHotspot);
+        if (option) this.select(option);
+      }));
+
+      this.onVariantUpdate = (event) => {
+        const variant = event.detail?.resource;
+        if (!variant?.id) return;
+        const option = this.options.find((item) => item.dataset.variantId === String(variant.id));
+        if (option) this.activate(option);
+      };
+      document.addEventListener('variant:update', this.onVariantUpdate);
+
+      const initialOption = this.options.find((item) => item.classList.contains('is-selected'));
+      if (initialOption) this.updateState(initialOption);
+
+      if ('ResizeObserver' in window) {
+        this.resizeObserver = new ResizeObserver(() => {
+          const activeOption = this.options.find((item) => item.classList.contains('is-selected'));
+          if (activeOption) this.positionRail(activeOption);
+        });
+        this.resizeObserver.observe(this);
+      }
+
+      if ('IntersectionObserver' in window && !this.reducedMotion) {
+        this.entranceObserver = new IntersectionObserver((entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return;
+          window.setTimeout(() => this.classList.add('is-entered'), 180);
+          this.entranceObserver.disconnect();
+        }, { rootMargin: '120px 0px' });
+        this.entranceObserver.observe(this);
+      } else {
+        this.classList.add('is-entered');
+      }
+    }
+
+    disconnectedCallback() {
+      document.removeEventListener('variant:update', this.onVariantUpdate);
+      this.entranceObserver?.disconnect();
+      this.resizeObserver?.disconnect();
+      window.clearTimeout(this.switchTimer);
+    }
+
+    select(option) {
+      this.activate(option);
+      const title = option.dataset.variantTitle;
+      const id = option.dataset.variantId;
+      const purchase = document.querySelector(this.dataset.purchaseTarget || '#casa-octa-purchase');
+      const radio = Array.from(purchase?.querySelectorAll('input[type="radio"]') || []).find((input) => input.value === title);
+      const selectOption = Array.from(purchase?.querySelectorAll('select[name="id"] option') || []).find((item) => item.value === id);
+
+      if (radio && !radio.checked) {
+        radio.checked = true;
+        radio.dispatchEvent(new Event('change', { bubbles: true }));
+      } else if (!radio && selectOption) {
+        selectOption.parentElement.value = id;
+        selectOption.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      this.dispatchEvent(new CustomEvent('casa:size-guide-select', { bubbles: true, detail: { variantId: id, title } }));
+    }
+
+    activate(option) {
+      const key = option.dataset.v7SizeKey;
+      if (this.pendingKey === key) return;
+      if (this.dataset.selectedSize === key) {
+        this.updateState(option);
+        return;
+      }
+
+      window.clearTimeout(this.switchTimer);
+      this.pendingKey = key;
+
+      if (this.reducedMotion || !this.classList.contains('is-entered')) {
+        this.updateState(option);
+        this.pendingKey = '';
+        return;
+      }
+
+      this.classList.add('is-switching');
+      this.switchTimer = window.setTimeout(() => {
+        this.updateState(option);
+        requestAnimationFrame(() => this.classList.remove('is-switching'));
+        this.pendingKey = '';
+      }, 170);
+    }
+
+    updateState(option) {
+      const key = option.dataset.v7SizeKey;
+      this.dataset.selectedSize = key;
+
+      this.options.forEach((item) => {
+        const active = item === option;
+        item.classList.toggle('is-selected', active);
+        item.setAttribute('aria-pressed', String(active));
+      });
+      this.labels.forEach((item) => item.classList.toggle('is-selected', item.dataset.v7SizeLabel === key));
+      this.hotspots.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.v7SizeHotspot === key)));
+
+      if (this.statusPrimary) this.statusPrimary.textContent = option.dataset.variantSizePrimary || option.dataset.variantTitle;
+      if (this.statusSecondary) this.statusSecondary.textContent = option.dataset.variantSizeSecondary || '';
+      if (this.selectedRole) this.selectedRole.textContent = option.dataset.variantRole || '';
+      if (this.selectedPrimary) this.selectedPrimary.textContent = option.dataset.variantSizePrimary || option.dataset.variantTitle;
+      if (this.selectedSecondary) this.selectedSecondary.textContent = option.dataset.variantSizeSecondary || '';
+      if (this.selectedPrice) this.selectedPrice.textContent = option.dataset.variantPrice || '';
+      if (this.selectedPlacement) this.selectedPlacement.textContent = option.dataset.variantPlacement || '';
+
+      this.toggleContent(this.selectedCompare, option.dataset.variantCompare);
+      this.toggleContent(this.selectedSaving, option.dataset.variantSaving);
+      if (this.selectedBestseller) this.selectedBestseller.hidden = option.dataset.variantShowBestseller !== 'true';
+      if (this.gift) this.gift.hidden = option.dataset.variantShowGift !== 'true';
+
+      if (this.formVariant) this.formVariant.value = option.dataset.variantId;
+      if (this.atc) {
+        const available = option.dataset.variantAvailable === 'true';
+        this.atc.disabled = !available;
+        const price = this.atc.querySelector('.add-to-cart-price .atc-price-num');
+        if (price) price.textContent = option.dataset.variantPrice || '';
+        const label = this.atc.querySelector('.add-to-cart-text__content > span > span:first-child');
+        if (label) label.textContent = available ? option.dataset.variantAtcLabel : this.dataset.soldOutLabel;
+        this.atc.setAttribute('aria-label', available ? `${option.dataset.variantAtcLabel} for ${option.dataset.variantPrice}` : `${option.dataset.variantSizePrimary} is sold out`);
+      }
+
+      this.positionRail(option);
+    }
+
+    toggleContent(element, content) {
+      if (!element) return;
+      element.textContent = content || '';
+      element.hidden = !content;
+    }
+
+    positionRail(option) {
+      if (!this.rail || !option) return;
+      this.rail.style.height = `${option.offsetHeight}px`;
+      this.rail.style.transform = `translateY(${option.offsetTop}px)`;
+    }
+  }
+
+  if (!customElements.get('casa-octa-size-v7')) {
+    customElements.define('casa-octa-size-v7', CasaOctaSizeV7);
+  }
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "OctaMirror V7 story",
+  "settings": [
+    { "type": "color_scheme", "id": "color_scheme", "label": "Color scheme", "default": "scheme-1" },
+    { "type": "text", "id": "size_eyebrow", "label": "Size eyebrow", "default": "See the difference before you choose" },
+    { "type": "inline_richtext", "id": "size_heading", "label": "Size heading", "default": "Choose the presence <em>your wall needs.</em>" },
+    { "type": "textarea", "id": "size_lede", "label": "Size introduction", "default": "Compare 11.8\", 19.7\" and 27.6\" in the same scene. Select a mirror to see its role and add that exact size to cart." },
+    { "type": "image_picker", "id": "size_image", "label": "Three-size image — lights on" },
+    { "type": "image_picker", "id": "size_off_image", "label": "Three-size image — lights off" },
+    { "type": "text", "id": "size_image_alt", "label": "Three-size image alt", "default": "The 11.8-inch, 27.6-inch and 19.7-inch Infinity OctaMirrors (30 cm, 70 cm and 50 cm) displayed together on one wall" },
+    { "type": "text", "id": "size_scene_note", "label": "Scene note", "default": "Actual sizes · Same wall" },
+    { "type": "text", "id": "viewing_label", "label": "Viewing label", "default": "Viewing" },
+    { "type": "text", "id": "size_selector_label", "label": "Size selector label", "default": "Select an Infinity OctaMirror size" },
+    { "type": "text", "id": "small_role", "label": "Small size role", "default": "Accent" },
+    { "type": "textarea", "id": "small_placement", "label": "Small size placement", "default": "A precise glow for entries, desks and intimate corners." },
+    { "type": "text", "id": "medium_role", "label": "Medium size role", "default": "Focal point" },
+    { "type": "textarea", "id": "medium_placement", "label": "Medium size placement", "default": "Balanced above a console, chair or compact sofa." },
+    { "type": "text", "id": "large_role", "label": "Large size role", "default": "Statement" },
+    { "type": "textarea", "id": "large_placement", "label": "Large size placement", "default": "Full-scale impact above a sofa, bed or feature wall." },
+    { "type": "text", "id": "bestseller_label", "label": "Bestseller label", "default": "Bestseller" },
+    { "type": "text", "id": "savings_label", "label": "Savings label", "default": "Save" },
+    { "type": "text", "id": "large_gift_text", "label": "Large size US gift note", "default": "Includes Mini Sunset Orb · $79.99 value · US offer" },
+    { "type": "text", "id": "size_note", "label": "Legacy size note", "default": "11.8 in is an accent. 19.7 in is a focal point. The bestselling 27.6 in is the full statement." },
+    { "type": "text", "id": "size_atc_label", "label": "Size Add to cart label", "default": "Add selected size to cart" }
+  ],
+  "presets": [{ "name": "OctaMirror V7 story" }]
+}
+{% endschema %}

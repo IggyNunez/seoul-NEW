@@ -17,8 +17,8 @@
     echo '--column-count-mobile: ' | append: section.settings.mobile_columns | append: ';'
     echo '--resource-list-column-gap-desktop: ' | append: section.settings.columns_gap | append: 'px;'
     echo '--resource-list-row-gap-desktop: ' | append: section.settings.rows_gap | append: 'px;'
-    echo '--resource-list-columns: repeat(' | append: section.settings.columns | append: ', 1fr);'
-    echo '--resource-list-columns-mobile: repeat(' | append: section.settings.mobile_columns | append: ', 1fr);'
+    echo '--resource-list-columns: repeat(' | append: section.settings.columns | append: ', minmax(0, 1fr));'
+    echo '--resource-list-columns-mobile: repeat(' | append: section.settings.mobile_columns | append: ', minmax(0, 1fr));'
     echo '--resource-list-column-gap-desktop: ' | append: section.settings.columns_gap | append: 'px;'
     echo '--column-count: ' | append: section.settings.columns | append: ';'
     echo '--column-count-mobile: ' | append: section.settings.mobile_columns | append: ';'
@@ -52,6 +52,28 @@
       {{ styles }}
     "
   >
+    {%- liquid
+      assign rec_heading = ''
+      assign rec_subheading = ''
+      if block.settings.heading != blank
+        assign rec_heading = block.settings.heading
+      elsif section.settings.heading != blank
+        assign rec_heading = section.settings.heading
+      endif
+      if section.settings.subheading != blank
+        assign rec_subheading = section.settings.subheading
+      endif
+    -%}
+    {%- if rec_heading != blank or rec_subheading != blank -%}
+      <div class="section-resource-list__cap">
+        {%- if rec_heading != blank -%}
+          <h2 class="section-resource-list__heading">{{ rec_heading }}</h2>
+        {%- endif -%}
+        {%- if rec_subheading != blank -%}
+          <p class="section-resource-list__subheading">{{ rec_subheading }}</p>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
     <div class="section-resource-list__content">
       {% content_for 'blocks' %}
     </div>
@@ -81,7 +103,29 @@
       {% capture list_items %}
         {% for product in products limit: section.settings.max_products %}
           <div class="resource-list__item">
-            {% content_for 'block', type: '_product-card', id: 'static-product-card', closest.product: product %}
+            {%- comment -%}
+              Use Casa product card so recommendations get hover video,
+              variant swatches, badges, ratings, savings, and the same
+              theme-toggle controls as the rest of the site's product
+              cards. Replaced the Horizon native _product-card block —
+              see commit history for context.
+            {%- endcomment -%}
+            {% render 'casa-product-card',
+              product: product,
+              variant: 'default',
+              index: forloop.index0,
+              show_rating: settings.card_show_rating,
+              show_hover_video: settings.card_show_hover_video,
+              show_badge: settings.card_show_badges,
+              show_sale_badge: settings.card_show_sale_badge,
+              show_variant_swatches: settings.card_show_swatches,
+              show_quick_add: settings.card_show_quick_add,
+              show_quick_view: settings.card_show_quick_view,
+              show_wishlist: settings.card_show_wishlist,
+              show_stock_urgency: settings.card_show_stock_urgency,
+              show_savings_highlight: settings.card_show_savings_highlight,
+              show_installment: settings.card_show_installment
+            %}
           </div>
           {% unless forloop.last %}
             <!--@list/split-->
@@ -168,6 +212,195 @@
   </div>
 </product-recommendations>
 
+<style>
+  /* Mobile: card info flush to card edge */
+  @media (max-width: 600px) {
+    .product-recommendations .product-card__info,
+    .product-recommendations [class*="product-card"] [class*="info"] {
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+  }
+
+  /* Mobile: every product-recommendations carousel needs the
+     same first-card inset on phones. Two contexts emit this
+     component:
+       (1) the standalone post-PDP "More to love" SECTION
+           (data-testid="product-recommendations-section") —
+           gets a 16px gutter from --util-page-margin-offset
+           by default, which reads as "stuck to the wall"
+       (2) the in-product-info BLOCK
+           (data-testid="product-recommendations-block",
+           rendered from blocks/product-recommendations.liquid
+           for "Pair it with" / "#CasaFamily" / etc.) — on
+           desktop it lives in the buy-box column so the column
+           padding hides the issue, but on mobile the buy-box
+           collapses to full width and the first card sits flush
+           with the viewport edge.
+     Both need a clear 20px inset on <750px. The
+     [data-testid] attribute selector bumps specificity above
+     base.css's `slideshow-slides[gutters*='start']` rule
+     (0,0,1,1) → (0,0,1,2), so the section case still wins
+     without !important. The block case has no gutters attr
+     and inherits 0 from base.css, so any rule beats it. */
+  @media (max-width: 749px) {
+    /* Standalone post-PDP section: force-full-width wraps the
+       carousel right against the viewport edge, so the full 20px
+       inset lives on the slides. First card lands at x=20. */
+    product-recommendations[data-testid="product-recommendations-section"]
+      slideshow-slides {
+      padding-inline-start: 20px;
+      padding-inline-end: 20px;
+      scroll-padding-inline-start: 20px;
+    }
+    /* In-product-info block: the parent product info section
+       already contributes ~12px page-margin on mobile, so only
+       add 8px here to land the first card at x=20 — matching
+       the standalone section's visual inset rather than stacking
+       a full 20px on top of the 12 (which read as too much). */
+    product-recommendations[data-testid="product-recommendations-block"]
+      slideshow-slides {
+      padding-inline-start: 8px;
+      padding-inline-end: 8px;
+      scroll-padding-inline-start: 8px;
+    }
+  }
+
+  /* Ultrawide / 4K: products should start near the left edge on bigger
+     screens, not get pushed inward by the page-width centering math.
+     Horizon's default --util-page-margin-offset = (100% - page-content-
+     width) / 2 + page-margin, which balloons past 1920px and creates a
+     huge left gap. Pin to just --page-margin so products start ~40px
+     from the viewport edge regardless of viewport width.
+
+     Scoped to the section's product-recommendations element via the
+     data-testid attribute so this can't bleed into the
+     blocks/product-recommendations.liquid version (which uses
+     data-testid="product-recommendations-block"). */
+  @media (min-width: 1920px) {
+    product-recommendations[data-testid="product-recommendations-section"] .section--page-width {
+      --util-page-margin-offset: var(--page-margin);
+    }
+
+    /* Ultrawide guardrail: the rule above deliberately bleeds the carousel
+       rail to the viewport edge, but base.css derives slide width from
+       rail ÷ column-count — at 3440px that's ~816px product cards
+       (measured live on the neon-sign PDPs 2026-07-12). Cap the computed
+       slide width so the full-bleed rail shows MORE human-scale cards
+       instead of bigger ones (site-wide cap-content/scale-density
+       contract). Scoped to the section version only — the in-buy-box
+       block already caps slides at 200px. The duplicated formula mirrors
+       assets/base.css:4458-4467 — if that formula changes, update here. */
+    product-recommendations[data-testid="product-recommendations-section"] .resource-list__carousel .resource-list__slide {
+      --slide-width: min(
+        calc(
+          (100% - (var(--resource-list-column-gap) * (var(--column-count) - 1)) - var(--peek-next-slide-size)) /
+            var(--column-count)
+        ),
+        440px
+      );
+    }
+
+    /* 2026-08-25, the missing half of the cap above: with slides capped
+       at 440px, a 4-product "More to love" spans ~1876px and can no
+       longer fill the deliberately full-bleed rail — measured live on
+       the mirror PDPs at 3440x1440: row ended at x=1836 with 1604px of
+       dead space right while the heading centered above it (the heading
+       lives in the 1440px .section-resource-list__cap; the rail bleeds).
+       Cap and center the rail itself, exactly like the grid variant
+       below. Slides keep their 440px cap — the %-formula now resolves
+       against the capped rail — and instances with more products than
+       fit still overflow-scroll inside it. */
+    product-recommendations[data-testid="product-recommendations-section"] .resource-list__carousel {
+      max-width: var(--casa-content-max-w, 1920px);
+      margin-inline: auto;
+    }
+
+    /* Grid-layout variant of the same guardrail: a full-width grid list
+       divides the whole 3429px viewport into its columns → 848px cards,
+       skeleton placeholders included (measured live on the bubble-girls
+       and sunset-orb PDPs 2026-07-12). Cap and center the list; the
+       page-width instances are already bounded by the page grid. */
+    product-recommendations[data-testid="product-recommendations-section"] .section--full-width .resource-list--grid {
+      max-width: var(--casa-content-max-w, 1920px);
+      margin-inline: auto;
+    }
+  }
+  /* Shipping-Safari min-content leak guard (grid layout). The carousel's
+     .resource-list__slide already carries min-width:0 in base.css, but the
+     GRID item does not — and shipping Safari (not Chromium, not Playwright-
+     WebKit) leaks the card's overflow-clipped swatch row's full intrinsic
+     width through min-width:auto ancestors, growing the variant-heaviest
+     card past its track (the casa-products-grid Bubble Girls blowout,
+     7d20fbb6). Scoped here per the established pattern — every section caps
+     its own item wrapper; the base rule stays untouched. Pairs with the
+     minmax(0,1fr) track floors echoed in the head of this file. */
+  product-recommendations .resource-list__item {
+    min-width: 0;
+  }
+
+  .section-resource-list__cap {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 64px);
+    box-sizing: border-box;
+  }
+  /* Default (in-main / "Pair it with" near the buy box) — smaller
+     scale so it doesn't dominate the compact buy-box surface. */
+  .section-resource-list__heading {
+    font-family: var(--casa-pdp-h2-family);
+    font-size: clamp(22px, 2.4vw, 30px);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+    margin: 0 0 clamp(16px, 2vw, 24px);
+    color: var(--color-foreground, #0A0A0F);
+    text-align: left;
+    text-wrap: balance;
+  }
+  /* Post-PDP standalone section ("More to love") — matches the
+     primary PDP section H2 spec so it sits at the same scale as
+     "Up in 15 minutes.", "Mirror by day. Portal by night.", etc.
+     The `.shopify-section >` parent guarantees this only applies
+     when the section renders top-level, not when it's nested as
+     a block inside the buy-box product-information area.
+
+     margin:0 — let the section's `gap-style` own the vertical
+     space between heading and product grid (was double-spaced:
+     heading bottom-margin AND wrapper gap stacked). */
+  .shopify-section > product-recommendations .section-resource-list__heading {
+    font-size: var(--casa-pdp-h2-size);
+    font-weight: var(--casa-pdp-h2-weight);
+    letter-spacing: var(--casa-pdp-h2-tracking);
+    line-height: var(--casa-pdp-h2-line);
+    margin: 0;
+  }
+  .section-resource-list__heading em {
+    font-style: italic;
+    font-weight: 800;
+    /* Gradient accent reads larger than surrounding text — merchant
+       directive 2026-05-15 (brand book emphasis register). */
+    font-size: 1.25em;
+    background: linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .section-resource-list__subheading {
+    font-family: var(--font-body--family);
+    font-size: clamp(13px, 1.05vw, 15px);
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: -0.005em;
+    color: color-mix(in srgb, var(--color-foreground, #0A0A0F) 62%, transparent);
+    margin: clamp(6px, 0.7vw, 10px) 0 0;
+    max-width: 60ch;
+    text-align: left;
+    text-wrap: pretty;
+  }
+</style>
+
 {% schema %}
 {
   "name": "t:names.product_recommendations",
@@ -207,6 +440,18 @@
     }
   ],
   "settings": [
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Section heading",
+      "info": "Wrap one word in <em>…</em> to apply the brand italic-gradient (e.g. More to <em>love.</em>). Leave blank to hide. Use only on PDPs that don't already have a custom heading block in this section."
+    },
+    {
+      "type": "inline_richtext",
+      "id": "subheading",
+      "label": "Subheading",
+      "info": "Optional one-line caption below the heading. Keep it short — Inter, muted ink. Renders only on the standalone post-PDP section."
+    },
     {
       "type": "product",
       "id": "product",
@@ -461,78 +706,6 @@
           "settings": {
             "text": "t:html_defaults.related_product"
           }
-        },
-        "static-product-card": {
-          "type": "_product-card",
-          "name": "t:names.product_card",
-          "static": true,
-          "settings": {
-            "product_card_gap": 4
-          },
-          "blocks": {
-            "product-card-gallery": {
-              "type": "_product-card-gallery",
-              "name": "t:names.product_card_media",
-              "settings": {
-                "image_ratio": "adapt",
-                "border": "none",
-                "border_width": 1,
-                "border_opacity": 100,
-                "border_radius": 0,
-                "padding-block-start": 0,
-                "padding-block-end": 0,
-                "padding-inline-start": 0,
-                "padding-inline-end": 0
-              }
-            },
-            "product_title": {
-              "type": "product-title",
-              "name": "t:names.product_title",
-              "settings": {
-                "width": "fit-content",
-                "max_width": "normal",
-                "alignment": "left",
-                "type_preset": "rte",
-                "font": "var(--font-body--family)",
-                "font_size": "1rem",
-                "line_height": "normal",
-                "letter_spacing": "normal",
-                "case": "none",
-                "wrap": "pretty",
-                "color": "var(--color-foreground)",
-                "background": false,
-                "background_color": "#00000026",
-                "corner_radius": 0,
-                "padding-block-start": 4,
-                "padding-block-end": 0,
-                "padding-inline-start": 0,
-                "padding-inline-end": 0
-              }
-            },
-            "price": {
-              "type": "price",
-              "name": "t:names.product_price",
-              "settings": {
-                "show_sale_price_first": true,
-                "show_installments": false,
-                "show_tax_info": false,
-                "type_preset": "h6",
-                "width": "100%",
-                "alignment": "left",
-                "font": "var(--font-body--family)",
-                "font_size": "1rem",
-                "line_height": "normal",
-                "letter_spacing": "normal",
-                "case": "none",
-                "color": "var(--color-foreground)",
-                "padding-block-start": 0,
-                "padding-block-end": 0,
-                "padding-inline-start": 0,
-                "padding-inline-end": 0
-              }
-            }
-          },
-          "block_order": ["product-card-gallery", "product_title", "price"]
         }
       },
       "block_order": ["header"]

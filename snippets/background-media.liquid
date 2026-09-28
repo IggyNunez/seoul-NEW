@@ -33,19 +33,48 @@
         | image_url: width: 3840
         | image_tag: width: 1100, widths: widths, sizes: sizes
       }}
+      {%- comment -%}
+        Casa: playback owned by assets/casa-offscreen-pause.js via
+        data-casa-pause — never the autoplay attribute. The stock
+        video-background-component only injects sources and calls load();
+        it has no viewport gating, so an autoplay background keeps decoding
+        after the user scrolls past. Its connectedCallback calls
+        window.casa.offscreenPauseRefresh() after load() so playback still
+        starts when this module evaluates after the utility's initial scan.
+      {%- endcomment -%}
       <video
         playsinline
         muted
-        autoplay
         loop
+        preload="metadata"
+        data-casa-pause
         ref="videoElement"
       >
+        {%- comment -%}
+          Casa: emit MP4 renditions before the HLS (.m3u8) stream. Shopify
+          lists HLS first and <source> order is selection order — Safari
+          (which can play both) picks the first, paying the adaptive-streaming
+          pipeline for a decorative background loop. MP4-first keeps every
+          browser on the progressive stream; HLS trails as a fallback. Same
+          pick as snippets/casa-product-card.liquid.
+        {%- endcomment -%}
         {%- for sourceElement in background_video.sources -%}
-          <source
-            data-video-source="{{ sourceElement.url }}"
-            type="{{ sourceElement.mime_type }}"
-            ref="videoSources[]"
-          >
+          {%- if sourceElement.mime_type == 'video/mp4' -%}
+            <source
+              data-video-source="{{ sourceElement.url }}"
+              type="{{ sourceElement.mime_type }}"
+              ref="videoSources[]"
+            >
+          {%- endif -%}
+        {%- endfor -%}
+        {%- for sourceElement in background_video.sources -%}
+          {%- unless sourceElement.mime_type == 'video/mp4' -%}
+            <source
+              data-video-source="{{ sourceElement.url }}"
+              type="{{ sourceElement.mime_type }}"
+              ref="videoSources[]"
+            >
+          {%- endunless -%}
         {%- endfor -%}
       </video>
     </video-background-component>

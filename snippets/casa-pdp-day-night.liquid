@@ -1,7 +1,23 @@
 {%- comment -%}
   Casa PDP Day/Night Showcase
   Split section showing product in day mode (mirror) and night mode (portal/LED)
+
+  Source-of-truth resolution (in order):
+    1. Product metafield (custom.day_title / day_subtitle / night_title / night_subtitle)
+    2. Block setting (per-template fallback)
+    3. Blank → text element is skipped, only image renders
+
+  Pre-2026-05-17 defaulted to "Mirror by Day / Portal by Night" — bled onto
+  non-mirror products. Defaults removed; metafield read added.
 {%- endcomment -%}
+
+{%- liquid
+  assign p = product | default: closest.product
+  assign day_title    = p.metafields.custom.day_title    | default: block.settings.day_title
+  assign day_subtitle = p.metafields.custom.day_subtitle | default: block.settings.day_subtitle
+  assign night_title    = p.metafields.custom.night_title    | default: block.settings.night_title
+  assign night_subtitle = p.metafields.custom.night_subtitle | default: block.settings.night_subtitle
+-%}
 
 <div class="casa-day-night">
   {%- comment -%} Day Side {%- endcomment -%}
@@ -11,7 +27,7 @@
         {%- if block.settings.day_image != blank -%}
           <img
             src="{{ block.settings.day_image | image_url: width: 400 }}"
-            alt="{{ block.settings.day_title | escape }}"
+            alt="{{ day_title | default: '' | escape }}"
             class="casa-day-night__image"
             loading="lazy"
             width="200"
@@ -21,8 +37,8 @@
           <div class="casa-day-night__placeholder casa-day-night__placeholder--day"></div>
         {%- endif -%}
       </div>
-      <h3 class="casa-day-night__title">{{ block.settings.day_title | default: 'Mirror by Day' }}</h3>
-      <p class="casa-day-night__subtitle">{{ block.settings.day_subtitle | default: 'A perfect, functional reflection' }}</p>
+      {%- if day_title != blank -%}<h3 class="casa-day-night__title">{{ day_title }}</h3>{%- endif -%}
+      {%- if day_subtitle != blank -%}<p class="casa-day-night__subtitle">{{ day_subtitle }}</p>{%- endif -%}
     </div>
   </div>
 
@@ -33,7 +49,7 @@
         {%- if block.settings.night_image != blank -%}
           <img
             src="{{ block.settings.night_image | image_url: width: 400 }}"
-            alt="{{ block.settings.night_title | escape }}"
+            alt="{{ night_title | default: '' | escape }}"
             class="casa-day-night__image"
             loading="lazy"
             width="200"
@@ -43,8 +59,8 @@
           <div class="casa-day-night__placeholder casa-day-night__placeholder--night"></div>
         {%- endif -%}
       </div>
-      <h3 class="casa-day-night__title">{{ block.settings.night_title | default: 'Portal by Night' }}</h3>
-      <p class="casa-day-night__subtitle">{{ block.settings.night_subtitle | default: 'An infinite, mesmerizing dimension' }}</p>
+      {%- if night_title != blank -%}<h3 class="casa-day-night__title">{{ night_title }}</h3>{%- endif -%}
+      {%- if night_subtitle != blank -%}<p class="casa-day-night__subtitle">{{ night_subtitle }}</p>{%- endif -%}
     </div>
   </div>
 </div>
@@ -64,11 +80,11 @@
 }
 
 .casa-day-night__panel--day {
-  background: #f8f9fa;
+  background: var(--casa-border-on-paper);
 }
 
 .casa-day-night__panel--night {
-  background: #0a0a0f;
+  background: var(--casa-ink);
 }
 
 .casa-day-night__content {
@@ -95,11 +111,11 @@
 }
 
 .casa-day-night__image-wrapper--night {
-  background: #0a0a0f;
+  background: var(--casa-ink);
   box-shadow:
-    0 0 60px rgba(147, 51, 234, 0.4),
-    0 0 100px rgba(147, 51, 234, 0.2),
-    inset 0 0 30px rgba(147, 51, 234, 0.3);
+    0 0 60px rgba(176, 195, 250, 0.4),
+    0 0 100px rgba(176, 195, 250, 0.2),
+    inset 0 0 30px rgba(176, 195, 250, 0.3);
 }
 
 .casa-day-night__placeholder {
@@ -113,8 +129,8 @@
 }
 
 .casa-day-night__placeholder--night {
-  background: #0a0a0f;
-  box-shadow: inset 0 0 40px rgba(147, 51, 234, 0.5);
+  background: var(--casa-ink);
+  box-shadow: inset 0 0 40px rgba(176, 195, 250, 0.5);
 }
 
 .casa-day-night__image {
@@ -131,7 +147,7 @@
 }
 
 .casa-day-night__panel--day .casa-day-night__title {
-  color: #0a0a0a;
+  color: var(--casa-ink);
 }
 
 .casa-day-night__panel--night .casa-day-night__title {

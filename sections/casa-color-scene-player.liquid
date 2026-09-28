@@ -1,0 +1,2008 @@
+{%- comment -%}
+  Seoul Glow Lab — Color Scene Player
+  Photo-crossfading scene player with HUD, dot indicators, and a scrubber that
+  also auto-loops. Scene library is block-driven (one block = one scene).
+  Default preset ships Apollo's six verified scenes from the Brand Book v1·2026
+  PDP design handoff.
+
+  Mood: Ink. Anchor section. Each scene block contributes:
+    - product photo (full-bleed background)
+    - hex color (drives glow + dot + tick swatch)
+    - kind kicker (STATIC / SCENE / EFFECT)
+    - name + blurb shown in caption
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign scene_count = section.blocks.size
+-%}
+
+<section
+  id="casa-csp-{{ section.id }}"
+  class="casa-csp"
+  data-scene-count="{{ scene_count }}"
+  data-period="{{ s.scene_seconds | default: 4 }}"
+  data-autoplay="{% if s.autoplay %}1{% else %}0{% endif %}"
+  data-layout="{{ s.layout_style | default: 'default' }}"
+  style="
+    --csp-paper:  {{ s.color_paper  | default: '#FAFAF7' }};
+    --csp-ink:    {{ s.color_ink    | default: '#0A0A0F' }};
+    --csp-purple: {{ s.color_purple | default: '#B0C3FA' }};
+    --csp-pink:   {{ s.color_pink   | default: '#5E0A02' }};
+    --csp-cyan:   {{ s.color_cyan   | default: '#F2FFA0' }};
+    --csp-pt: {{ s.padding_top    | default: 24 }}px;
+    --csp-pb: {{ s.padding_bottom | default: 24 }}px;
+  "
+>
+  <header class="casa-csp__head">
+    {%- if s.kicker != blank -%}
+      <p class="casa-csp__mono">{{ s.kicker }}</p>
+    {%- endif -%}
+    {%- if s.heading != blank -%}
+      <h2 class="casa-csp__h2">{{ s.heading }}</h2>
+    {%- endif -%}
+    {%- if s.lede != blank -%}
+      <p class="casa-csp__lede">{{ s.lede }}</p>
+    {%- endif -%}
+  </header>
+
+  {%- comment -%}
+    Rail caption — only renders when layout_style="split-rail".
+    Mirrors the in-stage .casa-csp__caption (same data-csp-* attrs)
+    so existing JS updates both via querySelectorAll. CSS hides the
+    in-stage overlay caption in split-rail mode so we don't double-print.
+  {%- endcomment -%}
+  {%- if s.layout_style == 'split-rail' -%}
+    <div class="casa-csp__rail-caption">
+      <p class="casa-csp__mono casa-csp__mono--accent" data-csp-kicker></p>
+      <h3 data-csp-title></h3>
+      <p data-csp-blurb></p>
+    </div>
+  {%- endif -%}
+
+  {%- comment -%}
+    Section-wide ambient glow. JS sets `--csp-color` on the section root
+    to the current scene's hex; this element paints two soft radial
+    color washes anchored to the left + right edges so the section
+    "side bars" flanking the centered stage carry the current scene
+    color in a continuously blurred flow. Sits at z-index 0, below
+    everything else.
+  {%- endcomment -%}
+  <div class="casa-csp__bg-glow" aria-hidden="true"></div>
+
+  {%- if scene_count > 0 -%}
+  {%- comment -%}
+    .casa-csp__viz wraps stage + HUD as a positioning unit.
+      - On mobile/iPad: viz behaves like the stage's wrapper (same
+        max-width, centered), HUD positioned absolutely inside it
+        overlaying the stage's top-right corner (the original look).
+      - On desktop (≥1100px): viz becomes a 2-col grid placing stage
+        on the left and HUD on its own column to the right, so the
+        spec readout sits OUTSIDE the photo. Combined with the
+        section-level grid on desktop, the final composition is
+        header-left | stage-center | HUD-right per merchant
+        direction.
+  {%- endcomment -%}
+  <div class="casa-csp__viz">
+  <div class="casa-csp__stage">
+    {%- comment -%}
+      Pre-render all scene photos as stacked layers; JS toggles opacity.
+      Layers hold real image elements (was CSS background-image) so the
+      browser can lazy-load the whole set and pick a per-device size via
+      srcset — the old markup shipped six eager 2000px files to every
+      phone, competing with the hero image for LCP bandwidth. With
+      loading="lazy" all six defer until the section nears the viewport;
+      the ink stage background covers any late frames.
+    {%- endcomment -%}
+    <div class="casa-csp__layers">
+      {%- for block in section.blocks -%}
+        {%- assign b = block.settings -%}
+        {%- assign scene_label = b.scene_name | default: 'Scene' -%}
+        {%- if product -%}
+          {%- assign img_alt = product.title | append: ' — ' | append: scene_label | append: ' scene' -%}
+        {%- else -%}
+          {%- assign img_alt = scene_label -%}
+        {%- endif -%}
+        <div
+          class="casa-csp__layer"
+          data-idx="{{ forloop.index0 }}"
+          data-hex="{{ b.scene_hex | default: '#F2FFA0' }}"
+          data-palette="{{ b.scene_palette | default: '' | strip | escape }}"
+          data-kind="{{ b.scene_kind | default: 'STATIC' }}"
+          data-name="{{ b.scene_name | default: 'Scene' | escape }}"
+          data-blurb="{{ b.scene_blurb | default: '' | escape }}"
+          {{ block.shopify_attributes }}
+          style="opacity: {% if forloop.first %}1{% else %}0{% endif %};"
+        >
+          {%- if b.scene_image != blank -%}
+            {{ b.scene_image | image_url: width: 1600 | image_tag:
+              widths: '600, 900, 1200, 1600, 2000',
+              sizes: '(orientation: portrait) 96vw, min(72vh, 720px)',
+              class: 'casa-csp__img',
+              loading: 'lazy',
+              decoding: 'async',
+              fetchpriority: 'low',
+              alt: img_alt }}
+          {%- elsif b.scene_image_url != blank -%}
+            {%- comment -%}
+              External-URL fallback (all six floor-lamp templates use this
+              path today). The files live on the Shopify CDN, so the
+              ?width= transform param builds a real srcset. Any existing
+              query string is stripped first.
+            {%- endcomment -%}
+            {%- assign img_base = b.scene_image_url | split: '?' | first -%}
+            <img
+              class="casa-csp__img"
+              src="{{ img_base }}?width=1600"
+              srcset="{{ img_base }}?width=600 600w, {{ img_base }}?width=900 900w, {{ img_base }}?width=1200 1200w, {{ img_base }}?width=1600 1600w, {{ img_base }}?width=2000 2000w"
+              sizes="(orientation: portrait) 96vw, min(72vh, 720px)"
+              loading="lazy"
+              decoding="async"
+              fetchpriority="low"
+              alt="{{ img_alt | escape }}"
+              width="2000"
+              height="2000"
+            >
+          {%- endif -%}
+        </div>
+      {%- endfor -%}
+    </div>
+
+    {%- comment -%} Glow vignette — JS sets background dynamically {%- endcomment -%}
+    <div class="casa-csp__glow"></div>
+
+    {%- comment -%} Caption bottom-left {%- endcomment -%}
+    <div class="casa-csp__caption">
+      <p class="casa-csp__mono casa-csp__mono--accent" data-csp-kicker></p>
+      <h3 data-csp-title></h3>
+      <p data-csp-blurb></p>
+    </div>
+
+  </div>
+  {%- comment -%} HUD is now a sibling of the stage so it can flow into
+    its own grid column on desktop. On mobile/iPad it's still positioned
+    absolutely (relative to .casa-csp__viz) so it overlays the stage's
+    top-right corner exactly like before. Hidden on phones via the
+    @max-width:640 media query (caption + scrubber + dots already
+    convey scene/color/index there). {%- endcomment -%}
+  <aside class="casa-csp__hud" aria-hidden="true">
+    <div class="casa-csp__hud-row">
+      <span class="k">SCENE</span>
+      <span class="v" data-csp-name></span>
+    </div>
+    <div class="casa-csp__hud-row">
+      <span class="k">COLOR</span>
+      <span class="v">
+        <span class="casa-csp__sw" data-csp-sw></span>
+        <span data-csp-hex></span>
+      </span>
+    </div>
+    <div class="casa-csp__hud-row">
+      <span class="k">INDEX</span>
+      <span class="v" data-csp-index></span>
+    </div>
+  </aside>
+  </div>{%- comment -%} /.casa-csp__viz {%- endcomment -%}
+
+  {%- comment -%} Scene dots — lifted OUT of the stage so they never overlap
+    the product photo (especially the lamp base on the Color Flow scene).
+    Sits centered in the chrome band above the scrubber. {%- endcomment -%}
+  {%- comment -%} Plain button group — no role="tablist": the buttons
+    don't implement the tab keyboard contract (arrow keys, aria-selected),
+    and honest <button>s with aria-labels are the correct semantics. {%- endcomment -%}
+  <div class="casa-csp__dots">
+    {%- for block in section.blocks -%}
+      {%- assign b = block.settings -%}
+      {%- assign palette_raw = b.scene_palette | default: '' | strip -%}
+      {%- if palette_raw == '' -%}
+        {%- assign dot_bg = b.scene_hex | default: '#F2FFA0' -%}
+        {%- assign dot_glow = b.scene_hex | default: '#F2FFA0' -%}
+      {%- else -%}
+        {%- assign dot_bg = 'linear-gradient(90deg, ' | append: palette_raw | append: ')' -%}
+        {%- assign dot_glow = palette_raw | split: ',' | first | strip -%}
+      {%- endif -%}
+      <button
+        type="button"
+        class="casa-csp__dot{% if forloop.first %} is-on{% endif %}"
+        data-csp-go="{{ forloop.index0 }}"
+        data-name="{{ b.scene_name | default: 'scene' | escape }}"
+        aria-label="{{ b.scene_name | default: 'Scene' | escape }} · {{ 'accessibility.slide_status' | t: index: forloop.index, length: scene_count }}"
+        style="--c: {{ dot_bg }}; --c-glow: {{ dot_glow }};"
+      ></button>
+    {%- endfor -%}
+  </div>
+
+  <div class="casa-csp__ctrl">
+    {%- comment -%} Play/pause glyphs are inline SVGs (were ❚❚ / ▶ text
+      glyphs, which render off-center or font-substituted per platform).
+      Both icons ship in the DOM; CSS shows one based on .is-on so JS
+      only toggles the class it already toggles. {%- endcomment -%}
+    {%- comment -%} Labels reuse the base theme's translated slideshow
+      keys — no hardcoded English, every locale already covered. JS swaps
+      the SR label from the data attributes. {%- endcomment -%}
+    {%- assign label_play  = 'accessibility.slideshow_play'  | t -%}
+    {%- assign label_pause = 'accessibility.slideshow_pause' | t -%}
+    <button
+      type="button"
+      class="casa-csp__btn{% if s.autoplay %} is-on{% endif %}"
+      data-csp-toggle
+      aria-pressed="{% if s.autoplay %}true{% else %}false{% endif %}"
+      data-label-play="{{ label_play | escape }}"
+      data-label-pause="{{ label_pause | escape }}"
+    >
+      <span class="ico" aria-hidden="true">
+        <svg class="ico-play" viewBox="0 0 12 12" width="10" height="10" focusable="false"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg>
+        <svg class="ico-pause" viewBox="0 0 12 12" width="10" height="10" focusable="false"><path d="M2.5 1.5h2.6v9H2.5zM6.9 1.5h2.6v9H6.9z" fill="currentColor"/></svg>
+      </span>
+      <span data-csp-label>{% if s.autoplay %}{{ label_pause }}{% else %}{{ label_play }}{% endif %}</span>
+    </button>
+
+    <div class="casa-csp__track-wrap">
+      <div class="casa-csp__ticks" aria-hidden="true">
+        {%- for block in section.blocks -%}
+          {%- assign b = block.settings -%}
+          {%- assign tick_palette = b.scene_palette | default: '' | strip -%}
+          {%- if tick_palette == '' -%}
+            {%- assign tick_bg = b.scene_hex | default: '#F2FFA0' -%}
+          {%- else -%}
+            {%- assign tick_bg = 'linear-gradient(90deg, ' | append: tick_palette | append: ')' -%}
+          {%- endif -%}
+          <span>
+            <span class="casa-csp__tick-sw" style="background: {{ tick_bg }};"></span>
+            {{ b.scene_name | default: 'Scene' | upcase }}
+          </span>
+        {%- endfor -%}
+      </div>
+      <input
+        type="range"
+        min="0"
+        max="1000"
+        value="0"
+        class="casa-csp__track"
+        data-csp-track
+        aria-label="{{ 'accessibility.slideshow' | t }}"
+        style="background: {%- comment -%} Continuous flowing gradient: single-color scenes contribute one stop at the segment centre; multi-color scenes spread their palette across the segment with a small inset. Adjacent stops blend smoothly so there are no hard segment edges. {%- endcomment -%}{%- assign stops = '' -%}{%- for block in section.blocks -%}{%- assign palette_raw = block.settings.scene_palette | default: '' | strip -%}{%- assign p1 = forloop.index0 | times: 100 | divided_by: scene_count -%}{%- assign p2 = forloop.index | times: 100 | divided_by: scene_count -%}{%- assign segw = p2 | minus: p1 -%}{%- if palette_raw == '' -%}{%- assign hex = block.settings.scene_hex | default: '#F2FFA0' -%}{%- assign sum = p1 | plus: p2 -%}{%- assign mid = sum | divided_by: 2 -%}{%- capture stop -%}{{ hex }} {{ mid }}%{%- endcapture -%}{%- else -%}{%- assign inset = segw | divided_by: 6 -%}{%- assign inner_p1 = p1 | plus: inset -%}{%- assign inner_p2 = p2 | minus: inset -%}{%- assign inner_w = inner_p2 | minus: inner_p1 -%}{%- assign colors = palette_raw | split: ',' -%}{%- assign cn = colors | size -%}{%- assign step_div = cn | minus: 1 -%}{%- if step_div < 1 -%}{%- assign step_div = 1 -%}{%- endif -%}{%- assign stop = '' -%}{%- for c in colors -%}{%- assign cs = c | strip -%}{%- assign offset = forloop.index0 | times: inner_w | divided_by: step_div -%}{%- assign pos = inner_p1 | plus: offset -%}{%- if forloop.first -%}{%- capture stop -%}{{ cs }} {{ pos }}%{%- endcapture -%}{%- else -%}{%- assign stop = stop | append: ', ' | append: cs | append: ' ' | append: pos | append: '%' -%}{%- endif -%}{%- endfor -%}{%- endif -%}{%- if forloop.first -%}{%- assign stops = stop -%}{%- else -%}{%- assign stops = stops | append: ', ' | append: stop -%}{%- endif -%}{%- endfor -%}linear-gradient(90deg, {{ stops }});"
+      >
+      {%- comment -%} Centered tagline directly below the scrubber — sits inside
+        the track-wrap (mirrors the ticks label row above the scrubber) so it
+        doesn't add a separate section row. Keeps the section fitting one frame
+        on 13"/14" laptops where every vertical pixel counts. {%- endcomment -%}
+      {%- comment -%} Count tagline is optional: a product whose live description
+        verifies no numeric spec (e.g. Halo) leaves count_value blank so the whole
+        line is omitted rather than falling back to a fabricated default. {%- endcomment -%}
+      {%- if s.count_value != blank -%}
+      <p class="casa-csp__count" aria-hidden="true">
+        <span class="k">{{ s.count_value }}</span>
+        <span class="v">{{ s.count_label }}</span>
+      </p>
+      {%- endif -%}
+    </div>
+
+  </div>
+  {%- else -%}
+    {%- if request.design_mode -%}
+      <div class="casa-csp__empty">Add scenes via theme editor blocks.</div>
+    {%- endif -%}
+  {%- endif -%}
+</section>
+
+{% stylesheet %}
+.casa-csp {
+  position: relative;
+  background: var(--csp-ink);
+  color: var(--csp-paper);
+  padding: var(--csp-pt) 0 var(--csp-pb);
+  overflow: hidden;
+  font-family: var(--font-body--family);
+  /* Strict viewport-fit minus BOTH stickies via --casa-vh-fit
+     (assets/casa-base.css): header group (JS-measured, ~100px) + cart
+     bar (JS-measured, ~84px). The old fixed 96px covered the bar but
+     not the always-sticky header, leaving ~88px of the section behind
+     chrome on short laptops (real window at 1280×640: 456px). The var()
+     fallback covers a missing token (stale cached casa-base.css) only;
+     pre-svh engines resolve this declaration to auto (IACVT) — same
+     benign degradation the old 100svh code had. The 100vh line below is
+     for that stale-cache case, not for pre-svh engines. */
+  height: calc(100vh - 196px);
+  height: var(--casa-vh-fit, calc(100svh - 96px));
+  max-height: var(--casa-vh-fit, calc(100svh - 96px));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* Section-wide ambient glow. `--csp-color` is set by JS to either:
+   - a single hex (solo scenes like Cyan / Amber / Warm), OR
+   - a vertical linear-gradient through the palette (multi-color
+     scenes like Holiday / Spectrum / Color Flow).
+   The mask reveals only the left + right edges, so on multi-color
+   scenes the palette renders as a vertical rainbow on each side bar.
+   Heavy blur (50px) softens the gradient bands into continuous flow. */
+.casa-csp__bg-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--csp-color, transparent);
+  opacity: 0.55;
+  filter: blur(50px);
+  -webkit-mask-image:
+    radial-gradient(ellipse 55% 110% at 0% 50%, black 0%, transparent 70%),
+    radial-gradient(ellipse 55% 110% at 100% 50%, black 0%, transparent 70%);
+          mask-image:
+    radial-gradient(ellipse 55% 110% at 0% 50%, black 0%, transparent 70%),
+    radial-gradient(ellipse 55% 110% at 100% 50%, black 0%, transparent 70%);
+  transition: background 0.3s ease;
+}
+.casa-csp__head,
+.casa-csp__stage,
+.casa-csp__viz,
+.casa-csp__ctrl,
+.casa-csp__empty { position: relative; z-index: 1; }
+/* Viz wraps stage + HUD on mobile/iPad. Provides the
+   `position: relative` ancestor for the HUD's absolute overlay
+   positioning. Sized to fill the same flex slot the stage used
+   to occupy (flex: 1 1 0; full width) — the stage inside still
+   centers itself via its own max-width + margin auto. The HUD's
+   right offset uses --csp-stage-w (JS-measured stage width with
+   72svh SSR fallback) to land at the stage's top-right edge even
+   though the viz extends past the stage on each side.
+   On desktop (≥1100px) viz switches to display: contents so its
+   children promote to direct section grid items — see media block
+   below for the 3-col layout. */
+.casa-csp__viz {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+}
+.casa-csp__head { max-width: 720px; margin: 0 auto 20px; padding: 0 clamp(20px, 5vw, 64px); flex: 0 0 auto; }
+.casa-csp__mono {
+  /* Brand-default quiet kicker — inherit color + opacity 0.5 per
+     brand book §03 .section .kicker. Cross-section unify pass
+     (2026-05-15): the section-number mono is chrome, not a moment
+     register. The brand color expression on the Apollo PDP lives in
+     the H2 italic-trinity em accent, one per heading. Reserved-color
+     kickers are for §01 lead / §08 anti-pattern moments only. */
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: inherit;
+  opacity: 0.85;
+  margin: 0 0 16px;
+}
+.casa-csp__h2 {
+  /* Brand-locked PDP H2 — uses the same casa-pdp-h2-* tokens as
+     stats-grid and faq-page-v2 so every section heading reads as
+     one editorial voice across the Apollo PDP. */
+  font-family:    var(--casa-pdp-h2-family);
+  font-size:      var(--casa-pdp-h2-size);
+  font-weight:    var(--casa-pdp-h2-weight);
+  letter-spacing: var(--casa-pdp-h2-tracking);
+  line-height:    var(--casa-pdp-h2-line);
+  margin: 0 0 10px;
+  color: var(--csp-paper);
+  text-wrap: balance;
+}
+.casa-csp__h2 em {
+  font-style: italic;
+  /* Brand book v1 §08 anti-pattern: "Heavy 800-weight on every
+     section heading — only the hero is the loud moment." Cap at
+     600 to stay inside the brand H2 weight range (500-600). */
+  font-weight: 600;
+  /* Gradient accent reads larger than surrounding text — merchant
+     directive 2026-05-15 (brand book emphasis register). 1.25em
+     scales with the H2 clamp so the ratio holds at every viewport. */
+  font-size: 1.25em;
+  /* Mobile keeps the 2-stop pink→cyan that the merchant signed off as
+     "perfect on mobile" (2026-05-16). The brand-trinity 3-stop
+     purple→pink→cyan kicks in at desktop ≥1101px only — see the
+     desktop bump block at the bottom of this stylesheet. */
+  background: linear-gradient(90deg, var(--csp-pink), var(--csp-cyan));
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.casa-csp__lede {
+  font-size: clamp(13px, 1.4vw, 15px);
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 56ch;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* Stage = centered 1:1 card. Scene photos are square (2000×2000), so a square
+   stage + cover means the image fills the card perfectly — no letterbox bars,
+   no cropping. Centered horizontally with margin auto. */
+.casa-csp__stage {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  margin: 0 auto;
+  aspect-ratio: 1 / 1;
+  height: 100%;
+  width: auto;
+  max-width: calc(100% - 2 * clamp(20px, 5vw, 64px));
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--casa-ink);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 80px -30px rgba(0, 0, 0, 0.8);
+}
+.casa-csp__layers { position: absolute; inset: 0; }
+.casa-csp__layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  transition: opacity 0.15s linear;
+  will-change: opacity;
+}
+.casa-csp__img {
+  /* Replicates the old background-size:110% + 50% 100% anchor with pure
+     geometry: a 110% box anchored bottom-center (left -5% centers the
+     horizontal overhang) zooms 10% so the lamp's base sits firmly at
+     the bottom of the frame. Photos are 2000×2000, so the 10% top crop
+     just trims empty wall. Deliberately NOT transform: scale(1.1) —
+     WebKit lets composited/transformed descendants escape an ancestor's
+     border-radius clip (the stage's 18px corners), a real-iPhone-only
+     failure mode. Plain geometry can't escape the clip. */
+  position: absolute;
+  top: auto;
+  bottom: 0;
+  left: -5%;
+  width: 110%;
+  /* The theme's global `img { max-width: 100% }` reset was capping this
+     110% back to 100%, so the -5% left pull left a ~5% dark strip on the
+     image's RIGHT edge (36px at the 720px desktop stage, ~23px at
+     landscape tablet; portrait is unaffected — it overrides width to
+     100%). Un-cap so the intended 110% overhang actually renders and
+     covers the frame; the stage's overflow:hidden clips the symmetric
+     spill on both sides. */
+  max-width: none;
+  height: 110%;
+  object-fit: cover;
+  object-position: 50% 100%;
+}
+.casa-csp__glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  /* Reduced opacity + filter blur softens the gradient stops into a
+     smooth continuous flow — was creating visible color "bars" in
+     the lamp column at 0.85 + no blur because the screen-blend
+     amplified the radial falloff into a perceptible ring. */
+  opacity: 0.5;
+  filter: blur(12px);
+  transition: background 0.15s linear;
+}
+/* HUD = compact lab-style chip overlaid in the stage's top-right corner.
+   Glass card with backdrop blur so it reads as a soft info-strip without
+   blocking the lamp. */
+.casa-csp__hud {
+  position: absolute;
+  top: 14px;
+  /* HUD sits at the stage's top-right corner (inset 14px). Now that
+     HUD is a sibling of stage inside .casa-csp__viz (which is full
+     width of the section), HUD's `right` offset is measured from
+     viz's right edge — not the stage's. The stage centers itself in
+     viz via its own margin auto, leaving a gutter of
+     (viz_width - stage_width) / 2 on each side. To land HUD at the
+     stage's right edge plus 14px inset, add the gutter back:
+       right = (viz_w - stage_w) / 2 + 14
+     Uses --csp-stage-w (JS-set via ResizeObserver on stage, fallback
+     72svh) so the math reflects the actual stage width. */
+  right: calc((100% - var(--csp-stage-w, 72svh)) / 2 + 14px);
+  z-index: 3;
+  width: clamp(160px, 14vw, 190px);
+  background: rgba(10, 10, 15, 0.55);
+  /* Backdrop blur dropped 14px → 10px + will-change added (2026-05-17).
+     HUD sits absolute over animated scene-player content; without GPU
+     layer promotion the blur invalidates per frame as the scene
+     animates underneath. Same fix pattern as 2e7e8e4 (header). */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  color: var(--csp-paper);
+  letter-spacing: 0.08em;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+}
+.casa-csp__hud-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.casa-csp__hud-row .k { color: rgba(255, 255, 255, 0.75); }
+.casa-csp__hud-row .v {
+  color: #fff;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.casa-csp__sw {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 10px currentColor;
+  background: var(--csp-cyan);
+}
+/* Caption = tiny title-only pill anchored bottom-left of the stage.
+   Scene name only — kicker/blurb are hidden so the lamp photo dominates. */
+.casa-csp__caption {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  max-width: 60%;
+  background: rgba(10, 10, 15, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  padding: 7px 16px;
+  color: var(--csp-paper);
+}
+.casa-csp__caption .casa-csp__mono--accent { display: none; }
+.casa-csp__caption p { display: none; }
+.casa-csp__caption h3 {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  margin: 0;
+  color: #fff;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Dots now live in the chrome band between the stage and the controls,
+   centered on the page centerline. Glass pill stays, but no longer
+   overlays the product photo — fixes the lamp-base coverage on the
+   Color Flow scene and matches the "no asymmetric corner-pinning" rule. */
+.casa-csp__dots {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  /* 16px gap keeps expanded 24px+ tap targets from intersecting
+     (visual dots stay 8-10px; hit areas extend ±8px). */
+  gap: 16px;
+  margin: 14px auto 0;
+  padding: 6px 14px;
+  background: rgba(10, 10, 15, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 100px;
+  width: -moz-fit-content;
+  width: fit-content;
+}
+.casa-csp__dot {
+  width: 10px;
+  height: 10px;
+  border: 0;
+  padding: 0;
+  position: relative;
+  border-radius: 50%;
+  /* --c can be a hex (solid) OR a gradient string (multi-color scenes) — `background` accepts both */
+  background: var(--c, #fff);
+  opacity: 0.45;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
+}
+/* Invisible tap-target expansion (WCAG 2.5.8): the visual dot stays
+   8-10px but the clickable area extends to ~24-26px. Scoped to the
+   default layout — split-rail renders dots as full-width labeled rows
+   that are already tall enough, and expanding those would overlap.
+   Paired with the 16px dots gap so expanded targets never intersect. */
+.casa-csp[data-layout="default"] .casa-csp__dot::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+.casa-csp__dot:hover { opacity: 0.75; }
+.casa-csp__dot.is-on {
+  opacity: 1;
+  transform: scale(1.25);
+  /* box-shadow needs a real color (it can't take a gradient) — --c-glow is always single-color */
+  box-shadow: 0 0 10px var(--c-glow, var(--c));
+}
+
+/* Controls row.
+   Default (≥768px tablet + desktop): 3-col grid — PAUSE in col 1
+   (right-aligned so it abuts the scrubber), scrubber locked to stage
+   width in col 2 via `--csp-stage-w` (set by a ResizeObserver on the
+   stage), empty col 3 mirrors col 1 so the scrubber is pixel-centered
+   on the page. PAUSE sits OUTSIDE the image to the left. Now that
+   PAUSE is a 32×32 round icon button it fits even in tight tablet
+   gaps where the old 84px pill couldn't.
+   Phone (<768px): 1-col stack — PAUSE drops to its own row below the
+   scrubber, centered, because the image fills the viewport width and
+   there's no horizontal room outside.
+   `--csp-stage-w` SSR fallback is 72svh — close enough until the JS
+   ResizeObserver paints (within ~1 frame). */
+.casa-csp__ctrl {
+  margin: 14px auto 0;
+  max-width: calc(100% - 2 * clamp(20px, 5vw, 64px));
+  width: 100%;
+  display: grid;
+  /* row-gap stays 0 — grid row-gaps survive a display:none child (the
+     empty named-area row collapses but its gaps don't), which would add
+     phantom pixels exactly on the short viewports that hide ticks/count.
+     Vertical rhythm comes from margins on ticks/count instead, which die
+     with display:none. */
+  gap: 0 14px;
+  align-items: center;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  /* Structural alignment: .casa-csp__track-wrap is display:contents, so
+     ticks / track / count each get their own grid ROW in column 2, and
+     the PAUSE button shares the track's row in column 1. The button is
+     therefore always vertically centered on the bar itself — at every
+     breakpoint, with any combination of ticks/count visible — replacing
+     the old empirically-tuned translateY nudges (-14px/-6px/0 per media
+     range) that drifted whenever the content around the bar changed.
+     Default column layout — applies to phone portrait, iPad portrait,
+     large-portrait desktop (anywhere the stage fills the section width
+     and there's no room outside it). The bar's right edge aligns with
+     the stage's right edge; its left edge is button-width + gap inset,
+     which reads as "approximately centered" against a 600-1000px stage. */
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    ".    ticks"
+    "btn  track"
+    ".    count";
+}
+.casa-csp__ticks { grid-area: ticks; }
+.casa-csp__track { grid-area: track; }
+.casa-csp__count { grid-area: count; }
+.casa-csp__btn   { grid-area: btn; }
+/* The 3-col layout (PAUSE OUTSIDE the stage to the left, bar pixel-
+   centered under the carousel) only works when there's enough
+   horizontal padding around the stage to hold the 32px button + 14px
+   gap. On most portrait viewports the stage fills the section width
+   and there's no room, so this rule is gated to landscape orientation
+   where the stage is height-capped (72svh × 1:1 aspect) and leaves
+   real margin on either side. */
+@media (min-width: 768px) and (orientation: landscape) {
+  .casa-csp__ctrl {
+    grid-template-columns:
+      minmax(min-content, 1fr)
+      min(var(--csp-stage-w, 72svh), 100%)
+      minmax(0, 1fr);
+    grid-template-areas:
+      ".    ticks ."
+      "btn  track ."
+      ".    count .";
+  }
+  .casa-csp__btn { justify-self: end; }
+}
+/* Cute round icon-only mini-button — quiet chrome, doesn't compete
+   with the photo or the scrubber gradient. Text label stays in the
+   DOM for screen readers (visually hidden via the .sr-only-ish
+   clip pattern below) and toggles between Pause / Play via JS. */
+.casa-csp__btn {
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--csp-paper);
+  font-family: var(--font-body--family);
+  --csp-btn-size: 32px;
+  width: var(--csp-btn-size);
+  height: var(--csp-btn-size);
+  /* The button shares the track's grid row. Without compensation its
+     32px height would grow that row from 4px (the bar) to 32px and
+     push ticks/count 14px away — fattening the whole controls band and
+     stealing stage height. The negative block margin makes the button
+     contribute only the bar's 4px to row sizing while still rendering
+     32px, overflowing into the (empty) column-1 cells above/below.
+     Purely a function of the button's own size — unlike the old
+     translateY nudges it can't drift when surrounding content changes. */
+  margin-block: calc((4px - var(--csp-btn-size)) / 2);
+  padding: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
+}
+.casa-csp__btn:hover  { background: rgba(255, 255, 255, 0.18); transform: scale(1.08); }
+.casa-csp__btn:focus-visible { outline: 2px solid var(--csp-purple, #B0C3FA); outline-offset: 3px; }
+.casa-csp__btn.is-on {
+  background: var(--csp-cyan);
+  color: var(--csp-ink);
+  border-color: transparent;
+}
+.casa-csp__btn .ico { line-height: 0; display: inline-flex; }
+/* One SVG visible at a time, driven by the .is-on class JS already
+   toggles: play when paused, pause bars when playing. */
+.casa-csp__btn .ico-pause       { display: none; }
+.casa-csp__btn.is-on .ico-play  { display: none; }
+.casa-csp__btn.is-on .ico-pause { display: block; }
+/* Visually hide the label text — kept for screen readers. */
+.casa-csp__btn [data-csp-label] {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.casa-csp__track-wrap {
+  /* Invisible to layout — ticks / track / count promote to direct
+     grid items of .casa-csp__ctrl and land in the named areas defined
+     there. This is what lets the PAUSE button share a row with the
+     bar itself (structural centering, no translateY nudges). */
+  display: contents;
+}
+.casa-csp__ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.85);
+  gap: 6px;
+}
+.casa-csp__ticks span {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+/* Decorative colored dot prefix on tick labels is removed —
+   the gradient track below already conveys color. Less noise. */
+.casa-csp__tick-sw { display: none; }
+/* Slim, minimalist scrubber. Track halved from 8 → 4px so the
+   gradient reads as a quiet positional hint rather than a rainbow
+   billboard. Thumb shrunk from 22 → 14px with a 1px ink ring
+   (was 3px) — quiet chrome, brand book v1. */
+.casa-csp__track {
+  -webkit-appearance: none;
+          appearance: none;
+  height: 4px;
+  border-radius: 100px;
+  outline: none;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  margin: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.casa-csp__track:focus-visible {
+  outline: 2px solid var(--csp-purple, #B0C3FA);
+  outline-offset: 4px;
+}
+.casa-csp__track::-webkit-slider-thumb {
+  -webkit-appearance: none;
+          appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--csp-paper, #FAFAF7);
+  border: 1px solid rgba(10, 10, 15, 0.9);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.casa-csp__track::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--csp-paper, #FAFAF7);
+  border: 1px solid rgba(10, 10, 15, 0.9);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.casa-csp__track:hover::-webkit-slider-thumb { transform: scale(1.15); }
+.casa-csp__track:hover::-moz-range-thumb    { transform: scale(1.15); }
+/* Centered tagline in its own grid row directly below the scrubber.
+   Mirrors `.casa-csp__ticks` (labels above) so labels-scrubber-tagline
+   stacks symmetrically. Spacing via margin (not ctrl row-gap) so it
+   disappears together with the element on short viewports. */
+.casa-csp__count {
+  margin: 6px 0 0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+  text-align: center;
+}
+.casa-csp__count .k {
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+  letter-spacing: 0.04em;
+}
+.casa-csp__empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+
+/* 13" laptops / smaller desktop — slimmer HUD, tighter header */
+@media (max-width: 1280px) {
+  .casa-csp__head  { margin-bottom: 8px; }
+  .casa-csp__h2    { margin-bottom: 4px; }
+  .casa-csp__lede  { font-size: 13px; }
+  .casa-csp__hud   {
+    top: 12px;
+    right: calc((100% - var(--csp-stage-w, 72svh)) / 2 + 12px);
+    width: clamp(150px, 13vw, 180px);
+    padding: 9px 11px;
+    font-size: 9.5px;
+    gap: 4px;
+  }
+  .casa-csp__hud-row { gap: 10px; }
+  .casa-csp__sw    { width: 9px; height: 9px; }
+}
+
+/* Tablet / iPad — same overlay HUD, just smaller padding/font */
+@media (max-width: 1100px) {
+  .casa-csp__head  { margin-bottom: 10px; }
+  .casa-csp__hud   {
+    top: 10px;
+    right: calc((100% - var(--csp-stage-w, 72svh)) / 2 + 10px);
+    width: clamp(130px, 18vw, 160px);
+    padding: 8px 10px;
+    font-size: 9px;
+    gap: 3px;
+    border-radius: 9px;
+  }
+  .casa-csp__hud-row { gap: 8px; }
+  .casa-csp__caption { left: 14px; bottom: 14px; padding: 6px 14px; }
+  .casa-csp__caption h3 { font-size: 13px; }
+  .casa-csp__sw    { width: 8px; height: 8px; }
+  .casa-csp__dots  { padding: 5px 12px; gap: 16px; margin-top: 10px; }
+}
+
+/* Desktop (≥1101px) — 3-col editorial layout: title LEFT, big carousel
+   CENTER, HUD legend RIGHT. Controls (pause + scrubber + 6-dot pill)
+   UNDER the image. Per merchant 2026-05-17 third pass: "The text and
+   title are supposed to be to the left side of the image. The colour
+   bar, 6 pill, and pause button are now on the image they're supposed
+   to be under and look minimalistic. The image carousel is meant to be
+   the main center piece of that section so big enough and the legend
+   must be on the RHS of the image."
+
+   Content-hug flanks (2026-07-08): each side column sizes to its
+   CONTENT (title left, HUD right) and the whole title|stage|HUD group
+   centers via justify-content. The earlier `minmax(220px,1fr)` flanks
+   forced the right column to MIRROR the wide title column, so the
+   compact HUD left a big black band to its right (~264px at 1920,
+   wider on bigger monitors). Hugging content turns that lopsided void
+   into balanced left+right margins with the HUD tucked to the stage.
+   The stage no longer pixel-centers on the section, so the dots row +
+   scrubber promote to the stage's grid column / subgrid (below) to
+   keep tracking it.
+
+   The em ("One thousand moods.") drops its base 1.25em scaling at
+   desktop (.casa-csp__h2 em { font-size: 1em }) so it fits in the side
+   col without overflowing into the stage. The brand emphasis register
+   (memory brand_h2_spec_locked_2026-05-15.md) called for 1.25em on
+   full-width headers — in the side-col context the italic + brand-
+   trinity gradient still carry emphasis without the size bump that
+   would otherwise overflow at any 1fr col < 475px wide.
+
+   Stage cap `min(72svh, 720px)` — at 1440×900 resolves to 648 (67%
+   bigger than the prior 388 stack); at 1920×1080 caps at 720. Aspect-
+   ratio 1/1 means stage height = stage width, which may slightly
+   exceed the section's max-height budget at narrow viewports; the
+   section's overflow: hidden + align-self: center on the stage keeps
+   the carousel vertically centered with minor top/bottom crop. The
+   product photo's lamp + room subject sits in the center of the
+   square, so crop is invisible.
+
+   Tablet (641-1100px) and mobile (≤640px) untouched. */
+@media (min-width: 1101px) {
+  .casa-csp {
+    display: grid;
+    grid-template-columns:
+      minmax(0, max-content)
+      min(72svh, 720px)
+      minmax(min-content, clamp(200px, 16vw, 260px));
+    grid-template-rows: 1fr auto auto;
+    column-gap: clamp(20px, 2vw, 40px);
+    row-gap: clamp(10px, 1.4vh, 20px);
+    align-items: center;
+    justify-content: center;
+    padding: 16px clamp(24px, 2vw, 40px);
+  }
+  /* Viz invisible to the grid — stage + HUD promote to direct grid items. */
+  .casa-csp__viz { display: contents; }
+
+  /* Head — col 1, LEFT-aligned per merchant 2026-05-17 fourth pass
+     ("left align this. the whole title doesn't fit in the screen").
+     `width: 100%` + `max-width: 400px` + `justify-self: start` means
+     head fills the col up to 400px, pinned to col 1's LEFT edge. Text
+     flows left-to-right from head's left edge, so the em can't run off
+     the viewport's right edge. min-width: 0 prevents the H2's
+     min-content from auto-growing the col. */
+  .casa-csp__head {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    width: 100%;
+    /* Widened from 400 → 480 (2026-05-17) → 560 (2026-05-18) to
+       accommodate the larger H2 + em + lede sizing per merchant's
+       "should be on one line and bigger" — extra width gives the
+       40px italic em (~380px wide rendered) room to fit one line
+       at wider viewports where col 1 grows above 480. */
+    max-width: 560px;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+    align-self: center;
+    justify-self: start;
+  }
+  /* Desktop H2 — both lines the SAME size (Roy 2026-05-20: "One column.
+     One thousand moods. is supposed to be the same font size"). The
+     gradient line ("One thousand moods.", the em, on its own line) is the
+     WIDER of the two and so sets the size that still fits the left column;
+     the first line ("One ___.") adopts the same clamp. Was clamp(36,4.5vw,
+     52) for line 1 vs clamp(24,2.4vw,40) for the em — line 1 read much
+     bigger; now unified to the em's fitting clamp. */
+  .casa-csp__h2 {
+    font-size: clamp(24px, 2.4vw, 40px);
+  }
+  .casa-csp__lede {
+    /* Bumped from base clamp(13, 1.4vw, 15) to clamp(15, 1.4vw, 18)
+       on desktop only. Mobile + tablet untouched. */
+    font-size: clamp(15px, 1.4vw, 18px);
+    max-width: 36ch;
+    margin: 0;
+  }
+  /* Em on its own line per Rule 9. font-size: 1em so the gradient line
+     ("One thousand moods.") renders at EXACTLY the same size as the first
+     line (Roy 2026-05-20). It keeps `display: block` (its own line) and
+     `white-space: normal` (set in the desktop bump below), so it wraps
+     only when the content-hug column is forced narrow. The shared size
+     is the H2 clamp above (clamp(24,2.4vw,40)) — the largest that keeps this
+     longer gradient line inside the left column. Making it LARGER than the
+     first line would need a wider left column. */
+  .casa-csp__h2 em {
+    display: block;
+    font-size: 1em;
+  }
+
+  /* Stage — col 2, the centerpiece. WIDTH-driven (Roy 2026-05-20: black
+     bar at the top of the carousel on large/tall monitors). The earlier
+     height-driven sizing (`height: 100%; width: auto`) let the explicit
+     row height OVERRIDE `aspect-ratio: 1/1` whenever the row was taller
+     than the column cap (e.g. 1920×1200 → stage rendered 720×940, not
+     square), so the square scene photo bottom-pinned inside it left a
+     ~148px black band at the top. Driving WIDTH instead keeps the square
+     real: width = column width, height = aspect (= width), and
+     `max-height: 100%` only clamps on short viewports — where the photo
+     (background-size:110%, taller than the box) still fills with no black.
+     Math: rendered photo height = colW × 1.1 > min(colW, rowH) = stage
+     height, at every viewport → no black bar, ever. */
+  .casa-csp__stage {
+    grid-column: 2;
+    grid-row: 1;
+    flex: none;
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
+    margin: 0;
+    align-self: center;
+    justify-self: center;
+  }
+
+  /* HUD — col 3 sidebar (NOT overlay). Override the absolute positioning
+     from the base/tablet states. */
+  .casa-csp__hud {
+    grid-column: 3;
+    grid-row: 1;
+    position: static;
+    top: auto;
+    right: auto;
+    align-self: center;
+    justify-self: start;
+    margin: 0;
+    width: 100%;
+    max-width: clamp(200px, 16vw, 260px);
+    padding: 14px 16px;
+    font-size: 13px;
+    gap: 8px;
+    border-radius: 12px;
+  }
+  .casa-csp__hud-row { gap: 18px; }
+  .casa-csp__sw      { width: 14px; height: 14px; }
+
+  /* Dots + ctrl span all 3 columns at the bottom — minimal chrome
+     under the carousel, NOT overlaying it. */
+  .casa-csp__dots { grid-column: 2; grid-row: 2; }
+  /* subgrid: inherit the section's 3 columns so the scrubber lands in
+     the STAGE column (tracks the image) and PAUSE sits in the title
+     column to its left — keeps the controls aligned now that the stage
+     is block-centered rather than pixel-centered on the section. Areas +
+     btn alignment are co-located here (not left to the 768/landscape
+     rule) so the control row is self-contained in both orientations. */
+  .casa-csp__ctrl {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    grid-template-columns: subgrid;
+    grid-template-areas:
+      ".   ticks ."
+      "btn track ."
+      ".   count .";
+  }
+  .casa-csp__btn { justify-self: end; }
+}
+
+/* Phone — HUD hidden (info is in caption + dots + scrubber). */
+@media (max-width: 640px) {
+  .casa-csp        { padding: 12px 0; }
+  /* section-head-tight-justified: title is white-space:nowrap'd on
+     phone to fit "One lamp. One thousand moods." on one line per
+     merchant request 2026-05-18; em is 1em (not 1.25em) so the
+     gradient accent never reaches the viewport edge. */
+  .casa-csp__head  { margin-bottom: 10px; padding: 0 16px; }
+  /* Phone H2 — one line guaranteed via white-space: nowrap. The em
+     1.25em scaling is dropped to 1em on phone so the gradient
+     accent doesn't blow past the viewport (with 1.25em the trailing
+     "moods." overflows at 390px and wraps mid-phrase). 2026-05-18
+     merchant request: "the title should be on one line on mobile."
+     Brand-book H2 floor is 28px — this is a considered divergence
+     applied only on phone where the alternative is an ugly mid-em
+     wrap. Non-em + em both render at the same size (~20px at
+     iPhone 14 390×844). */
+  .casa-csp__h2    {
+    font-size: clamp(18px, 5vw, 22px);
+    margin-bottom: 4px;
+    white-space: nowrap;
+  }
+  .casa-csp__h2 em { font-size: 1em; }
+  .casa-csp__mono  { margin-bottom: 6px; font-size: 10px; }
+  .casa-csp__lede  { font-size: 13px; line-height: 1.45; }
+  .casa-csp__hud   { display: none; }
+
+  .casa-csp__caption { left: 10px; bottom: 12px; padding: 5px 12px; max-width: 70%; }
+  .casa-csp__caption h3 { font-size: 12px; }
+
+  .casa-csp__dots  { padding: 5px 11px; gap: 16px; margin-top: 8px; }
+  .casa-csp__dot   { width: 9px; height: 9px; }
+  .casa-csp__ticks { display: none; }
+  /* Phone pause-button shrunk from 40 → 32 (2026-05-18 merchant
+     request: "the pause button is a bit too big make it slightly
+     smaller and the extra space should filled by the colour bar").
+     Still meets WCAG 2.5.8 (24×24 minimum); below 2.5.5 ideal but
+     this is a secondary control, not a primary CTA. The ctrl row
+     gets a tighter side gutter (14px vs the default 20px) and a
+     smaller gap so the freed space goes to the scrubber bar. */
+  .casa-csp__btn   { --csp-btn-size: 32px; }
+  .casa-csp__ctrl  {
+    max-width: calc(100% - 28px);
+    gap: 0 10px;
+  }
+  .casa-csp__count .k { font-size: 14px; }
+}
+
+/* ── Smallest realistic viewports (≤340px ≈ Galaxy Fold inner, iPhone 5/
+   SE 1st gen): the merchant locked `white-space: nowrap` on this H2 at
+   ≤640px so "One lamp. One thousand moods." reads as one line on a
+   typical iPhone (390-414px wide). At 280px viewport, that nowrap
+   forces the H2 to ~274px while the head container at 16px padding
+   each side allows only 248px — overflow ~10px. The "one line on
+   phone" intent has to bend at the absolute narrowest; let the
+   heading wrap at the natural period for those devices only.
+   Placed AFTER the ≤640px block above so cascade order favors this
+   override at viewports where both apply. ── */
+@media (max-width: 340px) {
+  .casa-csp__h2 {
+    white-space: normal;
+    text-wrap: balance;
+  }
+  /* count_label is merchant-editable copy under a nowrap — overflow
+     playbook: pair every nowrap on user copy with a narrow-width wrap
+     fallback so a longer future label can never clip off-screen. */
+  .casa-csp__count {
+    white-space: normal;
+    flex-wrap: wrap;
+  }
+  .casa-csp__h2 em {
+    /* Wrap mid-word if a single gradient token like "thousand" still
+       won't fit the column (safety net for sub-300px viewports). */
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .casa-csp__lede {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+}
+
+/* Short viewports (≤820 height — most laptops with cart bar fit here).
+   Lede hidden above 640px width — phones keep their lede. */
+@media (max-height: 820px) {
+  /* Vertical-only override — side padding inherits from the wider
+     width rule so desktop's `clamp(24px, 2vw, 40px)` side gutter
+     survives on short laptops. Using the shorthand here previously
+     zeroed side padding and pinned head text to the viewport edge
+     at 1180×820. */
+  .casa-csp        { padding-top: 12px; padding-bottom: 12px; }
+  .casa-csp__head  { margin-bottom: 6px; }
+  .casa-csp__h2    { margin-bottom: 3px; }
+  .casa-csp__mono  { margin-bottom: 4px; font-size: 10px; }
+  .casa-csp__ctrl  { margin-top: 6px; }
+  .casa-csp__dots  { margin-top: 8px; padding: 5px 12px; gap: 16px; }
+  .casa-csp__dot   { width: 9px; height: 9px; }
+}
+@media (max-height: 820px) and (min-width: 641px) {
+  .casa-csp__lede  { display: none; }
+}
+
+/* Ultra-short viewports (≤720 height — 13" MBP with browser chrome +
+   sticky cart bar, common case the user reported). Extremely compact
+   header, smaller ctrl, max vertical real estate for the stage. */
+@media (max-height: 720px) {
+  .casa-csp        { padding-top: 8px; padding-bottom: 8px; }
+  .casa-csp__head  { margin-bottom: 4px; }
+  .casa-csp__h2    { margin-bottom: 2px; }
+  .casa-csp__mono  { margin-bottom: 3px; font-size: 9.5px; }
+  .casa-csp__ctrl  { margin-top: 4px; }
+  .casa-csp__btn   { --csp-btn-size: 28px; }
+  .casa-csp__btn .ico svg { width: 9px; height: 9px; }
+  .casa-csp__ticks { font-size: 8.5px; }
+  .casa-csp__dots  { margin-top: 6px; padding: 4px 10px; gap: 16px; }
+  .casa-csp__dot   { width: 8px; height: 8px; }
+  /* Hide the marketing tagline on ultra-short viewports — keeps the
+     section essentials (heading + image + scrubber) in one frame even
+     when every vertical pixel matters. Lede is already hidden here. */
+  .casa-csp__count { display: none; }
+  .casa-csp__hud   { font-size: 9px; padding: 7px 10px; gap: 3px; }
+  .casa-csp__sw    { width: 8px; height: 8px; }
+}
+
+/* Landscape phone / very short displays (≤500 height) — extra-compact. */
+@media (max-height: 500px) {
+  .casa-csp        { padding-top: 6px; padding-bottom: 6px; }
+  .casa-csp__head  { margin-bottom: 4px; }
+  .casa-csp__h2    { margin-bottom: 2px; }
+  .casa-csp__mono  { margin-bottom: 3px; font-size: 9px; }
+  .casa-csp__lede  { display: none; }
+  .casa-csp__hud   { display: none; }
+  .casa-csp__ctrl  { margin-top: 4px; }
+}
+/* Portrait viewports (phones, iPad portrait) — section is content-height, no
+   internal gap. With aspect-ratio:1/1 stage capped by viewport WIDTH, leftover
+   flex space would create a visible gap below the image. Drop flex-grow on the
+   stage and size the section to its content; max-height caps at viewport so
+   the section can never exceed one frame. */
+@media (max-aspect-ratio: 1 / 1) {
+  .casa-csp {
+    height: auto;
+    /* Release the desktop viewport-fit cap. The base rule sets
+       `max-height: calc(100svh - 96px)` + `overflow: hidden` so the
+       section fits one frame above the sticky cart bar on laptops. On
+       portrait phones the natural content (header + 4:5 stage + dots +
+       play/scrubber row) is TALLER than that cap, so `overflow: hidden`
+       silently chopped the bottom — clipping the play/pause button + the
+       "330+" counter (merchant report 2026-06-14: "you can't see the
+       play button and it alternating"). Sizing to content (height:auto +
+       max-height:none) lets the controls render in full; the page
+       scrolls normally if the section exceeds one screen. Mirrors the
+       split-rail release at the ≥1100px block. */
+    max-height: none;
+    justify-content: flex-start;
+  }
+  /* Viz override at portrait — section is height: auto so there's
+     no flex space for viz's base `flex: 1 1 0` to claim, causing
+     viz to collapse to 0 height while the stage paints over the
+     dots/scrubber below. Switching viz to flex: 0 0 auto sizes it
+     to its content (the stage's intrinsic 1:1 box). */
+  .casa-csp__viz {
+    flex: 0 0 auto;
+  }
+  .casa-csp__stage {
+    flex: 0 0 auto;
+    /* Portrait card on phones + tablet-portrait. Was inheriting the base
+       1:1 square, which only consumed the viewport WIDTH and left the
+       bottom ~25% of tall phone screens empty. A 4:5 portrait spends that
+       vertical space so each scene photo renders noticeably bigger on the
+       phones that are 70%+ of traffic. Desktop (landscape aspect, ≥1101
+       grid) never matches this query, so its tuned square is untouched. */
+    aspect-ratio: 4 / 5;
+    width: 100%;
+    height: auto;
+    max-width: calc(100% - 2 * clamp(12px, 4vw, 24px));
+    /* One-frame guard: the stage never exceeds 80vh, so head + stage +
+       ctrl still fit a single phone/tablet screen. When it binds
+       (tablet-portrait) the box just trends back toward square. */
+    max-height: 80vh;
+  }
+  /* The square base zooms the photo 10% (the 110% img box). On the
+     taller 4:5 box the zoom isn't needed — object-fit: cover already
+     fills the portrait box from the square 2000² source; the lamp sits
+     centered + bottom-anchored (object-position 50% 100%), so cover
+     trims only a sliver of side room and renders the lamp itself
+     bigger. Restoring the full-box geometry keeps parity with the old
+     `background-size: cover` portrait behavior. */
+  .casa-csp__img {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .casa-csp__head { margin-bottom: 12px; }
+  /* Portrait ctrl row matches the stage's tighter side-padding so the
+     bar's width = the stage's width on the page. The default
+     calc(100% - 2 * clamp(20,5vw,64)) is wider padding (900px on a
+     1000px viewport) which would leave the bar narrower than the
+     952px-wide stage. */
+  .casa-csp__ctrl {
+    margin-top: 12px;
+    max-width: calc(100% - 2 * clamp(12px, 4vw, 24px));
+  }
+}
+
+/* ── Desktop / laptop bump (≥1101px) — per merchant 2026-05-16:
+   "On desktop/laptop the colour bar and the pause button at the bottom
+   are quite small, enlarge them. Same goes with the legend. The images
+   in the carousel should be larger. The gradient part of the title
+   should be on one line and the colours must follow the brand book."
+   Placed last so it wins the cascade over the laptop-slim (max-width:
+   1280) and tablet (max-width: 1100) rules above. Mobile (max-width:
+   640) and short-viewport (max-height: 720) rules sit AFTER this block
+   in source — wait, they don't, but min-width:1101 doesn't match those
+   viewports anyway, so cascade order is moot for phone/short. ── */
+@media (min-width: 1101px) {
+  /* Force the em accent onto one line so "One thousand moods." reads
+     as a single gradient phrase instead of breaking mid-em. Also
+     swap the 2-stop mobile gradient (pink→cyan) for the brand-trinity
+     3-stop (purple→pink→cyan) per brand book v1 §03 --grad-text.
+     Mobile keeps the 2-stop because the merchant signed off as
+     "perfect on mobile" (2026-05-16). */
+  .casa-csp__h2 em {
+    /* normal (not nowrap): the content-hug title column sizes to the
+       em's one-line width at wide/mid desktop so it stays one line, and
+       only wraps at the narrowest desktop (~1101-1150px) where the
+       column is forced narrower — a graceful wrap instead of a clip. */
+    white-space: normal;
+    background: linear-gradient(90deg, var(--csp-purple), var(--csp-pink), var(--csp-cyan));
+    -webkit-background-clip: text;
+            background-clip: text;
+  }
+
+  /* HUD sidebar tuning. The grid block above promotes the HUD to a
+     static side chip (grid-column: 3) tucked against the stage at
+     ≥1101 — there is no desktop overlay range. These rows just size the
+     swatch + row gap for that sidebar chip. */
+  .casa-csp__hud-row { gap: 16px; }
+  .casa-csp__sw      { width: 12px; height: 12px; }
+
+  /* Controls — minimalist sizing per merchant 2026-05-17 fifth pass:
+     "Make the elements smaller and minimalistic to increase the image
+     size in the carousel." Reverses the 2026-05-16 enlargement; the
+     vertical space freed (~45-60px) flows directly into row 1's stage
+     height. Stage gains ~50px height at 1440×900 (from 612 → ~660). */
+  .casa-csp__btn      { --csp-btn-size: 32px; }
+
+  .casa-csp__track    { height: 4px; }
+  .casa-csp__track::-webkit-slider-thumb,
+  .casa-csp__track::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+  }
+
+  .casa-csp__ticks { font-size: 9px; gap: 6px; }
+
+  .casa-csp__dot  { width: 10px; height: 10px; }
+  .casa-csp__dots { gap: 16px; padding: 5px 12px; margin-top: 10px; }
+
+  .casa-csp__count    { font-size: 11px; }
+  .casa-csp__count .k { font-size: 14px; }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SPLIT-RAIL LAYOUT — opt-in via { "layout_style": "split-rail" }.
+   Only Apollo uses this currently; the other 5 PDPs on this section
+   stay on the default vertical-stack layout.
+
+   Pattern borrowed from sections/casa-aurasphere-scenes.liquid:
+     LEFT  — head + caption + dots in a fixed-width rail (260-340px)
+     RIGHT — viz (photo stage + HUD) takes the rest
+     BOTTOM — full-width play + scrubber + count band
+   ════════════════════════════════════════════════════════════════ */
+
+/* Default state: rail-caption is hidden unless split-rail is active.
+   (The element only renders in split-rail mode anyway, but guard for
+   editor preview where the setting toggles live.) */
+.casa-csp__rail-caption { display: none; }
+
+.casa-csp[data-layout="split-rail"] .casa-csp__rail-caption {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+.casa-csp[data-layout="split-rail"] .casa-csp__rail-caption .casa-csp__mono--accent {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--csp-cyan);
+  margin: 0 0 8px;
+}
+.casa-csp[data-layout="split-rail"] .casa-csp__rail-caption h3 {
+  font-size: clamp(20px, 1.8vw, 28px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin: 0 0 10px;
+  color: var(--csp-paper);
+}
+.casa-csp[data-layout="split-rail"] .casa-csp__rail-caption p:not(.casa-csp__mono--accent) {
+  font-size: 13px;
+  line-height: 1.55;
+  opacity: 0.78;
+  margin: 0;
+}
+
+/* Hide the in-stage overlay caption in split-rail mode — copy lives
+   in the rail-caption now. The element still exists in the DOM so JS
+   can update it without null checks; just visually hidden. */
+.casa-csp[data-layout="split-rail"] .casa-csp__stage > .casa-csp__caption {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  /* Section becomes a 2-col × 4-row grid. Rail collects head + caption
+     + dots; stage spans the first 3 rows on the right; ctrl spans both
+     columns at the bottom. Drop the centering flex behavior — grid
+     handles vertical distribution. */
+  .casa-csp[data-layout="split-rail"] {
+    display: grid;
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas:
+      "head     stage"
+      "rcap     stage"
+      "dots     stage"
+      "ctrl     ctrl";
+    column-gap: clamp(32px, 4vw, 56px);
+    row-gap: 20px;
+    align-items: start;
+    justify-content: center;
+    padding-left: clamp(24px, 4vw, 56px);
+    padding-right: clamp(24px, 4vw, 56px);
+  }
+  /* Head: left-align in rail, drop max-width centering. */
+  .casa-csp[data-layout="split-rail"] .casa-csp__head {
+    grid-area: head;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+  }
+  .casa-csp[data-layout="split-rail"] .casa-csp__head .casa-csp__h2 {
+    font-size: clamp(28px, 2.6vw, 40px);
+    text-align: left;
+  }
+  .casa-csp[data-layout="split-rail"] .casa-csp__head .casa-csp__lede {
+    text-align: left;
+    margin-top: 8px;
+  }
+  /* Rail caption sits between head and dots in the left column. */
+  .casa-csp[data-layout="split-rail"] .casa-csp__rail-caption {
+    grid-area: rcap;
+    transition: opacity 0.25s ease;
+  }
+  /* Stage spans head + rcap + dots rows on the right. */
+  .casa-csp[data-layout="split-rail"] .casa-csp__viz {
+    grid-area: stage;
+    display: block;          /* override default flex */
+    align-self: stretch;
+    width: 100%;
+    min-height: 0;
+  }
+  .casa-csp[data-layout="split-rail"] .casa-csp__stage {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    aspect-ratio: auto;
+    margin: 0;
+  }
+  /* Dots: vertical stack in rail, each chip shows the scene name. */
+  .casa-csp[data-layout="split-rail"] .casa-csp__dots {
+    grid-area: dots;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    overflow: visible;
+  }
+  .casa-csp[data-layout="split-rail"] .casa-csp__dot {
+    /* Override the 10×10 circle from the default mode. In split-rail
+       a chip is a labeled row: swatch + scene name. */
+    width: auto;
+    height: auto;
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--csp-paper);
+    text-align: left;
+    overflow: hidden;
+  }
+  .casa-csp[data-layout="split-rail"] .casa-csp__dot::before {
+    /* Use the existing --c background swatch as a circle on the left
+       of each chip. The default-mode dot styles use background: var(--c)
+       on the button itself; in split-rail we move the swatch into a
+       pseudo-element so the chip body stays neutral and the label can
+       sit next to it. */
+    content: '';
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--c, var(--csp-cyan));
+    flex-shrink: 0;
+    box-shadow: 0 0 12px -2px var(--c-glow, var(--csp-cyan));
+  }
+  .casa-csp[data-layout="split-rail"] .casa-csp__dot::after {
+    /* The scene name label. Pulled from data-name (set in Liquid). */
+    content: attr(data-name);
+    font-size: 11px;
+    opacity: 0.88;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Chip hover / active states. */
+  .casa-csp[data-layout="split-rail"] .casa-csp__dot:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.18);
+    opacity: 1;
+  }
+  .casa-csp[data-layout="split-rail"] .casa-csp__dot.is-on {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.32);
+    transform: none;
+    box-shadow: 0 0 32px -10px var(--c-glow, var(--csp-cyan));
+  }
+
+  /* Ctrl band: full width across both columns at the bottom. */
+  .casa-csp[data-layout="split-rail"] .casa-csp__ctrl {
+    grid-area: ctrl;
+    width: 100%;
+    max-width: none;
+    margin-top: 8px;
+  }
+
+  /* The 100vh viewport-fit logic doesn't apply in split-rail — the
+     section grows naturally with content. Override the height clamps. */
+  .casa-csp[data-layout="split-rail"] {
+    height: auto;
+    max-height: none;
+  }
+}
+
+/* Mobile / iPad portrait fallback (<1100px): rail collapses to a
+   horizontal scene-chip row above the stage; ctrl stays full-width
+   below as in default mode. */
+@media (max-width: 1099px) {
+  .casa-csp[data-layout="split-rail"] .casa-csp__rail-caption {
+    text-align: center;
+    padding: 0 clamp(16px, 4vw, 32px);
+    margin: 0 auto 16px;
+    max-width: 720px;
+  }
+  .casa-csp[data-layout="split-rail"] .casa-csp__dots {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  .casa-csp[data-layout="split-rail"] .casa-csp__dot {
+    width: auto;
+    height: auto;
+    border-radius: 6px;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--csp-paper);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .casa-csp[data-layout="split-rail"] .casa-csp__dot::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--c, var(--csp-cyan));
+  }
+  .casa-csp[data-layout="split-rail"] .casa-csp__dot::after {
+    content: attr(data-name);
+  }
+}
+
+/* The --casa-vh-fit box (now also minus the 100px header group) leaves the
+   ctrl row's 32px round button 6px past the section's overflow:hidden edge
+   on 640-class laptop windows — measured 1280×640. Two facts drive the fix:
+   (1) the button centers on the ~24px track row, so ~6px of it structurally
+   hangs BELOW the ctrl grid's content box at any section height; (2) the
+   stage flex-grows, so shaving margins above frees space the photo absorbs
+   and the stack refills the box — margins alone verifiably don't move the
+   button. padding-bottom reserves the overhang INSIDE the ctrl row (flex
+   takes the 8px from the stage), so nothing crosses the section edge.
+   MUST be the last rules in this stylesheet: the desktop compaction block
+   (~line 1300, "smaller and minimalistic") re-sets dots/btn metrics at
+   equal specificity and wins on order against anything placed above it. */
+@media (max-height: 660px) {
+  .casa-csp__dots { margin-top: 2px; }
+  .casa-csp__ctrl { margin-top: 0; padding-bottom: 8px; }
+}
+{% endstylesheet %}
+
+{% javascript %}
+(function () {
+  function init(root) {
+    if (!root || root.dataset.cspInit === '1') return;
+    root.dataset.cspInit = '1';
+
+    var layers = Array.prototype.slice.call(root.querySelectorAll('.casa-csp__layer'));
+    var dots   = Array.prototype.slice.call(root.querySelectorAll('[data-csp-go]'));
+    var track  = root.querySelector('[data-csp-track]');
+    var btn    = root.querySelector('[data-csp-toggle]');
+    var label  = root.querySelector('[data-csp-label]');
+    var glow   = root.querySelector('.casa-csp__glow');
+
+    var nameEl   = root.querySelector('[data-csp-name]');
+    var hexEl    = root.querySelector('[data-csp-hex]');
+    var swEl     = root.querySelector('[data-csp-sw]');
+    var idxEl    = root.querySelector('[data-csp-index]');
+    // NodeLists (not single elements) so split-rail mode's duplicate
+    // rail-caption updates in sync with the in-stage overlay caption.
+    var kickerEls = root.querySelectorAll('[data-csp-kicker]');
+    var titleEls  = root.querySelectorAll('[data-csp-title]');
+    var blurbEls  = root.querySelectorAll('[data-csp-blurb]');
+
+    var total = layers.length;
+    if (total < 1) return;
+
+    // Mirror the stage's measured width to `--csp-stage-w` on the root so
+    // the ctrl row + dots row can be capped at exactly the same width.
+    // Stage sizing varies by viewport (desktop: 1:1 square sized inside a
+    // width-capped grid column; portrait phones/tablets: width-driven 4:5
+    // via the max-aspect-ratio block), so its pixel width can't be matched
+    // by a fixed px cap or an svh approximation — measuring it is the only
+    // reliable source.
+    var stage = root.querySelector('.casa-csp__stage');
+    if (stage && typeof ResizeObserver === 'function') {
+      if (root._cspRO) root._cspRO.disconnect();
+      var ro = new ResizeObserver(function (entries) {
+        var w = entries[0].contentRect.width;
+        if (w > 0) root.style.setProperty('--csp-stage-w', Math.round(w) + 'px');
+      });
+      ro.observe(stage);
+      root._cspRO = ro;
+    }
+
+    var period = parseFloat(root.dataset.period) || 4;
+    // Crossfade occupies the last (1 - xfadeStart) of each segment. Widened
+    // 2026-07-08 from 0.88 (12%) to 0.70 (30%): at 12% the photo sat frozen
+    // for ~2s of each 2.5s hold and read as "paused" on arrival (the loop
+    // always starts on the Cyan segment). 30% keeps the scenes visibly
+    // dissolving.
+    var xfadeStart = 0.70;
+    var prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var auto = root.dataset.autoplay === '1' && !prefersReducedMotion;
+    var t = 0;
+    var jumpStarted = false;
+    var rafId = null;
+    var last = null;
+    // On-screen gate (IntersectionObserver set up at the bottom of init).
+    // `auto` is the user's play/pause intent; the rAF loop only actually
+    // runs while the section is in the viewport AND auto is on.
+    var onScreen = false;
+    // Last-written DOM values. render() runs every frame while playing,
+    // but for ~88% of each segment nothing visible changes — only write
+    // style/textContent when the computed value differs from the last
+    // write. Unconditional writes wake the site-wide MutationObserver
+    // 60x/s even while the frame is static.
+    var lastW = { ops: [], glow: null, color: null, name: null, hex: null, swBg: null, swSh: null, idx: null, kicker: null, title: null, blurb: null, dot: -1, track: null };
+
+    function smoothstep(a, b, x) {
+      var v = Math.max(0, Math.min(1, (x - a) / (b - a)));
+      return v * v * (3 - 2 * v);
+    }
+    function mixHex(a, b, p) {
+      var ah = parseInt(a.slice(1), 16), bh = parseInt(b.slice(1), 16);
+      var ar = (ah >> 16) & 255, ag = (ah >> 8) & 255, ab = ah & 255;
+      var br = (bh >> 16) & 255, bg = (bh >> 8) & 255, bb = bh & 255;
+      var r = Math.round(ar + (br - ar) * p);
+      var g = Math.round(ag + (bg - ag) * p);
+      var bl = Math.round(ab + (bb - ab) * p);
+      return '#' + ((1 << 24) | (r << 16) | (g << 8) | bl).toString(16).slice(1);
+    }
+    function pad2(n) { return ('0' + n).slice(-2); }
+
+    function render() {
+      var cont = t * total;
+      var idx = Math.min(Math.floor(cont), total - 1);
+      var localT = cont - idx;
+      // Crossfade window = the last (1 - xfadeStart) of each segment (30%).
+      // Widened from 12% so the photo is never frozen long enough to read as
+      // paused; HUD/caption/scrubber still flip together at the fade midpoint.
+      var xfade = smoothstep(xfadeStart, 1, localT);
+      var nextIdx = (idx + 1) % total;
+
+      for (var i = 0; i < total; i++) {
+        var op = 0;
+        if (i === idx) op = 1 - xfade;
+        else if (i === nextIdx) op = xfade;
+        if (lastW.ops[i] !== op) { layers[i].style.opacity = op; lastW.ops[i] = op; }
+      }
+
+      var cur = layers[idx];
+      var nxt = layers[nextIdx];
+      // In-stage glow keeps the smooth single-hex blend (visual continuity
+      // through crossfades). The image already shows multi-color light, so
+      // a single-hex inner tint reads correctly.
+      var glowHex = mixHex(cur.dataset.hex, nxt.dataset.hex, xfade);
+      // Multi-stop radial with progressively smaller alpha values — light
+      // flows from the lamp body outward, reducing intensity smoothly to
+      // transparent at 80% radius. Centered at 50% 55% to sit on the
+      // lamp's body (now bottom-anchored at 50% 100% via background-position).
+      // Smooth stops + the .casa-csp__glow filter:blur eliminate the
+      // banded "chunky" ring artifacts of the prior 3-stop falloff.
+      var glowBg = 'radial-gradient(circle at 50% 55%, '
+        + glowHex + '40 0%, '
+        + glowHex + '2e 18%, '
+        + glowHex + '1c 35%, '
+        + glowHex + '0e 55%, '
+        + 'transparent 80%)';
+      if (lastW.glow !== glowBg) { glow.style.background = glowBg; lastW.glow = glowBg; }
+
+      // HUD/caption/dots follow whichever photo is actually dominant on screen.
+      // This guarantees the SCENE name + COLOR hex always match the visible lamp.
+      var dom        = (xfade > 0.5) ? nxt : cur;
+      var domIdx     = (xfade > 0.5) ? nextIdx : idx;
+      var domHex     = dom.dataset.hex || glowHex;
+      var domPalette = (dom.dataset.palette || '').trim();
+      var domColors  = domPalette ? domPalette.split(',').map(function(c){ return c.trim(); }).filter(Boolean) : [];
+
+      // Section-wide ambient bg-glow side bars. For single-color scenes,
+      // set --csp-color to the dominant hex — the bg-glow renders a solid
+      // colored wash on each side. For multi-color scenes (Holiday, Spectrum,
+      // Color Flow), set --csp-color to a vertical linear gradient through
+      // the palette so the masked side bars carry every RGB color of the
+      // lamp in the image, blurred into continuous flow.
+      var cspColor = (domColors.length > 1)
+        ? 'linear-gradient(180deg, ' + domColors.join(', ') + ')'
+        : domHex;
+      if (lastW.color !== cspColor) {
+        root.style.setProperty('--csp-color', cspColor);
+        lastW.color = cspColor;
+      }
+
+      var nameTxt = (dom.dataset.name || '').toUpperCase();
+      if (nameEl && lastW.name !== nameTxt) { nameEl.textContent = nameTxt; lastW.name = nameTxt; }
+      // Multi-color scenes can't be reduced to a single hex — show MULTI instead so the
+      // readout matches the gradient bar segment rather than lying with one color.
+      var hexTxt = (domColors.length > 1) ? 'MULTI' : domHex.toUpperCase();
+      if (hexEl && lastW.hex !== hexTxt) { hexEl.textContent = hexTxt; lastW.hex = hexTxt; }
+      if (swEl) {
+        var swBg, swSh;
+        if (domColors.length > 1) {
+          swBg = 'linear-gradient(90deg, ' + domColors.join(', ') + ')';
+          swSh = '0 0 10px ' + domColors[0];
+        } else {
+          swBg = domHex;
+          swSh = '0 0 10px currentColor';
+        }
+        if (lastW.swBg !== swBg) { swEl.style.background = swBg; lastW.swBg = swBg; }
+        if (lastW.swSh !== swSh) { swEl.style.boxShadow  = swSh; lastW.swSh = swSh; }
+      }
+      var idxTxt = pad2(domIdx + 1) + ' / ' + pad2(total);
+      if (idxEl && lastW.idx !== idxTxt) { idxEl.textContent = idxTxt; lastW.idx = idxTxt; }
+      var kickerTxt = (dom.dataset.kind || '') + ' · ' + idxTxt;
+      if (lastW.kicker !== kickerTxt) {
+        kickerEls.forEach(function (el) { el.textContent = kickerTxt; });
+        lastW.kicker = kickerTxt;
+      }
+      var titleTxt = dom.dataset.name || '';
+      if (lastW.title !== titleTxt) {
+        titleEls.forEach(function (el) { el.textContent = titleTxt; });
+        lastW.title = titleTxt;
+      }
+      var blurbTxt = dom.dataset.blurb || '';
+      if (lastW.blurb !== blurbTxt) {
+        blurbEls.forEach(function (el) { el.textContent = blurbTxt; });
+        lastW.blurb = blurbTxt;
+      }
+
+      if (lastW.dot !== domIdx) {
+        for (var j = 0; j < dots.length; j++) {
+          if (j === domIdx) dots[j].classList.add('is-on'); else dots[j].classList.remove('is-on');
+          // Mirror the visual state for assistive tech — .is-on alone is
+          // invisible to screen readers.
+          dots[j].setAttribute('aria-current', j === domIdx ? 'true' : 'false');
+        }
+        lastW.dot = domIdx;
+      }
+      if (track) {
+        var trackVal = Math.round(t * 1000);
+        if (lastW.track !== trackVal) { track.value = trackVal; lastW.track = trackVal; }
+      }
+    }
+
+    function tick(now) {
+      if (last == null) last = now;
+      // Scroll-hold: while the page is actively scrolling, advance
+      // nothing and write nothing. The section-wide bg-glow re-rasters
+      // a full-section filter:blur(50px) whenever --csp-color
+      // transitions, and the stage glow rewrites its gradient every
+      // frame through each crossfade — both fed the 2026-07-15 Genix
+      // fast-scroll raster white-outs. A crossfade frozen mid-scroll is
+      // imperceptible; t resumes exactly where it held once the page
+      // settles (same family as the 44974f35 video scroll-settle gate
+      // and the anim-gate scroll pause).
+      if (cspScrolling) {
+        last = now;
+        rafId = requestAnimationFrame(tick);
+        return;
+      }
+      var dt = (now - last) / 1000;
+      last = now;
+      var totalSec = total * period;
+      t += dt / totalSec;
+      if (t >= 1) t = 0;
+      render();
+      rafId = requestAnimationFrame(tick);
+    }
+
+    // startLoop/stopLoop own the rAF only; start()/stop() own the user's
+    // play/pause intent + button paint. The IO gate below drives the loop
+    // pair directly so scrolling away never flips the button state.
+    function startLoop() {
+      if (rafId) return;
+      // Jump-start on the first play from a cold start (t≈0). Otherwise the
+      // playhead holds on the opening scene for ~(period × xfadeStart) ≈ 1.75s
+      // before the first dissolve — which reads as "paused" when the section
+      // scrolls into view. Advance it so the first dissolve fires ~0.5s after
+      // arrival; later scenes keep the normal rhythm. Fires once, gated on
+      // t≈0, so scrolling away and back resumes where it left off (no re-jump).
+      if (!jumpStarted && t < 0.001) {
+        var leadLocal = 0.5 / period;            // 0.5s expressed as a fraction of one scene
+        t = Math.max(0, xfadeStart - leadLocal) / total;
+        render();
+      }
+      jumpStarted = true;
+      last = null;
+      rafId = requestAnimationFrame(tick);
+    }
+    function stopLoop() {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+
+    function start() {
+      auto = true;
+      btn.classList.add('is-on');
+      btn.setAttribute('aria-pressed', 'true');
+      if (label) label.textContent = btn.dataset.labelPause || 'Pause';
+      if (onScreen) startLoop();
+    }
+    function stop() {
+      auto = false;
+      btn.classList.remove('is-on');
+      btn.setAttribute('aria-pressed', 'false');
+      if (label) label.textContent = btn.dataset.labelPlay || 'Play';
+      stopLoop();
+    }
+
+    btn.addEventListener('click', function () { auto ? stop() : start(); });
+    track.addEventListener('input', function (ev) {
+      stop();
+      t = parseFloat(ev.target.value) / 1000;
+      render();
+    });
+    dots.forEach(function (dot) {
+      dot.addEventListener('click', function () {
+        stop();
+        var i = parseInt(dot.dataset.cspGo, 10) || 0;
+        t = (i + 0.05) / total;
+        render();
+      });
+    });
+
+    // NO pointerenter/pointerleave behavior on the stage — a hover-hold
+    // shipped here once and froze playback "randomly" in Safari: Klaviyo's
+    // hit-testable onsite layer churns over the stage and fires REAL
+    // boundary events under a completely stationary cursor (same root
+    // cause as the product-card hover-video flash, af89bdc0). Playback
+    // must only stop via the pause button, scrubber/dot interaction, the
+    // IO gate, or the scroll latch — never from pointer boundary events.
+
+    render();
+    // start() here only paints the Pause state — onScreen is still false,
+    // so the rAF loop itself waits for the IO gate below to fire.
+    if (auto) start();
+
+    // Only run the rAF loop while the section is actually in the viewport.
+    // An ungated autoplay loop rewrites gradients + textContent every frame
+    // forever, waking the site-wide MutationObserver 60x/s even when the
+    // player is off-screen. Same gate as casa-aurasphere-scenes.
+    if (root._cspIO) root._cspIO.disconnect();
+    if ('IntersectionObserver' in window) {
+      root._cspIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          onScreen = entry.isIntersecting;
+          if (onScreen) { if (auto) startLoop(); }
+          else stopLoop();
+        });
+      }, { threshold: 0.15, rootMargin: '200px' });
+      root._cspIO.observe(root);
+    } else {
+      onScreen = true;
+      if (auto) startLoop();
+    }
+
+    // Theme editor mounts/unmounts sections constantly — release the rAF
+    // and both observers when this section unloads.
+    root._cspTeardown = function () {
+      stopLoop();
+      if (root._cspIO) { root._cspIO.disconnect(); root._cspIO = null; }
+      if (root._cspRO) { root._cspRO.disconnect(); root._cspRO = null; }
+    };
+  }
+
+  // Shared scroll latch for every player instance on the page — read by
+  // each instance's tick() (see the scroll-hold comment there). Writes
+  // happen on scroll-start + settle only, never per scroll frame.
+  var cspScrolling = false;
+  var cspScrollTimer = null;
+  window.addEventListener('scroll', function () {
+    cspScrolling = true;
+    if (cspScrollTimer) clearTimeout(cspScrollTimer);
+    cspScrollTimer = setTimeout(function () {
+      cspScrolling = false;
+      cspScrollTimer = null;
+    }, 200);
+  }, { passive: true });
+
+  function bootAll() {
+    document.querySelectorAll('.casa-csp').forEach(init);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootAll);
+  } else {
+    bootAll();
+  }
+  document.addEventListener('shopify:section:load', function (ev) {
+    if (ev.target) ev.target.querySelectorAll('.casa-csp').forEach(init);
+  });
+  document.addEventListener('shopify:section:unload', function (ev) {
+    if (!ev.target) return;
+    ev.target.querySelectorAll('.casa-csp').forEach(function (root) {
+      if (root._cspTeardown) root._cspTeardown();
+    });
+  });
+})();
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "Casa Color Scene Player",
+  "tag": "section",
+  "class": "casa-color-scene-player-section",
+  "settings": [
+    { "type": "header", "content": "Layout" },
+    { "type": "select", "id": "layout_style", "label": "Layout style",
+      "options": [
+        { "value": "default",    "label": "Default — vertical stack" },
+        { "value": "split-rail", "label": "Split-rail — left rail + photo stage" }
+      ],
+      "default": "default",
+      "info": "Split-rail mirrors the AuraSphere scene player layout. Only takes effect at ≥1100px; smaller widths fall back to a horizontal chip row."
+    },
+    { "type": "header", "content": "Heading" },
+    { "type": "text",  "id": "kicker",  "label": "Kicker (mono)", "default": "02 · THE THESIS" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading (use <em>word</em> for italic gradient accent)", "default": "One lamp. <em>One thousand moods.</em>" },
+    { "type": "textarea", "id": "lede", "label": "Lede", "default": "1,000,000+ colors. 360+ animated effects. Drag the scrubber, hit auto, or jump to a scene — the photo crossfades, the room follows." },
+
+    { "type": "header", "content": "Player behavior" },
+    { "type": "checkbox", "id": "autoplay", "label": "Autoplay on load", "default": true },
+    { "type": "range",    "id": "scene_seconds", "label": "Seconds per scene", "min": 1.5, "max": 8, "step": 0.5, "default": 4, "unit": "s" },
+
+    { "type": "header", "content": "Bottom-right counter" },
+    { "type": "text", "id": "count_value", "label": "Big number", "default": "360+" },
+    { "type": "text", "id": "count_label", "label": "Label",      "default": "animated effects on-board" },
+
+    { "type": "header", "content": "Colors" },
+    { "type": "color", "id": "color_paper",  "label": "Paper",         "default": "#FAFAF7" },
+    { "type": "color", "id": "color_ink",    "label": "Ink",           "default": "#0A0A0F" },
+    { "type": "color", "id": "color_purple", "label": "Accent purple", "default": "#B0C3FA" },
+    { "type": "color", "id": "color_pink",   "label": "Accent pink",   "default": "#5E0A02" },
+    { "type": "color", "id": "color_cyan",   "label": "Accent cyan",   "default": "#F2FFA0" },
+
+    { "type": "header", "content": "Spacing" },
+    { "type": "range", "id": "padding_top",    "label": "Padding top",    "min": 0, "max": 160, "step": 4, "default": 24, "unit": "px" },
+    { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 160, "step": 4, "default": 24, "unit": "px" }
+  ],
+  "blocks": [
+    {
+      "type": "scene",
+      "name": "Scene",
+      "limit": 12,
+      "settings": [
+        { "type": "image_picker", "id": "scene_image", "label": "Scene photo (preferred)" },
+        { "type": "url",          "id": "scene_image_url", "label": "External photo URL (fallback)" },
+        { "type": "text",         "id": "scene_name",  "label": "Name", "default": "Cyan" },
+        { "type": "select",       "id": "scene_kind",  "label": "Kind",
+          "options": [
+            { "value": "STATIC", "label": "STATIC — solid color" },
+            { "value": "SCENE",  "label": "SCENE — saved preset"  },
+            { "value": "EFFECT", "label": "EFFECT — animation"     }
+          ],
+          "default": "STATIC"
+        },
+        { "type": "color",        "id": "scene_hex",   "label": "Color hex", "default": "#F2FFA0" },
+        { "type": "text",         "id": "scene_palette", "label": "Palette (comma-separated hex)",
+          "info": "Optional. For multi-color scenes only — e.g. '#DC2626, #16A34A' for two-tone, '#FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #9400D3' for rainbow. Overrides the bar/dot/HUD swatch with a gradient. Leave blank for single-color scenes." },
+        { "type": "textarea",     "id": "scene_blurb", "label": "Blurb",     "default": "Solid color, locked. Dimmable on the remote dial." }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Apollo · 6 verified scenes",
+      "blocks": [
+        { "type": "scene", "settings": { "scene_image_url": "https://casadilumo.com/cdn/shop/files/Apollo_Floor_Lamp_Scene_10_cyan.webp?width=2000", "scene_name": "Cyan",     "scene_kind": "STATIC", "scene_hex": "#06B6D4", "scene_blurb": "Solid color, locked. The full pole holds one cyan hue — dimmable on the remote dial." } },
+        { "type": "scene", "settings": { "scene_image_url": "https://casadilumo.com/cdn/shop/files/Apollo_Floor_Lamp_Scene_17_orange.webp?width=2000", "scene_name": "Amber",    "scene_kind": "STATIC", "scene_hex": "#F97316", "scene_blurb": "Solid color. Warm cast across the wall — soft, cozy light for slow evenings and movie nights." } },
+        { "type": "scene", "settings": { "scene_image_url": "https://casadilumo.com/cdn/shop/files/Apollo_Floor_Lamp_Scene_18_yellow.webp?width=2000", "scene_name": "Warm",     "scene_kind": "STATIC", "scene_hex": "#EAB308", "scene_blurb": "Solid color, dimmed yellow. Reading-nook warmth — pull the brightness down for a candlelight feel." } },
+        { "type": "scene", "settings": { "scene_image_url": "https://casadilumo.com/cdn/shop/files/Apollo_Floor_Lamp_Scene_20_red-green.webp?width=2000", "scene_name": "Holiday", "scene_kind": "SCENE",  "scene_hex": "#DC2626", "scene_palette": "#DC2626, #16A34A", "scene_blurb": "Saved two-color preset. Red and green held in fixed bands. One of five user-saveable slots on the remote." } },
+        { "type": "scene", "settings": { "scene_image_url": "https://casadilumo.com/cdn/shop/files/Apollo_Floor_Lamp_Scene_20_rgb.webp?width=2000", "scene_name": "Spectrum", "scene_kind": "SCENE",  "scene_hex": "#9333EA", "scene_palette": "#DC2626, #F97316, #EAB308, #16A34A, #06B6D4, #9333EA, #EC4899", "scene_blurb": "Static rainbow. Every band of the visible spectrum on the pole at once — no animation, just color." } },
+        { "type": "scene", "settings": { "scene_image_url": "https://casadilumo.com/cdn/shop/files/Apollo_Floor_Lamp_Scene_08_multicolor_9_copy_60ad6f47-961a-4e02-8c04-c481fdd7c56a.webp?width=2000", "scene_name": "Color Flow", "scene_kind": "EFFECT", "scene_hex": "#A855F7", "scene_palette": "#06B6D4, #9333EA, #EC4899, #F97316, #EAB308", "scene_blurb": "Dynamic effect, slow speed. One of 360+ on-board animations — wave, ripple, fade, breathe, strobe, more." } }
+      ]
+    }
+  ]
+}
+{% endschema %}

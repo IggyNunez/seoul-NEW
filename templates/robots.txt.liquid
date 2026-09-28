@@ -1,0 +1,75 @@
+{% comment %}
+  Customized robots.txt — extends Shopify's default rules with
+  explicit allow rules for AI crawlers (ChatGPT, Claude, Perplexity,
+  Gemini, etc.). Toggle via Casa SEO > "Allow AI crawlers" theme
+  setting.
+
+  Shopify's default robots.txt content is preserved via the
+  `robots.default_groups` Liquid object — we just append our
+  additions.
+{% endcomment %}{% for group in robots.default_groups %}
+{{- group.user_agent }}
+{%- for rule in group.rules %}
+{{ rule }}
+{%- endfor %}
+
+{%- if group.sitemap != blank %}
+{{ group.sitemap }}
+{%- endif %}
+
+{% endfor %}
+
+{% if settings.casa_seo_allow_ai_crawlers %}# Casa SEO — explicit allow for AI crawlers
+# Toggle via theme settings > Casa SEO > Allow AI crawlers
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: GoogleOther
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: DuckAssistBot
+Allow: /
+
+User-agent: FacebookBot
+Allow: /
+
+# llms.txt for AI-readable site summary
+# https://llmstxt.org/
+{% endif %}

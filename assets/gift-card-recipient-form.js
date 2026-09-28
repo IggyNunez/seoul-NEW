@@ -61,7 +61,10 @@ class GiftCardRecipientForm extends Component {
     super.connectedCallback();
     this.#initializeForm();
 
-    this.#updateCharacterCountBound = () => this.#updateCharacterCount();
+    this.#updateCharacterCountBound = () => {
+      this.#clampMessageToSubmittedLength();
+      this.#updateCharacterCount();
+    };
     this.refs.recipientMessage.addEventListener('input', this.#updateCharacterCountBound);
 
     this.#displayCartErrorBound = this.#displayCartError.bind(this);
@@ -266,12 +269,45 @@ class GiftCardRecipientForm extends Component {
   }
 
   /**
+   * The length Shopify actually validates. The gift-card message is submitted through
+   * multipart form serialization, which normalizes every "\n" to "\r\n" — so on the wire a
+   * line break costs TWO code points, not one. The textarea's native `maxlength` and a raw
+   * `value.length` both count it as one, so a clamped multi-line paste reads "200/200" in the
+   * DOM but arrives at Shopify as 201+ and is rejected 422 "Message is too long" (silently, on
+   * gift cards). Count it the way the server does so the field can never hold a legal-looking
+   * but over-limit value.
+   * @param {string} value
+   * @returns {number}
+   */
+  #submittedLength(value) {
+    const newlineCount = (value.match(/\n/g) || []).length;
+    return [...value].length + newlineCount;
+  }
+
+  /**
+   * Trim the message from the end until its submitted (wire) length fits maxLength, so what the
+   * shopper sees is exactly what Shopify will accept. Runs on every input (typing + paste).
+   * Trims whole code points to avoid splitting an astral character (emoji) into a lone surrogate.
+   */
+  #clampMessageToSubmittedLength() {
+    const field = this.refs.recipientMessage;
+    const max = field.maxLength;
+    // maxLength is -1 when the attribute is absent; nothing to enforce then.
+    if (max <= 0 || this.#submittedLength(field.value) <= max) return;
+    const chars = [...field.value];
+    while (chars.length > 0 && this.#submittedLength(chars.join('')) > max) {
+      chars.pop();
+    }
+    field.value = chars.join('');
+  }
+
+  /**
    * Update character count display
    */
   #updateCharacterCount() {
     if (!this.refs.characterCount) return;
 
-    const currentLength = this.refs.recipientMessage.value.length;
+    const currentLength = this.#submittedLength(this.refs.recipientMessage.value);
     const maxLength = this.refs.recipientMessage.maxLength;
 
     const template = this.refs.characterCount.getAttribute('data-template');
@@ -410,5 +446,8 @@ class GiftCardRecipientForm extends Component {
   }
 }
 
-// Register the custom element
-customElements.define('gift-card-recipient-form', GiftCardRecipientForm);
+// Register the custom element (guarded: a second load in the theme editor
+// would otherwise throw NotSupportedError and kill the component)
+if (!customElements.get('gift-card-recipient-form')) {
+  customElements.define('gift-card-recipient-form', GiftCardRecipientForm);
+}

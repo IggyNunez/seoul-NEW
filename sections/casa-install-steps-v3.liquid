@@ -1,0 +1,704 @@
+{%- comment -%}
+  casa-install-steps-v3.liquid — OctaMirror v3 ONLY copy of casa-install-steps.liquid.
+  The shared original is untouched; this copy carries the v3-specific settings.
+{%- endcomment -%}
+{%- comment -%}
+  Seoul Glow Lab — Install / Hanging steps + hardware bag
+
+  Ink section. Three numbered steps with hand-drawn SVG diagrams (mark
+  & level → wall bracket → hang & plug in), then a two-column hardware
+  list with mono numbers. Step-3 diagram morphs to the merchant-set
+  mirror shape (octagon | hexagon-flat | quadrilateral | triangle | circle).
+
+  Per the Casa Design v2 PDP — counters install anxiety on a heavy, wall-mounted piece
+  of glass with a "15 minutes" headline + visible hardware list.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign mirror_shape = s.mirror_shape | default: 'octagon'
+
+  comment
+    Optional real-footage strip (additive, 2026-09-03): up to two short
+    clips — a real customer hanging the mirror, a real unboxing — shown
+    above the drawn steps. Each resolves picker > URL; blank = no strip,
+    so the four sibling mirror PDPs render exactly as before.
+    perf: data-casa-pause + no autoplay attribute (casa-offscreen-pause.js
+    owns playback); preload="metadata"; poster from the picked video.
+  endcomment
+  assign demo_1_url = blank
+  assign demo_1_poster = blank
+  if s.demo_video_1 != blank
+    for src in s.demo_video_1.sources
+      if src.format == 'mp4' and src.height <= 720
+        assign demo_1_url = src.url
+      endif
+    endfor
+    if demo_1_url == blank
+      for src in s.demo_video_1.sources
+        if src.format == 'mp4'
+          assign demo_1_url = src.url
+          break
+        endif
+      endfor
+    endif
+    assign demo_1_poster = s.demo_video_1.preview_image
+  elsif s.demo_video_1_url != blank
+    assign demo_1_url = s.demo_video_1_url
+  endif
+  if s.demo_poster_1 != blank
+    assign demo_1_poster = s.demo_poster_1
+  endif
+
+  assign demo_2_url = blank
+  assign demo_2_poster = blank
+  if s.demo_video_2 != blank
+    for src in s.demo_video_2.sources
+      if src.format == 'mp4' and src.height <= 720
+        assign demo_2_url = src.url
+      endif
+    endfor
+    if demo_2_url == blank
+      for src in s.demo_video_2.sources
+        if src.format == 'mp4'
+          assign demo_2_url = src.url
+          break
+        endif
+      endfor
+    endif
+    assign demo_2_poster = s.demo_video_2.preview_image
+  elsif s.demo_video_2_url != blank
+    assign demo_2_url = s.demo_video_2_url
+  endif
+  if s.demo_poster_2 != blank
+    assign demo_2_poster = s.demo_poster_2
+  endif
+  case mirror_shape
+    when 'hexagon-flat'
+      assign step3_poly_pts = '78,36 122,36 145,75 122,114 78,114 55,75'
+    when 'quadrilateral'
+      assign step3_poly_pts = '61,36 139,36 139,114 61,114'
+    when 'triangle'
+      assign step3_poly_pts = '100,36 145,114 55,114'
+    when 'circle'
+      assign is_circle = true
+    else
+      assign step3_poly_pts = '80,30 120,30 145,55 145,95 120,120 80,120 55,95 55,55'
+  endcase
+-%}
+
+<section
+  id="casa-ins-{{ section.id }}"
+  class="casa-ins{% if s.layout_density == 'one_frame' %} casa-ins--compact{% endif %}"
+  data-mirror-shape="{{ mirror_shape }}"
+  style="
+    --casa-ins-paper: {{ s.color_paper | default: '#FAFAF7' }};
+    --casa-ins-ink:   {{ s.color_ink   | default: '#0A0A0F' }};
+    --casa-ins-cyan:  {{ s.color_cyan  | default: '#F2FFA0' }};
+    --casa-ins-purple:{{ s.color_purple| default: '#B0C3FA' }};
+    --casa-ins-pink:  {{ s.color_pink  | default: '#5E0A02' }};
+    --casa-ins-pt:    {{ s.padding_top    | default: 96 }}px;
+    --casa-ins-pb:    {{ s.padding_bottom | default: 96 }}px;
+  "
+>
+  <div class="casa-ins__cap">
+    <header class="casa-ins__head">
+      {%- if s.kicker != blank -%}
+        <p class="casa-ins__mono casa-ins__mono--accent">{{ s.kicker }}</p>
+      {%- endif -%}
+      {%- if s.heading != blank -%}
+        <h2 class="casa-ins__h2" id="casa-ins-h2-{{ section.id }}">{{ s.heading }}</h2>
+      {%- endif -%}
+      {%- if s.subheading != blank -%}
+        <p class="casa-ins__lede">{{ s.subheading }}</p>
+      {%- endif -%}
+    </header>
+
+    {%- if demo_1_url != blank or demo_2_url != blank -%}
+      <div class="casa-ins__demos">
+        {%- if demo_1_url != blank -%}
+          <figure class="casa-ins__demo">
+            <video class="casa-ins__demo-video" data-casa-pause data-casa-video="install-1" muted loop playsinline preload="metadata"
+              {% if demo_1_poster != blank %}poster="{{ demo_1_poster | image_url: width: 800 }}"{% endif %}
+              aria-label="{{ s.demo_caption_1 | default: 'Customer footage' | escape }}">
+              <source src="{{ demo_1_url }}" type="video/mp4">
+            </video>
+            {%- if s.demo_caption_1 != blank -%}
+              <figcaption class="casa-ins__demo-cap">{{ s.demo_caption_1 | escape }}</figcaption>
+            {%- endif -%}
+          </figure>
+        {%- endif -%}
+        {%- if demo_2_url != blank -%}
+          <figure class="casa-ins__demo">
+            <video class="casa-ins__demo-video" data-casa-pause data-casa-video="install-2" muted loop playsinline preload="metadata"
+              {% if demo_2_poster != blank %}poster="{{ demo_2_poster | image_url: width: 800 }}"{% endif %}
+              aria-label="{{ s.demo_caption_2 | default: 'Customer footage' | escape }}">
+              <source src="{{ demo_2_url }}" type="video/mp4">
+            </video>
+            {%- if s.demo_caption_2 != blank -%}
+              <figcaption class="casa-ins__demo-cap">{{ s.demo_caption_2 | escape }}</figcaption>
+            {%- endif -%}
+          </figure>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    {%- comment -%} On mobile the grid is a horizontal scroll-snap rail; make it a
+      labelled, keyboard-focusable region so it's arrow-scrollable in every browser
+      (Safari doesn't auto-focus static scrollers). Labelled by the H2 above — no new
+      string. Attributes only added when the H2 exists so the group always has a name. {%- endcomment -%}
+    <div class="casa-ins__grid"{% if s.heading != blank %} role="group" aria-labelledby="casa-ins-h2-{{ section.id }}" tabindex="0"{% endif %}>
+      {%- comment -%} STEP 01 — Mark & level {%- endcomment -%}
+      <div class="casa-ins__step">
+        <p class="casa-ins__mono casa-ins__mono--dim">STEP 01</p>
+        <div class="casa-ins__diag" aria-hidden="true">
+          <svg viewBox="0 0 200 140">
+            <line x1="20" y1="40" x2="180" y2="40" stroke="#B0C3FA" stroke-width="1.5" stroke-dasharray="4 4" />
+            <circle cx="60" cy="40" r="4" fill="#5E0A02" />
+            <circle cx="140" cy="40" r="4" fill="#5E0A02" />
+            <rect x="80" y="80" width="40" height="20" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1" />
+            <line x1="100" y1="85" x2="100" y2="95" stroke="#F2FFA0" stroke-width="2" />
+            <text x="100" y="120" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9" font-family="JetBrains Mono">LEVEL · MARK</text>
+          </svg>
+        </div>
+        <h3 class="casa-ins__step-title">{{ s.step_1_title }}</h3>
+        <p class="casa-ins__step-body">{{ s.step_1_body }}</p>
+      </div>
+
+      {%- comment -%} STEP 02 — Wall bracket {%- endcomment -%}
+      <div class="casa-ins__step">
+        <p class="casa-ins__mono casa-ins__mono--dim">STEP 02</p>
+        <div class="casa-ins__diag" aria-hidden="true">
+          <svg viewBox="0 0 200 140">
+            <polygon points="40,50 160,50 160,60 100,80 40,60" fill="rgba(255,255,255,0.15)" stroke="#fff" stroke-width="1" />
+            <circle cx="60" cy="55" r="3" fill="#B0C3FA" />
+            <circle cx="140" cy="55" r="3" fill="#B0C3FA" />
+            <text x="100" y="120" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9" font-family="JetBrains Mono">WALL BRACKET</text>
+          </svg>
+        </div>
+        <h3 class="casa-ins__step-title">{{ s.step_2_title }}</h3>
+        <p class="casa-ins__step-body">{{ s.step_2_body }}</p>
+      </div>
+
+      {%- comment -%} STEP 03 — Hang & plug in {%- endcomment -%}
+      <div class="casa-ins__step">
+        <p class="casa-ins__mono casa-ins__mono--dim">STEP 03</p>
+        <div class="casa-ins__diag" aria-hidden="true">
+          <svg viewBox="0 0 200 140">
+            {%- if is_circle -%}
+              <circle cx="100" cy="75" r="39"
+                fill="none" stroke="#fff" stroke-width="1.5" />
+              <circle cx="100" cy="75" r="39"
+                transform="translate(100 75) scale(0.55) translate(-100 -75)"
+                fill="none" stroke="#5E0A02" stroke-width="1" />
+            {%- else -%}
+              <polygon points="{{ step3_poly_pts }}"
+                fill="none" stroke="#fff" stroke-width="1.5" />
+              <polygon points="{{ step3_poly_pts }}"
+                transform="translate(100 75) scale(0.55) translate(-100 -75)"
+                fill="none" stroke="#5E0A02" stroke-width="1" />
+            {%- endif -%}
+            <text x="100" y="135" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="9" font-family="JetBrains Mono">HANG · POWER · PAIR</text>
+          </svg>
+        </div>
+        <h3 class="casa-ins__step-title">{{ s.step_3_title }}</h3>
+        <p class="casa-ins__step-body">{{ s.step_3_body }}</p>
+      </div>
+    </div>
+
+    {%- comment -%} HARDWARE BAG {%- endcomment -%}
+    <div class="casa-ins__bag">
+      <div class="casa-ins__bag-head">
+        <p class="casa-ins__mono casa-ins__mono--dim">{{ s.bag_kicker | default: 'IN THE BOX' }}</p>
+        <h3>{{ s.bag_title | default: 'Everything to mount it.' }}</h3>
+      </div>
+      <ul class="casa-ins__bag-list">
+        {%- assign hw = 'Mirror unit, pre-assembled|Wall mounting bracket|Drywall anchors × 2|Mounting screws × 2|RF remote|12V adapter + 8 ft cable|Universal plug kit (US/EU/UK/AU)' | split: '|' -%}
+        {%- if s.bag_items != blank -%}
+          {%- assign hw = s.bag_items | split: '|' -%}
+        {%- endif -%}
+        {%- for item in hw -%}
+          <li>
+            <span class="n">{{ forloop.index | prepend: '00' | slice: -2, 2 }}</span>
+            <span class="t">{{ item | strip }}</span>
+          </li>
+        {%- endfor -%}
+      </ul>
+    </div>
+  </div>
+</section>
+
+{% stylesheet %}
+.casa-ins {
+  background: var(--casa-ins-ink, var(--casa-ink));
+  color: var(--casa-paper);
+  padding: var(--casa-ins-pt, 96px) 0 var(--casa-ins-pb, 96px);
+}
+.casa-ins__cap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px);
+}
+.casa-ins__mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.casa-ins__mono--accent { color: var(--casa-ins-cyan); }
+.casa-ins__mono--dim { color: rgba(255,255,255,0.4); }
+
+.casa-ins__head {
+  max-width: 720px;
+  margin: 0 auto clamp(40px, 6vw, 64px);
+  text-align: center;
+}
+.casa-ins__head .casa-ins__mono { margin-bottom: 18px; }
+
+.casa-ins__h2 {
+  font-family: var(--casa-pdp-h2-family);
+  font-size: var(--casa-pdp-h2-size);
+  font-weight: var(--casa-pdp-h2-weight);
+  letter-spacing: var(--casa-pdp-h2-tracking);
+  line-height: var(--casa-pdp-h2-line);
+  margin: 0;
+  color: #fff;
+  text-wrap: balance;
+}
+.casa-ins__h2 em {
+  font-style: italic;
+  font-weight: 800;
+  background: linear-gradient(90deg, var(--casa-ins-pink), var(--casa-ins-cyan));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.casa-ins__lede {
+  margin: 16px auto 0;
+  font-size: clamp(15px, 1.4vw, 18px);
+  line-height: 1.55;
+  color: rgba(255,255,255,0.82);
+  max-width: 60ch;
+}
+
+/* Real-footage strip — two portrait clips, cropped to 4:5 so they sit in one
+   row on a phone without becoming a wall of video. */
+.casa-ins__demos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(12px, 2vw, 20px);
+  max-width: 720px;
+  margin: 0 auto clamp(24px, 4vw, 40px);
+}
+.casa-ins__demo {
+  margin: 0;
+}
+.casa-ins__demo-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #000;
+}
+.casa-ins__demo-cap {
+  margin-top: 8px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  text-align: center;
+}
+
+.casa-ins__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(20px, 3vw, 32px);
+  margin-bottom: clamp(48px, 6vw, 80px);
+}
+/* Keyboard focus ring for the focusable rail region (keyboard-only, never mouse) */
+.casa-ins__grid:focus-visible {
+  outline: 2px solid var(--casa-ins-cyan, #F2FFA0);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+/* Mobile: the 3 steps become a horizontal scroll-snap rail — swipe through
+   cards instead of stacking. ~80% card width leaves the next card peeking as
+   a scroll affordance. Matches the theme's carousel convention
+   (casa-testimonials, casa-aurasphere-family). */
+@media (max-width: 749px) {
+  .casa-ins__grid {
+    display: flex;
+    grid-template-columns: none;
+    gap: 16px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .casa-ins__grid::-webkit-scrollbar { display: none; }
+  .casa-ins__step {
+    flex: 0 0 80%;
+    max-width: 320px;
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+}
+@media (max-width: 749px) and (prefers-reduced-motion: reduce) {
+  .casa-ins__grid { scroll-behavior: auto; }
+}
+
+.casa-ins__step {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.casa-ins__diag {
+  background: rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 8px;
+  margin: 8px 0;
+}
+.casa-ins__diag svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.casa-ins__step-title {
+  font-family: var(--font-body--family);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: #fff;
+  margin: 0;
+}
+.casa-ins__step-body {
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.82);
+  margin: 0;
+}
+
+.casa-ins__bag {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: 12px;
+  padding: clamp(28px, 4vw, 40px);
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  gap: clamp(32px, 5vw, 64px);
+  align-items: start;
+}
+@media (max-width: 749px) {
+  .casa-ins__bag { grid-template-columns: 1fr; gap: 24px; }
+}
+.casa-ins__bag-head .casa-ins__mono { margin-bottom: 12px; }
+.casa-ins__bag-head h3 {
+  font-family: var(--font-body--family);
+  font-size: clamp(20px, 2.4vw, 26px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin: 0;
+}
+.casa-ins__bag-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 32px;
+}
+@media (max-width: 540px) {
+  .casa-ins__bag-list { grid-template-columns: 1fr; }
+}
+.casa-ins__bag-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.92);
+  border-bottom: 1px solid rgba(255,255,255,0.16);
+  padding-bottom: 10px;
+}
+.casa-ins__bag-list .n {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.4);
+  min-width: 20px;
+}
+.casa-ins__bag-list .t { flex: 1; }
+
+/* ── One-frame density ───────────────────────────────────────────────
+   Opt-in via the "Section height" setting, so the four other mirror PDPs
+   using this section keep their current spacing untouched.
+
+   The dominant cost here is not padding — it is the step diagrams. The
+   SVGs are 200x140 and scale to the card width, so on a 1440px cap each
+   one renders ~260px tall and three of them set the whole grid height.
+   Capping the drawing at 120px reclaims more than every spacing tweak in
+   this block put together. They are decorative (aria-hidden), so a
+   smaller drawing costs nothing in meaning.                            */
+.casa-ins--compact .casa-ins__head { margin-bottom: clamp(14px, 1.6vw, 20px); }
+.casa-ins--compact .casa-ins__head .casa-ins__mono { margin-bottom: 8px; }
+.casa-ins--compact .casa-ins__lede { margin-top: 8px; font-size: clamp(13px, 1.1vw, 15px); line-height: 1.5; }
+.casa-ins--compact .casa-ins__grid { margin-bottom: clamp(14px, 1.6vw, 20px); }
+.casa-ins--compact .casa-ins__step { padding: 16px; gap: 8px; }
+.casa-ins--compact .casa-ins__diag { margin: 4px 0; padding: 4px; }
+.casa-ins--compact .casa-ins__diag svg {
+  max-height: 100px;
+  /* height:auto + max-height alone would letterbox the drawing inside a
+     wider box; margin-inline auto keeps it optically centred in the card. */
+  width: auto;
+  max-width: 100%;
+  margin-inline: auto;
+}
+.casa-ins--compact .casa-ins__step-title { font-size: 16px; }
+.casa-ins--compact .casa-ins__bag { padding: clamp(12px, 1.5vw, 18px); gap: clamp(16px, 2.4vw, 30px); }
+.casa-ins--compact .casa-ins__bag-head .casa-ins__mono { margin-bottom: 6px; }
+.casa-ins--compact .casa-ins__bag-head h3 { font-size: clamp(17px, 1.6vw, 19px); }
+.casa-ins--compact .casa-ins__bag-list { gap: 4px 26px; }
+.casa-ins--compact .casa-ins__bag-list li { padding-bottom: 4px; font-size: 13px; }
+
+@media (max-width: 749px) {
+  .casa-ins--compact .casa-ins__diag svg { max-height: 84px; }
+  .casa-ins--compact .casa-ins__step { padding: 13px; }
+}
+/* The hardware list is seven short strings. Dropping to one column below
+   540px is what makes this section overrun the frame on a phone; two
+   columns still read cleanly at that width. */
+/* Short viewports: the hardware list is seven rows and the step diagrams
+   are decorative, so both give ground before any instruction text does. */
+
+
+@media (max-width: 540px) {
+  .casa-ins--compact .casa-ins__bag-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 16px;
+  }
+  .casa-ins--compact .casa-ins__bag-list li { font-size: 12px; gap: 8px; }
+  .casa-ins--compact .casa-ins__bag-list .n { min-width: 16px; }
+}
+
+/* 790px, not 800: it has to catch a 768-tall landscape tablet, which
+   the first attempt at 760 missed by eight pixels, without also firing
+   on an 800-tall laptop that already fits and would only get smaller
+   for nothing.
+
+   Height tiers live LAST. They share specificity with the width
+   queries above and only win on source order — placed earlier they
+   silently lost, which is exactly what happened on the first pass. */
+@media (max-height: 790px) {
+  .casa-ins--compact .casa-ins__diag svg { max-height: 74px; }
+  .casa-ins--compact .casa-ins__step { padding: 10px; gap: 6px; }
+  .casa-ins--compact .casa-ins__bag { padding: 10px; gap: 14px; }
+  .casa-ins--compact .casa-ins__bag-list { gap: 3px 20px; }
+  .casa-ins--compact .casa-ins__bag-list li { padding-bottom: 3px; font-size: 12px; }
+  .casa-ins--compact .casa-ins__head { margin-bottom: 12px; }
+  .casa-ins--compact .casa-ins__grid { margin-bottom: 12px; }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Install Steps v3",
+  "tag": "section",
+  "class": "casa-install-steps-section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "layout_density",
+      "label": "Section height",
+      "info": "One frame tightens spacing and caps the step diagrams so the section fits a single screen.",
+      "options": [
+        { "value": "comfortable", "label": "Comfortable" },
+        { "value": "one_frame", "label": "Fit one frame" }
+      ],
+      "default": "comfortable"
+    },
+    {
+      "type": "header",
+      "content": "Heading"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker (mono)"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading (use <em>word</em> for italic gradient accent)"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading"
+    },
+    {
+      "type": "select",
+      "id": "mirror_shape",
+      "label": "Mirror shape (Step 3 illustration)",
+      "info": "Match the actual mirror geometry — only affects the Step 3 hang/plug-in diagram.",
+      "options": [
+        { "value": "octagon", "label": "Octagon (8-sided)" },
+        { "value": "hexagon-flat", "label": "Hexagon — flat top (6-sided)" },
+        { "value": "quadrilateral", "label": "Square (QuadraMirror)" },
+        { "value": "triangle", "label": "Triangle (TriMirror)" },
+        { "value": "circle", "label": "Circle (360 Mirror)" }
+      ],
+      "default": "octagon"
+    },
+    {
+      "type": "header",
+      "content": "Real footage (optional)",
+      "info": "Up to two short clips shown above the steps — a customer hanging it, an unboxing. Muted, plays on screen only. Leave blank for no strip."
+    },
+    { "type": "video", "id": "demo_video_1", "label": "Clip 1" },
+    { "type": "text", "id": "demo_video_1_url", "label": "Clip 1 URL (.mp4) — fallback" },
+    { "type": "image_picker", "id": "demo_poster_1", "label": "Clip 1 poster (optional)" },
+    { "type": "text", "id": "demo_caption_1", "label": "Clip 1 caption" },
+    { "type": "video", "id": "demo_video_2", "label": "Clip 2" },
+    { "type": "text", "id": "demo_video_2_url", "label": "Clip 2 URL (.mp4) — fallback" },
+    { "type": "image_picker", "id": "demo_poster_2", "label": "Clip 2 poster (optional)" },
+    { "type": "text", "id": "demo_caption_2", "label": "Clip 2 caption" },
+    {
+      "type": "header",
+      "content": "Step 1",
+      "info": "Product-specific — enter per template. No defaults to prevent OctaMirror install copy from bleeding onto other mirrors / floor lamps / tables."
+    },
+    {
+      "type": "text",
+      "id": "step_1_title",
+      "label": "Title"
+    },
+    {
+      "type": "textarea",
+      "id": "step_1_body",
+      "label": "Body"
+    },
+    {
+      "type": "header",
+      "content": "Step 2"
+    },
+    {
+      "type": "text",
+      "id": "step_2_title",
+      "label": "Title"
+    },
+    {
+      "type": "textarea",
+      "id": "step_2_body",
+      "label": "Body"
+    },
+    {
+      "type": "header",
+      "content": "Step 3"
+    },
+    {
+      "type": "text",
+      "id": "step_3_title",
+      "label": "Title"
+    },
+    {
+      "type": "textarea",
+      "id": "step_3_body",
+      "label": "Body"
+    },
+    {
+      "type": "header",
+      "content": "Hardware bag"
+    },
+    {
+      "type": "text",
+      "id": "bag_kicker",
+      "label": "Kicker"
+    },
+    {
+      "type": "text",
+      "id": "bag_title",
+      "label": "Title"
+    },
+    {
+      "type": "textarea",
+      "id": "bag_items",
+      "label": "Items (pipe-separated)",
+      "info": "One item per pipe. Numbered automatically. Product-specific — enter per template."
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "color_paper",
+      "label": "Paper",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "color_ink",
+      "label": "Ink",
+      "default": "#0A0A0F"
+    },
+    {
+      "type": "color",
+      "id": "color_cyan",
+      "label": "Accent cyan",
+      "default": "#F2FFA0"
+    },
+    {
+      "type": "color",
+      "id": "color_purple",
+      "label": "Accent purple",
+      "default": "#B0C3FA"
+    },
+    {
+      "type": "color",
+      "id": "color_pink",
+      "label": "Accent pink",
+      "default": "#5E0A02"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 200,
+      "step": 8,
+      "default": 96,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 200,
+      "step": 8,
+      "default": 96,
+      "unit": "px"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Install Steps v3",
+      "category": "Product"
+    }
+  ]
+}
+{% endschema %}

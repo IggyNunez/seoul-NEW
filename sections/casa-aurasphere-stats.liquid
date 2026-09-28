@@ -1,0 +1,157 @@
+{%- comment -%}
+  casa-aurasphere-stats.liquid
+  Used by: product.aurasphere-smart-wall-lamp.json
+  Three viewport-height stat beats on Ink (Portal mood).
+  Mobile-compact: no per-stat viewport heights on small screens,
+  tight padding to avoid eating two mobile viewports for 3 numbers.
+  Blocks: stat (number, label, sub)
+{%- endcomment -%}
+
+{%- liquid
+  assign cap = section.settings.container_max | default: 1440
+-%}
+
+<section
+  class="cdl-aurasphere-stats"
+  data-section-id="{{ section.id }}"
+  style="--cdl-cap: {{ cap }}px;"
+>
+  <div class="cdl-as-stats__wrap">
+    {%- for block in section.blocks -%}
+      {%- if block.type == 'stat' -%}
+        <div class="cdl-as-stats__block" {{ block.shopify_attributes }}>
+          <p class="cdl-as-stats__num">{{ block.settings.number | default: '—' }}</p>
+          <p class="cdl-as-stats__label">{{ block.settings.label | default: '' }}</p>
+          {%- if block.settings.sub != blank -%}
+            <p class="cdl-as-stats__sub">{{ block.settings.sub }}</p>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+    {%- endfor -%}
+  </div>
+</section>
+
+{% stylesheet %}
+.cdl-aurasphere-stats {
+  background: var(--casa-paper, #FAFAF7);
+  padding: 36px 24px;
+  font-family: var(--font-body--family);
+  border-top: 1px solid rgba(10,10,15,0.06);
+  border-bottom: 1px solid rgba(10,10,15,0.06);
+}
+.cdl-as-stats__wrap {
+  max-width: var(--cdl-cap, 1440px);
+  margin: 0 auto;
+  /* Mobile-first: a scannable spec LIST — each stat is one row
+     (number + label + one-line context), so the numbers never read as
+     three stranded figures. Desktop (≥768px) restores the 3-up cards. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.cdl-as-stats__block {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 18px;
+  align-items: center;
+  padding: 16px 2px;
+  text-align: left;
+  border-bottom: 1px solid rgba(10,10,15,0.08);
+}
+.cdl-as-stats__block:last-child { border-bottom: 0; }
+.cdl-as-stats__num {
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-size: clamp(26px, 8vw, 34px);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin: 0;
+  white-space: nowrap;
+  background: linear-gradient(90deg, #B0C3FA 0%, #5E0A02 50%, #F2FFA0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.cdl-as-stats__label {
+  grid-column: 2;
+  align-self: end;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: rgba(10,10,15,0.55);
+  margin: 0;
+}
+.cdl-as-stats__sub {
+  grid-column: 2;
+  align-self: start;
+  display: block;
+  font-size: 13px;
+  font-weight: 300;
+  line-height: 1.45;
+  color: rgba(10,10,15,0.7);
+  margin: 3px 0 0;
+}
+
+@media (min-width: 768px) {
+  .cdl-aurasphere-stats { padding: 80px 32px; }
+  /* Desktop: 3-up stat cards (original treatment). */
+  .cdl-as-stats__wrap { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: stretch; }
+  .cdl-as-stats__block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 56px 28px;
+    gap: 4px;
+    border-bottom: 0;
+    border-radius: 8px;
+    background: rgba(10,10,15,0.02);
+    border: 1px solid rgba(10,10,15,0.06);
+    container-type: inline-size;
+  }
+  .cdl-as-stats__num { font-size: clamp(40px, min(7vw, 24cqi), 88px); letter-spacing: -0.04em; align-self: center; }
+  .cdl-as-stats__label { font-size: clamp(15px, 1.4vw, 18px); margin-top: 10px; letter-spacing: -0.01em; align-self: center; }
+  .cdl-as-stats__sub { display: block; font-size: 13px; margin: 14px auto 0; max-width: 32ch; align-self: center; }
+}
+
+@media (min-width: 1100px) {
+  .cdl-as-stats__num { font-size: clamp(48px, min(8vw, 24cqi), 110px); }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "AuraSphere · Stats",
+  "tag": "section",
+  "class": "casa-aurasphere-stats-wrapper",
+  "settings": [
+    { "type": "header", "content": "Layout" },
+    { "type": "range", "id": "container_max", "label": "Container max width", "min": 1100, "max": 1600, "step": 20, "default": 1440, "unit": "px" }
+  ],
+  "blocks": [
+    {
+      "type": "stat",
+      "name": "Stat",
+      "settings": [
+        { "type": "text", "id": "number", "label": "Big number", "default": "1M+" },
+        { "type": "text", "id": "label", "label": "Label (single word)", "default": "colors" },
+        { "type": "textarea", "id": "sub", "label": "Sub-copy (1 short line)" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "AuraSphere · Stats",
+      "blocks": [
+        { "type": "stat", "settings": { "number": "1M+",   "label": "colors",   "sub": "Full-spectrum RGB. Every hue, every shade — from the warmest amber to the coldest blue-white." } },
+        { "type": "stat", "settings": { "number": "360+",  "label": "effects",  "sub": "Solid colour, gradient sweep, lightning pulse, music-reactive flash. All on the remote. All in the app." } },
+        { "type": "stat", "settings": { "number": "20in",  "label": "diameter", "sub": "Sized to anchor a wall, not decorate a corner. Sits just 1.5 inches off the wall — flush and furniture-scale." } }
+      ]
+    }
+  ]
+}
+{% endschema %}

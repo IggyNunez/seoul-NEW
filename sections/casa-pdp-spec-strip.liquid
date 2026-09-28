@@ -1,0 +1,415 @@
+{%- comment -%}
+  Seoul Glow Lab — PDP "Quick specs" 4-card strip
+  Compact specs strip — small image + spec name + big value (italic
+  accent) + 1-line note. Scannable in 4 seconds. Built for Bubble
+  Girls v5 PDP. Reusable for any product that needs a "the numbers,
+  fast" moment between social proof and FAQ.
+{%- endcomment -%}
+
+{%- assign s = section.settings -%}
+{%- assign sid = section.id -%}
+
+<section
+  id="casa-spec-{{ sid }}"
+  class="casa-spec{% if s.surface == 'warm' %} casa-spec--warm{% endif %}"
+  style="
+    --casa-spec-paper: {{ s.color_paper | default: '#FAFAF7' }};
+    --casa-spec-cream: {{ s.color_cream | default: '#FFFFFF' }};
+    --casa-spec-ink: {{ s.color_ink | default: '#0A0A0F' }};
+    --casa-spec-soft: {{ s.color_soft | default: '#54545C' }};
+    --casa-spec-mute: {{ s.color_mute | default: '#8B8B92' }};
+    --casa-spec-warm: {{ s.color_warm | default: '#8B8B92' }};
+    --casa-spec-rule: {{ s.color_rule | default: '#E8E8E4' }};
+    --casa-spec-pt: {{ s.padding_top | default: 64 }}px;
+    --casa-spec-pb: {{ s.padding_bottom | default: 64 }}px;
+  "
+>
+  <div class="casa-spec__cap">
+    {%- if s.heading != blank or s.kicker != blank or s.meta != blank -%}
+      <header class="casa-spec__head">
+        <div>
+          {%- if s.kicker != blank -%}
+            <p class="casa-spec__kicker">{{ s.kicker }}</p>
+          {%- endif -%}
+          {%- if s.heading != blank -%}
+            <h2 class="casa-spec__heading">{{ s.heading }}</h2>
+          {%- endif -%}
+        </div>
+        {%- if s.meta != blank -%}
+          <p class="casa-spec__head-meta">{{ s.meta }}</p>
+        {%- endif -%}
+      </header>
+    {%- endif -%}
+
+    <div class="casa-spec__grid">
+      {%- for block in section.blocks limit: 4 -%}
+        <article class="casa-spec__card" {{ block.shopify_attributes }}>
+          {%- if block.settings.image != blank -%}
+            <div class="casa-spec__img">
+              {%- comment -%}
+                alt precomputed: a piped fallback inside image_tag's arg
+                list terminates the args — the fallback never applied. No
+                | escape: image_tag escapes attribute values itself.
+              {%- endcomment -%}
+              {%- assign _spec_alt = block.settings.image.alt | default: block.settings.name -%}
+              {{ block.settings.image | image_url: width: 600 | image_tag:
+                  loading: 'lazy',
+                  widths: '300, 500, 600',
+                  sizes: '(min-width: 900px) 22vw, 50vw',
+                  class: 'casa-spec__pic',
+                  alt: _spec_alt
+              }}
+              {%- if block.settings.ord != blank -%}
+                <span class="casa-spec__ord">{{ block.settings.ord }}</span>
+              {%- endif -%}
+            </div>
+          {%- endif -%}
+
+          <div class="casa-spec__body">
+            {%- if block.settings.name != blank -%}
+              <p class="casa-spec__name">{{ block.settings.name }}</p>
+            {%- endif -%}
+            {%- if block.settings.value != blank -%}
+              <p class="casa-spec__value">{{ block.settings.value }}</p>
+            {%- endif -%}
+            {%- if block.settings.note != blank -%}
+              <p class="casa-spec__note">{{ block.settings.note }}</p>
+            {%- endif -%}
+          </div>
+        </article>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+{% stylesheet %}
+  .casa-spec {
+    background: var(--casa-spec-paper);
+    color: var(--casa-spec-ink);
+    padding: var(--casa-spec-pt) 0 var(--casa-spec-pb);
+  }
+  .casa-spec--warm { background: var(--casa-spec-cream); }
+
+  .casa-spec__cap {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 64px);
+  }
+
+  .casa-spec__head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 32px;
+    margin-bottom: clamp(20px, 2.5vw, 32px);
+    padding-bottom: clamp(16px, 2vw, 24px);
+    border-bottom: 1px solid var(--casa-spec-rule);
+  }
+  @media (max-width: 700px) {
+    .casa-spec__head { grid-template-columns: 1fr; gap: 16px; }
+  }
+  .casa-spec__kicker {
+    display: inline-block;
+    margin: 0 0 12px;
+    font: 500 11px 'JetBrains Mono', monospace;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--casa-spec-warm);
+  }
+  .casa-spec__heading {
+    font: 300 clamp(28px, 3.5vw, 44px)/1.05 var(--font-body--family);
+    letter-spacing: -0.025em;
+    color: var(--casa-spec-ink);
+    margin: 0;
+    max-width: 18ch;
+    text-wrap: balance;
+  }
+  .casa-spec__heading em {
+    font-style: italic;
+    font-weight: 500;
+  }
+  .casa-spec__head-meta {
+    font: 500 11px 'JetBrains Mono', monospace;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    color: var(--casa-spec-mute);
+    text-align: right;
+    line-height: 1.7;
+    margin: 0;
+  }
+  @media (max-width: 700px) { .casa-spec__head-meta { text-align: left; } }
+
+  .casa-spec__grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+  @media (max-width: 900px) { .casa-spec__grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 540px) { .casa-spec__grid { grid-template-columns: 1fr; } }
+
+  .casa-spec__card {
+    background: var(--casa-spec-paper);
+    border: 1px solid var(--casa-spec-rule);
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .casa-spec--warm .casa-spec__card { background: var(--casa-spec-paper); }
+
+  .casa-spec__img {
+    position: relative;
+    aspect-ratio: 5 / 3.2;
+    background: var(--casa-spec-cream);
+    overflow: hidden;
+  }
+  .casa-spec__pic {
+    /* height: auto + aspect-ratio instead of height: 100% — the wrapper's
+       height comes from its own aspect-ratio, and Safari 26 can fail to
+       resolve a %-height against that (the /cart flat-thumbnail class;
+       immune pattern from .cart-items__media-image in snippets/cart-products.liquid). */
+    width: 100%;
+    height: auto;
+    aspect-ratio: 5 / 3.2;
+    object-fit: cover;
+    display: block;
+  }
+  .casa-spec__ord {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font: 600 9px 'JetBrains Mono', monospace;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    color: #fff;
+    background: rgba(10, 10, 15, 0.50);
+    backdrop-filter: blur(6px);
+    padding: 4px 9px;
+    border-radius: 999px;
+  }
+
+  .casa-spec__body {
+    padding: 18px 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .casa-spec__name {
+    font: 600 13px var(--font-body--family);
+    color: var(--casa-spec-ink);
+    margin: 0;
+    letter-spacing: -0.005em;
+  }
+  .casa-spec__value {
+    font: 300 22px/1 var(--font-body--family);
+    color: var(--casa-spec-ink);
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+  .casa-spec__value em {
+    font-style: italic;
+    font-weight: 500;
+  }
+  .casa-spec__note {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--casa-spec-soft);
+    margin: 0;
+  }
+
+  @media (max-width: 540px) {
+    .casa-spec { padding: 48px 0; }
+    .casa-spec__body { padding: 16px 18px 18px; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa PDP Spec Strip",
+  "tag": "section",
+  "class": "casa-pdp-spec-strip-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Header"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker (mono uppercase)",
+      "default": "§ 5 · Quick specs"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading",
+      "info": "Wrap one accent word in <em>…</em>.",
+      "default": "The numbers, <em>fast.</em>"
+    },
+    {
+      "type": "text",
+      "id": "meta",
+      "label": "Header meta (right-aligned)",
+      "info": "Optional short tagline. Leave blank if nothing to add."
+    },
+    {
+      "type": "header",
+      "content": "Surface & spacing"
+    },
+    {
+      "type": "select",
+      "id": "surface",
+      "label": "Surface",
+      "options": [
+        { "value": "paper", "label": "Paper" },
+        { "value": "warm", "label": "Paper-elevated (white)" }
+      ],
+      "default": "paper"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 24,
+      "max": 160,
+      "step": 4,
+      "default": 64,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 24,
+      "max": 160,
+      "step": 4,
+      "default": 64,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "color_paper",
+      "label": "Paper",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "color_cream",
+      "label": "Paper-elevated",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "color_ink",
+      "label": "Ink",
+      "default": "#0A0A0F"
+    },
+    {
+      "type": "color",
+      "id": "color_soft",
+      "label": "Body soft",
+      "default": "#54545C"
+    },
+    {
+      "type": "color",
+      "id": "color_mute",
+      "label": "Mono mute",
+      "default": "#8B8B92"
+    },
+    {
+      "type": "color",
+      "id": "color_warm",
+      "label": "Warm accent",
+      "default": "#8B8B92"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "spec",
+      "name": "Spec card",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "text",
+          "id": "ord",
+          "label": "Ord chip (e.g. № 01 · Bubble)",
+          "default": "№ 01 · Bubble"
+        },
+        {
+          "type": "text",
+          "id": "name",
+          "label": "Spec name",
+          "default": "The bubble"
+        },
+        {
+          "type": "inline_richtext",
+          "id": "value",
+          "label": "Value (large)",
+          "info": "Wrap one word in <em>…</em> for italic accent.",
+          "default": "<em>Removable</em>"
+        },
+        {
+          "type": "textarea",
+          "id": "note",
+          "label": "1-line note",
+          "default": "Clear glass sphere. Lifts off the base. Replacements available."
+        }
+      ]
+    }
+  ],
+  "max_blocks": 4,
+  "presets": [
+    {
+      "name": "Casa PDP Spec Strip",
+      "category": "Product",
+      "blocks": [
+        {
+          "type": "spec",
+          "settings": {
+            "ord": "№ 01 · Bubble",
+            "name": "The bubble",
+            "value": "<em>Removable</em>",
+            "note": "Clear glass sphere. Lifts off the base. Replacements available."
+          }
+        },
+        {
+          "type": "spec",
+          "settings": {
+            "ord": "№ 02 · Body",
+            "name": "The body",
+            "value": "Polymer-<em>glass</em>",
+            "note": "Hand-painted by the studio. Weighted base. Sealed finish."
+          }
+        },
+        {
+          "type": "spec",
+          "settings": {
+            "ord": "№ 03 · Light",
+            "name": "The light",
+            "value": "<em>3</em> warm levels",
+            "note": "Touch-dim. LED warm white. No app, no remote."
+          }
+        },
+        {
+          "type": "spec",
+          "settings": {
+            "ord": "№ 04 · Battery",
+            "name": "The battery",
+            "value": "<em>12 hr</em> cordless",
+            "note": "USB-rechargeable. Move her anywhere. No outlet needed."
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

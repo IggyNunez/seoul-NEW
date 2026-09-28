@@ -95,7 +95,17 @@ export class ProductCard extends Component {
 
   #preloadNextPreviewImage() {
     const currentSlide = this.refs.slideshow?.slides?.[this.refs.slideshow?.current];
-    currentSlide?.nextElementSibling?.querySelector('img[loading="lazy"]')?.removeAttribute('loading');
+    const img = currentSlide?.nextElementSibling?.querySelector('img[loading="lazy"]');
+    if (!img) return;
+    /* sizes="auto, <ladder>" is only valid while loading="lazy" — dropping
+       the attribute makes the browser fall back to a ~100vw slot and fetch a
+       near-viewport-width candidate. Strip the auto prefix first (same fix
+       as slideshow.js #warmSlide). */
+    const sizesAttr = img.getAttribute('sizes');
+    if (sizesAttr && /^auto\s*,/.test(sizesAttr)) {
+      img.setAttribute('sizes', sizesAttr.replace(/^auto\s*,\s*/, ''));
+    }
+    img.removeAttribute('loading');
   }
 
   /**

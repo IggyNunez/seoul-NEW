@@ -84,10 +84,18 @@
 
       <button
         class="button quick-add__button quick-add__button--choose add-to-cart-button"
-        {% comment %} type="submit" is the default, so we explicitly set it to "button" to prevent the ProductFormComponent.handleSubmit from being triggered {% endcomment %}
+        {% comment %}
+          Casa: the "Choose options" button opens Casa's quickview
+          modal (better styled than Horizon's quick-add modal).
+          Inline onclick is the most bulletproof binding — it runs
+          before any framework / capture handlers and isn't affected
+          by event delegation race conditions.
+        {%- endcomment -%}
         type="button"
         name="add"
-        on:click="quick-add-component/handleClick"
+        data-product-url="{{ product.url }}"
+        data-casa-choose-quickview
+        onclick="event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('quickview:open',{detail:{productUrl:'{{ product.url }}'}}));return false;"
       >
         <span
           class="add-to-cart-text"
@@ -112,6 +120,31 @@
     {%- endform -%}
   </product-form-component>
 </quick-add-component>
+
+{%- comment -%}
+  Wire "Choose options" buttons to Casa's quickview modal instead of
+  Horizon's quick-add modal. One delegated listener handles all
+  buttons across all cards on the page; guarded so it binds once.
+{%- endcomment -%}
+<script>
+  (function() {
+    if (window.__casaChooseToQuickviewBound) return;
+    window.__casaChooseToQuickviewBound = true;
+
+    function handle(e) {
+      var btn = e.target.closest('[data-casa-choose-quickview]');
+      if (!btn) return;
+      var url = btn.dataset.productUrl;
+      if (!url) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      window.dispatchEvent(new CustomEvent('quickview:open', { detail: { productUrl: url } }));
+    }
+    /* Capture phase + pointerdown to beat Horizon's framework listeners */
+    document.addEventListener('pointerdown', handle, true);
+    document.addEventListener('click', handle, true);
+  })();
+</script>
 
 {% stylesheet %}
   /* Quick Add */
@@ -208,6 +241,10 @@
   .quick-add__button .add-to-cart-text__content {
     display: grid;
     grid-template-columns: 0fr;
+    /* Prevent the label from wrapping while the grid cell expands
+       from 0fr → 1fr during the hover animation. Without nowrap the
+       text breaks to two lines mid-transition and looks broken. */
+    white-space: nowrap;
 
     & > span {
       min-width: 0;
@@ -218,6 +255,7 @@
         display: inline-block;
         filter: blur(2px);
         translate: 0.5ch 0;
+        white-space: nowrap;
       }
     }
   }

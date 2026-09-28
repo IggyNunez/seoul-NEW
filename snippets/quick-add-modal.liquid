@@ -562,6 +562,54 @@
 <script>
 /* ═══ Casa Visual Dropdown — Global Init (loaded via quick-add-modal on every page) ═══ */
 (function() {
+  /* ═══ iOS-reliable body scroll lock (mobile bottom-sheet only) ═══
+     The mobile sheet must freeze the page while open. A CSS
+     `body:has(.casa-vdd.is-open){overflow:hidden}` lock was tried first but
+     does NOT hold on iOS Safari: overflow:hidden doesn't stop the document's
+     touch-scroll, and :has() style recalc is deferred — the page scrolled
+     behind the open sheet on iPhone. Use the position:fixed + saved-scroll
+     pattern the theme's dialog.js already uses for every other overlay
+     (cart / search / header drawers). Desktop keeps normal scroll — there
+     the dropdown is an inline-absolute panel, not a sheet — so the lock is
+     mobile-only, reconciled from DOM truth after every open/close. */
+  var _casaVddScrollY = 0;
+  var _casaVddLocked = false;
+  function casaVddLockScroll() {
+    if (_casaVddLocked) return;
+    /* Another overlay (a dialog via dialog.js) already owns the body lock —
+       don't stomp its saved scroll position. */
+    if (document.body.style.position === 'fixed') return;
+    _casaVddScrollY = window.scrollY || window.pageYOffset || 0;
+    document.body.style.width = '100%';
+    document.body.style.position = 'fixed';
+    document.body.style.top = '-' + _casaVddScrollY + 'px';
+    _casaVddLocked = true;
+  }
+  function casaVddUnlockScroll() {
+    if (!_casaVddLocked) return;
+    document.body.style.width = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    window.scrollTo({ top: _casaVddScrollY, behavior: 'instant' });
+    _casaVddLocked = false;
+  }
+  /* Single source of truth: lock iff a bottom-sheet vdd is open — mobile
+     width, and NOT one nested inside a dialog/quick-add modal (that modal
+     already owns the body lock). Called at the tail of every open/close path
+     so a missed path self-corrects on the next interaction instead of
+     stranding the page in position:fixed. */
+  function casaVddReconcileScroll() {
+    var openSheet = null;
+    document.querySelectorAll('[data-casa-vdd].is-open').forEach(function(v) {
+      if (!v.closest('dialog, .quick-add-modal, .quick-add-modal__content')) openSheet = v;
+    });
+    if (openSheet && window.matchMedia('(max-width: 749px)').matches) {
+      casaVddLockScroll();
+    } else {
+      casaVddUnlockScroll();
+    }
+  }
+
   window.initCasaVdd = function(root) {
     var scope = root || document;
     scope.querySelectorAll('[data-casa-vdd]:not([data-casa-vdd-init])').forEach(function(vdd) {
@@ -607,7 +655,61 @@
               parent = parent.parentElement;
             }
           }
+          /* a11y: move focus to the selected (or first) option for keyboard
+             navigation. Wait one frame so the slide-up animation starts
+             before focus jumps. */
+          requestAnimationFrame(function() {
+            var focusTarget = list.querySelector('.casa-vdd__option--selected') || list.querySelector('.casa-vdd__option');
+            if (focusTarget) focusTarget.focus({ preventScroll: true });
+          });
         }
+        casaVddReconcileScroll();
+      });
+
+      /* ═══ Mobile swipe-down-to-dismiss ═══
+         Only enable when the list is rendered as a bottom-sheet (mobile,
+         max-width: 749px). User can drag the top of the sheet down to
+         dismiss — standard sheet pattern (iOS Maps, Apple Music, Glossier).
+         Detect via matchMedia at touchstart time so orientation changes
+         don't strand state. */
+      var _swipeStartY = null;
+      var _swipeDY = 0;
+      var _swipeDragging = false;
+      list.addEventListener('touchstart', function(e) {
+        if (!window.matchMedia('(max-width: 749px)').matches) return;
+        if (list.scrollTop > 0) return; /* let the inner scroll happen first */
+        var listRect = list.getBoundingClientRect();
+        var touchY = e.touches[0].clientY;
+        /* Only the top ~48px counts as the drag-handle area. Below that,
+           touches are normal option taps. */
+        if (touchY > listRect.top + 48) return;
+        _swipeStartY = touchY;
+        _swipeDY = 0;
+        _swipeDragging = true;
+        list.style.transition = 'none';
+      }, { passive: true });
+      list.addEventListener('touchmove', function(e) {
+        if (!_swipeDragging || _swipeStartY == null) return;
+        var dy = e.touches[0].clientY - _swipeStartY;
+        if (dy <= 0) { _swipeDY = 0; list.style.transform = ''; return; }
+        _swipeDY = dy;
+        list.style.transform = 'translateY(' + dy + 'px)';
+      }, { passive: true });
+      list.addEventListener('touchend', function() {
+        if (!_swipeDragging) return;
+        _swipeDragging = false;
+        list.style.transition = '';
+        /* Dismiss if dragged more than 100px OR more than 25% of sheet height */
+        var threshold = Math.min(100, list.offsetHeight * 0.25);
+        if (_swipeDY > threshold) {
+          vdd.classList.remove('is-open');
+          trigger.setAttribute('aria-expanded', 'false');
+          trigger.focus({ preventScroll: true });
+        }
+        list.style.transform = '';
+        _swipeStartY = null;
+        _swipeDY = 0;
+        casaVddReconcileScroll();
       });
 
       list.querySelectorAll('.casa-vdd__option').forEach(function(opt) {
@@ -630,24 +732,57 @@
           var tt = trigger.querySelector('.casa-vdd__trigger-text');
           if (tt) tt.textContent = val;
 
+          var optPrice = this.querySelector('.casa-vdd__option-price');
+          var optCompare = this.querySelector('.casa-vdd__option-compare-price');
+          var optSavings = this.querySelector('.casa-vdd__option-savings');
+          var optBar = this.querySelector('.casa-vdd__option-bar-fill');
+          var optPlacement = this.querySelector('.casa-vdd__option-placement');
+          var trigPrice = trigger.querySelector('.casa-vdd__trigger-price');
+          var trigCompare = trigger.querySelector('.casa-vdd__trigger-compare-price');
+          var trigSavings = trigger.querySelector('.casa-vdd__trigger-savings');
+          var trigBar = trigger.querySelector('.casa-vdd__trigger-bar-fill');
+          var trigPlacement = trigger.querySelector('.casa-vdd__trigger-placement');
+          if (trigPrice && optPrice) trigPrice.textContent = optPrice.textContent;
+          if (trigCompare && optCompare) { trigCompare.textContent = optCompare.textContent; trigCompare.style.display = ''; }
+          else if (trigCompare) trigCompare.style.display = 'none';
+          if (trigSavings && optSavings) { trigSavings.textContent = optSavings.textContent; trigSavings.style.display = ''; }
+          else if (trigSavings) trigSavings.style.display = 'none';
+          if (trigBar && optBar) trigBar.style.width = optBar.style.width;
+          if (trigPlacement && optPlacement) trigPlacement.textContent = optPlacement.textContent;
+
+          // For image triggers (Bubble Girls etc.) — sync the trigger subtitle
+          // from the clicked option's subtitle (bundle siblings / variant_description).
+          var optSubtitle = this.querySelector('.casa-vdd__option-subtitle');
+          var trigSubtitle = trigger.querySelector('.casa-vdd__trigger-subtitle');
+          if (trigSubtitle && optSubtitle) { trigSubtitle.textContent = optSubtitle.textContent; trigSubtitle.style.display = ''; }
+          else if (trigSubtitle && !optSubtitle) trigSubtitle.style.display = 'none';
+          else if (!trigSubtitle && optSubtitle) {
+            // Trigger didn't have a subtitle yet but the option does — insert one.
+            var trigTextBlock = trigger.querySelector('.casa-vdd__trigger-text-block');
+            if (trigTextBlock) {
+              var ns = document.createElement('span');
+              ns.className = 'casa-vdd__trigger-subtitle';
+              ns.textContent = optSubtitle.textContent;
+              trigTextBlock.appendChild(ns);
+            }
+          }
+
           list.querySelectorAll('.casa-vdd__option').forEach(function(o) {
             o.classList.remove('casa-vdd__option--selected');
             o.setAttribute('aria-selected', 'false');
-            var c = o.querySelector('.casa-vdd__check'); if (c) c.remove();
           });
           this.classList.add('casa-vdd__option--selected');
           this.setAttribute('aria-selected', 'true');
-          var cs = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-          cs.setAttribute('class', 'casa-vdd__check'); cs.setAttribute('width', '16'); cs.setAttribute('height', '16');
-          cs.setAttribute('viewBox', '0 0 24 24'); cs.setAttribute('fill', 'none');
-          cs.setAttribute('stroke', 'currentColor'); cs.setAttribute('stroke-width', '2.5');
-          cs.setAttribute('stroke-linecap', 'round'); cs.setAttribute('stroke-linejoin', 'round');
-          var pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-          pl.setAttribute('points', '20 6 9 17 4 12'); cs.appendChild(pl); this.appendChild(cs);
+          // (No check SVG — v2 uses the gradient border on .casa-vdd__option--selected
+          // as the selection signal. A top-right check collides with the savings % chip.)
 
           vdd.classList.remove('is-open');
           trigger.setAttribute('aria-expanded', 'false');
           if (inModal) list.style.cssText = '';
+          casaVddReconcileScroll();
+          /* a11y: return focus to trigger after selection so keyboard users
+             stay anchored on the buy box, not lost in detached DOM. */
+          trigger.focus({ preventScroll: true });
         });
       });
 
@@ -657,13 +792,43 @@
   /* Single global close-on-outside-click handler (not per-dropdown) */
   document.addEventListener('click', function(e) {
     if (e.target.closest('.casa-vdd__trigger') || e.target.closest('.casa-vdd__option')) return;
-    document.querySelectorAll('[data-casa-vdd].is-open').forEach(function(vdd) {
+    var openVdds = document.querySelectorAll('[data-casa-vdd].is-open');
+    if (!openVdds.length) return;
+    openVdds.forEach(function(vdd) {
       vdd.classList.remove('is-open');
       var t = vdd.querySelector('.casa-vdd__trigger');
       if (t) t.setAttribute('aria-expanded', 'false');
       var l = vdd.querySelector('.casa-vdd__list');
       if (l) l.style.cssText = '';
+      /* a11y: if focus was inside the list, return it to the trigger so
+         keyboard users don't lose context. Skip if focus was elsewhere
+         already (e.g. user tabbed somewhere). */
+      if (t && l && document.activeElement && (l.contains(document.activeElement) || document.activeElement === t)) {
+        t.focus({ preventScroll: true });
+      }
     });
+    casaVddReconcileScroll();
+  });
+
+  /* ═══ Escape key — close any open vdd ═══
+     a11y baseline for any dismissible overlay. Returns focus to the
+     trigger that opened it. */
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape' && e.keyCode !== 27) return;
+    var openVdds = document.querySelectorAll('[data-casa-vdd].is-open');
+    if (!openVdds.length) return;
+    e.stopPropagation();
+    openVdds.forEach(function(vdd) {
+      vdd.classList.remove('is-open');
+      var t = vdd.querySelector('.casa-vdd__trigger');
+      if (t) {
+        t.setAttribute('aria-expanded', 'false');
+        t.focus({ preventScroll: true });
+      }
+      var l = vdd.querySelector('.casa-vdd__list');
+      if (l) l.style.cssText = '';
+    });
+    casaVddReconcileScroll();
   });
 
   /* Init on page load (for PDP dropdowns) */
@@ -684,7 +849,22 @@
     }).observe(mc, { childList: true, subtree: true });
   }
 
-  document.addEventListener('shopify:section:load', function() { window.initCasaVdd(); });
+  document.addEventListener('shopify:section:load', function() {
+    window.initCasaVdd();
+    /* A section re-render (theme editor, or a Section-Rendering-API buy-box
+       swap) can remove the open sheet's DOM node WITHOUT firing any of the
+       five in-handler close paths, stranding body{position:fixed}. Reconcile
+       from live DOM truth so the lock self-heals. */
+    casaVddReconcileScroll();
+  });
+
+  /* Safety reconcile: rotating to landscape / resizing past the 749px sheet
+     breakpoint while the sheet is open must not leave the page locked (the
+     lock is mobile-sheet-only). Idempotent — reconcile no-ops when correct. */
+  window.addEventListener('resize', casaVddReconcileScroll);
+  window.addEventListener('orientationchange', casaVddReconcileScroll);
+  /* bfcache restore (iOS back-forward) can rehydrate a stale locked body. */
+  window.addEventListener('pageshow', casaVddReconcileScroll);
 
 })();
 </script>

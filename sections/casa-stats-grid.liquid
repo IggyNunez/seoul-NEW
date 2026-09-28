@@ -1,0 +1,890 @@
+{%- comment -%}
+  Seoul Glow Lab — Stats grid (6 features, big numbers, mono kickers)
+
+  Section header (kicker · heading · lede) plus a 3-col grid of stat
+  cards. Each card has:
+    • mono kicker (e.g. "01 · CONTROL")
+    • big stat number with unit suffix (e.g. "50K hr", "16M +")
+    • h3 title
+    • body paragraph
+
+  Design intent (Casa Design v2 PDP, Section §03 in the user-approved
+  order): replaces the older "Portal · Ink with bg-video" treatment
+  with a tighter, copy-first grid that earns its place. No decorative
+  icons, no fluff — every stat answers a real question.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+-%}
+
+{%- assign surface_mode = section.settings.surface_mode | default: 'ink' -%}
+<section
+  id="casa-st-{{ section.id }}"
+  class="casa-st casa-st--{{ surface_mode }}{% if s.layout_density == 'one_frame' %} casa-st--compact{% endif %}"
+  data-casa-anim-gate
+  style="
+    --casa-st-paper:   {{ s.color_paper   | default: '#FAFAF7' }};
+    --casa-st-paper-2: {{ s.color_paper_2 | default: '#F2F2EE' }};
+    --casa-st-ink:     {{ s.color_ink     | default: '#0A0A0F' }};
+    --casa-st-pink:  {{ s.color_pink  | default: '#5E0A02' }};
+    --casa-st-purple:{{ s.color_purple| default: '#B0C3FA' }};
+    --casa-st-cyan:  {{ s.color_cyan  | default: '#F2FFA0' }};
+    --casa-st-pt:    {{ s.padding_top    | default: 96 }}px;
+    --casa-st-pb:    {{ s.padding_bottom | default: 96 }}px;
+  "
+>
+  <div class="casa-st__cap">
+    <header class="casa-st__head">
+      {%- if s.kicker != blank -%}
+        <p class="casa-st__mono casa-st__mono--accent">{{ s.kicker }}</p>
+      {%- endif -%}
+      {%- if s.heading != blank -%}
+        <h2 class="casa-st__h2">{{ s.heading }}</h2>
+      {%- endif -%}
+      {%- if s.lede != blank -%}
+        <p class="casa-st__lede">{{ s.lede }}</p>
+      {%- endif -%}
+    </header>
+
+    <div class="casa-st__grid" data-block-count="{{ section.blocks.size }}">
+      {%- for block in section.blocks -%}
+        {%- liquid
+          assign b = block.settings
+          assign kicker = b.kicker
+          assign stat   = b.stat
+          assign unit   = b.unit
+          assign title  = b.title
+          assign body   = b.body
+          assign is_hero = false
+          if forloop.first and section.blocks.size == 6
+            assign is_hero = true
+          endif
+        -%}
+        {%- comment -%}
+          Not every feature has an honest number. Rather than putting a word
+          in a slot the other cards use for a measured quantity — which is
+          exactly the "fluff stat" this section's own lede disowns — a card
+          with no stat is a designed state: the title steps up into the
+          numeral's optical position and the card reads as a feature, not as
+          a stat card with something missing. Purely additive: no block in
+          any of the 13 templates using this section has a blank stat today.
+        {%- endcomment -%}
+        <article class="casa-st__card{% if is_hero %} casa-st__card--hero{% endif %}{% if stat == blank %} casa-st__card--nostat{% endif %}" {{ block.shopify_attributes }}>
+          {%- if kicker != blank -%}
+            <p class="casa-st__mono casa-st__mono--dim">{{ kicker }}</p>
+          {%- endif -%}
+          {%- if stat != blank -%}
+            {%- comment -%}
+              A range like "100–240" is 7 glyphs against a single-digit "2",
+              so at one size the long figure dominates its row. The class
+              lets a long figure sit a step smaller; the CSS is scoped to
+              the compact layout, so no other template's grid moves.
+            {%- endcomment -%}
+            <div class="casa-st__stat{% if stat.size > 4 %} casa-st__stat--long{% endif %}">
+              <span class="num">{{ stat }}</span>
+              {%- if unit != blank -%}
+                <span class="unit">{{ unit }}</span>
+              {%- endif -%}
+            </div>
+          {%- endif -%}
+          {%- if title != blank -%}
+            <h3 class="casa-st__title">{{ title }}</h3>
+          {%- endif -%}
+          {%- if body != blank -%}
+            <p class="casa-st__body">{{ body }}</p>
+          {%- endif -%}
+        </article>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+{% stylesheet %}
+.casa-st {
+  background: var(--casa-st-ink, var(--casa-ink));
+  color: var(--casa-paper);
+  padding: var(--casa-st-pt, 96px) 0 var(--casa-st-pb, 96px);
+  /* Pauses the hero card's shimmer animation when the section is off-screen
+     so it doesn't eat scroll-frame budget below the fold. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+}
+.casa-st__cap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px);
+}
+.casa-st__head {
+  max-width: 720px;
+  margin: 0 0 clamp(40px, 6vw, 64px);
+}
+.casa-st__mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0 0 16px;
+}
+/* Brand-default quiet kicker — inherit color + opacity 0.5 (cross-
+   section unify pass, brand book §03 .section .kicker). The mono
+   number is chrome, not a moment register. Brand expression on this
+   heading lives in the H2 italic em trinity accent, one per heading. */
+.casa-st__mono--accent { color: inherit; opacity: 0.72; }
+.casa-st__mono--dim { color: rgba(255,255,255,0.62); margin-bottom: 12px; }
+
+.casa-st__h2 {
+  font-family: var(--casa-pdp-h2-family);
+  font-size: var(--casa-pdp-h2-size);
+  font-weight: var(--casa-pdp-h2-weight);
+  letter-spacing: var(--casa-pdp-h2-tracking);
+  line-height: var(--casa-pdp-h2-line);
+  margin: 0;
+  color: #fff;
+  text-wrap: balance;
+}
+.casa-st__h2 em {
+  font-style: italic;
+  /* Brand book v1 §08: cap section-heading em weight at 600. */
+  font-weight: 600;
+  /* Gradient accent reads larger than surrounding text — merchant
+     directive 2026-05-15 (brand book emphasis register). */
+  font-size: 1.25em;
+  background: linear-gradient(90deg, var(--casa-st-pink), var(--casa-st-cyan));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+/* Phone: keep "Six features that earn their place." on one line.
+   Considered per-section divergence from brand-book v1 §03 H2 floor (28px)
+   — applies to phones only; tablet+desktop still pick brand spec via clamp
+   cap (max 28px in the clamp here doesn't exceed the brand 28-40 desktop
+   range either side of the breakpoint). 2026-05-15 merchant directive. */
+@media (max-width: 749px) {
+  /* Floor lowered to 16px to absorb the 1.25em gradient-accent size bump
+     without re-introducing the wrap on "Six features that earn their
+     place." (35-char title). Em renders ~21px italic at 375px viewport,
+     non-em ~17px — clear visual hierarchy, single-line fit. */
+  .casa-st__h2 { font-size: clamp(16px, 4.5vw, 28px); }
+}
+.casa-st__lede {
+  margin: 16px 0 0;
+  font-size: clamp(15px, 1.4vw, 18px);
+  line-height: 1.55;
+  color: rgba(255,255,255,0.7);
+  max-width: 60ch;
+}
+
+.casa-st__grid {
+  display: grid;
+  /* Default 3 cols — used when block count isn't 2, 4, or 5 (i.e. 3 or 6). */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(20px, 2.5vw, 28px);
+}
+/* Column count adapts to block count so 4-block grids don't render 3+1 orphan. */
+.casa-st__grid[data-block-count="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* 4-block uses editorial 1+3 hierarchy — first card 2× width as the breakout
+   stat, three secondary stats at single width. Reads as magazine spread
+   instead of uniform 4-up corporate grid. */
+.casa-st__grid[data-block-count="4"] { grid-template-columns: 2fr 1fr 1fr 1fr; }
+.casa-st__grid[data-block-count="5"] { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+/* 6-block is editorial 1-hero + 5-spec row at desktop widths. Hero spans full
+   width, the rest read as a tight datasheet beneath it. The hero earns the
+   product's headline feature (e.g. COLOR on Apollo) the visual centerline.
+   Below 1200px the 5-col row gets too tight, so tablet falls back to a clean
+   3×2 grid with no hero span (no orphan). Below 900px it's 2×3. */
+.casa-st__grid[data-block-count="6"] {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-auto-flow: row dense;
+}
+.casa-st__grid[data-block-count="6"] .casa-st__card--hero { grid-column: 1 / -1; }
+/* Desktop ≥1200px: hero card is a 2-col internal layout — kicker + big
+   number on the left, title + body on the right. Plus a static brand
+   gradient on the number (the animated multi-stop shimmer looked too
+   wide on a 2-char "1M" at desktop sizes). Mobile + tablet keep the
+   shimmer treatment from the base rule. */
+@media (min-width: 1200px) {
+  .casa-st__grid[data-block-count="6"] .casa-st__card--hero {
+    display: grid;
+    grid-template-columns: minmax(0, 40%) minmax(0, 60%);
+    grid-template-areas:
+      "kicker title"
+      "stat   body";
+    column-gap: clamp(28px, 3.5vw, 56px);
+    row-gap: 8px;
+    align-items: start;
+    padding: clamp(24px, 2.8vw, 36px);
+  }
+  .casa-st__grid[data-block-count="6"] .casa-st__card--hero .casa-st__mono--dim {
+    grid-area: kicker;
+    margin: 0;
+    align-self: end;
+  }
+  .casa-st__grid[data-block-count="6"] .casa-st__card--hero .casa-st__stat {
+    grid-area: stat;
+    margin: 0;
+  }
+  .casa-st__grid[data-block-count="6"] .casa-st__card--hero .casa-st__title {
+    grid-area: title;
+    margin: 0;
+    align-self: end;
+  }
+  .casa-st__grid[data-block-count="6"] .casa-st__card--hero .casa-st__body {
+    grid-area: body;
+    margin: 0;
+    align-self: start;
+  }
+  /* Tame the hero number at desktop only: smaller cap + static 2-stop
+     gradient, no shimmer. Selector is intentionally long so it wins
+     against the Paper-2 hero rule's specificity. */
+  .casa-st__grid[data-block-count="6"] .casa-st__card--hero .casa-st__stat .num,
+  .casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card--hero .casa-st__stat .num {
+    font-size: clamp(56px, 7vw, 96px);
+    background-image: linear-gradient(95deg, #B0C3FA 0%, #5E0A02 100%);
+    background-size: auto;
+    animation: none;
+  }
+  /* Tighter halo on the hero stat at desktop only. */
+  .casa-st__grid[data-block-count="6"] .casa-st__card--hero .casa-st__stat::before,
+  .casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card--hero .casa-st__stat::before {
+    inset: -20% -5% -20% -8%;
+    background: radial-gradient(45% 75% at 22% 50%, rgba(176, 195, 250, 0.28), transparent 72%);
+    opacity: 0.7;
+  }
+}
+@media (max-width: 1199px) and (min-width: 901px) {
+  .casa-st__grid[data-block-count="6"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .casa-st__grid[data-block-count="6"] .casa-st__card--hero {
+    grid-column: auto;
+    padding: clamp(14px, 2vw, 22px);
+  }
+  .casa-st__card--hero .casa-st__stat .num {
+    font-size: clamp(36px, 6vw, 72px);
+  }
+  .casa-st__card--hero .casa-st__stat .unit {
+    font-size: clamp(13px, 1.2vw, 16px);
+  }
+  .casa-st__card--hero .casa-st__body {
+    font-size: 14px;
+  }
+}
+@media (max-width: 900px) {
+  .casa-st__grid,
+  .casa-st__grid[data-block-count="2"],
+  .casa-st__grid[data-block-count="4"],
+  .casa-st__grid[data-block-count="5"],
+  .casa-st__grid[data-block-count="6"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(12px, 2.5vw, 20px);
+  }
+  /* Mobile: equalize the hero card so 6 blocks render as a clean 2×3 grid
+     (no orphan in the bottom-left). The shimmer number color stays as a
+     subtle "headline feature" cue — only the layout/size differentiation
+     is dropped. */
+  .casa-st__grid[data-block-count="6"] .casa-st__card--hero {
+    grid-column: auto;
+    padding: clamp(14px, 2vw, 22px);
+  }
+  .casa-st__card--hero .casa-st__stat .num {
+    font-size: clamp(36px, 6vw, 72px);
+  }
+  .casa-st__card--hero .casa-st__stat .unit {
+    font-size: clamp(13px, 1.2vw, 16px);
+  }
+  .casa-st__card--hero .casa-st__body {
+    font-size: 14px;
+  }
+}
+
+.casa-st__card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 8px;
+  padding: clamp(14px, 2vw, 22px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.2s cubic-bezier(.2,.7,.2,1), background 0.2s cubic-bezier(.2,.7,.2,1);
+}
+.casa-st__card:hover {
+  border-color: rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.055);
+}
+
+.casa-st__stat {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 4px 0 8px;
+  isolation: isolate;
+}
+/* Brand-blessed moment (brand book v1 §02): stats numbers earn the primary
+   gradient + a soft halo. Halo sits behind the number only — chrome stays quiet. */
+.casa-st__stat::before {
+  content: '';
+  position: absolute;
+  inset: -30% -8% -30% -12%;
+  background: radial-gradient(45% 75% at 22% 50%, rgba(176, 195, 250, 0.28), transparent 70%);
+  filter: blur(12px);
+  opacity: 0.75;
+  z-index: -1;
+  pointer-events: none;
+  transition: opacity 320ms cubic-bezier(.2,.7,.2,1);
+}
+.casa-st__card:hover .casa-st__stat::before { opacity: 1; }
+.casa-st__stat .num {
+  position: relative;
+  font-family: var(--font-body--family);
+  font-size: clamp(36px, 6vw, 72px);
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  background-image: linear-gradient(95deg, #B0C3FA 0%, #5E0A02 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  transform-origin: left center;
+  transition: transform 320ms cubic-bezier(.2,.7,.2,1);
+}
+.casa-st__card:hover .casa-st__stat .num { transform: scale(1.02); }
+.casa-st__stat .unit {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: clamp(13px, 1.2vw, 16px);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.55);
+}
+/* Hairline divider before the unit — datasheet annotation register. */
+.casa-st__stat .unit::before {
+  content: '';
+  width: 1px;
+  height: 0.85em;
+  background: currentColor;
+  opacity: 0.45;
+}
+
+.casa-st__title {
+  font-family: var(--font-body--family);
+  font-size: clamp(15px, 1.3vw, 17px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: #fff;
+  margin: 0;
+}
+/* Gradient italic accent inside title — brand pattern (one word per H3).
+   Field type was upgraded text → inline_richtext to preserve <em>. */
+.casa-st__title em {
+  font-style: italic;
+  font-weight: 700;
+  background-image: linear-gradient(95deg, #B0C3FA 0%, #5E0A02 50%, #F2FFA0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.casa-st__body {
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.7);
+  margin: 0;
+}
+
+/* ─── Hero card (first block in 6-block grids) ───────────────────────────
+   Mobile + tablet: bigger padding, bigger number, the shimmer-gradient
+   moment (4-stop purple→pink→cyan→purple, animated). Brand book §02
+   reserves shimmer for hero accents — this is the equivalent "stats
+   number that owns the section."
+   Desktop ≥1200px gets a compact 2-col layout with a tamed static
+   gradient — see @media block below the .casa-st--paper-2 rules. */
+.casa-st__card--hero {
+  padding: clamp(28px, 3.6vw, 48px);
+}
+.casa-st__card--hero .casa-st__stat .num {
+  font-size: clamp(64px, 10vw, 128px);
+  background-image: linear-gradient(95deg, #B0C3FA 0%, #5E0A02 35%, #F2FFA0 65%, #B0C3FA 100%);
+  background-size: 220% 100%;
+  /* perf-justified: background-clip:text shimmer can't be composited
+     without changing the visual; the section root carries
+     data-casa-anim-gate so it only ticks while on screen. */
+  animation: casa-st-shimmer 9s linear infinite;
+}
+.casa-st__card--hero .casa-st__stat::before {
+  inset: -40% -8% -40% -12%;
+  background: radial-gradient(50% 80% at 25% 50%, rgba(176, 195, 250, 0.4), transparent 72%);
+  opacity: 0.85;
+}
+.casa-st__card--hero .casa-st__stat .unit {
+  font-size: clamp(14px, 1.4vw, 18px);
+}
+.casa-st__card--hero .casa-st__body {
+  font-size: clamp(15px, 1.1vw, 17px);
+  max-width: 60ch;
+}
+@keyframes casa-st-shimmer {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: -220% 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .casa-st__card--hero .casa-st__stat .num { animation: none; }
+  .casa-st__stat .num,
+  .casa-st__stat::before { transition: none; }
+  .casa-st__card:hover .casa-st__stat .num { transform: none; }
+  .casa-st__card:hover .casa-st__stat::before { opacity: 0.75; }
+}
+
+/* ─── Paper-2 surface variant (used to break up consecutive Ink runs, e.g. Apollo PDP §03) ─── */
+.casa-st--paper-2 {
+  background: var(--casa-st-paper-2, #F2F2EE);
+  color: var(--casa-st-ink);
+}
+.casa-st--paper-2 .casa-st__head .casa-st__mono--accent {
+  /* Paper variant inherits ink color via the base rule (inherit + 0.5
+     opacity), no explicit override needed. Kept as a stub for future
+     per-variant tweaks without re-adding the colored "moment". */
+  color: inherit;
+  opacity: 0.72;
+}
+.casa-st--paper-2 .casa-st__h2 {
+  color: var(--casa-st-ink);
+}
+.casa-st--paper-2 .casa-st__h2 em {
+  background: linear-gradient(90deg, var(--casa-st-purple), var(--casa-st-pink));
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.casa-st--paper-2 .casa-st__lede {
+  color: rgba(10, 10, 15, 0.65);
+}
+/* Paper-2 default cards: keep the white-well treatment for non-6-block layouts. */
+.casa-st--paper-2 .casa-st__card {
+  background: var(--casa-st-paper, var(--casa-paper));
+  border: 1px solid rgba(10, 10, 15, 0.08);
+}
+.casa-st--paper-2 .casa-st__card:hover {
+  border-color: rgba(10, 10, 15, 0.18);
+  background: var(--casa-paper);
+}
+/* 6-block on Paper-2 → continuous datasheet: borderless wells separated by hairlines. */
+.casa-st--paper-2 .casa-st__grid[data-block-count="6"] {
+  gap: 0;
+  border-top: 1px solid rgba(10, 10, 15, 0.08);
+  border-bottom: 1px solid rgba(10, 10, 15, 0.08);
+}
+.casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card {
+  background: transparent;
+  border: 0;
+  border-right: 1px solid rgba(10, 10, 15, 0.08);
+  border-radius: 0;
+  padding: clamp(20px, 2.4vw, 32px);
+  transition: background-color 0.25s cubic-bezier(.2,.7,.2,1);
+}
+.casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card:last-child {
+  border-right: 0;
+}
+.casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card--hero {
+  border-right: 0;
+  border-bottom: 1px solid rgba(10, 10, 15, 0.08);
+}
+.casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+@media (max-width: 1199px) and (min-width: 901px) {
+  /* Tablet 3×2 grid (no hero span): hairlines on left two columns and top row.
+     Grid (1=hero):  [1 2 3] [4 5 6]
+     - No right border on nth-child(3n) (cards 3, 6).
+     - No bottom border on last 3 children (cards 4, 5, 6). */
+  .casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card {
+    border-right: 1px solid rgba(10, 10, 15, 0.08);
+    border-bottom: 1px solid rgba(10, 10, 15, 0.08);
+  }
+  .casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card:nth-child(3n) {
+    border-right: 0;
+  }
+  .casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card:nth-last-child(-n+3) {
+    border-bottom: 0;
+  }
+  .casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card--hero {
+    border-right: 1px solid rgba(10, 10, 15, 0.08);
+    border-bottom: 1px solid rgba(10, 10, 15, 0.08);
+    padding: clamp(20px, 2.4vw, 32px);
+  }
+}
+@media (max-width: 900px) {
+  /* Mobile 2×3 grid: hero is no longer a full-width row, so hairlines follow
+     the standard alternating pattern.
+     Card grid (1=hero):  [1 2]  [3 4]  [5 6]
+     - Right border on left-column cards (1, 3, 5) — i.e. NOT on nth-child(2n).
+     - Bottom border on top two rows — i.e. NOT on the last 2 children. */
+  .casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card {
+    border-right: 1px solid rgba(10, 10, 15, 0.08);
+    border-bottom: 1px solid rgba(10, 10, 15, 0.08);
+  }
+  .casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card:nth-child(2n) {
+    border-right: 0;
+  }
+  .casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card:nth-last-child(-n+2) {
+    border-bottom: 0;
+  }
+  /* The hero override from the desktop rule above sets border-right: 0 — undo
+     that on mobile since the hero is now a normal left-column cell. Also
+     match Paper-2 sibling padding (the higher-specificity Paper-2 rule
+     overrides the .casa-st__card--hero padding from the base style block). */
+  .casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card--hero {
+    border-right: 1px solid rgba(10, 10, 15, 0.08);
+    border-bottom: 1px solid rgba(10, 10, 15, 0.08);
+    padding: clamp(20px, 2.4vw, 32px);
+  }
+}
+.casa-st--paper-2 .casa-st__card .casa-st__mono--dim {
+  color: rgba(10, 10, 15, 0.65);
+}
+.casa-st--paper-2 .casa-st__stat::before {
+  background: radial-gradient(45% 75% at 22% 50%, rgba(176, 195, 250, 0.16), transparent 70%);
+  mix-blend-mode: multiply;
+  opacity: 0.9;
+}
+.casa-st--paper-2 .casa-st__card:hover .casa-st__stat::before { opacity: 1; }
+.casa-st--paper-2 .casa-st__stat .num {
+  background-image: linear-gradient(95deg, #B0C3FA 0%, #5E0A02 100%);
+}
+.casa-st--paper-2 .casa-st__card--hero .casa-st__stat::before {
+  background: radial-gradient(50% 80% at 25% 50%, rgba(176, 195, 250, 0.22), transparent 72%);
+  opacity: 1;
+}
+.casa-st--paper-2 .casa-st__card--hero .casa-st__stat .num {
+  background-image: linear-gradient(95deg, #B0C3FA 0%, #5E0A02 35%, #F2FFA0 65%, #B0C3FA 100%);
+  background-size: 220% 100%;
+}
+.casa-st--paper-2 .casa-st__stat .unit {
+  color: rgba(10, 10, 15, 0.55);
+}
+.casa-st--paper-2 .casa-st__title {
+  color: var(--casa-st-ink);
+}
+.casa-st--paper-2 .casa-st__body {
+  color: rgba(10, 10, 15, 0.65);
+}
+
+/* ── No-stat card ────────────────────────────────────────────────────
+   For features with no honest number. The title takes the weight the
+   numeral would have carried, so the card holds its place in the grid
+   instead of looking like one where the number failed to load. Sized
+   below the numerals on purpose — it is a headline, not a spec, and
+   should not compete with the cards that do have a figure. */
+.casa-st__card--nostat .casa-st__title {
+  font-size: clamp(17px, 1.9vw, 22px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-block-start: 2px;
+}
+.casa-st--compact .casa-st__card--nostat .casa-st__title {
+  font-size: clamp(16px, 1.7vw, 20px);
+}
+@media (max-width: 900px) {
+  .casa-st--compact .casa-st__card--nostat .casa-st__title { font-size: 16px; }
+}
+
+/* ── One-frame density ───────────────────────────────────────────────
+   Opt-in via the "Section height" setting. This section is on 13
+   templates, so every rule here is gated behind the modifier and the
+   default stays byte-identical.
+
+   The stat numerals are the height. The hero numeral alone is up to
+   128px, and the five secondary numerals up to 72px each — together
+   they cost more than the cards that hold them. Compact scales the
+   numerals rather than trimming the copy, so nothing is lost but
+   inches. The gradient/shimmer treatment is untouched: it is a
+   brand-blessed moment (brand book v1 §02), just rendered smaller. */
+/* ── Stripped cards ──────────────────────────────────────────────────
+   Six outlined boxes, each with a tinted fill and a radial glow behind
+   its numeral, is six rectangles of chrome competing with the six facts
+   they hold. With the body copy gone the box has nothing left to contain,
+   so it goes too: figures and labels sit on the Ink surface with space
+   doing the separating. Compact-scoped — the twelve other grids on this
+   section keep their cards. */
+.casa-st--compact .casa-st__card,
+.casa-st--compact .casa-st__grid[data-block-count="6"] .casa-st__card--hero {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+.casa-st--compact .casa-st__card:hover { background: none; border-color: transparent; }
+/* The halo was doing the work of making a numeral feel like a moment.
+   At this size it just smudges the surface behind it. */
+.casa-st--compact .casa-st__stat::before { display: none; }
+.casa-st--compact .casa-st__grid { gap: clamp(22px, 3vw, 34px) clamp(16px, 2vw, 28px); }
+
+.casa-st--compact .casa-st__head { margin-bottom: clamp(10px, 1.2vw, 15px); }
+.casa-st--compact .casa-st__grid { gap: clamp(12px, 1.6vw, 18px); }
+.casa-st--compact .casa-st__mono { margin-bottom: 8px; }
+.casa-st--compact .casa-st__lede { margin-top: 8px; font-size: clamp(13px, 1.1vw, 15px); line-height: 1.5; }
+.casa-st--compact .casa-st__card { padding: clamp(10px, 1.3vw, 15px); gap: 6px; }
+.casa-st--compact .casa-st__stat { margin: 2px 0 3px; }
+.casa-st--compact .casa-st__stat .num { font-size: clamp(26px, 3.4vw, 42px); }
+.casa-st--compact .casa-st__card--hero { padding: clamp(12px, 1.4vw, 18px); }
+.casa-st--compact .casa-st__card--hero .casa-st__stat .num { font-size: clamp(36px, 4.6vw, 60px); }
+/* The <em> accent stays at its brand 1.25em — the height comes out of the
+   lede and the numerals instead. Shrinking the accent would be reopening
+   a locked brand decision to buy pixels available elsewhere. */
+
+/* The hero card is re-declared inside three breakpoint blocks whose
+   selectors carry the [data-block-count="6"] attribute, so a plain
+   `.casa-st--compact .casa-st__card--hero` (0-4-0) loses to them (0-5-0)
+   and silently does nothing — measured: the hero numeral stayed at
+   89.6px and its padding at 35.8px while every secondary card had
+   already taken the compact values. These rules re-state the same
+   breakpoints at matching specificity. Keep them in sync if the hero
+   layout above ever changes. */
+@media (min-width: 1200px) {
+  .casa-st--compact .casa-st__grid[data-block-count="6"] .casa-st__card--hero {
+    padding: clamp(14px, 1.6vw, 20px);
+    row-gap: 6px;
+  }
+  .casa-st--compact .casa-st__grid[data-block-count="6"] .casa-st__card--hero .casa-st__stat .num,
+  .casa-st--compact.casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card--hero .casa-st__stat .num {
+    font-size: clamp(38px, 4.4vw, 58px);
+  }
+}
+@media (max-width: 1199px) {
+  .casa-st--compact .casa-st__grid[data-block-count="6"] .casa-st__card--hero {
+    padding: clamp(10px, 1.3vw, 15px);
+  }
+  .casa-st--compact .casa-st__card--hero .casa-st__stat .num {
+    font-size: clamp(30px, 4.4vw, 48px);
+  }
+}
+/* Phones render this as 2x3, so every pixel saved inside a card is paid
+   back three times over. The card body is the tallest element in it. */
+@media (max-width: 900px) {
+  .casa-st--compact .casa-st__card,
+  .casa-st--compact .casa-st__grid[data-block-count="6"] .casa-st__card--hero {
+    padding: 8px;
+    gap: 3px;
+  }
+  .casa-st--compact .casa-st__body { font-size: 11.5px; line-height: 1.35; }
+  .casa-st--compact .casa-st__title { font-size: 14px; }
+  .casa-st--compact .casa-st__grid { gap: 8px; }
+  .casa-st--compact .casa-st__card--hero .casa-st__stat .num,
+  .casa-st--compact .casa-st__stat .num { font-size: 26px; }
+}
+.casa-st--compact .casa-st__body { font-size: 13px; line-height: 1.5; }
+/* contain-intrinsic-size is a placeholder height for the off-screen
+   section; leaving it at 800px while the real height is ~700 makes the
+   scrollbar jump as it paints in. */
+.casa-st--compact { contain-intrinsic-size: auto 700px; }
+
+/* Long figures (a voltage range, say) step down so they do not dwarf a
+   single-digit figure sitting next to them in the same row. Scoped to the
+   compact layout, so no other template's grid moves.
+
+   MUST stay last: it has the same specificity (0-3-0) as the base compact
+   numeral rule above, so it only wins on source order. Moved here after a
+   check showed it sitting earlier in the file and therefore doing nothing.
+
+   Sized explicitly, not in em — font-size on .num resolves against its
+   PARENT (.casa-st__stat, ~14px), so a relative value would collapse the
+   figure to about 10px instead of trimming it one step. */
+.casa-st--compact .casa-st__stat--long .num { font-size: clamp(19px, 2.4vw, 30px); }
+@media (max-width: 900px) {
+  .casa-st--compact .casa-st__stat--long .num { font-size: 19px; }
+}
+
+/* Below ~400px a 2-up card is only ~80px wide, and a word-length unit
+   ("colors") cannot sit beside its figure — measured spilling 6px past the
+   card edge, which the card's visible overflow then rendered rather than
+   clipped. Letting the lockup wrap drops the unit under the figure instead.
+   Compact-scoped: the other grids on this section keep a single-line
+   lockup. */
+@media (max-width: 400px) {
+  .casa-st--compact .casa-st__stat {
+    flex-wrap: wrap;
+    gap: 0 6px;
+  }
+  .casa-st--compact .casa-st__stat .unit { min-width: 0; }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Stats Grid",
+  "tag": "section",
+  "class": "casa-stats-grid-section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "layout_density",
+      "label": "Section height",
+      "info": "One frame tightens spacing and scales the stat numerals down so the section fits a single screen.",
+      "options": [
+        { "value": "comfortable", "label": "Comfortable" },
+        { "value": "one_frame", "label": "Fit one frame" }
+      ],
+      "default": "comfortable"
+    },
+    {
+      "type": "header",
+      "content": "Heading"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker (mono)"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading (use <em>word</em> for italic gradient accent)",
+      "info": "Product-specific — enter per template. Pre-2026-05-17 defaulted to 'Smart, durable, honestly engineered' which bled onto non-smart products."
+    },
+    {
+      "type": "textarea",
+      "id": "lede",
+      "label": "Lede"
+    },
+    {
+      "type": "header",
+      "content": "Surface"
+    },
+    {
+      "type": "select",
+      "id": "surface_mode",
+      "label": "Surface",
+      "info": "Default Ink keeps the dark statement look. Paper-2 breaks up consecutive Ink runs (per Brand Book v1·2026 rhythm rule).",
+      "options": [
+        { "value": "ink",     "label": "Ink (dark)" },
+        { "value": "paper-2", "label": "Paper-2 (light)" }
+      ],
+      "default": "ink"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "color_paper",
+      "label": "Paper",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "color_paper_2",
+      "label": "Paper-2 (used in Paper-2 surface mode)",
+      "default": "#F2F2EE"
+    },
+    {
+      "type": "color",
+      "id": "color_ink",
+      "label": "Ink",
+      "default": "#0A0A0F"
+    },
+    {
+      "type": "color",
+      "id": "color_purple",
+      "label": "Accent purple",
+      "default": "#B0C3FA"
+    },
+    {
+      "type": "color",
+      "id": "color_pink",
+      "label": "Accent pink",
+      "default": "#5E0A02"
+    },
+    {
+      "type": "color",
+      "id": "color_cyan",
+      "label": "Accent cyan",
+      "default": "#F2FFA0"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 200,
+      "step": 8,
+      "default": 96,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 200,
+      "step": 8,
+      "default": 96,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "stat",
+      "name": "Stat",
+      "settings": [
+        {
+          "type": "text",
+          "id": "kicker",
+          "label": "Kicker (mono)",
+          "info": "e.g. 01 · CONTROL"
+        },
+        {
+          "type": "text",
+          "id": "stat",
+          "label": "Stat (big number)",
+          "info": "e.g. 50K, 16M, 3, 100"
+        },
+        {
+          "type": "text",
+          "id": "unit",
+          "label": "Unit suffix",
+          "info": "e.g. hr, +, ways, –240V"
+        },
+        {
+          "type": "inline_richtext",
+          "id": "title",
+          "label": "Title",
+          "info": "Wrap one word in <em>…</em> for the brand italic-gradient accent."
+        },
+        {
+          "type": "textarea",
+          "id": "body",
+          "label": "Body"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 9,
+  "presets": [
+    {
+      "name": "Casa Stats Grid",
+      "category": "Product",
+      "blocks": [
+        { "type": "stat", "settings": { "kicker": "01 · CONTROL",   "stat": "3",   "unit": "ways",   "title": "App, remote, or voice", "body": "Tuya app on iOS / Android. Works with Alexa, Google, Siri. RF remote in the box." } },
+        { "type": "stat", "settings": { "kicker": "02 · LIFESPAN",  "stat": "50K", "unit": "hr",     "title": "LED life expectancy",   "body": "13+ years at 10 hours a day — most last a lifetime." } },
+        { "type": "stat", "settings": { "kicker": "03 · COLOR",     "stat": "1M", "unit": "+",      "title": "Over a million colors",       "body": "Full RGB spectrum with a 360+ effect library." } },
+        { "type": "stat", "settings": { "kicker": "04 · MUSIC",     "stat": "Live",   "unit": "beat-sync",  "title": "Beat-reactive scenes",  "body": "The built-in microphone listens and the effects move with your music." } },
+        { "type": "stat", "settings": { "kicker": "05 · POWER",     "stat": "100", "unit": "–240V",  "title": "Worldwide voltage",     "body": "Plug adapters for US, EU, UK and AU in every box. Travel-ready." } },
+        { "type": "stat", "settings": { "kicker": "06 · WARRANTY",  "stat": "2",   "unit": "yr",     "title": "Casa Guarantee",        "body": "Full replacement or refund — no fine print." } }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,1137 @@
+{%- comment -%}
+  Seoul Glow Lab — AuraSphere Color Scene Player
+  Animated 8-scene cycler with split stage:
+    LEFT  — photo crossfader (in-situ wall photos)
+    RIGHT — 24-segment SVG sphere diagram with halo wash
+  Auto-loops; user scrub overrides; ticks + dots jump to scene.
+{%- endcomment -%}
+
+{%- liquid
+  assign cap = section.settings.container_max | default: 1440
+  assign py = section.settings.padding_y | default: 96
+  assign py_m = section.settings.padding_y_mobile | default: 56
+  assign auto = section.settings.autoplay
+  assign cycle = section.settings.cycle_seconds | default: 28
+  assign aura_shape = section.settings.aura_shape | default: 'sphere'
+  assign product_name_short = section.settings.product_name_short | default: 'AuraSphere'
+  assign rule_top = section.settings.rule_top | default: 'Matte aluminum body'
+  assign rule_mid = section.settings.rule_mid | default: '⌀ 20" / 50 CM'
+  assign rule_mid_secondary = section.settings.rule_mid_secondary | default: ''
+  assign rule_bot = section.settings.rule_bot | default: '1.5" / 4 CM off wall'
+-%}
+
+<section
+  id="aurasphere-scenes-{{ section.id }}"
+  class="cdl-aurasphere-scenes"
+  data-section-id="{{ section.id }}"
+  data-autoplay="{% if auto %}1{% else %}0{% endif %}"
+  data-cycle="{{ cycle }}"
+  data-aura-shape="{{ aura_shape }}"
+  data-product-name="{{ product_name_short | escape }}"
+  style="
+    --cdl-cap: {{ cap }}px;
+    --cdl-py: {{ py }}px;
+    --cdl-py-m: {{ py_m }}px;
+  "
+>
+  <div class="cdl-as-scenes__cap">
+    <div class="cdl-as-scenes__layout">
+      <div class="cdl-as-scenes__column-left">
+        <div class="cdl-as-scenes__head">
+          <div class="cdl-mono">{{ section.settings.kicker | default: '02 · THE THESIS' }}</div>
+          <h2 class="cdl-h2">{{ section.settings.heading | default: 'One sphere. <em>One thousand moods.</em>' }}</h2>
+          <p class="cdl-lede">{{ section.settings.lede | default: '1,000,000+ colors. 360+ animated effects. Watch the diagram, then the room.' }}</p>
+        </div>
+        <div class="cdl-as-scenes__caption">
+          <div class="cdl-mono cdl-mono--accent" data-cap-kind>—</div>
+          <h3 data-cap-title>—</h3>
+          <p data-cap-blurb>—</p>
+        </div>
+        <div class="cdl-as-scenes__dots" data-dots>
+          {%- assign idx = 0 -%}
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'scene' -%}
+              {%- assign scene_is_multi = false -%}
+              {%- if block.settings.kind == 'EFFECT' or block.settings.scene_id contains 'multi' -%}{%- assign scene_is_multi = true -%}{%- endif -%}
+              <button
+                class="cdl-as-scenes__dot{% if idx == 0 %} is-on{% endif %}{% if scene_is_multi %} is-multi{% endif %}"
+                data-dot="{{ idx }}"
+                type="button"
+                aria-label="Jump to {{ block.settings.name | escape }}"
+                style="--c: {{ block.settings.hex | default: '#B0C3FA' }};"
+              ></button>
+              {%- assign idx = idx | plus: 1 -%}
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+      </div>
+
+    <div class="cdl-as-scenes__stage">
+      <div class="cdl-as-scenes__photo">
+        <div class="cdl-as-scenes__layers" data-layers>
+          {%- assign idx = 0 -%}
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'scene' -%}
+              {%- assign img = block.settings.image -%}
+              {%- if img != blank -%}
+                {%- assign scene_url = img | image_url: width: 1500 -%}
+              {%- elsif block.settings.image_url != blank -%}
+                {%- assign scene_url = block.settings.image_url -%}
+              {%- else -%}
+                {%- assign scene_url = '' -%}
+              {%- endif -%}
+              <div
+                class="cdl-as-scenes__layer{% if idx == 0 %} is-active{% endif %}"
+                data-scene-layer="{{ idx }}"
+                {% if idx == 0 and scene_url != blank %}
+                  style="background-image: url('{{ scene_url }}');"
+                {% elsif scene_url != blank %}
+                  data-bg="{{ scene_url | escape }}"
+                {% endif %}
+              ></div>
+              {%- assign idx = idx | plus: 1 -%}
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+        <div class="cdl-as-scenes__photo-tag">
+          <span class="cdl-mono">IN SITU</span>
+          <span data-photo-name>{{ product_name_short }}</span>
+        </div>
+      </div>
+
+      <div class="cdl-as-scenes__diagram">
+        <div class="cdl-as-scenes__diagram-bg" data-diagram-bg></div>
+        <div class="cdl-as-scenes__diagram-rules">
+          <span class="cdl-mono r-top">{{ rule_top }}</span>
+          <div class="r-mid">
+            <span class="r-mid__primary">{{ rule_mid }}</span>
+            {%- if rule_mid_secondary != blank -%}
+              <span class="r-mid__secondary">({{ rule_mid_secondary }})</span>
+            {%- endif -%}
+          </div>
+          <span class="cdl-mono r-bot">{{ rule_bot }}</span>
+        </div>
+        <div class="cdl-as-scenes__svg-stack" data-sphere-svg aria-hidden="true">
+          {%- comment -%}
+            Off-screen-cheap glow: each blurred layer is its OWN root <svg> with the
+            blur applied to the svg ELEMENT via CSS (.is-halo/.is-core/.is-soft) — Safari
+            GPU-composites that and only re-tints on color change, instead of CPU-re-blurring
+            an feGaussianBlur every frame (the AuraSphere first-scroll jank). Verified in
+            WebKit: CSS filter on a child root svg works + currentColor inherits from this
+            stack div; a currentColor gradient must stay in its shape's svg (amb/wash below).
+          {%- endcomment -%}
+          {%- case aura_shape -%}
+            {%- when 'panel' -%}
+              <svg class="cdl-as-scenes__glyr is-halo" viewBox="0 0 400 400">
+                <defs>
+                  <linearGradient id="aurasphereMulti-{{ section.id }}" x1="0" y1="0" x2="400" y2="400" gradientUnits="userSpaceOnUse" data-multi-grad>
+                    <stop offset="0%" stop-color="#F2FFA0" /><stop offset="20%" stop-color="#2A6FDB" /><stop offset="40%" stop-color="#10B981" /><stop offset="60%" stop-color="#F59E0B" /><stop offset="80%" stop-color="#5E0A02" /><stop offset="100%" stop-color="#B0C3FA" />
+                  </linearGradient>
+                </defs>
+                <rect x="70" y="70" width="260" height="260" rx="6" ry="6" fill="currentColor" data-body="fill" data-bloom />
+              </svg>
+              <svg class="cdl-as-scenes__glyr is-core" viewBox="0 0 400 400">
+                <rect x="70" y="70" width="260" height="260" rx="6" ry="6" fill="currentColor" data-body="fill" />
+              </svg>
+              <svg class="cdl-as-scenes__glyr" viewBox="0 0 400 400">
+                <rect x="70" y="70" width="260" height="260" rx="6" ry="6" fill="#0a0a0e" />
+                <rect x="70" y="70" width="260" height="260" rx="6" ry="6" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
+                <rect x="71" y="71" width="258" height="258" rx="5" ry="5" fill="none" stroke="rgba(0,0,0,0.5)" stroke-width="2" />
+              </svg>
+            {%- when 'frame' -%}
+              <svg class="cdl-as-scenes__glyr is-halo" viewBox="0 0 400 400">
+                <defs>
+                  <linearGradient id="aurasphereMulti-{{ section.id }}" x1="0" y1="0" x2="400" y2="400" gradientUnits="userSpaceOnUse" data-multi-grad>
+                    <stop offset="0%" stop-color="#F2FFA0" /><stop offset="20%" stop-color="#2A6FDB" /><stop offset="40%" stop-color="#10B981" /><stop offset="60%" stop-color="#F59E0B" /><stop offset="80%" stop-color="#5E0A02" /><stop offset="100%" stop-color="#B0C3FA" />
+                  </linearGradient>
+                </defs>
+                <path d="M60 60 H340 V340 H60 Z M72 72 H328 V328 H72 Z" fill="currentColor" data-body="fill" fill-rule="evenodd" data-bloom />
+              </svg>
+              <svg class="cdl-as-scenes__glyr is-core" viewBox="0 0 400 400">
+                <path d="M60 60 H340 V340 H60 Z M72 72 H328 V328 H72 Z" fill="currentColor" data-body="fill" fill-rule="evenodd" />
+              </svg>
+              <svg class="cdl-as-scenes__glyr" viewBox="0 0 400 400">
+                <path d="M60 60 H340 V340 H60 Z M72 72 H328 V328 H72 Z" fill="#0a0a0e" fill-rule="evenodd" />
+              </svg>
+            {%- when 'ring' -%}
+              <svg class="cdl-as-scenes__glyr is-halo" viewBox="0 0 400 400">
+                <defs>
+                  <linearGradient id="aurasphereMulti-{{ section.id }}" x1="0" y1="0" x2="400" y2="400" gradientUnits="userSpaceOnUse" data-multi-grad>
+                    <stop offset="0%" stop-color="#F2FFA0" /><stop offset="20%" stop-color="#2A6FDB" /><stop offset="40%" stop-color="#10B981" /><stop offset="60%" stop-color="#F59E0B" /><stop offset="80%" stop-color="#5E0A02" /><stop offset="100%" stop-color="#B0C3FA" />
+                  </linearGradient>
+                </defs>
+                <circle cx="200" cy="200" r="130" fill="none" stroke="currentColor" stroke-width="14" data-body="stroke" data-bloom />
+              </svg>
+              <svg class="cdl-as-scenes__glyr is-core" viewBox="0 0 400 400">
+                <circle cx="200" cy="200" r="130" fill="none" stroke="currentColor" stroke-width="14" data-body="stroke" />
+              </svg>
+              <svg class="cdl-as-scenes__glyr" viewBox="0 0 400 400">
+                <circle cx="200" cy="200" r="130" fill="none" stroke="#0a0a0e" stroke-width="14" />
+                <circle cx="200" cy="200" r="123" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
+                <circle cx="200" cy="200" r="137" fill="none" stroke="rgba(0,0,0,0.5)" stroke-width="1" />
+              </svg>
+            {%- when 'edge' -%}
+              <svg class="cdl-as-scenes__glyr is-halo" viewBox="0 0 400 400">
+                <defs>
+                  <linearGradient id="aurasphereMulti-{{ section.id }}" x1="0" y1="0" x2="400" y2="400" gradientUnits="userSpaceOnUse" data-multi-grad>
+                    <stop offset="0%" stop-color="#F2FFA0" /><stop offset="20%" stop-color="#2A6FDB" /><stop offset="40%" stop-color="#10B981" /><stop offset="60%" stop-color="#F59E0B" /><stop offset="80%" stop-color="#5E0A02" /><stop offset="100%" stop-color="#B0C3FA" />
+                  </linearGradient>
+                </defs>
+                <rect x="196" y="20" width="8" height="360" rx="3" ry="3" fill="currentColor" data-body="fill" data-bloom />
+              </svg>
+              <svg class="cdl-as-scenes__glyr is-core" viewBox="0 0 400 400">
+                <rect x="196" y="20" width="8" height="360" rx="3" ry="3" fill="currentColor" data-body="fill" />
+              </svg>
+              <svg class="cdl-as-scenes__glyr" viewBox="0 0 400 400">
+                <path d="M 40 50 L 200 90 L 200 310 L 40 350 Z" fill="rgba(255,255,255,0.025)" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
+                <path d="M 360 50 L 200 90 L 200 310 L 360 350 Z" fill="rgba(255,255,255,0.025)" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
+                <line x1="200" y1="20" x2="200" y2="380" stroke="rgba(255,255,255,0.12)" stroke-width="1" />
+                <rect x="196" y="20" width="8" height="360" rx="3" ry="3" fill="#0a0a0e" />
+                <rect x="196" y="20" width="8" height="360" rx="3" ry="3" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
+              </svg>
+            {%- else -%}
+              {%- comment -%} Sphere — ambient (bottom) · segments (blurred, middle) · wash+disc (top). {%- endcomment -%}
+              <svg class="cdl-as-scenes__glyr" viewBox="0 0 400 400">
+                <defs>
+                  <radialGradient id="aurasphereAmb-{{ section.id }}" cx="50%" cy="50%" r="55%">
+                    <stop offset="0%" stop-color="currentColor" stop-opacity="0.42" /><stop offset="35%" stop-color="currentColor" stop-opacity="0.25" /><stop offset="60%" stop-color="currentColor" stop-opacity="0.12" /><stop offset="80%" stop-color="currentColor" stop-opacity="0.04" /><stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+                  </radialGradient>
+                </defs>
+                <rect x="0" y="0" width="400" height="400" fill="url(#aurasphereAmb-{{ section.id }})" data-bloom />
+              </svg>
+              <svg class="cdl-as-scenes__glyr is-soft" viewBox="0 0 400 400">
+                <g data-segments></g>
+              </svg>
+              <svg class="cdl-as-scenes__glyr" viewBox="0 0 400 400">
+                <defs>
+                  <radialGradient id="aurasphereWash-{{ section.id }}" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="currentColor" stop-opacity="0" /><stop offset="60%" stop-color="currentColor" stop-opacity="0" /><stop offset="72%" stop-color="currentColor" stop-opacity="0.85" /><stop offset="82%" stop-color="currentColor" stop-opacity="0.55" /><stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+                  </radialGradient>
+                </defs>
+                <circle cx="200" cy="200" r="180" data-wash fill="url(#aurasphereWash-{{ section.id }})" />
+                <circle cx="200" cy="200" r="130" fill="#0a0a0e" />
+                <circle cx="200" cy="200" r="130" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
+                <circle cx="200" cy="200" r="129" fill="none" stroke="rgba(0,0,0,0.5)" stroke-width="2" />
+              </svg>
+          {%- endcase -%}
+        </div>
+        <div class="cdl-as-scenes__diagram-meta">
+          <span class="cdl-mono">FRONT VIEW · 1:8 SCALE</span>
+        </div>
+      </div>
+
+      <div class="cdl-as-scenes__hud">
+        <div class="cdl-as-scenes__hud-row"><span class="k">SCENE</span><span class="v" data-hud-name>—</span></div>
+        <div class="cdl-as-scenes__hud-row"><span class="k">COLOR</span><span class="v"><span class="cdl-as-scenes__sw" data-hud-sw></span><span data-hud-hex>—</span></span></div>
+        <div class="cdl-as-scenes__hud-row"><span class="k">INDEX</span><span class="v" data-hud-idx>—</span></div>
+      </div>
+
+    </div>
+    </div>{%- comment -%} /.cdl-as-scenes__layout {%- endcomment -%}
+
+    <div class="cdl-as-scenes__ctrl">
+      <button class="cdl-as-scenes__btn{% if auto %} is-on{% endif %}" data-toggle type="button" aria-label="Play or pause scene cycle">
+        <span class="ico" aria-hidden="true">
+          <svg class="cdl-as-scenes__ico-play"  data-ico-play  width="12" height="12" viewBox="0 0 16 16" fill="currentColor"{% if auto %} hidden{% endif %}><path d="M3 2.5v11L14 8z"/></svg>
+          <svg class="cdl-as-scenes__ico-pause" data-ico-pause width="12" height="12" viewBox="0 0 16 16" fill="currentColor"{% unless auto %} hidden{% endunless %}><rect x="3" y="2" width="4" height="12" rx="1"/><rect x="9" y="2" width="4" height="12" rx="1"/></svg>
+        </span>
+        <span data-toggle-label>{% if auto %}Pause{% else %}Play{% endif %}</span>
+      </button>
+      <div class="cdl-as-scenes__track-wrap">
+        <div class="cdl-as-scenes__ticks" data-ticks>
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'scene' -%}
+              {%- assign tick_is_multi = false -%}
+              {%- if block.settings.kind == 'EFFECT' or block.settings.scene_id contains 'multi' -%}{%- assign tick_is_multi = true -%}{%- endif -%}
+              <span>
+                {%- if tick_is_multi -%}
+                  <span class="cdl-as-scenes__tick-sw is-multi"></span>
+                {%- else -%}
+                  <span class="cdl-as-scenes__tick-sw" style="background: {{ block.settings.hex | default: '#B0C3FA' }};"></span>
+                {%- endif -%}
+                {{ block.settings.name | upcase }}
+              </span>
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="1000"
+          value="0"
+          class="cdl-as-scenes__track"
+          data-scrubber
+          aria-label="Scrub through scenes"
+        />
+      </div>
+      <div class="cdl-as-scenes__count">
+        <span class="k">{{ section.settings.count_value | default: '360+' }}</span>
+        <span class="v">{{ section.settings.count_label | default: 'animated effects on-board' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <script type="application/json" data-scenes>
+    [
+      {%- assign first = true -%}
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'scene' -%}
+          {%- unless first -%},{%- endunless -%}
+          {
+            "id":   {{ block.settings.scene_id | default: 'scene' | json }},
+            "kind": {{ block.settings.kind | default: 'STATIC' | json }},
+            "name": {{ block.settings.name | default: 'Scene' | json }},
+            "hex":  {{ block.settings.hex | default: '#9333ea' | json }},
+            "blurb": {{ block.settings.blurb | default: '' | json }}
+          }
+          {%- assign first = false -%}
+        {%- endif -%}
+      {%- endfor -%}
+    ]
+  </script>
+</section>
+
+{% stylesheet %}
+.cdl-aurasphere-scenes {
+  background: #0a0a0e;
+  color: rgba(255,255,255,0.9);
+  padding: clamp(48px, 6vh, 80px) 24px;
+  font-family: var(--font-body--family);
+  position: relative;
+  overflow: hidden;
+}
+.cdl-aurasphere-scenes::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 30% 40%, rgba(176, 195, 250,0.10) 0%, transparent 55%),
+              radial-gradient(ellipse at 70% 60%, rgba(242, 255, 160,0.08) 0%, transparent 55%);
+  pointer-events: none;
+}
+.cdl-as-scenes__cap {
+  max-width: var(--cdl-cap, 1440px);
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+.cdl-as-scenes__head { max-width: 720px; margin-bottom: clamp(24px, 3vh, 40px); }
+.cdl-as-scenes__head .cdl-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 18px;
+}
+.cdl-as-scenes__head h2.cdl-h2 {
+  font-family: var(--font-body--family);
+  font-weight: 500;
+  font-size: clamp(28px, 4.2vw, 44px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 0 0 14px;
+  color: #fff;
+  text-wrap: balance;
+}
+.cdl-as-scenes__head h2 em {
+  display: block;
+  font-style: italic;
+  font-weight: 800;
+  background: linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.cdl-as-scenes__head p.cdl-lede {
+  font-size: 15px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.7);
+  max-width: 600px;
+  margin: 0;
+}
+
+/* Mobile + tablet default: layout is a single column, content stacks
+   in document order (head → caption → dots → stage → ctrl). */
+.cdl-as-scenes__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+.cdl-as-scenes__column-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.cdl-as-scenes__stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  position: relative;
+}
+
+/* Desktop (≥1100px): 2-column layout splits LEFT meta block (head +
+   caption + dots stacked) from RIGHT stage (photo + sphere side by
+   side). Caption + dots no longer eat vertical space — they live
+   alongside the stage instead of below it. Section fits one viewport
+   without a viewport-fit constraint. */
+@media (min-width: 1100px) {
+  .cdl-as-scenes__layout {
+    grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+    gap: clamp(32px, 4vw, 64px);
+    align-items: center;
+  }
+  .cdl-as-scenes__column-left { gap: 24px; }
+  .cdl-as-scenes__stage { gap: 20px; }
+}
+
+.cdl-as-scenes__photo,
+.cdl-as-scenes__diagram {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  /* Belt + suspenders: hard-cap tile height for ultra-wide viewports
+     where the stage might still get wide enough to push 1:1 squares
+     past the viewport-fit budget. */
+  max-height: 56vh;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--casa-ink);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.cdl-as-scenes__layers { position: absolute; inset: 0; }
+.cdl-as-scenes__layer {
+  position: absolute;
+  inset: 0;
+  /* Live product photos are square (1500×1500). Container is square
+     too (aspect-ratio 1/1). Use `contain` to show the full photo
+     unzoomed — no top-crop, no edge-crop. AuraSphere photos used
+     to crop the floor/furniture out with 140% zoom; with the
+     panel/frame/ring/edge family those crops misframe the product. */
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #0a0a0e;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.cdl-as-scenes__layer.is-active { opacity: 1; }
+.cdl-as-scenes__photo-tag {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+  color: rgba(255,255,255,0.85);
+  background: rgba(0,0,0,0.45);
+  padding: 8px 12px;
+  border-radius: 4px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, matches 2026-05-17 flicker-fix sweep) */
+}
+.cdl-as-scenes__photo-tag .cdl-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 0.16em;
+  color: rgba(255,255,255,0.6);
+}
+
+.cdl-as-scenes__diagram { display: grid; place-items: center; padding: 28px; }
+.cdl-as-scenes__diagram-bg {
+  position: absolute;
+  inset: 0;
+  transition: background 0.5s ease;
+}
+.cdl-as-scenes__svg-stack {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+  color: #B0C3FA;               /* JS color cycler writes here; child svgs inherit currentColor */
+  transition: color 0.5s ease;
+}
+/* Each glow is its OWN root svg with the blur on the svg ELEMENT (GPU in Safari),
+   not an feGaussianBlur inside one svg (CPU re-blur per color change = the jank). */
+.cdl-as-scenes__glyr {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.cdl-as-scenes__glyr.is-halo { filter: blur(24px); }   /* was feGaussianBlur stdDeviation 24 */
+.cdl-as-scenes__glyr.is-core { filter: blur(6px); }    /* was stdDeviation 6 */
+.cdl-as-scenes__glyr.is-soft { filter: blur(10px); }   /* sphere LED segments, was stdDeviation 10 */
+.cdl-as-scenes__diagram-rules {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* sit ABOVE the SVG (which is z-index 1) so the centered dimension
+     callout isn't hidden by the matte frame/panel body on those shapes */
+  z-index: 2;
+}
+.cdl-as-scenes__diagram-rules .cdl-mono {
+  position: absolute;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: rgba(255,255,255,0.45);
+}
+.cdl-as-scenes__diagram-rules .r-top { left: 24px; top: 24px; }
+.cdl-as-scenes__diagram-rules .r-bot { right: 24px; bottom: 60px; }
+/* r-mid is the dead-center dimension plate. Frosted backdrop keeps it
+   readable against any shape's body (hollow frame center, solid disc,
+   panel face). Primary line is Inter — product-scale dimension; the
+   bracketed secondary line is JetBrains Mono — the SI conversion. */
+.cdl-as-scenes__diagram-rules .r-mid {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: rgba(10,10,15,0.6);
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur over the color-cycling diagram (perf, matches 2026-05-17 flicker-fix sweep) */
+  white-space: nowrap;
+}
+.cdl-as-scenes__diagram-rules .r-mid__primary {
+  font-family: var(--font-body--family);
+  font-size: 16px;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+.cdl-as-scenes__diagram-rules .r-mid__secondary {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.7);
+}
+.cdl-as-scenes__diagram-meta {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.45);
+}
+
+.cdl-as-scenes__hud {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter; /* GPU layer + 12->10px: stop per-frame re-blur over the color-cycling diagram (perf, matches 2026-05-17 flicker-fix sweep) */
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  display: grid;
+  gap: 6px;
+  min-width: 160px;
+  z-index: 2;
+}
+.cdl-as-scenes__hud-row { display: flex; justify-content: space-between; gap: 14px; }
+.cdl-as-scenes__hud-row .k { color: rgba(255,255,255,0.5); }
+.cdl-as-scenes__hud-row .v { color: #fff; display: flex; align-items: center; gap: 6px; }
+.cdl-as-scenes__sw {
+  width: 12px; height: 12px;
+  border-radius: 100px;
+  background: #B0C3FA;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.cdl-as-scenes__caption {
+  grid-column: 1 / -1;
+  margin-top: 16px;
+  max-width: 600px;
+}
+.cdl-as-scenes__caption .cdl-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 10px;
+}
+.cdl-as-scenes__caption .cdl-mono--accent { color: #F2FFA0; }
+.cdl-as-scenes__caption h3 {
+  font-family: var(--font-body--family);
+  font-weight: 400;
+  font-size: 22px;
+  margin: 0 0 8px;
+  color: #fff;
+}
+.cdl-as-scenes__caption p {
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.7);
+  margin: 0;
+}
+
+.cdl-as-scenes__dots {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.cdl-as-scenes__dot {
+  width: 14px; height: 14px;
+  border-radius: 100px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+  position: relative;
+}
+.cdl-as-scenes__dot::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 100px;
+  background: var(--c, #B0C3FA);
+  opacity: 0.45;
+  transition: opacity 0.2s ease;
+}
+.cdl-as-scenes__dot.is-on { border-color: var(--c, #B0C3FA); transform: scale(1.15); }
+.cdl-as-scenes__dot.is-on::before { opacity: 1; box-shadow: 0 0 12px var(--c, #B0C3FA); }
+/* Multicolor scenes (Spectrum / Color Flow / Aurora): the nav dot + scrubber
+   tick swatch show the rainbow instead of a single hue, matching the diagram. */
+.cdl-as-scenes__dot.is-multi { border-color: rgba(255,255,255,0.5); }
+.cdl-as-scenes__dot.is-multi::before {
+  background: conic-gradient(from 0deg, #F2FFA0, #10B981, #F59E0B, #5E0A02, #B0C3FA, #F2FFA0);
+}
+.cdl-as-scenes__dot.is-multi.is-on::before { box-shadow: 0 0 12px rgba(176, 195, 250,0.65); }
+.cdl-as-scenes__tick-sw.is-multi {
+  background: conic-gradient(from 0deg, #F2FFA0, #10B981, #F59E0B, #5E0A02, #B0C3FA, #F2FFA0);
+}
+
+.cdl-as-scenes__ctrl {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 24px;
+  align-items: center;
+}
+.cdl-as-scenes__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-family: var(--font-body--family);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.cdl-as-scenes__btn:hover,
+.cdl-as-scenes__btn:focus-visible { background: rgba(255,255,255,0.10); outline: none; }
+.cdl-as-scenes__btn .ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+.cdl-as-scenes__btn .ico svg { display: block; }
+.cdl-as-scenes__btn .ico svg[hidden] { display: none; }
+
+.cdl-as-scenes__track-wrap { position: relative; }
+.cdl-as-scenes__ticks {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.cdl-as-scenes__ticks span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.cdl-as-scenes__tick-sw {
+  width: 8px; height: 8px;
+  border-radius: 100px;
+  display: inline-block;
+}
+.cdl-as-scenes__track {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 100px;
+  background: linear-gradient(90deg, #F2FFA0, #2a6fdb, #10b981, #f97316, #5E0A02, #B0C3FA, #B0C3FA, #F2FFA0);
+  outline: none;
+  cursor: pointer;
+}
+.cdl-as-scenes__track::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 100px;
+  background: var(--casa-paper);
+  border: 2px solid #0a0a0e;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.cdl-as-scenes__track::-moz-range-thumb {
+  width: 18px; height: 18px;
+  border-radius: 100px;
+  background: var(--casa-paper);
+  border: 2px solid #0a0a0e;
+  cursor: pointer;
+}
+.cdl-as-scenes__count {
+  text-align: right;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+.cdl-as-scenes__count .k {
+  display: block;
+  font-size: 22px;
+  font-family: var(--font-body--family);
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  color: #fff;
+  margin-bottom: 2px;
+}
+.cdl-as-scenes__count .v { color: rgba(255,255,255,0.55); }
+
+@media (max-width: 900px) {
+  .cdl-aurasphere-scenes { padding: 40px 24px; }
+  .cdl-as-scenes__head { margin-bottom: 24px; }
+  .cdl-as-scenes__head h2 em { display: inline; }
+  .cdl-as-scenes__stage { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .cdl-as-scenes__photo,
+  .cdl-as-scenes__diagram { aspect-ratio: 4 / 3; border-radius: 8px; }
+  .cdl-as-scenes__hud {
+    top: 10px;
+    right: 10px;
+    padding: 8px 10px;
+    min-width: 0;
+    font-size: 9px;
+    gap: 4px;
+  }
+  .cdl-as-scenes__hud-row { gap: 10px; }
+  .cdl-as-scenes__diagram-rules .r-top,
+  .cdl-as-scenes__diagram-rules .r-bot { display: none; }
+  .cdl-as-scenes__diagram-rules .r-mid { padding: 6px 10px; gap: 2px; }
+  .cdl-as-scenes__diagram-rules .r-mid__primary { font-size: 14px; }
+  .cdl-as-scenes__diagram-rules .r-mid__secondary { font-size: 8px; letter-spacing: 0.12em; }
+  .cdl-as-scenes__ticks { display: none; }
+  .cdl-as-scenes__ctrl {
+    margin-top: 20px;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    align-items: center;
+  }
+  .cdl-as-scenes__count { display: none; }
+  .cdl-as-scenes__caption { margin-top: 16px; }
+  .cdl-as-scenes__caption h3 { font-size: 18px; }
+  .cdl-as-scenes__caption p { font-size: 13px; }
+  .cdl-as-scenes__dots { margin-top: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cdl-as-scenes__layer { transition: none; }
+  .cdl-as-scenes__svg-stack, .cdl-as-scenes__diagram-bg { transition: none; }
+}
+{% endstylesheet %}
+
+{% javascript %}
+(function () {
+  function teardown(root) {
+    if (root.__cdlRaf) { cancelAnimationFrame(root.__cdlRaf); root.__cdlRaf = null; }
+    if (root.__cdlIO) { root.__cdlIO.disconnect(); root.__cdlIO = null; }
+    root.__cdlASInit = false;
+  }
+
+  function init(root) {
+    if (root.__cdlASInit) return; root.__cdlASInit = true;
+
+    var dataNode = root.querySelector('[data-scenes]');
+    if (!dataNode) return;
+    var SCENES;
+    try { SCENES = JSON.parse(dataNode.textContent); } catch (e) { return; }
+    if (!SCENES || !SCENES.length) return;
+
+    var total = SCENES.length;
+    var auto  = root.dataset.autoplay === '1';
+    var cycle = parseFloat(root.dataset.cycle) || 28;
+    var t = 0;
+    var phase = 0;
+    var raf;
+    var last = performance.now();
+
+    var layers = root.querySelectorAll('[data-scene-layer]');
+    var photoName = root.querySelector('[data-photo-name]');
+    var hudName = root.querySelector('[data-hud-name]');
+    var hudHex = root.querySelector('[data-hud-hex]');
+    var hudIdx = root.querySelector('[data-hud-idx]');
+    var hudSw = root.querySelector('[data-hud-sw]');
+    var capKind = root.querySelector('[data-cap-kind]');
+    var capTitle = root.querySelector('[data-cap-title]');
+    var capBlurb = root.querySelector('[data-cap-blurb]');
+    var dots = root.querySelectorAll('[data-dot]');
+    var diagramBg = root.querySelector('[data-diagram-bg]');
+    var sphereSvg = root.querySelector('[data-sphere-svg]');
+    var segmentsG = root.querySelector('[data-segments]');
+    var bloom = root.querySelector('[data-bloom]');
+    var wash = root.querySelector('[data-wash]');
+    var scrubber = root.querySelector('[data-scrubber]');
+    var toggleBtn = root.querySelector('[data-toggle]');
+    var icoPlay = root.querySelector('[data-ico-play]');
+    var icoPause = root.querySelector('[data-ico-pause]');
+    var toggleLbl = root.querySelector('[data-toggle-label]');
+
+    function paintToggle(on) {
+      if (toggleBtn) toggleBtn.classList.toggle('is-on', on);
+      if (icoPlay) icoPlay.hidden = on;
+      if (icoPause) icoPause.hidden = !on;
+      if (toggleLbl) toggleLbl.textContent = on ? 'Pause' : 'Play';
+    }
+
+    function smoothstep(a, b, x) {
+      var v = Math.max(0, Math.min(1, (x - a) / (b - a)));
+      return v * v * (3 - 2 * v);
+    }
+    function mixHex(a, b, t) {
+      var ah = parseInt(a.slice(1), 16), bh = parseInt(b.slice(1), 16);
+      var ar = (ah >> 16) & 255, ag = (ah >> 8) & 255, ab = ah & 255;
+      var br = (bh >> 16) & 255, bg = (bh >> 8) & 255, bb = bh & 255;
+      var r = Math.round(ar + (br - ar) * t);
+      var g = Math.round(ag + (bg - ag) * t);
+      var bl = Math.round(ab + (bb - ab) * t);
+      return '#' + ((1 << 24) | (r << 16) | (g << 8) | bl).toString(16).slice(1);
+    }
+
+    var auraShape = root.dataset.auraShape || 'sphere';
+    var productNameShort = root.dataset.productName || 'AuraSphere';
+
+    // Non-sphere body shapes (panel/frame/ring/edge) carry data-body; we swap
+    // their fill/stroke to the rainbow gradient on multicolor scenes so the
+    // front-view diagram matches the multicolor in-situ photo. Sphere has no
+    // data-body elements — its LED segments already render the rainbow.
+    var bodyFills = root.querySelectorAll('[data-body]');
+    var multiGrad = root.querySelector('[data-multi-grad]');
+    var MULTI_URL = 'url(#aurasphereMulti-' + root.dataset.sectionId + ')';
+    var bodyIsMulti = false; // tracks current paint state to avoid per-frame DOM writes
+    // A scene reads as multicolor when it's an animated effect or a multi-* preset
+    // (Spectrum / Color Flow / Aurora) — same predicate the sphere segments use.
+    function isMulti(scene) {
+      return !!scene && (scene.kind === 'EFFECT' || /multi/i.test(scene.id || ''));
+    }
+    // 24-segment circular LED ring is sphere-only. Other shapes (panel,
+    // frame, ring) use continuous LED tape — the wash + bloom alone
+    // carry the cycling color.
+    var SEGMENTS = auraShape === 'sphere' ? 24 : 0;
+    var INNER_R = 130;
+    var HALO_R = 180;
+    var segPaths = [];
+    if (segmentsG && SEGMENTS > 0) {
+      var svgNS = 'http://www.w3.org/2000/svg';
+      while (segmentsG.firstChild) segmentsG.removeChild(segmentsG.firstChild);
+      for (var i = 0; i < SEGMENTS; i++) {
+        var a0 = (i / SEGMENTS) * Math.PI * 2 - Math.PI / 2;
+        var a1 = ((i + 0.94) / SEGMENTS) * Math.PI * 2 - Math.PI / 2;
+        var r0 = INNER_R - 4;
+        var r1 = HALO_R;
+        var x0a = 200 + r0 * Math.cos(a0), y0a = 200 + r0 * Math.sin(a0);
+        var x0b = 200 + r0 * Math.cos(a1), y0b = 200 + r0 * Math.sin(a1);
+        var x1a = 200 + r1 * Math.cos(a0), y1a = 200 + r1 * Math.sin(a0);
+        var x1b = 200 + r1 * Math.cos(a1), y1b = 200 + r1 * Math.sin(a1);
+        var d = 'M ' + x0a + ' ' + y0a + ' L ' + x1a + ' ' + y1a +
+                ' A ' + r1 + ' ' + r1 + ' 0 0 1 ' + x1b + ' ' + y1b +
+                ' L ' + x0b + ' ' + y0b +
+                ' A ' + r0 + ' ' + r0 + ' 0 0 0 ' + x0a + ' ' + y0a + ' Z';
+        var p = document.createElementNS(svgNS, 'path');
+        p.setAttribute('d', d);
+        p.setAttribute('opacity', '0.55');
+        segmentsG.appendChild(p);
+        segPaths.push(p);
+      }
+    }
+
+    function paintSegments(scene, phase) {
+      for (var i = 0; i < segPaths.length; i++) {
+        var color = scene.hex;
+        if (scene.kind === 'EFFECT') {
+          var hue = ((i / SEGMENTS) * 360 + phase * 360) % 360;
+          color = 'hsl(' + hue + ', 78%, 56%)';
+        } else if (scene.kind === 'SCENE' && /multi/i.test(scene.id)) {
+          color = 'hsl(' + ((i / SEGMENTS) * 360) + ', 80%, 55%)';
+        }
+        segPaths[i].setAttribute('fill', color);
+      }
+    }
+
+    function render() {
+      var tt = Math.max(0, Math.min(0.9999, t));
+      var cont = tt * total;
+      var idx = Math.max(0, Math.min(Math.floor(cont), total - 1));
+      var localT = cont - idx;
+      var cur = SCENES[idx];
+      var next = SCENES[(idx + 1) % total];
+      var xfade = smoothstep(0.75, 1, localT);
+      // Dominant scene during a crossfade drives the multicolor state, matching
+      // how the photo layer flips its is-active class at the 50% mark.
+      var domScene = xfade < 0.5 ? cur : next;
+      var multi = isMulti(domScene);
+
+      // Photo crossfade
+      for (var i = 0; i < layers.length; i++) {
+        var op = 0;
+        if (i === idx) op = 1 - xfade;
+        else if (i === (idx + 1) % total) op = xfade;
+        layers[i].style.opacity = op;
+        if (op > 0.5) layers[i].classList.add('is-active'); else layers[i].classList.remove('is-active');
+      }
+
+      // HUD
+      var glow = mixHex(cur.hex, next.hex, xfade);
+      var MULTI_SWATCH = 'linear-gradient(90deg,#F2FFA0,#10B981,#F59E0B,#5E0A02,#B0C3FA)';
+      if (hudName) hudName.textContent = (cur.name || '').toUpperCase();
+      if (hudHex) hudHex.textContent = multi ? 'MULTI' : glow.toUpperCase();
+      if (hudSw) hudSw.style.background = multi ? MULTI_SWATCH : glow;
+      if (hudIdx) hudIdx.textContent = String(idx + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
+      if (photoName) photoName.textContent = productNameShort + ' · ' + cur.name;
+
+      // Caption
+      if (capKind) capKind.textContent = (cur.kind || 'STATIC') + ' · ' + String(idx + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
+      if (capTitle) capTitle.textContent = cur.name || '';
+      if (capBlurb) capBlurb.textContent = cur.blurb || '';
+
+      // Dots
+      for (var d = 0; d < dots.length; d++) {
+        if (d === idx) dots[d].classList.add('is-on'); else dots[d].classList.remove('is-on');
+      }
+
+      // Diagram color + halo.
+      // The SVG color CSS property drives everything: currentColor in the
+      // gradient stops + the blurred-body fills resolves to `glow` each
+      // frame. Don't override bloom.fill with a solid hex — that destroys
+      // the radial gradient on the sphere ambient layer and flood-fills the
+      // full viewBox with solid color (was the "looks like paint" bug).
+      if (sphereSvg) sphereSvg.style.color = glow;
+      if (diagramBg) diagramBg.style.background =
+        'radial-gradient(circle at 50% 48%, ' + glow + '33 0%, ' + glow + '10 35%, transparent 65%)';
+      if (wash) wash.setAttribute('fill', 'url(#aurasphereWash-' + root.dataset.sectionId + ')');
+
+      // Non-sphere multicolor: swap the body fill/stroke between solid
+      // currentColor and the rainbow gradient only when the state changes
+      // (avoids a per-frame DOM write), then flow the rainbow while multi.
+      if (bodyFills.length) {
+        if (multi !== bodyIsMulti) {
+          bodyIsMulti = multi;
+          for (var bi = 0; bi < bodyFills.length; bi++) {
+            var prop = bodyFills[bi].getAttribute('data-body');
+            bodyFills[bi].setAttribute(prop, multi ? MULTI_URL : 'currentColor');
+          }
+        }
+        // Only animated EFFECT scenes flow the rainbow. SCENE multi-presets
+        // (e.g. Spectrum) are captioned "static rainbow, no animation" — they
+        // get the gradient fill but hold still.
+        if (multi && multiGrad && domScene && domScene.kind === 'EFFECT') {
+          multiGrad.setAttribute('gradientTransform', 'rotate(' + (phase * 360).toFixed(1) + ' 200 200)');
+        }
+      }
+
+      paintSegments(cur, phase);
+
+      if (scrubber && document.activeElement !== scrubber) {
+        scrubber.value = Math.round(t * 1000);
+      }
+    }
+
+    function tick(now) {
+      var dt = (now - last) / 1000; last = now;
+      if (auto) {
+        t += dt / cycle;
+        if (t >= 1) t = 0;
+      }
+      phase = (phase + dt * 0.4) % 1;
+      render();
+      root.__cdlRaf = requestAnimationFrame(tick);
+    }
+    function startTick() {
+      if (root.__cdlRaf) return;
+      last = performance.now();
+      root.__cdlRaf = requestAnimationFrame(tick);
+    }
+    function stopTick() {
+      if (root.__cdlRaf) { cancelAnimationFrame(root.__cdlRaf); root.__cdlRaf = null; }
+    }
+
+    if (scrubber) {
+      scrubber.addEventListener('input', function () {
+        auto = false;
+        paintToggle(false);
+        t = Number(scrubber.value) / 1000;
+      });
+    }
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function () {
+        auto = !auto;
+        paintToggle(auto);
+      });
+    }
+    dots.forEach(function (dot, di) {
+      dot.addEventListener('click', function () {
+        auto = false;
+        paintToggle(false);
+        t = di / total + 0.05;
+      });
+    });
+
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      auto = false;
+      paintToggle(false);
+      render();
+      return;
+    }
+
+    // Lazy-load scene photos 2-N when the section first enters the viewport.
+    function hydrateLayers() {
+      if (root.__cdlLayersHydrated) return;
+      root.__cdlLayersHydrated = true;
+      root.querySelectorAll('[data-scene-layer][data-bg]').forEach(function (el) {
+        var url = el.getAttribute('data-bg');
+        if (!url) return;
+        el.style.backgroundImage = "url('" + url + "')";
+        el.removeAttribute('data-bg');
+      });
+    }
+
+    if ('IntersectionObserver' in window) {
+      root.__cdlIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) { hydrateLayers(); startTick(); }
+          else stopTick();
+        });
+      }, { threshold: 0.15, rootMargin: '200px' });
+      root.__cdlIO.observe(root);
+    } else {
+      hydrateLayers();
+      startTick();
+    }
+  }
+
+  document.querySelectorAll('.cdl-aurasphere-scenes').forEach(init);
+  document.addEventListener('shopify:section:load', function (ev) {
+    var node = ev.target.querySelector('.cdl-aurasphere-scenes');
+    if (node) { teardown(node); init(node); }
+  });
+  document.addEventListener('shopify:section:unload', function (ev) {
+    var node = ev.target.querySelector('.cdl-aurasphere-scenes');
+    if (node) teardown(node);
+  });
+})();
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "AuraSphere · Scene Player",
+  "tag": "section",
+  "class": "casa-aurasphere-scenes-wrapper",
+  "settings": [
+    { "type": "header", "content": "Shape (per-product)" },
+    {
+      "type": "select",
+      "id": "aura_shape",
+      "label": "Aura shape",
+      "info": "Switches the central diagram body. Sphere = circle + 24 LED segments. Other shapes use continuous LED tape (no segments).",
+      "default": "sphere",
+      "options": [
+        { "value": "sphere", "label": "Sphere (circle)" },
+        { "value": "panel",  "label": "Panel (rounded square)" },
+        { "value": "frame",  "label": "Frame (hollow rectangle)" },
+        { "value": "ring",   "label": "Ring (open circle)" },
+        { "value": "edge",   "label": "Edge (corner L-bar)" }
+      ]
+    },
+    { "type": "text", "id": "product_name_short", "label": "Product short name", "info": "Shown in the IN-SITU tag (e.g. \"AuraPanel\")", "default": "AuraSphere" },
+    { "type": "text", "id": "rule_top", "label": "Diagram rule — top", "default": "Matte aluminum body" },
+    { "type": "text", "id": "rule_mid", "label": "Diagram rule — middle (primary)", "default": "⌀ 20\" / 50 CM" },
+    { "type": "text", "id": "rule_mid_secondary", "label": "Diagram rule — middle (secondary, in brackets)", "info": "Optional second line. Renders smaller, in brackets, below the primary. Use for SI conversion (e.g. '50 × 50 cm') so imperial reads first and metric reads as a bracketed aside. Leave blank to hide." },
+    { "type": "text", "id": "rule_bot", "label": "Diagram rule — bottom", "default": "1.5\" / 4 CM off wall" },
+    { "type": "header", "content": "Header" },
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "02 · THE THESIS" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "One sphere. <em>One thousand moods.</em>" },
+    { "type": "textarea", "id": "lede", "label": "Lede", "default": "1,000,000+ colors. 360+ animated effects. Watch the diagram, then the room." },
+    { "type": "header", "content": "Player" },
+    { "type": "checkbox", "id": "autoplay", "label": "Auto-cycle scenes", "default": true },
+    { "type": "range", "id": "cycle_seconds", "label": "Full cycle duration", "min": 8, "max": 60, "step": 2, "default": 28, "unit": "s" },
+    { "type": "text", "id": "count_value", "label": "Counter value", "default": "360+" },
+    { "type": "text", "id": "count_label", "label": "Counter label", "default": "animated effects on-board" },
+    { "type": "header", "content": "Layout" },
+    { "type": "range", "id": "container_max", "label": "Container max width", "min": 1100, "max": 1600, "step": 20, "default": 1440, "unit": "px" },
+    { "type": "range", "id": "padding_y", "label": "Vertical padding (desktop)", "min": 32, "max": 160, "step": 8, "default": 96, "unit": "px" },
+    { "type": "range", "id": "padding_y_mobile", "label": "Vertical padding (mobile)", "min": 24, "max": 96, "step": 4, "default": 56, "unit": "px" }
+  ],
+  "blocks": [
+    {
+      "type": "scene",
+      "name": "Scene",
+      "settings": [
+        { "type": "text", "id": "scene_id", "label": "Scene ID (lowercase, no spaces)", "default": "cyan" },
+        {
+          "type": "select",
+          "id": "kind",
+          "label": "Type",
+          "default": "STATIC",
+          "options": [
+            { "value": "STATIC", "label": "Static color" },
+            { "value": "SCENE", "label": "Scene preset" },
+            { "value": "EFFECT", "label": "Animated effect" }
+          ]
+        },
+        { "type": "text", "id": "name", "label": "Display name", "default": "Cyan" },
+        { "type": "color", "id": "hex", "label": "Hex", "default": "#F2FFA0" },
+        { "type": "image_picker", "id": "image", "label": "In-situ photo (Shopify)" },
+        { "type": "text", "id": "image_url", "label": "Image URL fallback", "info": "Used if no Shopify image is selected" },
+        { "type": "textarea", "id": "blurb", "label": "Caption", "default": "Solid hue. Holds the full ring at one color." }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "AuraSphere · Scene Player",
+      "blocks": [
+        { "type": "scene", "settings": { "scene_id": "cyan",    "kind": "STATIC", "name": "Cyan",       "hex": "#06B6D4", "image_url": "https://casadilumo.com/cdn/shop/files/Hero-Full_Circular_Wall_Lamp_Scene_03_cyan_copy.webp?width=1500", "blurb": "Solid cyan. Holds the full ring at one hue — fully dimmable from the remote." } },
+        { "type": "scene", "settings": { "scene_id": "blue",    "kind": "STATIC", "name": "Cobalt",     "hex": "#2A6FDB", "image_url": "https://casadilumo.com/cdn/shop/files/Full_Circular_Wall_Lamp_Scene_01_bluecopy.webp?width=1500", "blurb": "Solid color, dimmed cobalt. Calm, cool blue — quiet light for winding down." } },
+        { "type": "scene", "settings": { "scene_id": "green",   "kind": "STATIC", "name": "Emerald",    "hex": "#10B981", "image_url": "https://casadilumo.com/cdn/shop/files/Full_Circular_Wall_Lamp_Scene_03_greencopy.webp?width=1500", "blurb": "Solid emerald. Dialled-in for a focused-work palette — desk-side, headphones-on." } },
+        { "type": "scene", "settings": { "scene_id": "orange",  "kind": "STATIC", "name": "Amber",      "hex": "#F97316", "image_url": "https://casadilumo.com/cdn/shop/files/Full_Circular_Wall_Lamp_Scene_06_orangecopy.webp?width=1500", "blurb": "Solid amber. Warm cast across the wall — soft, cozy light for slow evenings and movie nights." } },
+        { "type": "scene", "settings": { "scene_id": "magenta", "kind": "SCENE",  "name": "Magenta",    "hex": "#EC4899", "image_url": "https://casadilumo.com/cdn/shop/files/Full_Circular_Wall_Lamp_Scene_04_magentacopy.webp?width=1500", "blurb": "Saved single-tone scene. Recall it from the remote with one button." } },
+        { "type": "scene", "settings": { "scene_id": "multi1",  "kind": "SCENE",  "name": "Spectrum",   "hex": "#9333EA", "image_url": "https://casadilumo.com/cdn/shop/files/Full_Circular_Wall_Lamp_Scene_01_multicolor_1copy.webp?width=1500", "blurb": "Static rainbow preset. Every band of the visible spectrum across the ring at once — no animation, just color." } },
+        { "type": "scene", "settings": { "scene_id": "multi4",  "kind": "EFFECT", "name": "Color Flow", "hex": "#A855F7", "image_url": "https://casadilumo.com/cdn/shop/files/Full_Circular_Wall_Lamp_Scene_05_multicolor_4copy.webp?width=1500", "blurb": "Dynamic effect, slow speed. One of 360+ on-board animations — wave, ripple, fade, breathe, music-react." } },
+        { "type": "scene", "settings": { "scene_id": "multi5",  "kind": "EFFECT", "name": "Aurora",     "hex": "#06B6D4", "image_url": "https://casadilumo.com/cdn/shop/files/Full_Circular_Wall_Lamp_Scene_05_multicolor_5copy.webp?width=1500", "blurb": "Slow gradient cycle across the full ring. Music-responsive mode picks up beats and pulses to them." } }
+      ]
+    }
+  ]
+}
+{% endschema %}

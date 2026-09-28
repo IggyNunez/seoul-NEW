@@ -1,0 +1,2584 @@
+{%- comment -%}
+  Seoul Glow Lab — Sizing comparison (3 octagons at true relative scale)
+
+  Three octagonal silhouettes drawn at exact relative scale on a flat
+  paper plate. Tapping any size:
+    • Lights up its portal (radial gradient + concentric rings)
+    • Updates the detail panel (dimensions, use, price)
+  Default selection is "L" (Large).
+
+  Real specs from casadilumo.com (verified by Casa Design chat
+  transcript):
+    Small  · 11.8" / 30 cm  · $249
+    Medium · 19.7" / 50 cm  · $299
+    Large  · 27.6" / 70 cm  · $349  · POPULAR (per merchant: large size
+                                       is the conversion target across
+                                       every mirror PDP) · qualifies for
+                                       free Mini Sunset Orb
+
+  Plate is 80" × 40" (relative units). Centerlines at 13/36/64" so each
+  mirror has clear gutter to its neighbor.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign default_size = s.default_size | default: 'L'
+  assign mirror_shape = s.mirror_shape | default: 'octagon'
+
+  comment
+    All 5 mirror shapes ship in SQUARE FRAMES per Seoul Glow Lab's
+    published spec — the inscribed shape (hex, triangle, etc.) sits
+    inside a square bounding box that's what actually mounts on the
+    wall. Customer-facing W × H is the frame's bounding box for every
+    shape: H = W (square aspect). Confirmed by reading every mirror's
+    PDP on casadilumo.com on 2026-05-09 — Hex Large = '27.5" × 27.5"',
+    not the 27.5 × 23.9 I'd previously calculated from interior
+    geometry.
+
+    The polygon SVG points define the INSCRIBED shape (visible inner
+    polygon), but the bounding box stays square — viewBox is 100×100
+    and mirror_aspect = 1 across all non-circle shapes.
+  endcomment
+  comment
+    tcx / tcy = the tunnel's vanishing point, i.e. the centre the nested
+    rings scale toward. It is the shape's CENTROID, not the viewBox
+    middle — for the triangle those differ by 14 units and nesting on the
+    viewBox centre makes the rings drift out of the frame.
+  endcomment
+  case mirror_shape
+    when 'hexagon-flat'
+      assign poly_pts = '25,1 75,1 99,43.3 75,85.6 25,85.6 1,43.3'
+      assign svg_viewbox = '0 0 100 86.6'
+      assign mirror_aspect = '1.1547'
+      assign tcx = 50.0
+      assign tcy = 43.3
+    when 'quadrilateral'
+      assign poly_pts = '1,1 99,1 99,99 1,99'
+      assign svg_viewbox = '0 0 100 100'
+      assign mirror_aspect = '1'
+      assign tcx = 50.0
+      assign tcy = 50.0
+    when 'triangle'
+      assign poly_pts = '50,1 99,85.6 1,85.6'
+      assign svg_viewbox = '0 0 100 86.6'
+      assign mirror_aspect = '1.1547'
+      assign tcx = 50.0
+      assign tcy = 57.4
+    when 'circle'
+      assign is_circle = true
+      assign svg_viewbox = '0 0 100 100'
+      assign mirror_aspect = '1'
+      assign tcx = 50.0
+      assign tcy = 50.0
+    when 'cube'
+      comment
+        Infinity Cube renders as a square (face-on view) at scale.
+        Same poly as 'quadrilateral'; separate enum value so CSS can
+        target `[data-casa-sz-shape="cube"]` if cube-specific styling
+        (e.g. iridescent fill animation) is added later.
+      endcomment
+      assign poly_pts = '1,1 99,1 99,99 1,99'
+      assign svg_viewbox = '0 0 100 100'
+      assign mirror_aspect = '1'
+      assign tcx = 50.0
+      assign tcy = 50.0
+    else
+      assign poly_pts = '29.3,1 70.7,1 99,29.3 99,70.7 70.7,99 29.3,99 1,70.7 1,29.3'
+      assign svg_viewbox = '0 0 100 100'
+      assign mirror_aspect = '1'
+      assign tcx = 50.0
+      assign tcy = 50.0
+  endcase
+
+  comment
+    Width × Height labels per size — square frame for every shape.
+  endcomment
+  assign hcm_s = '30'
+  assign hcm_m = '50'
+  assign hcm_l = '70'
+  assign hin_s = '11.8'
+  assign hin_m = '19.7'
+  assign hin_l = '27.6'
+
+  comment
+    Depth (3rd dimension) — per-size, merchant-fillable via schema.
+    Inches schema field stores JUST the number ('2.4') because storing
+    the literal " character inside a data-* attribute breaks HTML
+    parsing. The inch symbol is appended in the template after the
+    span, same way W and H do it.
+  endcomment
+  assign depth_s_in = s.depth_s_in | default: '1.6'
+  assign depth_m_in = s.depth_m_in | default: '2.0'
+  assign depth_l_in = s.depth_l_in | default: '2.4'
+  assign depth_s_cm = s.depth_s_cm | default: '4 cm'
+  assign depth_m_cm = s.depth_m_cm | default: '5 cm'
+  assign depth_l_cm = s.depth_l_cm | default: '6 cm'
+
+  assign v_s = product.variants[0]
+  assign v_m = product.variants[1]
+  assign v_l = product.variants[2]
+
+  comment
+    ── BUY ROW ─────────────────────────────────────────────────────────
+    The column was always designed as three groups — the comment above
+    .casa-sz__spec says "SPEC (what you picked) -> CHOOSE (pick another)
+    -> BUY" — but BUY was never built. Until now the shopper compared
+    three sizes here and then had to scroll back up to the buy box to act
+    on the comparison, which is the one moment they are most decided.
+
+    Price is formatted in Liquid, never in JS, so Markets currency
+    conversion is correct in all 110 currencies. It honours
+    `currency_code_enabled_product_pages` for the same reason snippets/
+    price.liquid does: this row sits on the same page as the main buy
+    box, and two different money formats on one page reads as a bug.
+
+    Per-size strings ride on the chips as data-* and the JS copies the
+    selected one into the row. Rendering three hidden rows instead would
+    mean three sources of truth for one line.
+  endcomment
+  assign use_currency = false
+  if settings.currency_code_enabled_product_pages
+    assign use_currency = true
+  endif
+
+  assign p_s = ''
+  assign w_s = ''
+  if v_s
+    if use_currency
+      assign p_s = v_s.price | money_with_currency | strip_html
+    else
+      assign p_s = v_s.price | money | strip_html
+    endif
+    if v_s.compare_at_price > v_s.price
+      if use_currency
+        assign w_s = v_s.compare_at_price | money_with_currency | strip_html
+      else
+        assign w_s = v_s.compare_at_price | money | strip_html
+      endif
+    endif
+  endif
+
+  assign p_m = ''
+  assign w_m = ''
+  if v_m
+    if use_currency
+      assign p_m = v_m.price | money_with_currency | strip_html
+    else
+      assign p_m = v_m.price | money | strip_html
+    endif
+    if v_m.compare_at_price > v_m.price
+      if use_currency
+        assign w_m = v_m.compare_at_price | money_with_currency | strip_html
+      else
+        assign w_m = v_m.compare_at_price | money | strip_html
+      endif
+    endif
+  endif
+
+  assign p_l = ''
+  assign w_l = ''
+  if v_l
+    if use_currency
+      assign p_l = v_l.price | money_with_currency | strip_html
+    else
+      assign p_l = v_l.price | money | strip_html
+    endif
+    if v_l.compare_at_price > v_l.price
+      if use_currency
+        assign w_l = v_l.compare_at_price | money_with_currency | strip_html
+      else
+        assign w_l = v_l.compare_at_price | money | strip_html
+      endif
+    endif
+  endif
+
+  comment
+    ── WHICH SIZE THE STRIP OPENS ON ───────────────────────────────────
+    The buy box wins, NOT the `default_size` setting.
+
+    This strip used to open on Large regardless of what the buy box had
+    selected. That was invisible while the strip showed no price — it is
+    a comparison, and comparisons don't have to agree with anything. The
+    moment it grew a price and an Add to cart it became a third opinion
+    about what you are buying: measured on a bare Octamirror load, the
+    buy box and the sticky bar both said Small €275,95 while the strip
+    said Large €733,95.
+
+    So the strip resolves its opening size from
+    `selected_or_first_available_variant` — the same variant the buy box
+    and the sticky bar render — which also makes a ?variant= deep link
+    land on the right chip. `default_size` stays as the fallback for a
+    product whose selected variant is not one of these three.
+
+    Rendering the whole panel from this (not just the price) matters:
+    the JS calls select() on init, so a server render fixed at Large
+    would paint Large and then swap to Small on nearly every load.
+  endcomment
+  assign sel_v = product.selected_or_first_available_variant
+  assign init_size = default_size
+  if sel_v
+    if v_s and sel_v.id == v_s.id
+      assign init_size = 'S'
+    elsif v_m and sel_v.id == v_m.id
+      assign init_size = 'M'
+    elsif v_l and sel_v.id == v_l.id
+      assign init_size = 'L'
+    endif
+  endif
+
+  comment
+    Per-size copy lives in Liquid so the server can paint whichever size
+    is opening. The JS reads these off the chips (the same merge the
+    depth values already use), which keeps ONE source of truth — before
+    this, the Large string was written out in the markup AND again in
+    the script's DATA table.
+  endcomment
+  assign use_s = 'Vanities, nooks, desks'
+  assign use_m = 'Bedrooms, entryways, hallways'
+  assign use_l = 'Above sofas, gaming rooms, lounges'
+
+  case init_size
+    when 'S'
+      assign v_def = v_s
+      assign p_def = p_s
+      assign w_def = w_s
+      assign init_name = 'Small'
+      assign init_in = hin_s
+      assign init_cm = hcm_s
+      assign init_d_in = depth_s_in
+      assign init_d_cm = depth_s_cm
+      assign init_use = use_s
+      assign init_pop = false
+    when 'M'
+      assign v_def = v_m
+      assign p_def = p_m
+      assign w_def = w_m
+      assign init_name = 'Medium'
+      assign init_in = hin_m
+      assign init_cm = hcm_m
+      assign init_d_in = depth_m_in
+      assign init_d_cm = depth_m_cm
+      assign init_use = use_m
+      assign init_pop = false
+    else
+      assign v_def = v_l
+      assign p_def = p_l
+      assign w_def = w_l
+      assign init_name = 'Large'
+      assign init_in = hin_l
+      assign init_cm = hcm_l
+      assign init_d_in = depth_l_in
+      assign init_d_cm = depth_l_cm
+      assign init_use = use_l
+      assign init_pop = true
+  endcase
+
+  unless v_def
+    assign v_def = sel_v
+    if v_def
+      if use_currency
+        assign p_def = v_def.price | money_with_currency | strip_html
+      else
+        assign p_def = v_def.price | money | strip_html
+      endif
+      assign w_def = ''
+    endif
+  endunless
+
+  comment
+    Default ON: a nil setting (template saved before this field existed)
+    must read as true, so the six live mirror PDPs get the row without
+    the merchant having to open each one. `s.show_atc == false` is the
+    only thing that turns it off.
+  endcomment
+  assign show_atc = true
+  if s.show_atc == false
+    assign show_atc = false
+  endif
+  unless v_def
+    assign show_atc = false
+  endunless
+
+  comment
+    ── THE TUNNEL ──────────────────────────────────────────────────────
+    Built from the real product photo, not from a guess. An infinity
+    mirror is a half-silvered front over a fully mirrored back, so what
+    you actually see is the LED outline repeating, shrinking toward a
+    vanishing point — plus a straight SPOKE running from every frame
+    vertex to the centre, which is the corner seam of that tunnel.
+
+    The spokes are what sell it. Concentric rings alone read as a
+    bullseye; the spokes are what make it read as depth. The old
+    treatment was a single radial gradient with a white-hot centre,
+    which is backwards twice over: no repetition, and the real core is
+    the DENSEST part (rings crowding together), not a soft glow.
+
+    Strokes are non-scaling so every reflection stays the same hairline
+    width the way the real LED does — only opacity falls off with depth.
+  endcomment
+  assign plate_mode = s.plate_mode | default: 'three'
+
+
+  assign ring_scales = '0.88,0.72,0.59,0.485,0.4,0.325,0.267,0.219,0.18,0.147,0.121,0.099,0.081' | split: ','
+  assign spoke_outer = 0.88
+  assign spoke_inner = 0.081
+
+  capture tunnel_svg
+    echo '<g class="casa-sz__tunnel" aria-hidden="true" fill="none" stroke="url(#casa-sz-led-' | append: section.id | append: ')">'
+    unless is_circle
+      assign verts = poly_pts | split: ' '
+      for v in verts
+        assign xy = v | split: ','
+        assign vx = xy[0] | plus: 0.0
+        assign vy = xy[1] | plus: 0.0
+        assign ox = vx | minus: tcx | times: spoke_outer | plus: tcx
+        assign oy = vy | minus: tcy | times: spoke_outer | plus: tcy
+        assign ix = vx | minus: tcx | times: spoke_inner | plus: tcx
+        assign iy = vy | minus: tcy | times: spoke_inner | plus: tcy
+        echo '<line class="casa-sz__spoke" style="--i:' | append: forloop.index0 | append: ';--o:0.62" x1="'
+        echo ox | append: '" y1="' | append: oy | append: '" x2="' | append: ix | append: '" y2="' | append: iy | append: '" vector-effect="non-scaling-stroke" />'
+      endfor
+    endunless
+    for k in ring_scales
+      assign ri = forloop.index0
+      assign fade = ri | times: 0.052
+      assign ropacity = 1.0 | minus: fade
+      if is_circle
+        assign rr = 49.0 | times: k
+        echo '<circle class="casa-sz__ring" style="--i:' | append: ri | append: ';--o:' | append: ropacity | append: '" cx="' | append: tcx | append: '" cy="' | append: tcy
+        echo '" r="' | append: rr | append: '" vector-effect="non-scaling-stroke" />'
+      else
+        echo '<polygon class="casa-sz__ring" style="--i:' | append: ri | append: ';--o:' | append: ropacity | append: '" points="' | append: poly_pts
+        echo '" transform="translate(' | append: tcx | append: ' ' | append: tcy | append: ') scale(' | append: k
+        echo ') translate(-' | append: tcx | append: ' -' | append: tcy | append: ')" vector-effect="non-scaling-stroke" />'
+      endif
+    endfor
+    echo '</g>'
+  endcapture
+-%}
+
+{%- comment -%}
+  Per-instance stroke gradient. Defined once in a zero-size SVG and
+  referenced by id from all three mirrors — a paint server resolves
+  across SVG roots in the same document, so three copies were redundant.
+  Vertical, because that is how the real RGB-IC ring reads in the
+  product photography: the spectrum sweeps top-to-bottom across the
+  whole tunnel rather than per-reflection.
+{%- endcomment -%}
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <defs>
+    <linearGradient id="casa-sz-led-{{ section.id }}" x1="0" y1="0" x2="0" y2="1">
+      {%- if s.tunnel_palette == 'spectrum' -%}
+        <stop offset="0%"   stop-color="#FF2D55" />
+        <stop offset="22%"  stop-color="#F59E0B" />
+        <stop offset="44%"  stop-color="#22C55E" />
+        <stop offset="68%"  stop-color="{{ s.color_cyan   | default: '#F2FFA0' }}" />
+        <stop offset="100%" stop-color="{{ s.color_purple | default: '#B0C3FA' }}" />
+      {%- else -%}
+        <stop offset="0%"   stop-color="{{ s.color_purple | default: '#B0C3FA' }}" />
+        <stop offset="50%"  stop-color="{{ s.color_pink   | default: '#5E0A02' }}" />
+        <stop offset="100%" stop-color="{{ s.color_cyan   | default: '#F2FFA0' }}" />
+      {%- endif -%}
+    </linearGradient>
+  </defs>
+</svg>
+
+<section
+  id="casa-sz-{{ section.id }}"
+  class="casa-sz{% if s.layout_density == 'one_frame' %} casa-sz--compact{% endif %}"
+  data-section-id="{{ section.id }}"
+  data-default="{{ init_size }}"
+  {%- comment -%}
+    Routes ride on the root because the script below is a static
+    "javascript" tag — Shopify serves it once for the whole theme and
+    does NOT run Liquid inside it, so a routes.cart_add_url output written
+    there would ship to the browser as that literal string. Locale-
+    prefixed storefronts (/en-de/cart/add) depend on the real route, so
+    hardcoding "/cart/add.js" is not a fallback either.
+  {%- endcomment -%}
+  data-cart-add-url="{{ routes.cart_add_url }}"
+  data-cart-url="{{ routes.cart_url }}"
+  style="
+    --casa-sz-paper: {{ s.color_paper | default: '#FAFAF7' }};
+    --casa-sz-ink:   {{ s.color_ink   | default: '#0A0A0F' }};
+    --casa-sz-pink:  {{ s.color_pink  | default: '#5E0A02' }};
+    --casa-sz-purple:{{ s.color_purple| default: '#B0C3FA' }};
+    --casa-sz-cyan:  {{ s.color_cyan  | default: '#F2FFA0' }};
+    --casa-sz-pt:    {{ s.padding_top    | default: 96 }}px;
+    --casa-sz-pb:    {{ s.padding_bottom | default: 96 }}px;
+  "
+>
+  <div class="casa-sz__cap">
+    <div class="casa-sz__inner">
+      {%- comment -%} LEFT — copy + selector {%- endcomment -%}
+      {%- comment -%}
+        Intro is its own grid item, NOT the head of the copy column. On a
+        phone the running order has to be heading -> mirrors -> spec, and
+        the mirrors cannot jump above the heading while they share a
+        wrapper with it.
+      {%- endcomment -%}
+      <div class="casa-sz__intro">
+        {%- if s.kicker != blank -%}
+          <p class="casa-sz__mono">{{ s.kicker }}</p>
+        {%- endif -%}
+        {%- if s.heading != blank -%}
+          <h2 class="casa-sz__h2">{{ s.heading }}</h2>
+        {%- endif -%}
+        {%- if s.subheading != blank -%}
+          <p class="casa-sz__lede">{{ s.subheading }}</p>
+        {%- endif -%}
+      </div>
+
+      <div class="casa-sz__copy">
+        <div class="casa-sz__detail">
+          {%- comment -%}
+            The column reads as three groups, not eleven stacked lines:
+            SPEC (what you picked) -> CHOOSE (pick another) -> BUY.
+            Everything inside a group is 8-16px apart, groups are 40px
+            apart, so the eye chunks it instead of scanning a list.
+          {%- endcomment -%}
+          <div class="casa-sz__spec">
+          <div class="casa-sz__detail-head">
+            <span class="casa-sz__detail-name" data-casa-sz-name>{{ init_name }}</span>
+            <span class="casa-sz__pop" data-casa-sz-pop{% unless init_pop %} hidden{% endunless %}>BESTSELLER</span>
+          </div>
+          {%- comment -%}
+            HEADLINE — inches, primary.
+            For non-circle: W × H × D in inches.
+            For circle: Ø × D in inches (since width = height = diameter).
+            All depth values render the trailing inch symbol as literal
+            HTML after the span (NOT as part of the value), because
+            embedding " in a data-* attribute breaks HTML parsing.
+          {%- endcomment -%}
+          {%- comment -%}
+            The unit mark MUST live inside a `.nu` wrapper with its number.
+            This row is a flex container with a 6px gap, and a bare `"` text
+            node becomes its own anonymous flex item — so the mark was given
+            the full gap and floated away from the figure it belongs to
+            (`11.8 " × 11.8 " × 5 "`). Wrapping makes number+mark a single
+            flex item with normal inline flow inside it.
+
+            A dimension triple shares one unit, so only the last figure
+            carries the mark; ″ is the true prime, not a straight quote.
+            The circle branch keeps a mark on both figures because Ø and
+            depth are two separate measurements, not a triple.
+
+            Each data-casa-sz-* attribute must stay UNIQUE — the JS reads
+            them with querySelector, so a duplicated hook would silently
+            stop updating on size change.
+          {%- endcomment -%}
+          {%- comment -%}
+            THREE BRANCHES, not two, because H = W is only true for some of
+            these shapes.
+
+            A regular octagon, a square and a circle all have a square
+            bounding box, so printing the one published figure twice is
+            accurate. A regular hexagon and an equilateral triangle do not:
+            their height is width x 0.866. Printing "27.6 x 27.6" there
+            states a height no source supports — the variant names and the
+            product description both publish ONE figure per size
+            (11.8" / 30cm, 19.7" / 50cm, 27.6" / 70cm), there is no
+            dimension metafield, and the second number was coming from this
+            template reusing the first.
+
+            So non-square shapes show the published figure and the depth,
+            and nothing that was not measured. Interim: once Coco confirms
+            whether that figure is the width or the height, this branch can
+            carry the real W x H.
+          {%- endcomment -%}
+          <div class="casa-sz__big" data-casa-sz-shape="{{ mirror_shape }}">
+            {%- if is_circle -%}
+              <span class="phi" aria-hidden="true">Ø</span>
+              <span class="nu"><span data-casa-sz-inches>{{ init_in }}</span><span class="u" aria-hidden="true">″</span></span>
+              <span class="dot" aria-hidden="true">·</span>
+              <span class="nu"><span data-casa-sz-d-in>{{ init_d_in }}</span><span class="u" aria-hidden="true">″</span></span>
+              <span class="lab-in" aria-hidden="true">deep</span>
+            {%- elsif mirror_aspect != '1' -%}
+              <span class="nu"><span data-casa-sz-inches>{{ init_in }}</span><span class="u" aria-hidden="true">″</span></span>
+              <span class="dot" aria-hidden="true">·</span>
+              <span class="nu"><span data-casa-sz-d-in>{{ init_d_in }}</span><span class="u" aria-hidden="true">″</span></span>
+              <span class="lab-in" aria-hidden="true">deep</span>
+            {%- else -%}
+              <span data-casa-sz-inches>{{ init_in }}</span>
+              <span class="x" aria-hidden="true">×</span>
+              <span data-casa-sz-h-in>{{ init_in }}</span>
+              <span class="x" aria-hidden="true">×</span>
+              <span class="nu"><span data-casa-sz-d-in>{{ init_d_in }}</span><span class="u" aria-hidden="true">″</span></span>
+            {%- endif -%}
+            {%- comment -%}
+              The × and ″ are aria-hidden, so without this a screen reader
+              announces a bare "27.6 27.6 5" with no unit at all.
+            {%- endcomment -%}
+            {%- if is_circle -%}
+              <span class="visually-hidden">inches: diameter, then depth</span>
+            {%- elsif mirror_aspect != '1' -%}
+              <span class="visually-hidden">inches: size across, then depth</span>
+            {%- else -%}
+              <span class="visually-hidden">inches: width, height, depth</span>
+            {%- endif -%}
+          </div>
+          {%- comment -%}
+            cm row and room-suggestion are one caption block. They used to
+            be two separate elements with their own margins, which read as
+            two more competing lines under the headline.
+          {%- endcomment -%}
+          <div class="casa-sz__specmeta">
+          <div class="casa-sz__metric-row" aria-label="Dimensions in centimeters">
+            {%- comment -%}
+              No axis key. W x H x D is the standard order for decor
+              dimensions, and every size in this family is square — W and H
+              are literally the same number — so the key was labelling an
+              order the reader cannot misread. The circle branch is
+              self-describing for the same reason: the values carry "Ø" and
+              "deep" inline.
+            {%- endcomment -%}
+            {%- if is_circle -%}
+              <span class="vals">
+                Ø <span data-casa-sz-cm>{{ init_cm }}</span> cm ·
+                <span data-casa-sz-d-cm>{{ init_d_cm }}</span> deep
+              </span>
+            {%- elsif mirror_aspect != '1' -%}
+              <span class="vals">
+                <span data-casa-sz-cm>{{ init_cm }}</span> cm ·
+                <span data-casa-sz-d-cm>{{ init_d_cm }}</span> deep
+              </span>
+            {%- else -%}
+              <span class="vals">
+                <span data-casa-sz-cm>{{ init_cm }}</span> ×
+                <span data-casa-sz-h-cm>{{ init_cm }}</span> ×
+                <span data-casa-sz-d-cm>{{ init_d_cm }}</span>
+              </span>
+            {%- endif -%}
+          </div>
+          <div class="casa-sz__use" data-casa-sz-use>{{ init_use }}</div>
+          </div>{%- comment -%} /specmeta {%- endcomment -%}
+          </div>{%- comment -%} /spec {%- endcomment -%}
+
+          <div class="casa-sz__choose">
+          <div class="casa-sz__pick">
+            <button class="casa-sz__chip" data-casa-sz-chip="S" type="button"
+              data-h-in="{{ hin_s }}" data-h-cm="{{ hcm_s }}"
+              data-depth-in="{{ depth_s_in }}" data-depth-cm="{{ depth_s_cm }}"
+              {% if v_s %} data-variant-id="{{ v_s.id }}" data-variant-available="{{ v_s.available }}" data-variant-url="{{ v_s.url }}" data-variant-option="{{ v_s.option1 | escape }}" data-use="{{ use_s | escape }}" data-price="{{ p_s | escape }}" data-was="{{ w_s | escape }}"{% endif %}>
+              <span class="k">Small</span>
+              <span class="d">11.8"</span>
+            </button>
+            <button class="casa-sz__chip" data-casa-sz-chip="M" type="button"
+              data-h-in="{{ hin_m }}" data-h-cm="{{ hcm_m }}"
+              data-depth-in="{{ depth_m_in }}" data-depth-cm="{{ depth_m_cm }}"
+              {% if v_m %} data-variant-id="{{ v_m.id }}" data-variant-available="{{ v_m.available }}" data-variant-url="{{ v_m.url }}" data-variant-option="{{ v_m.option1 | escape }}" data-use="{{ use_m | escape }}" data-price="{{ p_m | escape }}" data-was="{{ w_m | escape }}"{% endif %}>
+              <span class="k">Medium</span>
+              <span class="d">19.7"</span>
+            </button>
+            <button class="casa-sz__chip" data-casa-sz-chip="L" type="button"
+              data-h-in="{{ hin_l }}" data-h-cm="{{ hcm_l }}"
+              data-depth-in="{{ depth_l_in }}" data-depth-cm="{{ depth_l_cm }}"
+              {% if v_l %} data-variant-id="{{ v_l.id }}" data-variant-available="{{ v_l.available }}" data-variant-url="{{ v_l.url }}" data-variant-option="{{ v_l.option1 | escape }}" data-use="{{ use_l | escape }}" data-price="{{ p_l | escape }}" data-was="{{ w_l | escape }}"{% endif %}>
+              <span class="k">Large</span>
+              <span class="d">27.6"</span>
+              <span class="pop">POPULAR</span>
+            </button>
+          </div>
+
+
+          {%- if show_atc -%}
+          {%- comment -%}
+            BUY — the third group the column was designed around.
+
+            Progressive enhancement, same contract as casa-sizing-cube:
+            the element is a real <a> pointing at the selected variant's
+            URL, so with JS off (or if the fetch throws) the click still
+            takes the shopper to a correctly-selected PDP. The script
+            intercepts it and adds via cart/add.js instead.
+
+            aria-live on the label, not the button: the button owns a
+            name that must stay stable for AT, while the label swaps
+            through Adding… / Added. Announcing the region announces the
+            state change without renaming the control.
+          {%- endcomment -%}
+          <div class="casa-sz__buy">
+            <div class="casa-sz__price-row">
+              <span class="casa-sz__price" data-casa-sz-price>{{ p_def }}</span>
+              {%- comment -%}
+                <s> is the element, not a line-through class: the
+                strikethrough is semantic here (this price no longer
+                applies) and must survive a stylesheet that fails to
+                load. Hidden rather than absent so the JS can fill it
+                when the shopper moves to a size that IS on offer.
+              {%- endcomment -%}
+              <s class="casa-sz__was" data-casa-sz-was{% if w_def == blank %} hidden{% endif %}>{{ w_def }}</s>
+            </div>
+            <a
+              class="casa-sz__atc btn btn-primary"
+              href="{{ v_def.url }}"
+              data-casa-sz-atc="{{ v_def.id }}"
+              {% unless v_def.available %}aria-disabled="true" data-soldout="1"{% endunless %}
+            >
+              <span class="casa-sz__atc-label" aria-live="polite">{% if v_def.available %}Add to cart{% else %}Sold out{% endif %}</span>
+            </a>
+          </div>
+          {%- endif -%}
+
+          </div>{%- comment -%} /choose {%- endcomment -%}
+        </div>
+      </div>
+
+      {%- comment -%} RIGHT — true-scale plate {%- endcomment -%}
+      <div class="casa-sz__scene-wrap">
+        <div class="casa-sz__plate{% if plate_mode == 'photo' %} casa-sz__plate--photo{% endif %}" data-casa-sz-plate>
+          {%- comment -%}
+            Plate is 80" wide × 40" tall.
+            S/M/L positioned at centerlines 13"/36"/64" from left.
+            Sizes drawn at exact relative scale: 11.8 / 19.7 / 27.6".
+
+            The three mirrors live inside .casa-sz__field, an inner band
+            inset a FIXED number of px from the plate edges (see CSS). That
+            inset guarantees the outermost annotations — the Large mirror's
+            right-hand height arrow and the Small mirror's centered size tag
+            — always have room and are never sliced by the plate's
+            overflow:hidden, even at 280px. A px inset (not %) is deliberate:
+            it stays constant across viewports, so it's a big-enough margin
+            on a narrow phone plate without wasting space on a wide desktop
+            plate. Mirror left/width % now resolve against the field, so the
+            three stay at exact relative scale.
+          {%- endcomment -%}
+
+          {%- if plate_mode == 'photo' -%}
+          {%- comment -%}
+            PHOTO SCENE — the real room, with only the selected mirror lit.
+
+            Two photographs of the SAME scene at the same framing: one with
+            all three mirrors off, one with all three on. The off frame is
+            the base, darkened and tinted so it reads as the same night
+            room; the on frame sits above it, revealed only through a soft
+            radial mask over the selected mirror. So the lit mirror and the
+            two dark ones are both real photography — nothing is faked or
+            drawn, and the seam disappears into the mask's feather.
+
+            The hotspots are NOT left-to-right by size. In this scene the
+            order on the wall is Small, LARGE, Medium — getting that wrong
+            lights the wrong mirror. Positions are settings because they
+            are specific to this photograph; another product's scene will
+            need its own.
+          {%- endcomment -%}
+          {%- liquid
+            assign on_src = s.scene_on_image | image_url: width: 1400
+            assign off_alt = s.scene_off_image.alt | default: product.title
+          -%}
+          <div class="casa-sz__scene">
+            {{
+              s.scene_off_image
+              | image_url: width: 1400
+              | image_tag:
+                widths: '400, 600, 900, 1200, 1400',
+                sizes: '(max-width: 900px) 100vw, 620px',
+                loading: 'lazy',
+                decoding: 'async',
+                class: 'casa-sz__scene-base',
+                alt: off_alt
+            }}
+            <span class="casa-sz__scene-tint" aria-hidden="true"></span>
+
+            <span class="casa-sz__lit" data-casa-sz-lit="S" aria-hidden="true"
+              style="background-image:url({{ on_src }});--mx:{{ s.hot_s_x }}%;--my:{{ s.hot_s_y }}%;--mr:{{ s.hot_s_r }}%;"></span>
+            <span class="casa-sz__lit" data-casa-sz-lit="M" aria-hidden="true"
+              style="background-image:url({{ on_src }});--mx:{{ s.hot_m_x }}%;--my:{{ s.hot_m_y }}%;--mr:{{ s.hot_m_r }}%;"></span>
+            <span class="casa-sz__lit" data-casa-sz-lit="L" aria-hidden="true"
+              style="background-image:url({{ on_src }});--mx:{{ s.hot_l_x }}%;--my:{{ s.hot_l_y }}%;--mr:{{ s.hot_l_r }}%;"></span>
+
+            <button type="button" class="casa-sz__hot" data-casa-sz-hot="S"
+              aria-label="Small — {{ hin_s }} inches"
+              style="left:{{ s.hot_s_x }}%;top:{{ s.hot_s_y }}%;width:{{ s.hot_s_w }}%;"></button>
+            <button type="button" class="casa-sz__hot" data-casa-sz-hot="M"
+              aria-label="Medium — {{ hin_m }} inches"
+              style="left:{{ s.hot_m_x }}%;top:{{ s.hot_m_y }}%;width:{{ s.hot_m_w }}%;"></button>
+            <button type="button" class="casa-sz__hot" data-casa-sz-hot="L"
+              aria-label="Large — {{ hin_l }} inches"
+              style="left:{{ s.hot_l_x }}%;top:{{ s.hot_l_y }}%;width:{{ s.hot_l_w }}%;"></button>
+          </div>
+          {%- else -%}
+          <div class="casa-sz__field">
+          {%- comment -%} SMALL — 11.8" {%- endcomment -%}
+          <button class="casa-sz__mirror" data-casa-sz-mirror="S" type="button"
+            aria-label="Small — 11.8 inches"
+            style="left:16.25%;top:50%;width:14.75%;aspect-ratio:{{ mirror_aspect }};transform:translate(-50%,-50%);">
+            <svg viewBox="{{ svg_viewbox }}" preserveAspectRatio="none" class="casa-sz__mirror-svg">
+              {%- comment -%} glass: the tunnel void behind the reflections {%- endcomment -%}
+              {%- if is_circle -%}
+                <circle cx="50" cy="50" r="49" class="casa-sz__glass" />
+              {%- else -%}
+                <polygon points="{{ poly_pts }}" class="casa-sz__glass" />
+              {%- endif -%}
+              {{ tunnel_svg }}
+              {%- comment -%} frame, drawn last so it caps the reflections {%- endcomment-%}
+              {%- if is_circle -%}
+                <circle cx="50" cy="50" r="49"
+                  class="casa-sz__poly" data-casa-sz-poly="S"
+                  stroke-width="1.2" vector-effect="non-scaling-stroke" />
+              {%- else -%}
+                <polygon points="{{ poly_pts }}"
+                  class="casa-sz__poly" data-casa-sz-poly="S"
+                  stroke-width="1.2" vector-effect="non-scaling-stroke" />
+              {%- endif -%}
+            </svg>
+          </button>
+
+          {%- comment -%} MEDIUM — 19.7" {%- endcomment -%}
+          <button class="casa-sz__mirror" data-casa-sz-mirror="M" type="button"
+            aria-label="Medium — 19.7 inches"
+            style="left:45%;top:50%;width:24.625%;aspect-ratio:{{ mirror_aspect }};transform:translate(-50%,-50%);">
+            <svg viewBox="{{ svg_viewbox }}" preserveAspectRatio="none" class="casa-sz__mirror-svg">
+              {%- comment -%} glass: the tunnel void behind the reflections {%- endcomment -%}
+              {%- if is_circle -%}
+                <circle cx="50" cy="50" r="49" class="casa-sz__glass" />
+              {%- else -%}
+                <polygon points="{{ poly_pts }}" class="casa-sz__glass" />
+              {%- endif -%}
+              {{ tunnel_svg }}
+              {%- comment -%} frame, drawn last so it caps the reflections {%- endcomment-%}
+              {%- if is_circle -%}
+                <circle cx="50" cy="50" r="49"
+                  class="casa-sz__poly" data-casa-sz-poly="M"
+                  stroke-width="1.2" vector-effect="non-scaling-stroke" />
+              {%- else -%}
+                <polygon points="{{ poly_pts }}"
+                  class="casa-sz__poly" data-casa-sz-poly="M"
+                  stroke-width="1.2" vector-effect="non-scaling-stroke" />
+              {%- endif -%}
+            </svg>
+          </button>
+
+          {%- comment -%} LARGE — 27.6" {%- endcomment -%}
+          <button class="casa-sz__mirror" data-casa-sz-mirror="L" type="button"
+            aria-label="Large — 27.6 inches"
+            style="left:80%;top:50%;width:34.5%;aspect-ratio:{{ mirror_aspect }};transform:translate(-50%,-50%);">
+            <svg viewBox="{{ svg_viewbox }}" preserveAspectRatio="none" class="casa-sz__mirror-svg">
+              {%- comment -%} glass: the tunnel void behind the reflections {%- endcomment -%}
+              {%- if is_circle -%}
+                <circle cx="50" cy="50" r="49" class="casa-sz__glass" />
+              {%- else -%}
+                <polygon points="{{ poly_pts }}" class="casa-sz__glass" />
+              {%- endif -%}
+              {{ tunnel_svg }}
+              {%- comment -%} frame, drawn last so it caps the reflections {%- endcomment-%}
+              {%- if is_circle -%}
+                <circle cx="50" cy="50" r="49"
+                  class="casa-sz__poly" data-casa-sz-poly="L"
+                  stroke-width="1.2" vector-effect="non-scaling-stroke" />
+              {%- else -%}
+                <polygon points="{{ poly_pts }}"
+                  class="casa-sz__poly" data-casa-sz-poly="L"
+                  stroke-width="1.2" vector-effect="non-scaling-stroke" />
+              {%- endif -%}
+            </svg>
+          </button>
+
+          {%- comment -%}
+            DIMENSION BRACKET — one hairline down the selected mirror's left
+            flank, one across its bottom, meeting at the corner, each figure
+            riding its own rail.
+
+            It lives inside the field so the field is its offsetParent and
+            the JS can position it straight off the selected mirror's offset
+            box. Geometry is set from JS in px, not Liquid in %, because the
+            plate's aspect-ratio changes at <=640px and the mirror's own
+            aspect-ratio changes per shape — a % scheme would be wrong on
+            both axes.
+
+            Decorative: every mirror button already carries its own
+            aria-label ("Small - 11.8 inches"), and the copy column states
+            the full W x H x D triple with its own visually-hidden axis key.
+          {%- endcomment -%}
+          <div class="casa-sz__bracket" data-casa-sz-bracket aria-hidden="true">
+            {%- comment -%}
+              The height rail ships only where the drawing is SQUARE.
+
+              hin_* carries the frame's published height, which equals its
+              width for every mirror in this lineup (27.5" x 27.5"). But
+              hexagon-flat and triangle draw at mirror_aspect 1.1547, so the
+              artwork is 86.6% as tall as it is wide. Measured at a 620px
+              plate with Large selected: the box is 213.2 x 184.6, so a
+              height rail would span 142px against the width rail's 168px
+              while both read 27.6" — a drawing contradicting its own
+              labels, on the live HexaMirror and TriMirror PDPs.
+
+              Suppressing the rail is the honest read of today's geometry,
+              not the fix. The fix is to letterbox those two polygons inside
+              a square viewBox so the artwork matches the published spec —
+              which also touches casa-day-night-transform and
+              casa-install-steps, and is the follow-up 625fc44f already
+              flagged. Width and depth are unaffected and still render.
+            {%- endcomment -%}
+            {%- if mirror_aspect == '1' -%}
+              <span class="casa-sz__rail casa-sz__rail--h casa-sz__rail--h-a"></span>
+              <span class="casa-sz__rail casa-sz__rail--h casa-sz__rail--h-b"></span>
+              <span class="casa-sz__serif casa-sz__serif--v casa-sz__serif--v-top"></span>
+              <span class="casa-sz__serif casa-sz__serif--v casa-sz__serif--v-bot"></span>
+              <span class="casa-sz__dim casa-sz__dim--v" data-casa-sz-bk-h>{{ hin_l }}&Prime;</span>
+            {%- endif -%}
+            <span class="casa-sz__rail casa-sz__rail--w casa-sz__rail--w-a"></span>
+            <span class="casa-sz__rail casa-sz__rail--w casa-sz__rail--w-b"></span>
+            <span class="casa-sz__serif casa-sz__serif--h casa-sz__serif--h-l"></span>
+            <span class="casa-sz__serif casa-sz__serif--h casa-sz__serif--h-r"></span>
+            <span class="casa-sz__dim casa-sz__dim--w" data-casa-sz-bk-w>{{ hin_l }}&Prime;</span>
+          </div>
+          </div>
+
+          {%- comment -%}
+            DEPTH LEGEND — deliberately NOT on the shape. The plate is a
+            true-scale elevation, so the third axis points at the viewer and
+            has nothing to measure against. It sits in the one corner no
+            selection reaches: Small is the leftmost mirror and it is
+            vertically centred, so the top-left is dead plate at every size.
+
+            The mark is two hairlines — a wall, and how far the mirror
+            stands off it. Enough to say "third axis" without drawing a box.
+          {%- endcomment -%}
+          <div class="casa-sz__depth" data-casa-sz-depth-box aria-hidden="true">
+            <svg class="casa-sz__depth-mark" viewBox="0 0 14 12" width="14" height="12"
+              fill="none" stroke-width="1" aria-hidden="true" focusable="false">
+              {%- comment -%}
+                Stroked from CSS, not a stroke="" attribute, so the wall and
+                the measure stay tied to the same --bk-hair / --bk-lab tokens
+                the rails and figures use. A presentation attribute would
+                drift the moment either value changed.
+              {%- endcomment -%}
+              <path class="casa-sz__depth-wall" d="M1 0V12" />
+              <path class="casa-sz__depth-span" d="M1 6H12M12 3V9" />
+            </svg>
+            <span class="casa-sz__depth-txt">
+              <span class="casa-sz__depth-k">Depth</span>
+              <span class="casa-sz__depth-v"><span data-casa-sz-depth-plate>{{ depth_l_in }}</span>&Prime;</span>
+            </span>
+          </div>
+          {%- endif -%}
+        </div>
+
+        {%- if s.room_image != blank -%}
+          {%- comment -%}
+            The photograph does what no SVG can: it makes the size
+            believable, and it restores the three-way comparison the
+            photo scene gives up by lighting one mirror at a time.
+          {%- endcomment -%}
+          <figure class="casa-sz__room">
+            {{
+              s.room_image
+              | image_url: width: 1400
+              | image_tag:
+                widths: '400, 600, 900, 1200, 1400',
+                sizes: '(max-width: 900px) 100vw, 60vw',
+                loading: 'lazy',
+                decoding: 'async',
+                alt: s.room_image.alt | default: product.title
+            }}
+            {%- if s.room_caption != blank -%}
+              <figcaption>{{ s.room_caption | escape }}</figcaption>
+            {%- endif -%}
+          </figure>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% stylesheet %}
+.casa-sz {
+  background: var(--casa-sz-paper, var(--casa-paper));
+  padding: var(--casa-sz-pt, 96px) 0 var(--casa-sz-pb, 96px);
+  color: var(--casa-sz-ink, var(--casa-ink));
+}
+.casa-sz__cap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px);
+}
+.casa-sz__mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--casa-sz-ink);
+  margin: 0;
+}
+.casa-sz__mono--dim { color: #8A8A92; }
+
+/* The mirrors are the point of this section, so the plate gets the room
+   and the copy column narrows. Areas (not source order) drive the layout,
+   which is what lets the phone put the plate directly under the heading
+   while desktop keeps heading and spec stacked in the left column. */
+.casa-sz__inner {
+  display: grid;
+  grid-template-columns: minmax(240px, 330px) 1fr;
+  grid-template-areas:
+    "intro scene"
+    "copy  scene";
+  gap: clamp(28px, 4vw, 64px);
+  align-content: center;
+}
+/* The plate spans both rows, so it sets their heights and the two left
+   items would otherwise sit at the top of a much taller column with dead
+   space under the chips. Pushing intro to the bottom of its row and copy
+   to the top of the next makes the pair meet in the middle — vertically
+   centred against the plate without needing them in one wrapper (which
+   would cost the mobile reorder). */
+.casa-sz__intro { grid-area: intro; min-width: 0; align-self: end; }
+.casa-sz__copy  { grid-area: copy;  min-width: 0; align-self: start; }
+.casa-sz__scene-wrap { grid-area: scene; }
+@media (max-width: 900px) {
+  .casa-sz__inner {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "intro"
+      "scene"
+      "copy";
+    gap: 28px;
+  }
+  /* single column — rows are content-height, so nothing to pull together */
+  .casa-sz__intro,
+  .casa-sz__copy { align-self: stretch; }
+}
+
+.casa-sz__copy {
+  min-width: 0;
+  /* One scale for the whole column. Before this there were eight
+     different gap values down these eleven elements and no grouping, so
+     every line read as its own island — that, not the amount of content,
+     is what made it feel cluttered. */
+  --sz-1: 8px;
+  --sz-2: 16px;
+  --sz-3: 24px;
+  --sz-4: 40px;
+}
+.casa-sz__h2 {
+  font-family: var(--casa-pdp-h2-family);
+  font-size: var(--casa-pdp-h2-size);
+  font-weight: var(--casa-pdp-h2-weight);
+  letter-spacing: var(--casa-pdp-h2-tracking);
+  line-height: var(--casa-pdp-h2-line);
+  margin: 18px 0 0;
+  text-wrap: balance;
+}
+.casa-sz__h2 em {
+  /* Brand pattern: one <em> per heading. display:block forces it onto a new
+     line, replacing the <br> that was previously in the default value (now
+     forbidden because the field is inline_richtext, which only allows
+     <em>/<strong>/<i>/<b>/<u>/<sup>/<sub>/<a>). */
+  display: block;
+  font-style: italic;
+  font-weight: 800;
+  background: linear-gradient(90deg, var(--casa-sz-purple), var(--casa-sz-pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.casa-sz__lede {
+  margin: var(--sz-2) 0 var(--sz-4);
+  font-size: clamp(14px, 1.2vw, 16px);
+  line-height: 1.55;
+  color: #54545C;
+  max-width: 40ch;
+}
+
+.casa-sz__detail {
+  border-top: 1px solid #E1E1DC;
+  padding-top: var(--sz-3);
+}
+/* group 1 -> group 2. The only separation that needs to be felt. */
+.casa-sz__choose { margin-top: var(--sz-4); }
+.casa-sz__detail-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--sz-1);
+}
+.casa-sz__detail-name {
+  font-family: var(--font-body--family);
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--casa-sz-ink);
+}
+.casa-sz__pop {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  background: var(--casa-sz-purple);
+  color: #fff;
+  padding: 3px 7px;
+  border-radius: 100px;
+}
+.casa-sz__pop[hidden] { display: none; }
+
+.casa-sz__big {
+  font-family: var(--font-body--family);
+  /* Fluid sizing tuned so the headline ALWAYS fits on one line at any
+     viewport — clamp scales smoothly between mobile (~22px) and desktop
+     (~36px). Pair with white-space: nowrap to forbid line breaks even
+     when the container is narrower than expected. */
+  font-size: clamp(22px, 2.8vw, 36px);
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  margin: 0 0 var(--sz-2);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.casa-sz__big > * { flex-shrink: 0; }
+/* Number + unit mark as ONE flex item, so the row's 6px gap can never open
+   between a figure and its own ″. Inline-flex keeps them on a shared
+   baseline while the mark itself is raised. */
+.casa-sz__big .nu {
+  display: inline-flex;
+  align-items: baseline;
+}
+.casa-sz__big .u {
+  font-size: 0.46em;
+  font-weight: 400;
+  color: #9A9AA2;
+  letter-spacing: 0;
+  /* A prime mark sits at cap height, not on the baseline. translateY pays
+     nothing in layout, so the raise cannot reflow the row. */
+  transform: translateY(-0.62em);
+  margin-left: 0.06em;
+}
+.casa-sz__big .x {
+  font-weight: 200;
+  color: #9A9AA2;
+  font-size: 0.78em;
+  margin: 0 -2px;
+}
+.casa-sz__big .phi {
+  font-weight: 300;
+  color: #9A9AA2;
+  font-size: 0.92em;
+  margin-right: -2px;
+}
+.casa-sz__big .dot {
+  font-weight: 300;
+  color: #9A9AA2;
+  font-size: 0.78em;
+  margin: 0 -2px;
+}
+.casa-sz__big .lab-in {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.32em;
+  font-weight: 500;
+  color: #9A9AA2;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  margin-left: 4px;
+  align-self: center;
+}
+.casa-sz__big .cm {
+  font-size: 0.4em;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 400;
+  color: #54545C;
+  letter-spacing: 0.04em;
+  margin-left: 6px;
+}
+/* the cm row and the room suggestion, reading as one quiet two-line unit
+   under the headline rather than two more competing rows. NOT named
+   __caption — that class already belongs to the plate's "drawn to scale"
+   line further down this stylesheet. */
+.casa-sz__specmeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 12px;
+  border-left: 2px solid #E1E1DC;
+}
+.casa-sz__metric-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #54545C;
+  letter-spacing: 0.04em;
+  flex-wrap: wrap;
+}
+.casa-sz__metric-row .vals {
+  color: var(--casa-sz-ink, var(--casa-ink));
+  font-weight: 500;
+}
+.casa-sz__use {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #54545C;
+  margin: 0;
+}
+
+.casa-sz__pick {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sz-1);
+}
+.casa-sz__chip {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px;
+  background: #F2F2EE;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-family: var(--font-body--family);
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s;
+}
+.casa-sz__chip:hover { background: #E8E8E4; }
+.casa-sz__chip.is-on {
+  background: var(--casa-sz-paper);
+  border-color: var(--casa-sz-ink);
+}
+.casa-sz__chip .k {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--casa-sz-ink);
+}
+.casa-sz__chip .d {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: #54545C;
+}
+.casa-sz__chip .pop {
+  position: absolute;
+  top: -7px;
+  right: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  background: var(--casa-sz-purple);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 100px;
+}
+
+/* ── BUY ─────────────────────────────────────────────────────────────
+   Sits inside .casa-sz__choose, 16px under the chips — the same
+   inside-a-group step the rest of the column uses. It is deliberately
+   NOT the 40px between-group step: the price is a direct consequence of
+   which chip is lit, and pushing it a group away orphans it from the
+   thing that sets it.
+
+   .casa-sz__choose is block layout with only a margin-top, so this
+   margin-top is the sole spacing between the chips and this row — no
+   stacked gap/margin pair to double it. */
+/* A bare [hidden] loses here: the UA rule and `.casa-sz__buy` are both
+   specificity 0,1,0 and this stylesheet ships after the UA sheet, so
+   display:flex would win and `buyEl.hidden = true` would do nothing. */
+.casa-sz__buy[hidden] { display: none; }
+.casa-sz__buy {
+  margin-top: var(--sz-2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.casa-sz__price-row {
+  display: flex;
+  align-items: baseline;
+  /* wrap, because a weak-unit currency is a long string: the same row
+     that reads "$349.00 USD" reads "38.343.000 VND" in a Vietnamese
+     market, and with a compare-at beside it that is two long strings on
+     one line at 280px. Wrapping is the fix; nowrap here would push the
+     was-price off the right edge. */
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-family: var(--font-body--family);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+  min-width: 0;
+}
+.casa-sz__price {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--casa-sz-ink);
+  letter-spacing: -0.01em;
+}
+.casa-sz__was {
+  font-size: 14px;
+  /* #6B6B73 on #FAFAF7 is 5.1:1 — the muted #8A8A93 this started as
+     measured 3.2:1 and fails AA for text this size. */
+  color: #6B6B73;
+}
+.casa-sz__was[hidden] { display: none; }
+
+.casa-sz__atc {
+  width: 100%;
+  /* .btn is inline-flex, so width:100% alone still shrink-wraps inside a
+     flex column; the flex parent stretches it, but this keeps it full
+     width if the row is ever re-parented into a block context. */
+  box-sizing: border-box;
+}
+/* Sold out. The element stays an <a> rather than becoming a <span>
+   because the shopper can move back to an in-stock size and the row has
+   to recover in place — swapping tag names mid-interaction would drop
+   focus. The click is refused in JS; this is the visual half. */
+.casa-sz__atc[data-soldout] {
+  background: #E1E1DC;
+  color: #6B6B73;
+  cursor: not-allowed;
+}
+.casa-sz__atc[data-soldout]:hover { transform: none; }
+.casa-sz__atc[aria-busy='true'] { opacity: 0.75; }
+
+@media (prefers-reduced-motion: reduce) {
+  .casa-sz__atc { transition: none; }
+  .casa-sz__atc:hover { transform: none; }
+}
+
+/* Plate */
+.casa-sz__scene-wrap {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.casa-sz__plate {
+  position: relative;
+  aspect-ratio: 80 / 40;
+  background: linear-gradient(180deg, #FAFAF7 0%, #F2F2EE 100%);
+  border: 1px solid #E1E1DC;
+  border-radius: 12px;
+  overflow: hidden;
+}
+/* In photo mode the scene brings its own square frame, so the plate has
+   to stop being a fixed-ratio box — its 80/40 plus overflow:hidden was
+   slicing the bottom off the photograph. */
+.casa-sz__plate--photo {
+  aspect-ratio: auto;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+/* Inner band the three mirrors are positioned within. Inset a FIXED px
+   amount from the plate edges so the Large mirror's right-hand height
+   arrow and the Small mirror's centered size tag always clear the plate's
+   overflow:hidden clip — at any viewport (down to 280px), in any of the 5
+   shapes. Fixed px (not %) keeps the margin adequate on a narrow phone
+   plate without over-insetting the wide desktop plate (a % inset would
+   waste desktop space). Mirror left/width % resolve against this band.
+
+   Kept small (10px) so the mirrors stay close to full plate size on phones
+   — a wider inset visibly shrank them. The one thing 10px can't clear on
+   its own is the Small mirror's caption at ≤360px (it's centred under the
+   smallest, left-most mirror and overhangs); the caption font-shrink under
+   the ≤360px media query below covers that last few px. Together: near
+   full-size mirrors AND nothing clipped down to 280px. */
+
+/* ── PHOTO SCENE ──────────────────────────────────────────────────────
+   Base is the lights-off frame, pushed down to night with brightness and
+   desaturation plus a teal wash, so it matches the lit frame's colour of
+   light. The lit frame is then revealed through a soft radial mask over
+   one mirror. Both layers are real photographs of the same scene, so the
+   only thing being faked is which lamp is switched on. */
+.casa-sz__scene {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  max-width: 620px;
+  margin-inline: auto;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0C1416;
+}
+.casa-sz__scene-base {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.55) saturate(0.6);
+}
+.casa-sz__scene-tint {
+  position: absolute;
+  inset: 0;
+  background: rgb(10, 60, 62);
+  opacity: 0.18;
+  pointer-events: none;
+}
+.casa-sz__lit {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  /* Ellipse, not circle: percentage radii are only allowed on ellipse.
+     The scene is square so both radii resolve to the same length. */
+  -webkit-mask-image: radial-gradient(ellipse var(--mr) var(--mr) at var(--mx) var(--my), #000 0 62%, transparent 100%);
+  mask-image: radial-gradient(ellipse var(--mr) var(--mr) at var(--mx) var(--my), #000 0 62%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.55s ease;
+  pointer-events: none;
+}
+.casa-sz__lit.is-on { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .casa-sz__lit { transition: none; }
+}
+/* Click the mirror itself, not just the chip. Round because the mirrors
+   are octagons — a square target would overlap its neighbour. */
+.casa-sz__hot {
+  position: absolute;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+  background: none;
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.casa-sz__hot:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* the room photograph under the plate */
+.casa-sz__room { margin: 16px 0 0; }
+.casa-sz__room img {
+  width: 100%;
+  /* Capped and cropped. At natural height this photo is taller than the
+     interactive frame above it and takes over the section — the evidence
+     outranking the thing it is evidence for. Biased upward so the three
+     mirrors stay in the crop. */
+  aspect-ratio: 16 / 9;
+  height: auto;
+  object-fit: cover;
+  /* 50% 38% put the crop window too low and cut the top off the middle
+     mirror — the hero of the proof shot, decapitated. A 16:9 window keeps
+     56% of a square source; 14% down the remaining travel starts it just
+     above the mirrors and still catches the console beneath them. */
+  object-position: 50% 14%;
+  display: block;
+  border-radius: 12px;
+}
+.casa-sz__room figcaption {
+  margin-top: 10px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #54545C;
+  text-align: center;
+}
+
+.casa-sz__field {
+  position: absolute;
+  /* Was inset 10px so the Large mirror's height arrow and the Small
+     mirror's size tag were never sliced by the plate's overflow:hidden.
+     Both are gone, so the mirrors get that space back. */
+  inset: 0;
+}
+
+.casa-sz__mirror {
+  position: absolute;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  /* aspect-ratio is set inline per-instance based on mirror_shape — see Liquid case at top */
+  transition: filter 0.25s ease;
+}
+/* Light spills onto the plate the way it spills onto the wall in the
+   product shots — three stacked shadows, tight hot core to wide cool halo. */
+.casa-sz__mirror.is-on {
+  filter:
+    drop-shadow(0 0 8px rgba(94, 10, 2, 0.45))
+    drop-shadow(0 10px 30px rgba(176, 195, 250, 0.40))
+    drop-shadow(0 0 56px rgba(242, 255, 160, 0.22));
+}
+.casa-sz__mirror-svg {
+  width: 100%; height: 100%;
+  display: block;
+  overflow: visible;
+}
+/* ── OFF: plain mirror. ON: the tunnel. ─────────────────────────────
+   Three layers, painted back to front:
+     .casa-sz__glass   the surface — Paper when off, near-black when lit
+     .casa-sz__tunnel  the reflections (spokes + nested rings)
+     .casa-sz__poly    the frame, drawn last so it caps everything
+
+   Reference: the lit product photography. What reads as depth is the
+   SPOKE from each frame vertex to the vanishing point — concentric
+   rings on their own look like a target. The old treatment was one
+   radial gradient with a white-hot centre, which had neither. */
+.casa-sz__glass {
+  fill: var(--casa-sz-paper);
+  transition: fill 0.3s ease;
+}
+.casa-sz__mirror.is-on .casa-sz__glass { fill: #08080C; }
+
+.casa-sz__poly {
+  fill: none;
+  stroke: var(--casa-sz-ink);
+  /* perf-justified: stroke-width is an SVG paint property, not CSS width —
+     it repaints, it does not reflow. The linter substring-matches "width". */
+  transition: stroke-width 0.25s ease;
+}
+.casa-sz__mirror.is-on .casa-sz__poly { stroke-width: 2.4; }
+
+.casa-sz__tunnel {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.casa-sz__mirror.is-on .casa-sz__tunnel { opacity: 1; }
+.casa-sz__ring { stroke-width: 1; }
+.casa-sz__spoke { stroke-width: 0.9; stroke-opacity: 0.62; }
+
+/* Depth opacity lives in --o so the chase keyframe can return to it. Set
+   as a custom property, not a stroke-opacity attribute, because a CSS
+   animation on stroke-opacity would otherwise clobber the per-ring falloff
+   and flatten the tunnel. */
+.casa-sz__ring,
+.casa-sz__spoke { stroke-opacity: var(--o, 1); }
+
+/* CONTINUOUS CHASE. A band of brightness travels from the frame down into
+   the vanishing point, forever — which is what an RGB-IC mirror running a
+   chase effect actually does. The positive per-ring stagger is what makes
+   it travel INWARD; the first pass doubles as the ignite when a size is
+   selected, because the rule only matches once .is-on lands. */
+@keyframes casa-sz-chase {
+  0%, 100% { stroke-opacity: var(--o, 1); }
+  18%      { stroke-opacity: 1; }
+}
+/* RGB-IC never sits still. Slow, small, and only on the lit mirror.
+   perf-justified: gated on .is-live, which an IntersectionObserver in this
+   section's JS toggles off once the plate leaves the viewport (+120px), so
+   it is not compositing a filter while the shopper is elsewhere on the
+   page. Falls back to always-on where IntersectionObserver is missing. */
+@keyframes casa-sz-drift {
+  0%, 100% { filter: hue-rotate(0deg); }
+  50%      { filter: hue-rotate(24deg); }
+}
+.casa-sz.is-live .casa-sz__mirror.is-on .casa-sz__ring,
+.casa-sz.is-live .casa-sz__mirror.is-on .casa-sz__spoke {
+  /* perf-justified: gated on .is-live, toggled off by an IntersectionObserver
+     in this section's JS once the plate leaves the viewport (+120px). */
+  animation: casa-sz-chase 2.8s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 0.16s);
+}
+.casa-sz.is-live .casa-sz__mirror.is-on .casa-sz__tunnel {
+  /* perf-justified: same .is-live IntersectionObserver gate as above. */
+  animation: casa-sz-drift 14s ease-in-out 600ms infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .casa-sz.is-live .casa-sz__mirror.is-on .casa-sz__ring,
+  .casa-sz.is-live .casa-sz__mirror.is-on .casa-sz__spoke,
+  .casa-sz.is-live .casa-sz__mirror.is-on .casa-sz__tunnel { animation: none; }
+}
+
+/* At ≤360px the Small mirror's caption is the one thing the small 10px
+   field inset can't keep off the plate's left edge (it's centred under the
+   smallest, left-most mirror and overhangs). Shave ~1px off each caption
+   line so it narrows enough to clear the clip — verified to leave the
+   Small tag ≥+3px inside the plate at 280px — while the mirrors keep their
+   near-full size. Secondary caption text only; readability is unaffected. */
+
+
+/* ── DIMENSION BRACKET ───────────────────────────────────────────────
+   Left flank and bottom, never the right. With Large selected the right
+   gutter is 2.75% of the plate — 10px on a 350px phone plate — which is
+   what sliced the old arrows and why a 10px field inset had to exist to
+   hold them. Left is 5.45% and below is 15.5%, so the bracket fits inside
+   the plate's own overflow:hidden and the inset stays deleted.
+
+   --bk-l/t/w/h are written by the section's JS off the selected mirror's
+   measured offset box. */
+.casa-sz__bracket,
+.casa-sz__depth {
+  /* One hairline value and one figure value for the whole annotation layer —
+     rails, serifs and the depth mark's two strokes. Held here rather than as
+     literals so the CSS and the inline SVG cannot drift apart.
+     --bk-hair is 1.92:1 on Paper, under WCAG 1.4.11's 3:1. Deliberate: these
+     are decorative rules, not "graphics required to understand the content" —
+     the figures carry every value, and the copy column states the full
+     W x H x D triple as text with its own visually-hidden axis key. */
+  --bk-hair: #B9B7B0;
+  --bk-lab: #54545C;
+}
+.casa-sz__bracket {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  --bk-gap: 12px;
+}
+.casa-sz__bracket.is-compact { --bk-gap: 9px; }
+
+.casa-sz__rail,
+.casa-sz__serif { position: absolute; background: var(--bk-hair); }
+
+/* Each rail is TWO segments with a gap where its figure sits, rather than one
+   run with a painted chip behind the text. A chip cannot work here: the lit
+   mirror throws a purple/cyan drop-shadow across the plate, so any flat or
+   gradient fill matched to the plate reads as a pale rectangle sitting in the
+   glow. --bk-cut-v/w are half the figure's own measured box plus breathing
+   room, written by the JS. max(0px, …) because at the Small selection on a
+   narrow plate the figure is taller than half its rail, and a negative height
+   would drop the declaration rather than collapse the segment. */
+.casa-sz__rail--h {
+  width: 1px;
+  left: calc(var(--bk-l, 0px) - var(--bk-gap));
+  height: max(0px, calc(var(--bk-h, 0px) / 2 - var(--bk-cut-v, 0px)));
+}
+.casa-sz__rail--h-a { top: var(--bk-t, 0px); }
+.casa-sz__rail--h-b {
+  top: calc(var(--bk-t, 0px) + var(--bk-h, 0px) / 2 + var(--bk-cut-v, 0px));
+}
+.casa-sz__rail--w {
+  height: 1px;
+  width: max(0px, calc(var(--bk-w, 0px) / 2 - var(--bk-cut-w, 0px)));
+  top: calc(var(--bk-t, 0px) + var(--bk-h, 0px) + var(--bk-gap));
+}
+.casa-sz__rail--w-a { left: var(--bk-l, 0px); }
+.casa-sz__rail--w-b {
+  left: calc(var(--bk-l, 0px) + var(--bk-w, 0px) / 2 + var(--bk-cut-w, 0px));
+}
+.casa-sz__serif--v {
+  width: 5px;
+  height: 1px;
+  left: calc(var(--bk-l, 0px) - var(--bk-gap) - 2px);
+}
+.casa-sz__serif--v-top { top: var(--bk-t, 0px); }
+.casa-sz__serif--v-bot { top: calc(var(--bk-t, 0px) + var(--bk-h, 0px)); }
+.casa-sz__serif--h {
+  width: 1px;
+  height: 5px;
+  top: calc(var(--bk-t, 0px) + var(--bk-h, 0px) + var(--bk-gap) - 2px);
+}
+.casa-sz__serif--h-l { left: var(--bk-l, 0px); }
+.casa-sz__serif--h-r { left: calc(var(--bk-l, 0px) + var(--bk-w, 0px)); }
+
+/* Both figures ride their rail rather than sitting beside it. Below the
+   rail needs ~23px of clear plate; the Large selection has 19px there at a
+   250px plate, which put the figure through the plate floor and onto the
+   artwork. Centred on the rail it needs half that. */
+.casa-sz__dim {
+  position: absolute;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  /* Pinned, not `normal`. The rail's break is sized from this box, and no
+     @font-face for JetBrains Mono ships in this theme — the stack always
+     falls through to the platform mono (SF Mono / Roboto Mono / Consolas),
+     whose `normal` line boxes differ by a couple of px. Left free, the
+     clearance to the neighbouring mirror at the is-tiny boundary rides on a
+     font we do not control. */
+  line-height: 1;
+  color: var(--bk-lab);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.casa-sz__bracket.is-compact .casa-sz__dim { font-size: 9px; }
+.casa-sz__dim--v {
+  left: calc(var(--bk-l, 0px) - var(--bk-gap));
+  top: calc(var(--bk-t, 0px) + var(--bk-h, 0px) / 2);
+  writing-mode: vertical-rl;
+  transform: translate(-50%, -50%) rotate(180deg);
+}
+.casa-sz__dim--w {
+  left: calc(var(--bk-l, 0px) + var(--bk-w, 0px) / 2);
+  top: calc(var(--bk-t, 0px) + var(--bk-h, 0px) + var(--bk-gap));
+  transform: translate(-50%, -50%);
+}
+
+/* Set by the JS when the gutter to the left-hand neighbour is too tight to
+   hold the height figure without crowding it — see placeBracket(). Not a
+   width breakpoint: the gutter depends on which size is selected, and the
+   figure's own box depends on the platform mono. */
+.casa-sz__bracket.is-noheight .casa-sz__rail--h,
+.casa-sz__bracket.is-noheight .casa-sz__serif--v,
+.casa-sz__bracket.is-noheight .casa-sz__dim--v { display: none; }
+
+/* ── DEPTH LEGEND ────────────────────────────────────────────────────
+   Top-left is dead plate at every selection: Small is the leftmost mirror
+   and it is vertically centred, so nothing ever reaches this corner. */
+.casa-sz__depth {
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  pointer-events: none;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.casa-sz__depth-mark { display: block; flex: none; }
+.casa-sz__depth-wall { stroke: var(--bk-hair); }
+.casa-sz__depth-span { stroke: #8A8A92; }
+.casa-sz__depth-txt { display: flex; flex-direction: column; gap: 1px; }
+.casa-sz__depth-k {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  /* NOT the #8A8A92 the rest of this section's dim text uses: that is 3.28:1
+     on Paper, and this renders at 9px (8px compact) — nowhere near WCAG's
+     large-text exemption, so 1.4.3 wants the full 4.5:1. aria-hidden does not
+     exempt visible text from contrast. 4.83:1, indistinguishable at 9px. */
+  color: #6E6E76;
+}
+.casa-sz__depth-v {
+  font-size: 11px;
+  color: var(--bk-lab);
+  font-variant-numeric: tabular-nums;
+}
+.casa-sz__depth.is-compact { left: 12px; top: 12px; }
+.casa-sz__depth.is-compact .casa-sz__depth-k { font-size: 8px; }
+.casa-sz__depth.is-compact .casa-sz__depth-v { font-size: 9.5px; }
+/* One row, not a stack: stacked it is 24px tall, and on a 210px plate that
+   reaches down into the Small mirror. The word goes too — at 210px the
+   legend ran to within 5.9px of the Medium mirror's corner, and "DEPTH" is
+   ~30 of its ~62px. Dropping it pulls the box back to ~32px, clearing that
+   corner by 28px. The mark carries the axis, and the copy column two
+   columns over still says the word. */
+.casa-sz__depth.is-tiny { left: 8px; top: 8px; }
+.casa-sz__depth.is-tiny .casa-sz__depth-k { display: none; }
+.casa-sz__depth.is-tiny .casa-sz__depth-txt {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.casa-sz__caption {
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  /* Was 80/60 to leave vertical room under each mirror for its size tag.
+     The tags are gone, so that height is now just empty plate — tightened
+     so the mirrors fill more of it. */
+  .casa-sz__plate { aspect-ratio: 80 / 46; }
+  .casa-sz__plate--photo { aspect-ratio: auto; }
+  .casa-sz__big { font-size: 36px; }
+}
+
+/* ── One-frame density ───────────────────────────────────────────────
+   Opt-in via the "Section height" setting; the four sibling mirror PDPs
+   on this section keep their current spacing.
+
+   Desktop already fits once the section padding comes down — the scene
+   sits beside the copy rather than under it, so nothing here needs to
+   shrink. The cost is entirely on phones, where the layout stacks into
+   intro → scene → copy. The scene is a square, so it takes the full
+   column width in height too; capping it against the viewport is what
+   buys the frame back.                                                 */
+.casa-sz--compact .casa-sz__h2 { margin-top: 12px; }
+
+/* The accent is display:block so it drops to its own line — right in the
+   two-column layout, where the copy column is only ~260px and the heading
+   has to break somewhere. Stacked on a phone the heading owns the full
+   column: measured 317px needed against 350px available, so the break was
+   costing a whole line at full brand size for no reason. Inline below the
+   two-column breakpoint only. */
+@media (max-width: 749px) {
+  .casa-sz--compact .casa-sz__h2 em { display: inline; }
+}
+
+/* Short viewports. Media already scales with vh; type and spacing did not,
+   so on a 667px-tall phone the fixed costs alone overran the frame. These
+   tiers key off HEIGHT, not width — the constraint here is how little
+   vertical room a landscape phone or an older handset actually has. */
+
+
+
+@media (max-width: 900px) {
+  .casa-sz--compact .casa-sz__inner { gap: 18px; }
+  /* Square scene = width in height. Below the two-column breakpoint the
+     column is the full viewport, so an uncapped square eats ~100% of the
+     frame on its own. */
+  /* Three caps, and the smallest wins. 100% lets the photo reach the full
+     column instead of stopping at 87% of it; 46vh keeps it from doing that
+     on a short phone, where a square at full width would eat the frame on
+     its own; 620px is the source's own limit. On a 390x844 handset the
+     column is the binding one, which is the intent — as large as the space
+     honestly allows. */
+  .casa-sz--compact .casa-sz__scene { max-width: min(620px, 100%, 46vh); }
+  .casa-sz--compact .casa-sz__copy { --sz-1: 6px; --sz-2: 12px; --sz-3: 17px; --sz-4: 26px; }
+}
+
+/* Tablets: restore the two-column layout below the shared 900px
+   breakpoint.
+
+   The vh cap above is correct for a phone, where height is the scarce
+   resource. On a tablet it is exactly wrong — measured at 870x934 it
+   pinned the photo to 299px inside a 783px column, filling 38% of the
+   space available to it. Height is not scarce there; width is plentiful.
+
+   Rather than just relaxing the cap (which would fix the photo but push
+   the section past a frame), this hands the band the layout it has room
+   for: copy beside the photo instead of above it. The photo then takes
+   its column width, and the section gets SHORTER because copy and image
+   share vertical space.
+
+   Compact-scoped, so the four sibling mirror PDPs keep the shared
+   breakpoint. MUST stay after the block above — same specificity, so it
+   wins on source order only. */
+@media (min-width: 750px) and (max-width: 900px) {
+  .casa-sz--compact .casa-sz__inner {
+    /* Narrower copy column than the desktop 240-330: the band has height
+       to spare (measured 342px of frame headroom at 870x934) but not much
+       width, so every pixel not spent on the copy goes to the photo. The
+       widest thing the column must hold is the dimension headline, which
+       measures ~200px here. */
+    grid-template-columns: minmax(210px, 260px) minmax(0, 1fr);
+    grid-template-areas:
+      "intro scene"
+      "copy  scene";
+    gap: 24px;
+    align-content: center;
+  }
+  .casa-sz--compact .casa-sz__scene { max-width: min(620px, 100%); }
+}
+
+/* 790px, not 800: it has to catch a 768-tall landscape tablet, which
+   the first attempt at 760 missed by eight pixels, without also firing
+   on an 800-tall laptop that already fits and would only get smaller
+   for nothing.
+
+   Height tiers live LAST. They share specificity with the width
+   queries above and only win on source order — placed earlier they
+   silently lost, which is exactly what happened on the first pass. */
+@media (max-height: 790px) {
+  .casa-sz--compact .casa-sz__scene { max-width: min(620px, 100%, 40vh); }
+  .casa-sz--compact .casa-sz__copy { --sz-1: 5px; --sz-2: 10px; --sz-3: 14px; --sz-4: 20px; }
+  .casa-sz--compact .casa-sz__inner { gap: 14px; }
+}
+@media (max-height: 640px) {
+  .casa-sz--compact .casa-sz__scene { max-width: min(620px, 100%, 34vh); }
+  .casa-sz--compact .casa-sz__big { font-size: clamp(20px, 2.4vw, 28px); }
+}
+{% endstylesheet %}
+
+{% javascript %}
+function casaSzInit(ROOT) {
+  if (!ROOT || ROOT.dataset.casaSzInit === '1') return;
+  ROOT.dataset.casaSzInit = '1';
+
+  var $$ = function (sel) { return Array.prototype.slice.call(ROOT.querySelectorAll(sel)); };
+  var $ = function (sel) { return ROOT.querySelector(sel); };
+
+  var DATA = {
+    S: { name: 'Small',  inches: 11.8, cm: 30, h_in: 11.8, h_cm: 30, depth_in: '1.6', depth_cm: '4 cm', use: 'Vanities, nooks, desks',             price: 249, was: 349, popular: false },
+    M: { name: 'Medium', inches: 19.7, cm: 50, h_in: 19.7, h_cm: 50, depth_in: '2.0', depth_cm: '5 cm', use: 'Bedrooms, entryways, hallways',      price: 299, was: 399, popular: false },
+    L: { name: 'Large',  inches: 27.6, cm: 70, h_in: 27.6, h_cm: 70, depth_in: '2.4', depth_cm: '6 cm', use: 'Above sofas, gaming rooms, lounges', popular: true  }
+  };
+
+  $$('[data-casa-sz-chip]').forEach(function (chip) {
+    var k = chip.dataset.casaSzChip;
+    if (!DATA[k]) return;
+    if (chip.dataset.hIn)     DATA[k].h_in     = chip.dataset.hIn;
+    if (chip.dataset.hCm)     DATA[k].h_cm     = chip.dataset.hCm;
+    if (chip.dataset.depthIn) DATA[k].depth_in = chip.dataset.depthIn;
+    if (chip.dataset.depthCm) DATA[k].depth_cm = chip.dataset.depthCm;
+    if (chip.dataset.variantId) DATA[k].variant = chip.dataset.variantId;
+    if (chip.dataset.variantAvailable) DATA[k].available = chip.dataset.variantAvailable !== 'false';
+    if (chip.dataset.variantUrl) DATA[k].url = chip.dataset.variantUrl;
+    /* Price strings are FORMATTED IN LIQUID and only carried here. Never
+       build money in JS — the shopper's market decides the symbol, the
+       decimal/thousands separators and whether a currency code shows,
+       and none of that is knowable client-side. */
+    if (chip.dataset.price) DATA[k].price_html = chip.dataset.price;
+    DATA[k].was_html = chip.dataset.was || '';
+    /* Liquid owns the copy; the table above is only the fallback. */
+    if (chip.dataset.use) DATA[k].use = chip.dataset.use;
+    /* The variant picker's radios are keyed by OPTION VALUE ("27.6\" / 70cm"),
+       not by variant id — this is what lets a chip drive the picker. */
+    if (chip.dataset.variantOption) DATA[k].optionValue = chip.dataset.variantOption;
+  });
+
+  var nameEl   = $('[data-casa-sz-name]');
+  var inchesEl = $('[data-casa-sz-inches]');
+  var hInEl    = $('[data-casa-sz-h-in]');
+  var dInEl    = $('[data-casa-sz-d-in]');
+  var cmEl     = $('[data-casa-sz-cm]');
+  var hCmEl    = $('[data-casa-sz-h-cm]');
+  var dCmEl    = $('[data-casa-sz-d-cm]');
+  var useEl    = $('[data-casa-sz-use]');
+  var popEl    = $('[data-casa-sz-pop]');
+  var buyEl      = $('.casa-sz__buy');
+  var priceEl    = $('[data-casa-sz-price]');
+  var wasEl      = $('[data-casa-sz-was]');
+  var atcEl      = $('[data-casa-sz-atc]');
+  var atcLabelEl = atcEl ? atcEl.querySelector('.casa-sz__atc-label') : null;
+  var mirrors  = $$('[data-casa-sz-mirror]');
+  var chips    = $$('[data-casa-sz-chip]');
+  var current  = ROOT.dataset.default || 'L';
+
+
+  var lits = $$('[data-casa-sz-lit]');
+  var hots = $$('[data-casa-sz-hot]');
+
+  var fieldEl    = $('.casa-sz__field');
+  var plateEl    = $('[data-casa-sz-plate]');
+  var bracketEl  = $('[data-casa-sz-bracket]');
+  var bkHEl      = $('[data-casa-sz-bk-h]');
+  var bkWEl      = $('[data-casa-sz-bk-w]');
+  var depthBoxEl = $('[data-casa-sz-depth-box]');
+  var depthPlEl  = $('[data-casa-sz-depth-plate]');
+
+  // The bracket is MEASURED, not computed. The plate's aspect-ratio changes
+  // at <=640px and the mirror's own aspect-ratio changes per shape, so a
+  // percentage scheme would be wrong on both axes. offsetLeft/offsetTop give
+  // the mirror's CENTRE — each carries translate(-50%,-50%), which moves the
+  // paint but not the offset box — so half the box comes back off each.
+  // Absent in photo mode, where there is no field and no mirrors to measure.
+  function placeBracket(k) {
+    if (!bracketEl || !fieldEl) return;
+    var m = fieldEl.querySelector('[data-casa-sz-mirror="' + k + '"]');
+    if (!m) return;
+    var w = m.offsetWidth;
+    var h = m.offsetHeight;
+    if (!w || !h) return;
+    bracketEl.style.setProperty('--bk-l', (m.offsetLeft - w / 2) + 'px');
+    bracketEl.style.setProperty('--bk-t', (m.offsetTop - h / 2) + 'px');
+    bracketEl.style.setProperty('--bk-w', w + 'px');
+    bracketEl.style.setProperty('--bk-h', h + 'px');
+
+    // Tiers are keyed off the plate's real width, not a media query: the
+    // plate is a column in a grid, so its width and the viewport's are not
+    // the same number.
+    var pw = plateEl ? plateEl.clientWidth : 0;
+    var compact = pw > 0 && pw < 460;
+    var tiny = pw > 0 && pw < 300;
+    bracketEl.classList.toggle('is-compact', compact);
+    bracketEl.classList.toggle('is-tiny', tiny);
+    if (depthBoxEl) {
+      depthBoxEl.classList.toggle('is-compact', compact);
+      depthBoxEl.classList.toggle('is-tiny', tiny);
+    }
+
+    // The height figure lives in the gutter between this mirror and its left
+    // neighbour, and that gutter is the tightest space on the plate: 5.45% of
+    // the plate width with Large selected, which is 19px at a 350px phone
+    // plate. Measured there, the figure cleared the Medium mirror by 5.1px —
+    // technically not overlapping, visually touching.
+    //
+    // So the rule is the measurement, not a breakpoint: keep the figure only
+    // where it clears the neighbour by MIN_CLEAR. That stays correct across
+    // all 5 shapes, both plate aspect-ratios, and whichever platform mono the
+    // stack falls through to — a hardcoded px width would be re-tuned by hand
+    // every time one of those moved. Square frames mean height IS width, so
+    // dropping it costs no fact and the copy column still states the triple.
+    if (bkHEl) {
+      var MIN_CLEAR = 10;
+      // Un-hide BEFORE measuring. Measuring the figure while its own class
+      // has it display:none reads offsetWidth 0, which shrinks `need` below
+      // `available` and shows it again — then the next call measures the
+      // visible box, hides it, and it flips back. The rule would oscillate
+      // and settle on whatever the previous state happened to be.
+      bracketEl.classList.remove('is-noheight');
+      // Judge the TIGHTEST size on this plate, not the selected one. Per
+      // selection, a 350px plate keeps the figure on Small and Medium and
+      // drops it on Large — so tapping through the sizes makes a dimension
+      // blink out, which reads as a bug rather than as a decision. One
+      // verdict per plate: either this plate has room for a height figure or
+      // it does not.
+      var worstGutter = Infinity;
+      mirrors.forEach(function (mirror) {
+        var left = mirror.offsetLeft - mirror.offsetWidth / 2;
+        var neighbourRight = 0;
+        mirrors.forEach(function (other) {
+          if (other === mirror) return;
+          var oRight = other.offsetLeft + other.offsetWidth / 2;
+          if (oRight <= left && oRight > neighbourRight) neighbourRight = oRight;
+        });
+        worstGutter = Math.min(worstGutter, left - neighbourRight);
+      });
+      var need = parseFloat(getComputedStyle(bracketEl).getPropertyValue('--bk-gap'))
+        + bkHEl.offsetWidth / 2 + MIN_CLEAR;
+      if (worstGutter < need) bracketEl.classList.add('is-noheight');
+    }
+
+    // Each rail breaks around its own figure, so it needs the figure's real
+    // box — which depends on the font that actually loaded and on the tier
+    // class just toggled above, not on anything computable in CSS. Read AFTER
+    // the toggles so the measurement matches the size being rendered.
+    // The vertical figure runs down its rail because of writing-mode, NOT the
+    // rotate() — so its LENGTH is its offsetHeight. Drop the writing-mode and
+    // keep the rotate and this reads the wrong axis.
+    // bkHEl is absent by design on hexagon-flat and triangle, which draw at
+    // aspect 1.1547 (see the markup comment on the height rail).
+    if (bkHEl) {
+      bracketEl.style.setProperty('--bk-cut-v', (bkHEl.offsetHeight / 2 + 5) + 'px');
+    }
+    if (bkWEl) {
+      bracketEl.style.setProperty('--bk-cut-w', (bkWEl.offsetWidth / 2 + 6) + 'px');
+    }
+  }
+
+  /* ── TWO-WAY SIZE SYNC ───────────────────────────────────────────────
+     The strip, the buy box and the sticky bar are three surfaces showing
+     one decision, so they have to agree.
+
+     Picker -> strip is free: Horizon dispatches 'variant:update' on
+     document with the variant at detail.resource (NOT detail.variant —
+     casa-sticky-cart.js documents that trap, it froze the bar for a
+     while). We just relight the matching chip.
+
+     Strip -> picker is pushed IMMEDIATELY — never debounced. This used
+     to wait 700ms so rapid comparison taps wouldn't each trigger the
+     picker's full-page refetch (~1-2s, ~1MB — docs/variant-picker-
+     architecture.md 6.6). That debounce was a money bug. The theme's
+     variant system is a single-writer design with a lock: ~100ms after
+     the picker learns of a change it DISABLES the buy buttons, and
+     re-enables them only once the form's variant id is consistent
+     again (measured 2026-08-24: disabled at 101ms, re-enabled with the
+     new id at 1210ms). Wrong-item adds are impossible inside that lock.
+     The debounce held the shopper's choice OUTSIDE it: for 700ms the
+     picker knew nothing, no lock engaged, the buy buttons stayed live
+     with the stale id — tap Large here, hit the sticky bar's ADD within
+     that window, and the cart got Small (measured). Dispatching at once
+     puts the tap on the picker's own guarded path instead.
+
+     Rapid S -> M -> L taps are exactly what the picker's AbortController
+     exists for — each new change cancels the in-flight fetch, so the
+     last tap wins and the aborted transfers stop downloading.
+
+     The strip itself never waits on any of this — syncBuy() has already
+     repainted synchronously, so the chips feel instant and the rest of
+     the page reconciles behind them. */
+  function pushToPicker(k) {
+    var d = DATA[k];
+    if (!d || !d.variant || !d.optionValue) return;
+    var picker = document.querySelector('variant-picker');
+    if (!picker) return;
+    var radios = picker.querySelectorAll('input[type="radio"]');
+    for (var i = 0; i < radios.length; i++) {
+      if (radios[i].value !== d.optionValue) continue;
+      /* Skip only when the RADIO is already on this size. The form's
+         hidden id is a TRAILING indicator (it updates ~1.2s later, after
+         the fetch) — guarding on it here would skip a legitimate push
+         mid-flight: S selected, tap L (fetch starts), tap S again — the
+         form still says S, a form-guard skips, the L fetch lands, and
+         the strip is stranded out of sync. The radio is the picker's
+         intent and is always current. */
+      if (radios[i].checked) return;
+      /* Set state + fire 'change' — deliberately NOT .click().
+         Clicking the label focuses its radio, and that radio lives in the
+         buy box at the top of the page. Focusing an off-screen control
+         makes the browser scroll it into view, so a tap down here threw
+         the shopper back up the page (measured: scrollY 2630 -> 402, with
+         no scrollTo call anywhere — it was the focus, and document height
+         never changed).
+         'change' is what the picker actually binds
+         (assets/variant-picker.js:46, delegated on <variant-picker>), and
+         its handler reads event.target, so dispatching on the radio gives
+         it exactly what a real change would. Verified: scroll holds and
+         activeElement never leaves <body>. */
+      radios[i].checked = true;
+      radios[i].dispatchEvent(new Event('change', { bubbles: true }));
+      return;
+    }
+  }
+
+  /* Picker -> strip. */
+  function onVariantUpdate(e) {
+    var v = e && e.detail ? e.detail.resource : null;
+    if (!v || !v.id) return;
+    var id = String(v.id);
+    /* URL reconcile — a belt for a rare stock fluke. The picker defers its
+       ?variant= writes (yieldToMainThread -> replaceState), and under
+       main-thread contention from rapidly aborted changes they can land
+       out of order: observed once 2026-08-24 — URL held Medium while the
+       form, strip and cart all settled on Large, so a refresh or a shared
+       link would reopen the wrong size. Two instrumented reproductions of
+       the same sequence came out FIFO-correct, so this can't be chased —
+       but settle IS ground truth, so on every settle the URL is made to
+       agree with it. Only when a variant param already exists: a bare URL
+       stays bare, we never add state the shopper didn't create. */
+    try {
+      var u = new URL(window.location.href);
+      var uv = u.searchParams.get('variant');
+      if (uv && uv !== id) {
+        u.searchParams.set('variant', id);
+        history.replaceState(history.state, '', u.toString());
+      }
+    } catch (err) { /* cosmetic guard — never fatal */ }
+    for (var k in DATA) {
+      if (DATA[k] && String(DATA[k].variant) === id) {
+        if (k !== current) select(k, { fromPicker: true });
+        return;
+      }
+    }
+  }
+  document.addEventListener('variant:update', onVariantUpdate);
+
+  /* This listener is on `document`, so unlike everything else in this
+     component it does NOT die with the section's DOM. The theme editor
+     mounts and unmounts sections all day; without this the listeners
+     stack up and one picker change re-runs select() N times. */
+  document.addEventListener('shopify:section:unload', function onSyncUnload(e) {
+    if (e.detail && e.detail.sectionId !== ROOT.dataset.sectionId) return;
+    document.removeEventListener('variant:update', onVariantUpdate);
+    document.removeEventListener('shopify:section:unload', onSyncUnload);
+  });
+
+  /* Point the BUY row at the size that is currently lit. */
+  function syncBuy(d) {
+    if (!buyEl) return;
+    /* A size with no variant behind it (product ships fewer than three)
+       hides the row rather than leaving the previous size's price sitting
+       under a button that would add a different mirror. */
+    if (!d.variant) { buyEl.hidden = true; return; }
+    buyEl.hidden = false;
+
+    if (priceEl) priceEl.textContent = d.price_html || '';
+    if (wasEl) {
+      var w = d.was_html || '';
+      wasEl.textContent = w;
+      wasEl.hidden = !w;
+    }
+    if (!atcEl) return;
+
+    atcEl.setAttribute('data-casa-sz-atc', d.variant);
+    if (d.url) atcEl.setAttribute('href', d.url);
+
+    var avail = d.available !== false;
+    if (avail) {
+      atcEl.removeAttribute('data-soldout');
+      atcEl.removeAttribute('aria-disabled');
+    } else {
+      atcEl.setAttribute('data-soldout', '1');
+      atcEl.setAttribute('aria-disabled', 'true');
+    }
+    /* Only touch the label while the button is idle. Mid-add it is showing
+       "Adding…" / "Added ✓" under its own timer, and writing here would
+       blank the feedback the shopper is reading. */
+    if (atcEl.getAttribute('aria-busy') !== 'true' && atcLabelEl) {
+      atcLabelEl.textContent = avail ? 'Add to cart' : 'Sold out';
+    }
+  }
+
+  function select(k, opts) {
+    var d = DATA[k];
+    if (!d) return;
+    syncBuy(d);
+    /* A select() that CAME from the variant picker must not push back to it,
+       or the two sit in a loop trading 1 MB page fetches. */
+    if (!(opts && opts.fromPicker)) pushToPicker(k);
+    nameEl.textContent = d.name;
+    inchesEl.textContent = d.inches;
+    if (hInEl)  hInEl.textContent  = d.h_in;
+    if (dInEl)  dInEl.textContent  = d.depth_in;
+    cmEl.textContent = d.cm;
+    if (hCmEl)  hCmEl.textContent  = d.h_cm;
+    if (dCmEl)  dCmEl.textContent  = d.depth_cm;
+    useEl.textContent = d.use;
+    popEl.hidden = !d.popular;
+    mirrors.forEach(function (m) {
+      m.classList.toggle('is-on', m.dataset.casaSzMirror === k);
+    });
+    chips.forEach(function (c) {
+      c.classList.toggle('is-on', c.dataset.casaSzChip === k);
+    });
+    lits.forEach(function (el) {
+      el.classList.toggle('is-on', el.dataset.casaSzLit === k);
+    });
+    if (bkHEl) bkHEl.textContent = d.h_in + '″';
+    if (bkWEl) bkWEl.textContent = d.inches + '″';
+    if (depthPlEl) depthPlEl.textContent = d.depth_in;
+    placeBracket(k);
+    current = k;
+  }
+
+  mirrors.forEach(function (m) {
+    m.addEventListener('click', function () { select(m.dataset.casaSzMirror); });
+  });
+  chips.forEach(function (c) {
+    c.addEventListener('click', function () { select(c.dataset.casaSzChip); });
+  });
+  hots.forEach(function (h) {
+    h.addEventListener('click', function () { select(h.dataset.casaSzHot); });
+  });
+
+  /* ── Add to cart ────────────────────────────────────────────────────
+     Ported from sections/casa-sizing-cube.liquid, which has been serving
+     this exact contract on the Cube PDP. The <a href> is the no-JS path;
+     everything below is the enhancement over it.
+
+     The listener is on ROOT, not document, so it is torn down with the
+     section on a theme-editor unmount — no global to leak and nothing to
+     clean up in an unload handler. */
+  if (atcEl) {
+    /* This is a static "javascript" block — no Liquid runs here, so routes
+       come off the root as data-*. Locale-prefixed storefronts serve
+       /en-de/cart/add, so the literal "/cart/add.js" is wrong there. */
+    var CART_ADD_URL = ROOT.dataset.cartAddUrl || '/cart/add';
+    var CART_URL = ROOT.dataset.cartUrl || '/cart';
+
+    /* Ask for the cart + header sections back in the same round-trip, so
+       the drawer and the cart-count bubble are already re-rendered by the
+       time the drawer opens. */
+    function collectSectionIds() {
+      var ids = {};
+      document.querySelectorAll('[data-section-id], [id^="shopify-section-"]').forEach(function (el) {
+        var sid = el.dataset.sectionId || (el.id && el.id.replace(/^shopify-section-/, ''));
+        if (!sid) return;
+        var tag = (el.tagName || '').toLowerCase();
+        var cls = (el.className || '').toString();
+        if (/cart/i.test(tag) || /cart/i.test(cls) || /header/i.test(cls)) ids[sid] = 1;
+      });
+      return Object.keys(ids);
+    }
+
+    /* The theme has been through Horizon and Dawn cart drawers and the
+       merchant can swap the cart app again, so this probes rather than
+       assumes. Falling through to /cart is the floor — the item is
+       already added by this point, so the worst case is a page load, not
+       a lost add. */
+    function openAnyDrawer() {
+      var horizon = document.querySelector('cart-drawer-component');
+      if (horizon) {
+        try { if (typeof horizon.open === 'function') { horizon.open(); return true; } } catch (e) {}
+        try { if (typeof horizon.showDialog === 'function') { horizon.showDialog(); return true; } } catch (e) {}
+      }
+      var dawn = document.querySelector('cart-drawer, #cart-drawer, #CartDrawer');
+      if (dawn) {
+        try { if (typeof dawn.open === 'function') { dawn.open(); return true; } } catch (e) {}
+        try { if (typeof dawn.show === 'function') { dawn.show(); return true; } } catch (e) {}
+        dawn.classList.add('active', 'is-open', 'animate');
+        dawn.classList.remove('hidden');
+        dawn.setAttribute('open', '');
+        if (dawn.tagName.toLowerCase() === 'dialog') {
+          try { dawn.showModal(); return true; } catch (e) {}
+        }
+        return true;
+      }
+      var cartBtn = document.querySelector('.casa-header__cart-btn, [aria-label*="cart" i][role="button"], [aria-label*="cart" i].header__icon, a[href$="/cart"]');
+      if (cartBtn) { try { cartBtn.click(); return true; } catch (e) {} }
+      return false;
+    }
+
+    function broadcastCartUpdate(response, variantId) {
+      var detail = {
+        resource: response,
+        sourceId: 'casa-sz-' + (ROOT.dataset.sectionId || ''),
+        data: {
+          source: 'casa-sizing',
+          itemCount: 1,
+          variantId: variantId,
+          sections: response && response.sections ? response.sections : {}
+        }
+      };
+      ['cart:update', 'cart:refresh', 'cart-update', 'cart:item-added', 'cart-drawer:refresh'].forEach(function (name) {
+        try { document.dispatchEvent(new CustomEvent(name, { bubbles: true, detail: detail })); } catch (e) {}
+      });
+    }
+
+    ROOT.addEventListener('click', function (e) {
+      var cta = e.target.closest('[data-casa-sz-atc]');
+      if (!cta || !ROOT.contains(cta)) return;
+
+      /* Sold out keeps its href for the no-JS path, so the refusal has to
+         happen here — otherwise a keyboard Enter on the greyed button
+         navigates away. */
+      if (cta.hasAttribute('data-soldout')) { e.preventDefault(); return; }
+
+      var vid = cta.getAttribute('data-casa-sz-atc');
+      if (!/^\d+$/.test(vid)) return; /* invalid — let the href navigate */
+
+      e.preventDefault();
+      if (cta.getAttribute('aria-busy') === 'true') return;
+      cta.setAttribute('aria-busy', 'true');
+
+      var labelEl = cta.querySelector('.casa-sz__atc-label');
+      var orig = labelEl ? labelEl.textContent : '';
+      function setLabel(t) { if (labelEl) labelEl.textContent = (t == null ? orig : t); }
+      setLabel('Adding…');
+
+      var sectionIds = collectSectionIds();
+      var payload = { items: [{ id: parseInt(vid, 10), quantity: 1 }] };
+      if (sectionIds.length) payload.sections = sectionIds.join(',');
+
+      fetch(CART_ADD_URL + '.js', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+        .then(function (res) { if (!res.ok && res.status !== 422) throw new Error('network'); return res.json(); })
+        .then(function (response) {
+          /* 422 carries a real reason (out of stock, cart limit). Show
+             Shopify's own message rather than a generic failure. */
+          if (response && response.status) {
+            setLabel(response.message || 'Unavailable');
+            setTimeout(function () { setLabel(null); cta.removeAttribute('aria-busy'); }, 2200);
+            return;
+          }
+          broadcastCartUpdate(response, vid);
+          setLabel('Added ✓');
+          setTimeout(function () {
+            if (!openAnyDrawer()) { window.location.href = CART_URL; }
+          }, 60);
+          setTimeout(function () { setLabel(null); cta.removeAttribute('aria-busy'); }, 1500);
+        })
+        .catch(function () {
+          /* Network died. Fall back to the href the button always had —
+             the shopper lands on the PDP with this size selected. */
+          cta.removeAttribute('aria-busy');
+          setLabel(null);
+          window.location.href = cta.getAttribute('href');
+        });
+    });
+  }
+
+  // The tunnel's hue drift is `infinite`, so left ungated it keeps
+  // compositing a filter while the shopper is three sections away and
+  // eats scroll frame budget. Only let it run while the plate is on
+  // screen. No observer support -> leave it running (the old behaviour).
+  if ('IntersectionObserver' in window) {
+    var plate = ROOT.querySelector('[data-casa-sz-plate]');
+    if (plate) {
+      var driftIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { ROOT.classList.toggle('is-live', e.isIntersecting); });
+      }, { rootMargin: '120px 0px' });
+      driftIO.observe(plate);
+      document.addEventListener('shopify:section:unload', function onUnload(e) {
+        if (e.detail && e.detail.sectionId !== ROOT.dataset.sectionId) return;
+        driftIO.disconnect();
+        document.removeEventListener('shopify:section:unload', onUnload);
+      });
+    }
+  } else {
+    ROOT.classList.add('is-live');
+  }
+
+  // The bracket is written in px, so it has to be re-placed whenever the
+  // plate reflows. Observing the PLATE rather than the window because the
+  // plate is a grid column — it changes width when the copy column wraps,
+  // with no viewport change at all. Safe against a resize loop: everything
+  // the callback moves is absolutely positioned inside the field, so it
+  // cannot feed back into the plate's own size.
+  if (bracketEl && plateEl && 'ResizeObserver' in window) {
+    // isConnected guard: shopify:section:unload covers the theme editor, but
+    // a Section Rendering API swap or an app rewriting the DOM replaces the
+    // node without firing it, leaving this observer holding a detached target
+    // forever. Self-heal on the first delivery after that happens.
+    var bracketRO = new ResizeObserver(function () {
+      if (!ROOT.isConnected) { bracketRO.disconnect(); return; }
+      placeBracket(current);
+    });
+    bracketRO.observe(plateEl);
+    document.addEventListener('shopify:section:unload', function onBracketUnload(e) {
+      if (e.detail && e.detail.sectionId !== ROOT.dataset.sectionId) return;
+      bracketRO.disconnect();
+      document.removeEventListener('shopify:section:unload', onBracketUnload);
+    });
+  }
+
+
+
+  /* fromPicker: the server already rendered this size BECAUSE the buy box
+     has it selected. Pushing here would fire a page fetch on every load. */
+  select(ROOT.dataset.default || 'L', { fromPicker: true });
+}
+
+function casaSzInitAll(scope) {
+  (scope || document).querySelectorAll('.casa-sz').forEach(casaSzInit);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function () { casaSzInitAll(); });
+} else {
+  casaSzInitAll();
+}
+document.addEventListener('shopify:section:load', function (e) {
+  if (e.target) casaSzInitAll(e.target);
+});
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "Casa Sizing Comparison",
+  "tag": "section",
+  "class": "casa-sizing-section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "layout_density",
+      "label": "Section height",
+      "info": "One frame tightens spacing and caps the scene against the viewport on phones so the section fits a single screen.",
+      "options": [
+        { "value": "comfortable", "label": "Comfortable" },
+        { "value": "one_frame", "label": "Fit one frame" }
+      ],
+      "default": "comfortable"
+    },
+    {
+      "type": "header",
+      "content": "Heading"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker (mono)",
+      "default": "02 · DIMENSIONS"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading (use <em>word</em> for italic gradient accent)",
+      "default": "Three sizes, <em>true to scale.</em>"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "All three octagons drawn at exact relative scale. Tap a size to select."
+    },
+    {
+      "type": "header",
+      "content": "Behaviour"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_atc",
+      "label": "Show price + Add to cart",
+      "info": "Adds the selected size's price and an Add to cart button under the size chips, so shoppers can buy from the comparison instead of scrolling back up.",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "default_size",
+      "label": "Default selected size",
+      "options": [
+        { "value": "S", "label": "Small" },
+        { "value": "M", "label": "Medium" },
+        { "value": "L", "label": "Large" }
+      ],
+      "default": "L"
+    },
+    {
+      "type": "select",
+      "id": "plate_mode",
+      "label": "Plate style",
+      "info": "Three-up compares the sizes to each other. Vignette shows the selected size at true scale beside a 48-inch console, which is what tells a shopper how big it actually is.",
+      "options": [
+        { "value": "three", "label": "Three-up comparison" },
+        { "value": "photo", "label": "Photo — light one mirror in a real room" }
+      ],
+      "default": "three"
+    },
+    {
+      "type": "header",
+      "content": "Photo scene",
+      "info": "Two shots of the SAME scene at the same framing — one with every mirror off, one with every mirror on. Positions below are per-photograph."
+    },
+    {
+      "type": "image_picker",
+      "id": "scene_off_image",
+      "label": "Scene — all mirrors OFF"
+    },
+    {
+      "type": "image_picker",
+      "id": "scene_on_image",
+      "label": "Scene — all mirrors ON"
+    },
+    {
+      "type": "image_picker",
+      "id": "room_image",
+      "label": "Room photo under the plate",
+      "info": "Optional. A real photo does what no diagram can — makes the size believable. Leave blank to hide."
+    },
+    {
+      "type": "text",
+      "id": "room_caption",
+      "label": "Room photo caption"
+    },
+    {
+      "type": "select",
+      "id": "tunnel_palette",
+      "label": "Lit tunnel colours",
+      "info": "Brand keeps the section's three accent colours. Full spectrum matches the RGB-IC sweep in the product photography (red through blue).",
+      "options": [
+        { "value": "brand", "label": "Brand accents (purple - pink - cyan)" },
+        { "value": "spectrum", "label": "Full spectrum (as photographed)" }
+      ],
+      "default": "brand"
+    },
+    {
+      "type": "header",
+      "content": "Photo hotspots",
+      "info": "Where each mirror sits in the scene, as a percentage of the image. Mirrors are often NOT arranged smallest-to-largest — check the photo."
+    },
+    {
+      "type": "range", "id": "hot_s_x", "label": "Small — centre across",
+      "min": 0, "max": 100, "step": 1, "default": 14, "unit": "%"
+    },
+    {
+      "type": "range", "id": "hot_s_y", "label": "Small — centre down",
+      "min": 0, "max": 100, "step": 1, "default": 29, "unit": "%"
+    },
+    {
+      "type": "range", "id": "hot_s_r", "label": "Small — glow radius",
+      "min": 4, "max": 60, "step": 1, "default": 16, "unit": "%"
+    },
+    {
+      "type": "range", "id": "hot_s_w", "label": "Small — click target",
+      "min": 4, "max": 60, "step": 1, "default": 15, "unit": "%"
+    },
+    {
+      "type": "range", "id": "hot_m_x", "label": "Medium — centre across",
+      "min": 0, "max": 100, "step": 1, "default": 83, "unit": "%"
+    },
+    {
+      "type": "range", "id": "hot_m_y", "label": "Medium — centre down",
+      "min": 0, "max": 100, "step": 1, "default": 28, "unit": "%"
+    },
+    {
+      "type": "range", "id": "hot_m_r", "label": "Medium — glow radius",
+      "min": 4, "max": 60, "step": 1, "default": 24, "unit": "%"
+    },
+    {
+      "type": "range", "id": "hot_m_w", "label": "Medium — click target",
+      "min": 4, "max": 60, "step": 1, "default": 23, "unit": "%"
+    },
+    {
+      "type": "range", "id": "hot_l_x", "label": "Large — centre across",
+      "min": 0, "max": 100, "step": 1, "default": 46, "unit": "%"
+    },
+    {
+      "type": "range", "id": "hot_l_y", "label": "Large — centre down",
+      "min": 0, "max": 100, "step": 1, "default": 29, "unit": "%"
+    },
+    {
+      "type": "range", "id": "hot_l_r", "label": "Large — glow radius",
+      "min": 4, "max": 60, "step": 1, "default": 30, "unit": "%"
+    },
+    {
+      "type": "range", "id": "hot_l_w", "label": "Large — click target",
+      "min": 4, "max": 60, "step": 1, "default": 30, "unit": "%"
+    },
+    {
+      "type": "select",
+      "id": "mirror_shape",
+      "label": "Shape",
+      "info": "Match to actual product geometry. Use 'Cube' for the Infinity Cube and Pyramid for the Infinity Pyramid — these tabletop sculptures aren't mirrors but share the sizing-strip pattern.",
+      "options": [
+        { "value": "octagon", "label": "Octagon (OctaMirror)" },
+        { "value": "hexagon-flat", "label": "Hexagon — flat-top (HexaMirror)" },
+        { "value": "quadrilateral", "label": "Square (QuadraMirror)" },
+        { "value": "triangle", "label": "Triangle (TriMirror)" },
+        { "value": "circle", "label": "Circle (360 Mirror)" },
+        { "value": "cube", "label": "Cube (Infinity Cube)" }
+      ],
+      "default": "octagon"
+    },
+    {
+      "type": "header",
+      "content": "Depth (3rd dimension)"
+    },
+    {
+      "type": "text",
+      "id": "depth_s_in",
+      "label": "Small — depth (inches)",
+      "info": "Just the number. The inch symbol is added by the template (e.g. '1.6' renders as 1.6\").",
+      "default": "1.6"
+    },
+    {
+      "type": "text",
+      "id": "depth_s_cm",
+      "label": "Small — depth (cm)",
+      "default": "4 cm"
+    },
+    {
+      "type": "text",
+      "id": "depth_m_in",
+      "label": "Medium — depth (inches)",
+      "default": "2.0"
+    },
+    {
+      "type": "text",
+      "id": "depth_m_cm",
+      "label": "Medium — depth (cm)",
+      "default": "5 cm"
+    },
+    {
+      "type": "text",
+      "id": "depth_l_in",
+      "label": "Large — depth (inches)",
+      "default": "2.4"
+    },
+    {
+      "type": "text",
+      "id": "depth_l_cm",
+      "label": "Large — depth (cm)",
+      "default": "6 cm"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "color_paper",
+      "label": "Paper",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "color_ink",
+      "label": "Ink",
+      "default": "#0A0A0F"
+    },
+    {
+      "type": "color",
+      "id": "color_purple",
+      "label": "Accent purple",
+      "default": "#B0C3FA"
+    },
+    {
+      "type": "color",
+      "id": "color_pink",
+      "label": "Accent pink",
+      "default": "#5E0A02"
+    },
+    {
+      "type": "color",
+      "id": "color_cyan",
+      "label": "Accent cyan",
+      "default": "#F2FFA0"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 200,
+      "step": 8,
+      "default": 96,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 200,
+      "step": 8,
+      "default": 96,
+      "unit": "px"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Sizing Comparison",
+      "category": "Product"
+    }
+  ]
+}
+{% endschema %}

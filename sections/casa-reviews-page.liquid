@@ -10,19 +10,73 @@
   assign bg_color     = section.settings.bg_color
   assign pad_top      = section.settings.padding_top
   assign pad_bot      = section.settings.padding_bottom
+
+  # Surface = paper or ink. Drives text color + decorative alpha
+  # tokens for the entire section. bg_color picker stays as an
+  # advanced override (only emits when merchant explicitly sets it).
+  assign surface = section.settings.crp_surface | default: 'ink'
 -%}
 
 <style>
   /* ── Casa Reviews Page ── */
   .casa-reviewsp {
-    --crp-accent1: {{ accent_1 }};
+  --crp-accent1: {{ accent_1 }};
     --crp-accent2: {{ accent_2 }};
-    --crp-bg: {{ bg_color }};
+
+    {%- comment -%}
+      Surface tokens — flipped by the crp_surface dropdown
+      (paper / ink). One toggle re-themes the entire section.
+      bg_color setting overrides --crp-bg as an advanced control.
+    {%- endcomment -%}
+    {%- if surface == 'paper' -%}
+      --crp-bg:           {{ bg_color | default: '#FAFAF7' }};
+      --crp-text:         var(--casa-ink);
+      --crp-text-muted:   rgba(10, 10, 15, 0.6);
+      --crp-text-subtle:  rgba(10, 10, 15, 0.45);
+      --crp-divider:      rgba(10, 10, 15, 0.08);
+      --crp-card-bg:      rgba(10, 10, 15, 0.02);
+      --crp-card-border:  rgba(10, 10, 15, 0.08);
+      --crp-card-accent:  rgba(176, 195, 250, 0.10);
+      --crp-icon-bg:      rgba(10, 10, 15, 0.04);
+      --crp-icon-border:  rgba(10, 10, 15, 0.08);
+      --crp-placeholder:  rgba(10, 10, 15, 0.4);
+      --crp-title-fallback-grad: linear-gradient(135deg, #0a0a0f 0%, rgba(10,10,15,.7) 100%);
+    {%- else -%}
+      --crp-bg:           {{ bg_color | default: '#0A0A0F' }};
+      --crp-text:         #f0f0f5;
+      --crp-text-muted:   rgba(255, 255, 255, 0.55);
+      --crp-text-subtle:  rgba(255, 255, 255, 0.45);
+      --crp-divider:      rgba(255, 255, 255, 0.10);
+      --crp-card-bg:      rgba(255, 255, 255, 0.03);
+      --crp-card-border:  rgba(255, 255, 255, 0.06);
+      --crp-card-accent:  rgba(176, 195, 250, 0.15);
+      --crp-icon-bg:      rgba(255, 255, 255, 0.04);
+      --crp-icon-border:  rgba(255, 255, 255, 0.08);
+      --crp-placeholder:  rgba(255, 255, 255, 0.3);
+      --crp-title-fallback-grad: linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,.7) 100%);
+    {%- endif -%}
+
     background: var(--crp-bg);
-    color: #f0f0f5;
+    color: var(--crp-text);
     padding-top: {{ pad_top }}px;
     padding-bottom: {{ pad_bot }}px;
     font-family: inherit;
+    {%- comment -%}
+      Heading scales: title / stat values / trust title pull
+      size/weight/lh/ls/case from Theme Settings -> Typography (H1-H6).
+    {%- endcomment -%}
+    {%- assign _crp_title_h = section.settings.crp_heading_level       | default: 'h1' -%}
+    {%- assign _crp_stat_h  = section.settings.crp_stat_heading_level  | default: 'h2' -%}
+    {%- assign _crp_trust_h = section.settings.crp_trust_heading_level | default: 'h5' -%}
+    --crp-title-fs:   var(--font-{{ _crp_title_h }}--size);
+    --crp-title-fw:   var(--font-{{ _crp_title_h }}--weight);
+    --crp-title-lh:   var(--font-{{ _crp_title_h }}--line-height);
+    --crp-title-ls:   var(--font-{{ _crp_title_h }}--letter-spacing);
+    --crp-title-case: var(--font-{{ _crp_title_h }}--case);
+    --crp-stat-fs:    var(--font-{{ _crp_stat_h }}--size);
+    --crp-stat-fw:    var(--font-{{ _crp_stat_h }}--weight);
+    --crp-trust-fs:   var(--font-{{ _crp_trust_h }}--size);
+    --crp-trust-fw:   var(--font-{{ _crp_trust_h }}--weight);
   }
 
   /* ── Hero ── */
@@ -38,8 +92,8 @@
     gap: 6px;
     padding: 6px 18px;
     border-radius: 100px;
-    background: rgba(147, 51, 234, .12);
-    border: 1px solid rgba(147, 51, 234, .25);
+    background: rgba(176, 195, 250, .12);
+    border: 1px solid rgba(176, 195, 250, .25);
     font-size: 13px;
     font-weight: 600;
     letter-spacing: .06em;
@@ -52,19 +106,34 @@
     height: 14px;
     flex-shrink: 0;
   }
+  /* Title — base layout. Color/gradient applied by --current /
+     --text / --shimmer modifier classes (see below). Heading scale
+     pulled from Theme Settings -> Typography. */
   .casa-reviewsp__title {
-    font-size: clamp(32px, 5vw, 56px);
-    font-weight: 700;
-    line-height: 1.1;
+    font-size:      var(--crp-title-fs, clamp(32px, 5vw, 56px));
+    font-weight:    var(--crp-title-fw, 700);
+    line-height:    var(--crp-title-lh, 1.1);
+    letter-spacing: var(--crp-title-ls, normal);
+    text-transform: var(--crp-title-case, none);
     margin: 0 0 16px;
-    background: linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,.7) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
   }
+
+  /* "Current" mode — surface-aware gradient. Paper surface uses
+     ink→translucent-ink, Ink surface uses white→translucent-white.
+     background-image (not the shorthand) so background-clip:text
+     holds. See casa-brand-tokens skill Bug 1. */
+  .casa-reviewsp__title--current {
+    background-image: var(--crp-title-fallback-grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+  /* --text / --shimmer modifiers: parallel .text-grad-text /
+     .text-grad-shimmer brand classes paint via brand tokens. */
   .casa-reviewsp__subtitle {
     font-size: clamp(16px, 2vw, 20px);
-    color: rgba(255, 255, 255, .55);
+    color: var(--crp-text-muted);
     line-height: 1.6;
     margin: 0;
     max-width: 600px;
@@ -95,22 +164,26 @@
     transform: translateY(-50%);
     width: 1px;
     height: 48px;
-    background: linear-gradient(180deg, transparent, rgba(255,255,255,.1), transparent);
+    background: linear-gradient(180deg, transparent, var(--crp-divider), transparent);
   }
   .casa-reviewsp__stat-value {
     display: block;
-    font-size: clamp(36px, 5vw, 52px);
-    font-weight: 800;
+    /* Heading scale from Theme Settings (default H2). Brand-book
+       canonical: stats numbers use --grad-primary. background-image
+       (not shorthand) so background-clip:text holds — Bug 1. */
+    font-size:   var(--crp-stat-fs, clamp(36px, 5vw, 52px));
+    font-weight: var(--crp-stat-fw, 800);
     line-height: 1.1;
     margin-bottom: 6px;
-    background: linear-gradient(135deg, var(--crp-accent1), var(--crp-accent2));
+    background-image: var(--grad-primary, linear-gradient(135deg, var(--crp-accent1), var(--crp-accent2)));
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
     background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
   }
   .casa-reviewsp__stat-label {
     font-size: 14px;
-    color: rgba(255, 255, 255, .45);
+    color: var(--crp-text-subtle);
     letter-spacing: .04em;
     text-transform: uppercase;
     font-weight: 500;
@@ -123,11 +196,11 @@
     padding: 0 20px;
   }
   .casa-reviewsp__embed-card {
-    background: rgba(255, 255, 255, .03);
-    border: 1px solid rgba(255, 255, 255, .06);
+    background: var(--crp-card-bg);
+    border: 1px solid var(--crp-card-border);
     border-radius: 20px;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     padding: 40px;
     position: relative;
     overflow: hidden;
@@ -138,7 +211,7 @@
     inset: 0;
     border-radius: 20px;
     padding: 1px;
-    background: linear-gradient(135deg, rgba(147,51,234,.15), transparent 60%, rgba(236,72,153,.1));
+    background: linear-gradient(135deg, rgba(176, 195, 250,.15), transparent 60%, rgba(94, 10, 2,.1));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
@@ -148,7 +221,7 @@
   .casa-reviewsp__embed-placeholder {
     text-align: center;
     padding: 60px 20px;
-    color: rgba(255,255,255,.3);
+    color: var(--crp-placeholder);
     font-size: 15px;
   }
 
@@ -161,7 +234,7 @@
     max-width: 900px;
     margin: 0 auto;
     padding: 40px 20px 0;
-    border-top: 1px solid rgba(255,255,255,.06);
+    border-top: 1px solid var(--crp-card-border);
   }
   .casa-reviewsp__trust-item {
     display: flex;
@@ -173,8 +246,8 @@
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    background: rgba(255,255,255,.04);
-    border: 1px solid rgba(255,255,255,.08);
+    background: var(--crp-icon-bg);
+    border: 1px solid var(--crp-icon-border);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -186,14 +259,14 @@
     color: var(--crp-accent1);
   }
   .casa-reviewsp__trust-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #f0f0f5;
+    font-size:   var(--crp-trust-fs, var(--font-h5--size, 14px));
+    font-weight: var(--crp-trust-fw, 600);
+    color: var(--crp-text);
     line-height: 1.3;
   }
   .casa-reviewsp__trust-sub {
     font-size: 12px;
-    color: rgba(255,255,255,.4);
+    color: var(--crp-text-subtle);
     line-height: 1.3;
     margin-top: 2px;
   }
@@ -251,7 +324,8 @@
     {%- endif -%}
 
     {%- if hero_title != blank -%}
-      <h1 class="casa-reviewsp__title">{{ hero_title }}</h1>
+      {%- assign crp_title_style = section.settings.crp_title_style | default: 'current' -%}
+      <h1 class="casa-reviewsp__title casa-reviewsp__title--{{ crp_title_style }}{% if crp_title_style == 'shimmer' %} text-grad-shimmer{% elsif crp_title_style == 'text' %} text-grad-text{% endif %}">{{ hero_title }}</h1>
     {%- endif -%}
 
     {%- if hero_sub != blank -%}
@@ -300,7 +374,7 @@
             {%- else -%}
               <div class="casa-reviewsp__embed-placeholder">
                 <p>Review widget will appear here.</p>
-                <p>Paste your Stamped.io embed code in the block settings.</p>
+                <p>Paste your Judge.me embed code in the block settings.</p>
               </div>
             {%- endif -%}
           </div>
@@ -364,7 +438,7 @@
   "name": "Casa Reviews Page",
   "tag": "section",
   "class": "casa-reviews-page-section",
-  "templates": ["page"],
+  "enabled_on": { "templates": ["page"] },
   "settings": [
     {
       "type": "header",
@@ -390,6 +464,82 @@
     },
     {
       "type": "header",
+      "content": "Surface"
+    },
+    {
+      "type": "select",
+      "id": "crp_surface",
+      "label": "Surface",
+      "info": "Brand book mandates only two surfaces: Paper (light) and Ink (dark). Picking one re-themes the entire section's text, dividers, cards, and icons. Background color picker below acts as an advanced override.",
+      "options": [
+        { "value": "paper", "label": "Paper (light)" },
+        { "value": "ink",   "label": "Ink (dark)" }
+      ],
+      "default": "ink"
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "select",
+      "id": "crp_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings -> Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "select",
+      "id": "crp_title_style",
+      "label": "Title style",
+      "info": "current = legacy white-to-translucent gradient. text = brand book static gradient (purple->pink->cyan). shimmer = brand book animated 5-stop. Brand book reserves shimmer for hero -- one per page max.",
+      "options": [
+        { "value": "current", "label": "Current (legacy white gradient)" },
+        { "value": "text",    "label": "Gradient (static, 3-color)" },
+        { "value": "shimmer", "label": "Shimmer (animated, brand)" }
+      ],
+      "default": "current"
+    },
+    {
+      "type": "select",
+      "id": "crp_stat_heading_level",
+      "label": "Stat number scale",
+      "info": "Heading scale for the stat numbers (4.9, 12K+, 98%).",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h2"
+    },
+    {
+      "type": "select",
+      "id": "crp_trust_heading_level",
+      "label": "Trust badge title scale",
+      "info": "Heading scale for trust-badge titles.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h5"
+    },
+    {
+      "type": "header",
       "content": "Stats"
     },
     {
@@ -402,7 +552,7 @@
       "type": "text",
       "id": "review_count",
       "label": "Review count",
-      "default": "10,000+"
+      "default": "12K+"
     },
     {
       "type": "text",
@@ -418,19 +568,19 @@
       "type": "color",
       "id": "accent_primary",
       "label": "Accent primary",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "accent_secondary",
       "label": "Accent secondary",
-      "default": "#ec4899"
+      "default": "#5E0A02"
     },
     {
       "type": "color",
       "id": "bg_color",
-      "label": "Background color",
-      "default": "#0a0a0f"
+      "label": "Background color (advanced override)",
+      "info": "Surface dropdown above sets the default (Paper #FAFAF7 or Ink #0A0A0F). Use this only to override with a custom shade. Leave matching the surface default for the best contrast with auto-themed text colors."
     },
     {
       "type": "header",
@@ -467,7 +617,7 @@
           "type": "liquid",
           "id": "custom_liquid",
           "label": "Review widget code",
-          "info": "Paste your Stamped.io full-page reviews widget code here. Example: <div id=\"stamped-main-widget\" data-product-id=\"\" data-name=\"\" data-url=\"\"></div>"
+          "info": "Paste your Judge.me full-page reviews widget code here. Example: <div class=\"jdgm-widget jdgm-all-reviews-widget\" data-product-id=\"\" data-product-name=\"\"></div>"
         }
       ]
     },

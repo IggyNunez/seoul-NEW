@@ -22,6 +22,11 @@ class CartIcon extends Component {
 
   set currentCartCount(value) {
     this.refs.cartBubbleCount.textContent = value < 100 ? String(value) : '';
+    const hiddenCountText = this.refs.cartBubbleText.querySelector('.visually-hidden');
+    if (hiddenCountText) {
+      const label = hiddenCountText.textContent?.split(':')[0]?.trim() || 'Total items in cart';
+      hiddenCountText.textContent = `${label}: ${value}`;
+    }
   }
 
   connectedCallback() {
@@ -54,11 +59,59 @@ class CartIcon extends Component {
    * @param {CartUpdateEvent} event - The cart update event.
    */
   onCartUpdate = async (event) => {
-    const itemCount = event.detail.data?.itemCount ?? 0;
+    // A rejected add (over-max / sold-out) still fires cart:update with `didError: true`
+    // and `itemCount` = the ATTEMPTED quantity, even though the server added nothing (or
+    // only the max allowed). Feeding that into the "from the product form -> ADD to the
+    // current count" branch below over-counts the bubble until the next reload (bubble
+    // shows 8 while the cart really holds 5). Reconcile from the authoritative cart.
+    if (event.detail.data?.didError) {
+      try {
+        const cart = await fetch(`${Theme.routes.cart_url}.js`).then((r) => r.json());
+        this.renderCartBubble(cart.item_count, false, false);
+      } catch (error) {
+        console.error(error);
+      }
+      return;
+    }
+
+    const itemCountFromSections = this.#cartCountFromSections(event.detail.data?.sections);
+    if (Number.isFinite(itemCountFromSections)) {
+      this.renderCartBubble(itemCountFromSections, false);
+      return;
+    }
+
+    const itemCount = event.detail.data?.itemCount;
+    if (!Number.isFinite(itemCount)) {
+      try {
+        const cart = await fetch(`${Theme.routes.cart_url}.js`).then((r) => r.json());
+        this.renderCartBubble(cart.item_count, false);
+      } catch (error) {
+        console.error(error);
+      }
+      return;
+    }
+
     const comingFromProductForm = event.detail.data?.source === 'product-form-component';
 
     this.renderCartBubble(itemCount, comingFromProductForm);
   };
+
+  /**
+   * @param {Record<string, string> | undefined} sections
+   * @returns {number | undefined}
+   */
+  #cartCountFromSections(sections) {
+    if (!sections) return undefined;
+
+    for (const sectionHtml of Object.values(sections)) {
+      if (typeof sectionHtml !== 'string') continue;
+      const doc = new DOMParser().parseFromString(sectionHtml, 'text/html');
+      const count = parseInt(doc.querySelector('[ref="cartItemCount"]')?.textContent ?? '', 10);
+      if (Number.isFinite(count)) return count;
+    }
+
+    return undefined;
+  }
 
   /**
    * Renders the cart bubble.

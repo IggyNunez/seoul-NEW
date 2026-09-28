@@ -238,7 +238,14 @@
                   >
                     <div class="facets__image-wrapper">
                       {% if value.image %}
-                        {{ value.image | image_url: width: 300 | image_tag: alt: value.alt }}
+                        {% comment %}
+                          sizes: sidebar image facets sit in 125px columns
+                          (.facets__inputs-list--images); the drawer uses a
+                          3-up grid ≈33vw below 750px. Sizes-less srcset
+                          would default the slot to 100vw — see
+                          snippets/casa-cart-items.liquid.
+                        {% endcomment %}
+                        {{ value.image | image_url: width: 300 | image_tag: alt: value.alt, sizes: '(min-width: 750px) 125px, 33vw' }}
                       {% endif %}
                       {% if is_disabled %}
                         <svg
@@ -636,7 +643,12 @@
   }
 
   .facets__image-wrapper img {
-    height: 100%;
+    /* height: auto + aspect-ratio instead of height: 100% — the wrapper's
+       height comes from its aspect-ratio, and Safari 26 can fail to resolve
+       a %-height against that (the /cart flat-thumbnail class; immune
+       pattern from .cart-items__media-image in snippets/cart-products.liquid). */
+    height: auto;
+    aspect-ratio: 1;
     width: 100%;
     object-fit: contain;
     border-radius: calc(var(--border-radius) / 2);

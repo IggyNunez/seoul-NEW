@@ -9,11 +9,11 @@
   assign enable_parallax = section.settings.enable_parallax
 
   # ── Colors ──
-  assign bg_color = section.settings.bg_color | default: '#0a0a0f'
-  assign text_color = section.settings.text_color | default: '#ffffff'
+  assign bg_color = section.settings.bg_color | default: '#0A0A0F'
+  assign text_color = section.settings.text_color | default: '#FAFAF7'
   assign text_secondary = section.settings.text_secondary | default: '#a0a0b0'
-  assign accent_1 = section.settings.accent_primary | default: '#9333ea'
-  assign accent_2 = section.settings.accent_secondary | default: '#ec4899'
+  assign accent_1 = section.settings.accent_primary | default: '#B0C3FA'
+  assign accent_2 = section.settings.accent_secondary | default: '#5E0A02'
 
   # ── Content ──
   assign accent_word = section.settings.accent_word | default: ''
@@ -25,7 +25,20 @@
   # ── CTA ──
   assign cta_text = section.settings.cta_text | default: ''
   assign cta_link = section.settings.cta_link | default: ''
-  assign cta_style = section.settings.cta_style | default: 'gradient'
+  assign cta_style = section.settings.cta_style | default: 'solid'
+
+  # Map merchant cta_style to brand button class (assets/casa-buttons.css):
+  #   solid    → primary-on-dark  (Paper button on Ink — quiet-chrome default)
+  #   outline  → secondary-on-dark (transparent border button on Ink)
+  #   gradient → featured          (brand purple→pink CTA, max one per page)
+  case cta_style
+    when 'gradient'
+      assign brand_btn_class = 'btn btn-featured'
+    when 'outline'
+      assign brand_btn_class = 'btn btn-secondary-on-dark'
+    else
+      assign brand_btn_class = 'btn btn-primary-on-dark'
+  endcase
 
   # ── Media ──
   assign bg_image_d = section.settings.bg_image_desktop
@@ -94,7 +107,7 @@
     <nav class="casa-hero2__crumbs" aria-label="Breadcrumb">
       <a href="/">Home</a>
       <span class="casa-hero2__crumbs-sep">/</span>
-      <a href="/collections">Collections</a>
+      <a href="{{ routes.collections_url }}">Collections</a>
       <span class="casa-hero2__crumbs-sep">/</span>
       <span aria-current="page">{{ collection.title }}</span>
     </nav>
@@ -110,7 +123,7 @@
 {%- capture cta_html -%}
   {%- if cta_text != blank -%}
     {%- assign link_url = cta_link | default: collection.url -%}
-    <a href="{{ link_url }}" class="casa-hero2__cta casa-hero2__cta--{{ cta_style }}">
+    <a href="{{ link_url }}" class="{{ brand_btn_class }} casa-hero2__cta">
       {{ cta_text }}
     </a>
   {%- endif -%}
@@ -160,7 +173,7 @@
   {%- if has_media and layout != 'compact' and layout != 'gradient_mesh' -%}
     <div class="casa-hero2__media" {% if enable_parallax %}data-hero2-parallax{% endif %}>
       {%- if bg_video_url != blank -%}
-        <video class="casa-hero2__video" autoplay muted loop playsinline>
+        <video class="casa-hero2__video" muted loop playsinline data-casa-pause preload="metadata">
           <source src="{{ bg_video_url }}" type="video/mp4">
         </video>
       {%- elsif hero_img_d != blank -%}
@@ -168,11 +181,18 @@
           {%- if hero_img_m != blank and hero_img_m != hero_img_d -%}
             <source media="(max-width: 749px)" srcset="{{ hero_img_m | image_url: width: 800 }}">
           {%- endif -%}
+          {%- comment -%}
+            fetchpriority="high" added 2026-05-13. Same fix as in
+            casa-collection-hero.liquid — without it the LCP image
+            queues at Low priority and delays paint by 1.5s+ on
+            real-user connections.
+          {%- endcomment -%}
           <img
             class="casa-hero2__bg-img"
             src="{{ hero_img_d | image_url: width: 1920 }}"
             alt="{{ collection.title | escape }}"
             loading="eager"
+            fetchpriority="high"
             width="{{ hero_img_d.width }}"
             height="{{ hero_img_d.height }}"
           >
@@ -199,6 +219,7 @@
   "
   data-section-id="{{ section.id }}"
   data-layout="{{ layout }}"
+  data-casa-anim-gate
 >
 
   {%- comment -%}═══ COMPACT ═══{%- endcomment -%}
@@ -280,11 +301,13 @@
             {%- if hero_img_m != blank and hero_img_m != hero_img_d -%}
               <source media="(max-width: 749px)" srcset="{{ hero_img_m | image_url: width: 800 }}">
             {%- endif -%}
+            {%- comment -%} LCP image — fetchpriority=high (see top of file). {%- endcomment -%}
             <img
               class="casa-hero2__split-img"
               src="{{ hero_img_d | image_url: width: 1200 }}"
               alt="{{ collection.title | escape }}"
               loading="eager"
+              fetchpriority="high"
               width="{{ hero_img_d.width }}"
               height="{{ hero_img_d.height }}"
             >
@@ -331,14 +354,14 @@
 
 </section>
 
-<style>
+{% stylesheet %}
   /* ═══════════════════════════════════════════
      Casa Collection Hero V2 — Base
      ═══════════════════════════════════════════ */
   .casa-hero2 {
-    position: relative;
+  position: relative;
     overflow: hidden;
-    background: var(--ch2-bg, #0a0a0f);
+    background: var(--ch2-bg, var(--casa-ink));
     color: var(--ch2-text, #fff);
     padding-top: var(--ch2-pt, 40px);
     padding-bottom: var(--ch2-pb, 40px);
@@ -391,16 +414,17 @@
     letter-spacing: .06em;
     text-transform: uppercase;
     background: linear-gradient(135deg, var(--ch2-a1), var(--ch2-a2));
-    color: #fff;
+    color: var(--casa-text-on-ink);
     margin-bottom: 16px;
   }
 
-  /* Title sizes */
+  /* Title sizes — weight/line/tracking pulled from theme typography
+     tokens; legacy values retained as fallbacks. */
   .casa-hero2__title {
-    font-weight: 700;
-    line-height: 1.1;
+    font-weight: var(--font-h1--weight, 600);
+    line-height: var(--font-h1--line-height, 1.1);
     margin: 0 0 16px;
-    letter-spacing: -.02em;
+    letter-spacing: var(--font-h1--letter-spacing, -.02em);
   }
   .casa-hero2__title--sm { font-size: clamp(1.4rem, 3vw, 2rem); }
   .casa-hero2__title--md { font-size: clamp(1.8rem, 4vw, 3rem); }
@@ -433,25 +457,15 @@
     transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(0,0,0,.3);
   }
-  .casa-hero2__cta--gradient {
-    background: linear-gradient(135deg, var(--ch2-a1), var(--ch2-a2));
-    color: #fff;
-    border: none;
-  }
-  .casa-hero2__cta--solid {
-    background: var(--ch2-a1);
-    color: #fff;
-    border: none;
-  }
-  .casa-hero2__cta--outline {
-    background: transparent;
-    color: var(--ch2-text);
-    border: 1.5px solid rgba(255,255,255,.25);
-  }
-  .casa-hero2__cta--outline:hover {
-    border-color: var(--ch2-a1);
-    background: rgba(147,51,234,.1);
-  }
+  /* CTA color/border treatments (gradient/solid/outline) are now owned
+     by the brand button classes from assets/casa-buttons.css:
+       solid    → .btn-primary-on-dark
+       outline  → .btn-secondary-on-dark
+       gradient → .btn-featured (max one per page per quiet-chrome)
+     The local --gradient/--solid/--outline rules were removed
+     2026-05-09 to consolidate styling. The base .casa-hero2__cta
+     rule above keeps the hero-specific layout (padding/font-size/
+     hover-lift) since those are intentional in this hero context. */
 
   /* Stats row */
   .casa-hero2__stats {
@@ -538,7 +552,7 @@
     flex-wrap: wrap;
   }
   .casa-hero2__compact-title {
-    font-size: 20px;
+    font-size: var(--font-h4--size, 20px);
     font-weight: 700;
     margin: 0;
     line-height: 1.3;
@@ -606,13 +620,14 @@
 
   .casa-hero2__card {
     background: rgba(255,255,255,.05);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255,255,255,.08);
     border-radius: 20px;
     padding: 40px 44px;
     max-width: 560px;
     width: 100%;
+    /* perf-justified: paused off-screen by data-casa-anim-gate on the section root (casa-anim-gate.js) */
     animation: casa-hero2-float 6s ease-in-out infinite;
   }
 
@@ -640,6 +655,7 @@
   .casa-hero2__marquee-track {
     display: flex;
     white-space: nowrap;
+    /* perf-justified: paused off-screen by data-casa-anim-gate on the section root (casa-anim-gate.js) */
     animation: casa-hero2-marquee 20s linear infinite;
     will-change: transform;
   }
@@ -735,6 +751,7 @@
     left: -10%;
     background: var(--ch2-a1);
     opacity: .35;
+    /* perf-justified: paused off-screen by data-casa-anim-gate on the section root (casa-anim-gate.js) */
     animation: casa-hero2-blob1 14s ease-in-out infinite alternate;
   }
   .casa-hero2__mesh-blob--2 {
@@ -744,6 +761,7 @@
     right: -5%;
     background: var(--ch2-a2);
     opacity: .3;
+    /* perf-justified: paused off-screen by data-casa-anim-gate on the section root (casa-anim-gate.js) */
     animation: casa-hero2-blob2 12s ease-in-out infinite alternate;
   }
   .casa-hero2__mesh-blob--3 {
@@ -753,6 +771,7 @@
     left: 40%;
     background: color-mix(in srgb, var(--ch2-a1), var(--ch2-a2));
     opacity: .2;
+    /* perf-justified: paused off-screen by data-casa-anim-gate on the section root (casa-anim-gate.js) */
     animation: casa-hero2-blob3 16s ease-in-out infinite alternate;
   }
   .casa-hero2__mesh-blob--4 {
@@ -762,6 +781,7 @@
     left: 20%;
     background: var(--ch2-a1);
     opacity: .15;
+    /* perf-justified: paused off-screen by data-casa-anim-gate on the section root (casa-anim-gate.js) */
     animation: casa-hero2-blob4 10s ease-in-out infinite alternate;
   }
   @keyframes casa-hero2-blob1 {
@@ -859,7 +879,7 @@
       padding: 12px 16px;
     }
     .casa-hero2__compact-title {
-      font-size: 17px;
+      font-size: var(--font-h5--size, 17px);
     }
   }
 
@@ -874,7 +894,7 @@
       transition: none;
     }
   }
-</style>
+{% endstylesheet %}
 
 <script>
   (function() {
@@ -948,7 +968,7 @@
   "name": "Casa Collection Hero V2",
   "tag": "section",
   "class": "casa-hero2-section",
-  "templates": ["collection"],
+  "enabled_on": { "templates": ["collection"] },
   "settings": [
     {
       "type": "header",
@@ -1077,11 +1097,11 @@
       "id": "cta_style",
       "label": "Button style",
       "options": [
-        { "value": "gradient", "label": "Gradient" },
-        { "value": "solid", "label": "Solid" },
-        { "value": "outline", "label": "Outline" }
+        { "value": "solid", "label": "Solid (brand default — Ink/Paper button)" },
+        { "value": "outline", "label": "Outline" },
+        { "value": "gradient", "label": "Featured gradient (max one per page)" }
       ],
-      "default": "gradient"
+      "default": "solid"
     },
     {
       "type": "header",
@@ -1135,13 +1155,13 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background color",
-      "default": "#0a0a0f"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
       "id": "text_color",
       "label": "Text color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
@@ -1153,13 +1173,13 @@
       "type": "color",
       "id": "accent_primary",
       "label": "Accent primary",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "accent_secondary",
       "label": "Accent secondary",
-      "default": "#ec4899"
+      "default": "#5E0A02"
     }
   ],
   "blocks": [

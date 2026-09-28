@@ -24,10 +24,18 @@
   <hr class="casa-edit__divider" aria-hidden="true">
 {%- endif -%}
 
-{%- comment -%} ── Heading ── {%- endcomment -%}
+{%- comment -%}
+  ── Heading ──
+  No `| escape` filter: the heading source field is `inline_richtext`
+  (sections/casa-editorial-story.liquid schema). Shopify pre-sanitizes
+  inline_richtext to a safe inline allowlist (<a>, <em>, <strong>, etc.),
+  so unescaped output is safe AND lets the brand italic-gradient `<em>`
+  accent land per locked decision `brand_typography_locked_2026-05-04.md`.
+  Adding `| escape` would render `<em>` as literal text — bug fixed.
+{%- endcomment -%}
 {%- if heading != blank -%}
   <h2 class="casa-edit__heading casa-edit__heading--{{ heading_size }}">
-    {{- heading | escape -}}
+    {{- heading -}}
   </h2>
 {%- endif -%}
 
@@ -40,13 +48,11 @@
 
 {%- comment -%} ── CTA Button ── {%- endcomment -%}
 {%- if btn_text != blank and btn_url != blank -%}
+  {%- assign _ces_btn_treatment = btn_treatment | default: 'featured' -%}
   <div class="casa-edit__btn-wrap">
-    <a href="{{ btn_url }}" class="casa-edit__btn casa-edit__btn--{{ btn_style }}">
+    <a href="{{ btn_url }}" class="btn btn-{{ _ces_btn_treatment }} casa-edit__btn casa-edit__btn--{{ btn_style }}">
       {{ btn_text | escape }}
-      <svg class="casa-edit__btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-        <polyline points="12 5 19 12 12 19"></polyline>
-      </svg>
+      <span class="arrow" aria-hidden="true">&rarr;</span>
     </a>
   </div>
 {%- endif -%}

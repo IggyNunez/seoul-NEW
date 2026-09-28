@@ -1,0 +1,336 @@
+{%- comment -%}
+  casa-mirror-controls.liquid
+  Seoul Glow Lab — "Remote, app, or your voice." (control experience)
+
+  Ink section. The product's own colour-cycle footage plays on the left
+  (see it, don't read it); on the right, one row per way of running the
+  mirror — what it does, and the honest limit underneath it (2.4 GHz only,
+  the mic hears the room not your playlist, batteries not included). Rows
+  are blocks so the merchant can edit or reorder them per product.
+
+  Used by: templates/product.infinity-octamirror-v3.json
+  Blocks:  control (title, body, limit)
+  Settings: kicker, heading, lede, video (picker) / video_url, poster,
+            video_sr_label, facts (pipe list under the video), padding.
+
+  perf: the <video> carries data-casa-pause and NO autoplay attribute —
+  assets/casa-offscreen-pause.js owns playback (plays on-screen, pauses
+  off-screen). preload="metadata" so the page never downloads the clip
+  until it is near the viewport.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign controls = section.blocks | where: 'type', 'control'
+
+  assign v_url = blank
+  assign v_poster = blank
+  if s.video != blank
+    for src in s.video.sources
+      if src.format == 'mp4' and src.height <= 720
+        assign v_url = src.url
+      endif
+    endfor
+    if v_url == blank
+      for src in s.video.sources
+        if src.format == 'mp4'
+          assign v_url = src.url
+          break
+        endif
+      endfor
+    endif
+    assign v_poster = s.video.preview_image
+  elsif s.video_url != blank
+    assign v_url = s.video_url
+  endif
+  if s.poster != blank
+    assign v_poster = s.poster
+  endif
+
+  assign facts = s.facts | default: '' | split: '|'
+-%}
+
+<section
+  id="casa-mc-{{ section.id }}"
+  class="casa-mc"
+  data-casa-section="controls"
+  style="
+    --casa-mc-pt: {{ s.padding_top | default: 64 }}px;
+    --casa-mc-pb: {{ s.padding_bottom | default: 64 }}px;
+  "
+>
+  <div class="casa-mc__cap">
+    <header class="casa-mc__head">
+      {%- if s.kicker != blank -%}
+        <p class="casa-mc__mono">{{ s.kicker | escape }}</p>
+      {%- endif -%}
+      {%- if s.heading != blank -%}
+        <h2 class="casa-mc__h2">{{ s.heading }}</h2>
+      {%- endif -%}
+      {%- if s.lede != blank -%}
+        <p class="casa-mc__lede">{{ s.lede | escape }}</p>
+      {%- endif -%}
+    </header>
+
+    <div class="casa-mc__body">
+      <div class="casa-mc__stage-col">
+        {%- if v_url != blank -%}
+          <div class="casa-mc__stage">
+            <video
+              class="casa-mc__video"
+              data-casa-pause
+              data-casa-video="controls"
+              muted
+              loop
+              playsinline
+              preload="metadata"
+              {% if v_poster != blank %}poster="{{ v_poster | image_url: width: 1000 }}"{% endif %}
+              aria-label="{{ s.video_sr_label | default: 'The mirror cycling through its colours and effects' | escape }}"
+            >
+              <source src="{{ v_url }}" type="video/mp4">
+            </video>
+          </div>
+        {%- elsif s.poster != blank -%}
+          <div class="casa-mc__stage">
+            {{
+              s.poster
+              | image_url: width: 1200
+              | image_tag:
+                widths: '400, 600, 900, 1200',
+                sizes: '(max-width: 899px) 100vw, 46vw',
+                loading: 'lazy',
+                decoding: 'async',
+                class: 'casa-mc__poster',
+                alt: s.poster.alt
+            }}
+          </div>
+        {%- endif -%}
+        {%- if facts.size > 0 and s.facts != blank -%}
+          <ul class="casa-mc__facts" role="list" aria-label="{{ s.facts_label | default: 'Key figures' | escape }}">
+            {%- for f in facts -%}
+              {%- assign ft = f | strip -%}
+              {%- if ft != blank -%}
+                <li>{{ ft | escape }}</li>
+              {%- endif -%}
+            {%- endfor -%}
+          </ul>
+        {%- endif -%}
+      </div>
+
+      {%- if controls.size > 0 -%}
+        <ul class="casa-mc__list" role="list">
+          {%- for block in controls -%}
+            {%- assign b = block.settings -%}
+            <li class="casa-mc__row" {{ block.shopify_attributes }}>
+              <h3 class="casa-mc__row-title">{{ b.title | escape }}</h3>
+              {%- if b.body != blank -%}
+                <p class="casa-mc__row-body">{{ b.body | escape }}</p>
+              {%- endif -%}
+              {%- if b.limit != blank -%}
+                <p class="casa-mc__row-limit">{{ b.limit | escape }}</p>
+              {%- endif -%}
+            </li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+
+{% stylesheet %}
+.casa-mc {
+  position: relative;
+  background: var(--bg-dark, #0A0A0F);
+  color: #fff;
+  padding: var(--casa-mc-pt, 64px) 0 var(--casa-mc-pb, 64px);
+}
+.casa-mc__cap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px);
+}
+.casa-mc__mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0 0 14px;
+  color: var(--c-cyan, #F2FFA0);
+}
+.casa-mc__head {
+  max-width: 720px;
+  margin: 0 0 clamp(24px, 4vw, 40px);
+}
+.casa-mc__h2 {
+  font-family: var(--casa-pdp-h2-family, var(--font-body--family));
+  font-size: var(--casa-pdp-h2-size, clamp(28px, 4vw, 40px));
+  font-weight: var(--casa-pdp-h2-weight, 500);
+  letter-spacing: var(--casa-pdp-h2-tracking, -0.015em);
+  line-height: var(--casa-pdp-h2-line, 1.1);
+  margin: 0;
+  color: #fff;
+  text-wrap: balance;
+}
+.casa-mc__h2 em {
+  font-style: italic;
+  font-weight: 800;
+  background-image: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.casa-mc__lede {
+  margin: 14px 0 0;
+  font-size: clamp(15px, 1.4vw, 17px);
+  line-height: 1.55;
+  color: rgba(255,255,255,0.78);
+  max-width: 60ch;
+  text-wrap: pretty;
+}
+
+.casa-mc__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: start;
+}
+.casa-mc__stage {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000;
+}
+.casa-mc__video,
+.casa-mc__poster {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.casa-mc__facts {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+.casa-mc__facts li {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.62);
+}
+
+.casa-mc__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 clamp(16px, 2.5vw, 32px);
+}
+.casa-mc__row {
+  padding: clamp(14px, 1.8vw, 20px) 0;
+  border-top: 1px solid rgba(255,255,255,0.14);
+}
+.casa-mc__row-title {
+  font-family: var(--font-body--family, 'Inter', sans-serif);
+  font-size: clamp(16px, 1.5vw, 19px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0 0 6px;
+  color: #fff;
+}
+.casa-mc__row-body {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.78);
+  text-wrap: pretty;
+}
+.casa-mc__row-limit {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.5);
+  text-wrap: pretty;
+}
+
+@media (max-width: 899px) {
+  .casa-mc__body { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .casa-mc__list { grid-template-columns: minmax(0, 1fr); }
+}
+@media (min-width: 900px) and (max-width: 1199px) {
+  .casa-mc__list { grid-template-columns: minmax(0, 1fr); }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Mirror Controls",
+  "tag": "section",
+  "class": "casa-mirror-controls-section",
+  "settings": [
+    { "type": "header", "content": "Heading" },
+    { "type": "text", "id": "kicker", "label": "Kicker (mono)", "default": "04 · CONTROL" },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading (one <em>phrase</em> for the gradient accent)",
+      "default": "Remote, app, or <em>your voice.</em>"
+    },
+    {
+      "type": "textarea",
+      "id": "lede",
+      "label": "Lede",
+      "default": "Every way to run it is in the box or on your phone. Here's what each one does — and what it doesn't."
+    },
+    { "type": "header", "content": "Footage", "info": "Pick a Shopify-hosted video, or paste a CDN .mp4 URL. Plays muted on screen, pauses off screen." },
+    { "type": "video", "id": "video", "label": "Video" },
+    { "type": "text", "id": "video_url", "label": "Video URL (.mp4) — fallback" },
+    { "type": "image_picker", "id": "poster", "label": "Poster / still", "info": "Shown before the video plays, and instead of it if no video is set." },
+    { "type": "text", "id": "video_sr_label", "label": "Video description (screen readers)", "default": "The mirror cycling through its colours and effects" },
+    {
+      "type": "text",
+      "id": "facts",
+      "label": "Figures under the footage (pipe-separated)",
+      "default": "1M+ colors|360+ effects|Fully dimmable"
+    },
+    { "type": "text", "id": "facts_label", "label": "Figures list label (screen readers)", "default": "Key figures" },
+    { "type": "header", "content": "Padding" },
+    { "type": "range", "id": "padding_top", "label": "Padding top", "min": 0, "max": 160, "step": 8, "default": 64, "unit": "px" },
+    { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 160, "step": 8, "default": 64, "unit": "px" }
+  ],
+  "blocks": [
+    {
+      "type": "control",
+      "name": "Control",
+      "settings": [
+        { "type": "text", "id": "title", "label": "Title" },
+        { "type": "textarea", "id": "body", "label": "What it does" },
+        { "type": "text", "id": "limit", "label": "Honest limit (optional)", "info": "The one thing a buyer should know before they rely on it." }
+      ]
+    }
+  ],
+  "max_blocks": 8,
+  "presets": [
+    {
+      "name": "Casa Mirror Controls",
+      "category": "Product",
+      "blocks": [
+        { "type": "control", "settings": { "title": "Remote", "body": "Power, brightness, scene selection and music mode — no phone needed. In the box.", "limit": "Remote batteries not included." } },
+        { "type": "control", "settings": { "title": "Tuya Smart app", "body": "Custom scenes, sleep and wake timers, and several mirrors at once. iOS and Android.", "limit": "Pairs on 2.4 GHz Wi-Fi only — 5 GHz networks won't connect." } },
+        { "type": "control", "settings": { "title": "Voice", "body": "Alexa, Google Assistant and Siri, through the Tuya integration.", "limit": "Set up the app first; voice control rides on it." } },
+        { "type": "control", "settings": { "title": "Music mode", "body": "A built-in microphone moves the effects with the beat.", "limit": "It listens to the room — it doesn't pair to a music app." } },
+        { "type": "control", "settings": { "title": "Dimming", "body": "Fully dimmable, from a soft evening glow to full brightness.", "limit": "" } },
+        { "type": "control", "settings": { "title": "Timer", "body": "A sleep / wake timer, so it's dark by bedtime and on when you get home.", "limit": "Schedules are set in the app." } }
+      ]
+    }
+  ]
+}
+{% endschema %}

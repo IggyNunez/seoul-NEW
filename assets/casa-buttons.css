@@ -1,0 +1,158 @@
+/* Seoul Glow Lab — Brand v1 button system
+   Source of truth: docs/brand-book-v1.html
+   Consumes tokens from casa-tokens.css.
+   Phase 2 will migrate section CTAs to use these classes. */
+
+/* Base button */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 32px;
+  border-radius: var(--r-lg);
+  font-family: var(--font-body--family);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  /* Consumes Horizon's theme-wide button-text-case setting so flipping
+     "Buttons → Text case" in theme settings cascades to all .btn
+     instances. Falls back to the brand-book uppercase default. */
+  text-transform: var(--button-text-case-primary, uppercase);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--d-base) var(--ease-out), box-shadow var(--d-base) var(--ease-out), background var(--d-base) var(--ease-out);
+  line-height: 1;
+  white-space: nowrap;
+}
+.btn-sm { padding: 12px 24px; font-size: 13px; }
+.btn-lg { padding: 20px 40px; font-size: 15px; }
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: scale(0.98); }
+.btn:focus-visible { outline: 2px solid var(--c-purple); outline-offset: 2px; }
+.btn .arrow { display: inline-block; transition: transform var(--d-base) var(--ease-out); font-family: var(--font-body--family); font-weight: 400; letter-spacing: 0; text-transform: none; }
+.btn:hover .arrow { transform: translateX(2px); }
+
+/* Primary — light surface */
+.btn-primary {
+  background: var(--bg-dark);
+  color: var(--t-on-dark);
+}
+.btn-primary:hover { background: #1f1f25; box-shadow: 0 8px 24px rgba(10,10,15,0.18); }
+
+/* Primary — dark surface */
+.btn-primary-on-dark {
+  background: var(--t-on-dark);
+  color: var(--bg-dark);
+}
+.btn-primary-on-dark:hover { background: #f0f0ee; box-shadow: 0 8px 24px rgba(255,255,255,0.18); }
+
+/* Secondary — light */
+.btn-secondary {
+  background: transparent;
+  color: var(--bg-dark);
+  border: 1.5px solid var(--bg-dark);
+  /* Consumes Horizon's secondary button-text-case setting. */
+  text-transform: var(--button-text-case-secondary, uppercase);
+}
+.btn-secondary:hover { background: rgba(10,10,15,0.04); }
+
+/* Secondary — dark */
+.btn-secondary-on-dark {
+  background: transparent;
+  color: var(--t-on-dark);
+  border: 1.5px solid rgba(255,255,255,0.5);
+  text-transform: var(--button-text-case-secondary, uppercase);
+}
+.btn-secondary-on-dark:hover { border-color: #fff; background: rgba(255,255,255,0.04); }
+
+/* Tertiary / link — light */
+.btn-tertiary {
+  background: transparent;
+  color: var(--bg-dark);
+  border: none;
+  padding: 8px 4px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--c-purple);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  font-size: 14px;
+}
+.btn-tertiary:hover { transform: none; text-decoration-thickness: 2px; }
+
+/* Featured (gradient — opt-in for hero/launch only) */
+.btn-featured {
+  background: var(--grad-primary);
+  color: var(--t-on-dark);
+}
+.btn-featured:hover { box-shadow: 0 8px 24px rgba(176, 195, 250,0.32); }
+
+/* Disabled state */
+.btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Loading state */
+.btn-loading::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .btn-loading::before { animation: none; } }
+
+/* ── Brand-book text gradients
+   Source of truth: docs/brand-book-v1.html
+   Consume tokens from casa-tokens.css. Wrap a span/word with one of
+   these classes to apply the brand text gradient.
+   .text-grad-text → static 3-stop (purple → pink → cyan)
+   .text-grad-shimmer → 5-stop animated loop, prefers-reduced-motion safe
+   Note: keyframe is named `casa-text-shimmer` (not `casa-shimmer`) —
+   it predates the since-deleted orphan `@keyframes casa-shimmer` in
+   assets/casa-animations.css and keeps the distinct name so old
+   references stay unambiguous.
+─────────────────────────────────────────────────────────────────── */
+/* IMPORTANT: use background-image (not the `background` shorthand). The
+   shorthand resets all longhand background-* properties including
+   background-clip, which would undo the text-clipping. Order also matters:
+   background-image FIRST, then background-clip / color. */
+.text-grad-text {
+  background-image: var(--grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-grad-shimmer {
+  background-image: var(--grad-shimmer);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  /* perf-justified: background-clip:text can't be composited without
+     changing the visual. casa-anim-gate.js auto-targets this class and
+     pauses it off-viewport (the footer brand title used to tick at
+     60fps on every page of the site). */
+  animation: casa-text-shimmer 6s linear infinite;
+}
+
+@keyframes casa-text-shimmer {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-grad-shimmer { animation: none; }
+}

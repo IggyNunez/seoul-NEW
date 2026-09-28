@@ -122,6 +122,7 @@
 
       {%- when 'boolean' -%}
         {%- for value in filter.values -%}
+          {%- if value.count == 0 and value.active == false -%}{%- continue -%}{%- endif -%}
           <label class="casa-col-filter__toggle">
             <span class="casa-col-filter__toggle-text">{{ value.label }}</span>
             <div class="casa-col-filter__toggle-switch">
@@ -130,7 +131,6 @@
                 name="{{ value.param_name }}"
                 value="{{ value.value }}"
                 {% if value.active %}checked{% endif %}
-                {% if value.count == 0 and value.active == false %}disabled{% endif %}
               >
               <span class="casa-col-filter__toggle-slider"></span>
             </div>
@@ -141,23 +141,36 @@
         {%- endfor -%}
 
       {%- when 'list' -%}
+        {%- comment -%}
+          Dedupe + hide zero-count values:
+          Some color metaobjects have multiple entries that resolve to
+          the same swatch (e.g. "White", "white", "Pure White") — track
+          rendered keys and skip duplicates. Also skip values where
+          count == 0 and not currently active so the user only sees
+          options that actually narrow the result set.
+        {%- endcomment -%}
+        {%- assign rendered_keys = '' -%}
         {%- if is_swatch or is_color -%}
           {%- comment -%} Color swatch grid {%- endcomment -%}
           <div class="casa-col-filter__swatch-grid">
             {%- for value in filter.values -%}
-              <label class="casa-col-filter__swatch{% if value.active %} casa-col-filter__swatch--active{% endif %}{% if value.count == 0 and value.active == false %} casa-col-filter__swatch--disabled{% endif %}" title="{{ value.label }}">
+              {%- if value.count == 0 and value.active == false -%}{%- continue -%}{%- endif -%}
+              {%- assign value_key = value.label | downcase | strip -%}
+              {%- if rendered_keys contains value_key -%}{%- continue -%}{%- endif -%}
+              {%- assign rendered_keys = rendered_keys | append: '|' | append: value_key -%}
+              <label class="casa-col-filter__swatch{% if value.active %} casa-col-filter__swatch--active{% endif %}" title="{{ value.label }}">
                 <input
                   type="checkbox"
                   name="{{ value.param_name }}"
                   value="{{ value.value }}"
+                  aria-label="{{ value.label | escape }}"
                   {% if value.active %}checked{% endif %}
-                  {% if value.count == 0 and value.active == false %}disabled{% endif %}
                   class="visually-hidden"
                 >
                 {%- if value.swatch.color -%}
                   <span class="casa-col-filter__swatch-color" style="background: {{ value.swatch.color }};"></span>
                 {%- elsif value.swatch.image -%}
-                  <img src="{{ value.swatch.image | image_url: width: 80 }}" alt="{{ value.label }}" class="casa-col-filter__swatch-img" loading="lazy">
+                  <img src="{{ value.swatch.image | image_url: width: 80 }}" width="40" height="40" alt="{{ value.label }}" class="casa-col-filter__swatch-img" loading="lazy">
                 {%- else -%}
                   {%- comment -%} Fallback: derive color from label name {%- endcomment -%}
                   <span class="casa-col-filter__swatch-color" style="background: {{ value.label | downcase | replace: ' ', '' }};"></span>
@@ -167,16 +180,17 @@
           </div>
 
         {%- elsif is_shape or is_size -%}
-          {%- comment -%} Chip / pill buttons {%- endcomment -%}
+          {%- comment -%} Chip / pill buttons — hide zero-count values {%- endcomment -%}
           <div class="casa-col-filter__chips">
             {%- for value in filter.values -%}
-              <label class="casa-col-filter__chip{% if value.active %} casa-col-filter__chip--active{% endif %}{% if value.count == 0 and value.active == false %} casa-col-filter__chip--disabled{% endif %}">
+              {%- if value.count == 0 and value.active == false -%}{%- continue -%}{%- endif -%}
+              <label class="casa-col-filter__chip{% if value.active %} casa-col-filter__chip--active{% endif %}">
                 <input
                   type="checkbox"
                   name="{{ value.param_name }}"
                   value="{{ value.value }}"
+                  aria-label="{{ value.label | escape }}"
                   {% if value.active %}checked{% endif %}
-                  {% if value.count == 0 and value.active == false %}disabled{% endif %}
                   class="visually-hidden"
                 >
                 {%- if is_shape -%}
@@ -210,16 +224,16 @@
           </div>
 
         {%- else -%}
-          {%- comment -%} Default checkbox list {%- endcomment -%}
+          {%- comment -%} Default checkbox list — hide zero-count values {%- endcomment -%}
           <div class="casa-col-filter__list">
             {%- for value in filter.values -%}
-              <label class="casa-col-filter__option{% if value.active %} casa-col-filter__option--active{% endif %}{% if value.count == 0 and value.active == false %} casa-col-filter__option--disabled{% endif %}">
+              {%- if value.count == 0 and value.active == false -%}{%- continue -%}{%- endif -%}
+              <label class="casa-col-filter__option{% if value.active %} casa-col-filter__option--active{% endif %}">
                 <input
                   type="checkbox"
                   name="{{ value.param_name }}"
                   value="{{ value.value }}"
                   {% if value.active %}checked{% endif %}
-                  {% if value.count == 0 and value.active == false %}disabled{% endif %}
                 >
                 <span class="casa-col-filter__checkbox">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">

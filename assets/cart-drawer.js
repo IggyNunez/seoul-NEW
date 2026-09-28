@@ -25,10 +25,37 @@ class CartDrawerComponent extends DialogComponent {
     this.removeEventListener(DialogOpenEvent.eventName, this.#updateStickyState);
   }
 
-  #handleCartAdd = () => {
-    if (this.hasAttribute('auto-open')) {
-      this.showDialog();
-    }
+  /**
+   * @param {CartAddEvent | CartUpdateEvent} event
+   */
+  #handleCartAdd = (event) => {
+    if (!this.hasAttribute('auto-open')) return;
+
+    /* CartAddEvent and CartUpdateEvent share the same 'cart:update' event name
+       (see assets/events.js), so this listener fires for EVERY cart mutation —
+       genuine adds, quantity changes, and removals alike. Only a genuine ADD
+       should auto-open the drawer, so we ALLOWLIST the known add sources below
+       rather than infer intent from item count: a removal that leaves other
+       items in the cart still reports itemCount > 0, which would read as an add
+       and reopen the drawer right after the shopper X-closes it.
+
+       In-cart editing (quantity steppers, remove/trash) is dispatched by
+       cart-items-component; its async response can land AFTER the drawer is
+       closed. It isn't an add source, so the allowlist already keeps it out —
+       this explicit early return documents that and defends the behavior even
+       if the allowlist is ever loosened. New add surfaces must add their source
+       to the allowlist to auto-open (a deny-by-default that can't regress). */
+    const data = event?.detail?.data ?? {};
+    const source = data.source || '';
+    if (source === 'cart-items-component') return;
+
+    const isAdd =
+      source === 'product-form-component' ||
+      source === 'quick-add' ||
+      source === 'casa-quickview';
+
+    if (!isAdd) return;
+    this.showDialog();
   };
 
   open() {

@@ -58,7 +58,13 @@
 <style>
 .casa-pdp-trust-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* Casa: ALWAYS 4 badges on one line, never wraps. The minmax(0, 1fr)
+     wrapper is critical — without it, the icons+text inside each badge
+     would set a min-content floor that pushes the row wider than its
+     container at narrow viewports. With minmax(0, 1fr) each cell can
+     shrink to 0 if needed, and inner content scales down via media
+     queries below. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   padding: 16px 0;
   border-top: 1px solid #e5e5e5;
@@ -82,7 +88,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #0a0a0a;
+  color: var(--casa-ink);
 }
 
 .casa-pdp-trust-row__icon svg {
@@ -101,8 +107,9 @@
 }
 
 @media (max-width: 480px) {
+  /* Casa: 4 badges stay on one line — shrink icon + text instead of
+     wrapping. Tighter gap so the cells get more room. */
   .casa-pdp-trust-row {
-    grid-template-columns: repeat(4, 1fr);
     gap: 4px;
     padding: 12px 0;
   }
@@ -113,13 +120,20 @@
   }
 
   .casa-pdp-trust-row__text {
-    font-size: 8px;
+    font-size: 9px;
+    line-height: 1.25;
   }
 }
 
 @media (max-width: 375px) {
+  /* Smallest phones — text and icon shrink further so 4-across still
+     fits without overflow. */
+  .casa-pdp-trust-row {
+    gap: 2px;
+  }
+
   .casa-pdp-trust-row__text {
-    font-size: 7px;
+    font-size: 8px;
   }
 
   .casa-pdp-trust-row__icon svg {

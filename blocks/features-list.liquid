@@ -3,6 +3,9 @@
   Displays product features as pill badges with checkmark icons.
   Pill style presets: minimal, gradient, glow, pulse, shimmer, neon-border.
   Per-pill color overrides. Separate desktop / mobile layout controls.
+  Host carries data-casa-anim-gate: the animated presets (pulse /
+  shimmer / neon-border) run infinite keyframes, so casa-anim-gate.js
+  holds them paused off-viewport and during scroll.
 {%- enddoc -%}
 
 {%- assign s = block.settings -%}
@@ -10,11 +13,19 @@
 {%- assign show_desktop = s.show_count_desktop | default: 8 -%}
 {%- assign show_mobile  = s.show_count_mobile  | default: 4 -%}
 
-{%- assign use_grid = false -%}
-{%- if s.per_row_desktop > 0 or s.per_row_mobile > 0 -%}{%- assign use_grid = true -%}{%- endif -%}
+{%- comment -%} Fallback defaults when no setting/metafield values are set {%- endcomment -%}
+{%- assign fl_default_1 = s.feature_1 | default: product.metafields.custom.pdp_feature_1 | default: 'Premium Quality Materials' -%}
+{%- assign fl_default_2 = s.feature_2 | default: product.metafields.custom.pdp_feature_2 | default: 'Free Shipping Worldwide' -%}
+{%- assign fl_default_3 = s.feature_3 | default: product.metafields.custom.pdp_feature_3 | default: '2-Year Warranty Included' -%}
+{%- assign fl_default_4 = s.feature_4 | default: product.metafields.custom.pdp_feature_4 | default: '30-Day Easy Returns' -%}
 
-<link rel="stylesheet" href="{{ 'casa-features-list.css' | asset_url }}" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="{{ 'casa-features-list.css' | asset_url }}"></noscript>
+{%- assign use_grid = false -%}
+{%- if s.per_row_desktop > 0 or s.per_row_mobile > 0 -%}
+  {%- assign use_grid = true -%}
+{%- endif -%}
+
+{%- comment -%} Loaded sync on purpose (8.7 KB): the async print-swap made pill styling flip after first paint. {%- endcomment -%}
+<link rel="stylesheet" href="{{ 'casa-features-list.css' | asset_url }}">
 <style>
   .fl-block-{{ block.id }} .casa-features-list__text,
   .fl-block-{{ block.id }} .casa-features-list__pill {
@@ -36,20 +47,20 @@
   }
   {%- if s.color_mode == 'light' -%}
   .fl-block-{{ block.id }} .casa-features-list__pill {
-    color: #1a1a2e !important;
+    color: #0A0A0F !important;
   }
   .fl-block-{{ block.id }} .fl-style-minimal {
-    background-color: rgba(0,0,0,0.04) !important;
-    border-color: rgba(0,0,0,0.15) !important;
+    background-color: #f3f4f6 !important;
+    border-color: #e5e7eb !important;
   }
   .fl-block-{{ block.id }} .fl-style-solid {
     background-color: rgba(0,0,0,0.06) !important;
     border-color: rgba(0,0,0,0.1) !important;
   }
   .fl-block-{{ block.id }} .fl-style-glow {
-    background-color: rgba(147,51,234,0.08) !important;
-    border-color: rgba(147,51,234,0.3) !important;
-    box-shadow: 0 0 10px rgba(147,51,234,0.15) !important;
+    background-color: rgba(176, 195, 250,0.08) !important;
+    border-color: rgba(176, 195, 250,0.3) !important;
+    box-shadow: 0 0 10px rgba(176, 195, 250,0.15) !important;
   }
   .fl-block-{{ block.id }} .fl-style-glass {
     background-color: rgba(255,255,255,0.7) !important;
@@ -61,11 +72,11 @@
   }
   .fl-block-{{ block.id }} .fl-style-neon-border {
     background-color: rgba(255,255,255,0.8) !important;
-    color: #1a1a2e !important;
+    color: #0A0A0F !important;
   }
   .fl-block-{{ block.id }} .fl-style-pulse {
-    background-color: rgba(147,51,234,0.06) !important;
-    border-color: rgba(147,51,234,0.25) !important;
+    background-color: rgba(176, 195, 250,0.06) !important;
+    border-color: rgba(176, 195, 250,0.25) !important;
   }
   {%- elsif s.color_mode == 'custom' -%}
   .fl-block-{{ block.id }} .casa-features-list__pill {
@@ -74,10 +85,73 @@
     {%- if s.custom_pill_border != blank %}border-color: {{ s.custom_pill_border }} !important;{% endif -%}
   }
   {%- endif -%}
+
+  /* Global overrides — apply in ALL modes */
+  {%- if s.icon_color != blank -%}
+  .fl-block-{{ block.id }} .casa-features-list__icon {
+    color: {{ s.icon_color }} !important;
+  }
+  {%- endif -%}
+  {%- if s.text_color_override != blank -%}
+  .fl-block-{{ block.id }} .casa-features-list__text {
+    color: {{ s.text_color_override }} !important;
+  }
+  {%- endif -%}
+  {%- if s.pill_bg_override != blank -%}
+  .fl-block-{{ block.id }} .casa-features-list__pill {
+    background: {{ s.pill_bg_override }} !important;
+  }
+  {%- endif -%}
+  {%- if s.pill_border_override != blank -%}
+  .fl-block-{{ block.id }} .casa-features-list__pill {
+    border-color: {{ s.pill_border_override }} !important;
+  }
+  {%- endif -%}
+
+  /* Alignment */
+  .fl-block-{{ block.id }} .casa-features-list__pills {
+    justify-content: {{ s.align_desktop | default: 'flex-start' }} !important;
+    justify-items: {{ s.align_desktop | default: 'flex-start' }} !important;
+  }
+
+  /* Show/hide on desktop */
+  {%- unless s.show_desktop == true or s.show_desktop == nil -%}
+  @media (min-width: 750px) {
+    .fl-block-{{ block.id }} { display: none !important; }
+  }
+  {%- endunless -%}
+
+  {%- if s.per_row_desktop > 0 -%}
+  .fl-block-{{ block.id }} .casa-features-list__pills {
+    display: grid !important;
+    grid-template-columns: repeat({{ s.per_row_desktop }}, minmax(0, 1fr)) !important;
+    gap: {{ s.gap_desktop }}px !important;
+  }
+  {%- endif -%}
+  @media (max-width: 749px) {
+    /* Mobile alignment */
+    .fl-block-{{ block.id }} .casa-features-list__pills {
+      justify-content: {{ s.align_mobile | default: 'center' }} !important;
+      justify-items: {{ s.align_mobile | default: 'center' }} !important;
+    }
+
+    /* Show/hide on mobile */
+    {%- unless s.show_mobile == true or s.show_mobile == nil -%}
+    .fl-block-{{ block.id }} { display: none !important; }
+    {%- endunless -%}
+
+    {%- if s.per_row_mobile > 0 -%}
+    .fl-block-{{ block.id }} .casa-features-list__pills {
+      grid-template-columns: repeat({{ s.per_row_mobile }}, minmax(0, 1fr)) !important;
+      gap: {{ s.gap_mobile }}px !important;
+    }
+    {%- endif -%}
+  }
 </style>
 
 <div
   class="casa-features-list fl-block-{{ block.id }} fl-mode-{{ s.color_mode | default: 'dark' }}{% if use_grid %} casa-features-list--grid{% endif %} spacing-style"
+  data-casa-anim-gate
   style="
     {% render 'spacing-style', settings: s %}
     --fl-gap-desktop: {{ s.gap_desktop }}px;
@@ -100,11 +174,27 @@
   <div class="casa-features-list__pills">
     {%- assign pill_index = 0 -%}
     {%- for fid in feature_ids -%}
-      {%- assign text_key  = "feature_"   | append: fid -%}
-      {%- assign color_key = "pill_color_" | append: fid -%}
+      {%- assign text_key  = "feature_"     | append: fid -%}
+      {%- assign color_key = "pill_color_"   | append: fid -%}
+      {%- assign icon_key  = "icon_"         | append: fid -%}
+      {%- assign cicon_key = "custom_icon_"  | append: fid -%}
       {%- assign text_val  = s[text_key] -%}
+      {%- if text_val == blank -%}
+        {%- assign mf_key = "pdp_feature_" | append: fid -%}
+        {%- assign text_val = product.metafields.custom[mf_key] -%}
+      {%- endif -%}
+      {%- if text_val == blank -%}
+        {%- assign mf_key2 = "pdp_feature_text_" | append: fid -%}
+        {%- assign text_val = product.metafields.custom[mf_key2] -%}
+      {%- endif -%}
+      {%- if text_val == blank and fid == "1" -%}{%- assign text_val = fl_default_1 -%}{%- endif -%}
+      {%- if text_val == blank and fid == "2" -%}{%- assign text_val = fl_default_2 -%}{%- endif -%}
+      {%- if text_val == blank and fid == "3" -%}{%- assign text_val = fl_default_3 -%}{%- endif -%}
+      {%- if text_val == blank and fid == "4" -%}{%- assign text_val = fl_default_4 -%}{%- endif -%}
       {%- if text_val != blank -%}
         {%- assign pill_index = pill_index | plus: 1 -%}
+        {%- assign icon_val = s[icon_key] | default: 'check' -%}
+        {%- assign cicon_val = s[cicon_key] -%}
 
         {%- assign hide_class = "" -%}
         {%- if pill_index > show_desktop -%}{%- assign hide_class = hide_class | append: " fl-hide-desktop" -%}{%- endif -%}
@@ -118,12 +208,53 @@
           class="casa-features-list__pill fl-style-{{ s.pill_style }}{{ hide_class }}{% if has_custom_color %} fl-custom-color{% endif %}"
           style="{% if has_custom_color %}--fl-pill-custom: {{ pill_color }};{% endif %}"
         >
-          <span class="casa-features-list__icon" aria-hidden="true">
-            <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M4.5 7L6.25 8.75L9.5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
+          {%- if icon_val != 'none' -%}
+            <span class="casa-features-list__icon" aria-hidden="true">
+              {%- if cicon_val != blank -%}
+                <img src="{{ cicon_val | image_url: width: 40 }}" alt="" width="16" height="16" loading="lazy" style="width: var(--fl-icon-size-desktop, 16px); height: var(--fl-icon-size-desktop, 16px); object-fit: contain;">
+              {%- elsif icon_val == 'check' -%}
+                <svg viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M4.5 7L6.25 8.75L9.5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              {%- elsif icon_val == 'palette' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+              {%- elsif icon_val == 'smartphone' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg>
+              {%- elsif icon_val == 'music' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              {%- elsif icon_val == 'wifi' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg>
+              {%- elsif icon_val == 'bluetooth' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/></svg>
+              {%- elsif icon_val == 'zap' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              {%- elsif icon_val == 'clock' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              {%- elsif icon_val == 'sun' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              {%- elsif icon_val == 'moon' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              {%- elsif icon_val == 'shield' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              {%- elsif icon_val == 'truck' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              {%- elsif icon_val == 'refresh' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+              {%- elsif icon_val == 'star' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              {%- elsif icon_val == 'heart' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              {%- elsif icon_val == 'eye' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              {%- elsif icon_val == 'mic' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              {%- elsif icon_val == 'remote' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
+              {%- elsif icon_val == 'globe' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              {%- elsif icon_val == 'gift' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+              {%- endif -%}
+            </span>
+          {%- endif -%}
           <span class="casa-features-list__text">{{ text_val }}</span>
         </div>
       {%- endif -%}
@@ -144,7 +275,42 @@
       "type": "text",
       "id": "feature_1",
       "label": "Feature 1",
-      "default": "16M Colors"
+      "default": "1M+ Colors"
+    },
+    {
+      "type": "select",
+      "id": "icon_1",
+      "label": "Icon 1",
+      "options": [
+        { "value": "check", "label": "Checkmark (default)" },
+        { "value": "palette", "label": "Palette / Colors" },
+        { "value": "smartphone", "label": "Smartphone / App" },
+        { "value": "music", "label": "Music" },
+        { "value": "wifi", "label": "WiFi" },
+        { "value": "bluetooth", "label": "Bluetooth" },
+        { "value": "zap", "label": "Lightning / Power" },
+        { "value": "clock", "label": "Clock / Timer" },
+        { "value": "sun", "label": "Sun / Light" },
+        { "value": "moon", "label": "Moon" },
+        { "value": "shield", "label": "Shield / Warranty" },
+        { "value": "truck", "label": "Truck / Shipping" },
+        { "value": "refresh", "label": "Refresh / Returns" },
+        { "value": "star", "label": "Star" },
+        { "value": "heart", "label": "Heart" },
+        { "value": "eye", "label": "Eye / View" },
+        { "value": "mic", "label": "Microphone / Voice" },
+        { "value": "remote", "label": "Remote" },
+        { "value": "globe", "label": "Globe" },
+        { "value": "gift", "label": "Gift" },
+        { "value": "none", "label": "No icon" }
+      ],
+      "default": "check"
+    },
+    {
+      "type": "image_picker",
+      "id": "custom_icon_1",
+      "label": "Custom icon 1",
+      "info": "Upload SVG/PNG. Overrides icon select."
     },
     {
       "type": "text",
@@ -153,10 +319,80 @@
       "default": "App Control"
     },
     {
+      "type": "select",
+      "id": "icon_2",
+      "label": "Icon 2",
+      "options": [
+        { "value": "check", "label": "Checkmark (default)" },
+        { "value": "palette", "label": "Palette / Colors" },
+        { "value": "smartphone", "label": "Smartphone / App" },
+        { "value": "music", "label": "Music" },
+        { "value": "wifi", "label": "WiFi" },
+        { "value": "bluetooth", "label": "Bluetooth" },
+        { "value": "zap", "label": "Lightning / Power" },
+        { "value": "clock", "label": "Clock / Timer" },
+        { "value": "sun", "label": "Sun / Light" },
+        { "value": "moon", "label": "Moon" },
+        { "value": "shield", "label": "Shield / Warranty" },
+        { "value": "truck", "label": "Truck / Shipping" },
+        { "value": "refresh", "label": "Refresh / Returns" },
+        { "value": "star", "label": "Star" },
+        { "value": "heart", "label": "Heart" },
+        { "value": "eye", "label": "Eye / View" },
+        { "value": "mic", "label": "Microphone / Voice" },
+        { "value": "remote", "label": "Remote" },
+        { "value": "globe", "label": "Globe" },
+        { "value": "gift", "label": "Gift" },
+        { "value": "none", "label": "No icon" }
+      ],
+      "default": "check"
+    },
+    {
+      "type": "image_picker",
+      "id": "custom_icon_2",
+      "label": "Custom icon 2",
+      "info": "Upload SVG/PNG. Overrides icon select."
+    },
+    {
       "type": "text",
       "id": "feature_3",
       "label": "Feature 3",
       "default": "Music Sync"
+    },
+    {
+      "type": "select",
+      "id": "icon_3",
+      "label": "Icon 3",
+      "options": [
+        { "value": "check", "label": "Checkmark (default)" },
+        { "value": "palette", "label": "Palette / Colors" },
+        { "value": "smartphone", "label": "Smartphone / App" },
+        { "value": "music", "label": "Music" },
+        { "value": "wifi", "label": "WiFi" },
+        { "value": "bluetooth", "label": "Bluetooth" },
+        { "value": "zap", "label": "Lightning / Power" },
+        { "value": "clock", "label": "Clock / Timer" },
+        { "value": "sun", "label": "Sun / Light" },
+        { "value": "moon", "label": "Moon" },
+        { "value": "shield", "label": "Shield / Warranty" },
+        { "value": "truck", "label": "Truck / Shipping" },
+        { "value": "refresh", "label": "Refresh / Returns" },
+        { "value": "star", "label": "Star" },
+        { "value": "heart", "label": "Heart" },
+        { "value": "eye", "label": "Eye / View" },
+        { "value": "mic", "label": "Microphone / Voice" },
+        { "value": "remote", "label": "Remote" },
+        { "value": "globe", "label": "Globe" },
+        { "value": "gift", "label": "Gift" },
+        { "value": "none", "label": "No icon" }
+      ],
+      "default": "check"
+    },
+    {
+      "type": "image_picker",
+      "id": "custom_icon_3",
+      "label": "Custom icon 3",
+      "info": "Upload SVG/PNG. Overrides icon select."
     },
     {
       "type": "text",
@@ -165,9 +401,70 @@
       "default": "Voice Control"
     },
     {
+      "type": "select",
+      "id": "icon_4",
+      "label": "Icon 4",
+      "options": [
+        { "value": "check", "label": "Checkmark (default)" },
+        { "value": "palette", "label": "Palette / Colors" },
+        { "value": "smartphone", "label": "Smartphone / App" },
+        { "value": "music", "label": "Music" },
+        { "value": "wifi", "label": "WiFi" },
+        { "value": "bluetooth", "label": "Bluetooth" },
+        { "value": "zap", "label": "Lightning / Power" },
+        { "value": "clock", "label": "Clock / Timer" },
+        { "value": "sun", "label": "Sun / Light" },
+        { "value": "moon", "label": "Moon" },
+        { "value": "shield", "label": "Shield / Warranty" },
+        { "value": "truck", "label": "Truck / Shipping" },
+        { "value": "refresh", "label": "Refresh / Returns" },
+        { "value": "star", "label": "Star" },
+        { "value": "heart", "label": "Heart" },
+        { "value": "eye", "label": "Eye / View" },
+        { "value": "mic", "label": "Microphone / Voice" },
+        { "value": "remote", "label": "Remote" },
+        { "value": "globe", "label": "Globe" },
+        { "value": "gift", "label": "Gift" },
+        { "value": "none", "label": "No icon" }
+      ],
+      "default": "check"
+    },
+    {
+      "type": "image_picker",
+      "id": "custom_icon_4",
+      "label": "Custom icon 4",
+      "info": "Upload SVG/PNG. Overrides icon select."
+    },
+    {
       "type": "text",
       "id": "feature_5",
       "label": "Feature 5"
+    },
+    {
+      "type": "select",
+      "id": "icon_5",
+      "label": "Icon 5",
+      "options": [
+        { "value": "check", "label": "Checkmark (default)" },
+        { "value": "palette", "label": "Palette / Colors" },
+        { "value": "smartphone", "label": "Smartphone / App" },
+        { "value": "music", "label": "Music" },
+        { "value": "wifi", "label": "WiFi" },
+        { "value": "zap", "label": "Lightning / Power" },
+        { "value": "clock", "label": "Clock / Timer" },
+        { "value": "shield", "label": "Shield / Warranty" },
+        { "value": "star", "label": "Star" },
+        { "value": "eye", "label": "Eye / View" },
+        { "value": "mic", "label": "Microphone / Voice" },
+        { "value": "globe", "label": "Globe" },
+        { "value": "none", "label": "No icon" }
+      ],
+      "default": "check"
+    },
+    {
+      "type": "image_picker",
+      "id": "custom_icon_5",
+      "label": "Custom icon 5"
     },
     {
       "type": "text",
@@ -237,6 +534,34 @@
     },
     {
       "type": "header",
+      "content": "Icon & Text Colors (all modes)"
+    },
+    {
+      "type": "color",
+      "id": "icon_color",
+      "label": "Icon color",
+      "info": "Applies to checkmark icons in all modes. Leave blank for default."
+    },
+    {
+      "type": "color",
+      "id": "text_color_override",
+      "label": "Text color",
+      "info": "Overrides text color in all modes. Leave blank for default."
+    },
+    {
+      "type": "color",
+      "id": "pill_bg_override",
+      "label": "Pill background override",
+      "info": "Overrides background in all modes. Leave blank for preset default."
+    },
+    {
+      "type": "color",
+      "id": "pill_border_override",
+      "label": "Pill border override",
+      "info": "Overrides border in all modes. Leave blank for preset default."
+    },
+    {
+      "type": "header",
       "content": "Per-pill Color Override"
     },
     {
@@ -296,6 +621,23 @@
       "content": "Desktop Layout"
     },
     {
+      "type": "checkbox",
+      "id": "show_desktop",
+      "label": "Show on desktop",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "align_desktop",
+      "label": "Alignment",
+      "options": [
+        { "value": "flex-start", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "flex-end", "label": "Right" }
+      ],
+      "default": "flex-start"
+    },
+    {
       "type": "range",
       "id": "show_count_desktop",
       "label": "Max pills to show",
@@ -347,6 +689,23 @@
     {
       "type": "header",
       "content": "Mobile Layout"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_mobile",
+      "label": "Show on mobile",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "align_mobile",
+      "label": "Alignment",
+      "options": [
+        { "value": "flex-start", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "flex-end", "label": "Right" }
+      ],
+      "default": "center"
     },
     {
       "type": "range",

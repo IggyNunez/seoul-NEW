@@ -1,0 +1,526 @@
+{%- comment -%}
+  Seoul Glow Lab — Setup Strip
+  Inline 3-step setup strip on Paper. Smaller than a full Ink section. Used
+  on the Apollo PDP to compress the install ritual into ~90 seconds of copy.
+  Block-driven; defaults to Apollo's Place / Plug in / Pair.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+-%}
+
+<section
+  id="casa-set-{{ section.id }}"
+  class="casa-set"
+  style="
+    --set-paper:  {{ s.color_paper  | default: '#FAFAF7' }};
+    --set-ink:    {{ s.color_ink    | default: '#0A0A0F' }};
+    --set-line:   {{ s.color_line   | default: '#E1E1DC' }};
+    --set-mute:   {{ s.color_mute   | default: '#54545C' }};
+    --set-purple: {{ s.color_purple | default: '#B0C3FA' }};
+    --set-pink:   {{ s.color_pink   | default: '#5E0A02' }};
+    --set-cyan:   {{ s.color_cyan   | default: '#F2FFA0' }};
+    --set-pt: {{ s.padding_top    | default: 64 }}px;
+    --set-pb: {{ s.padding_bottom | default: 64 }}px;
+  "
+>
+  <div class="casa-set__inner">
+    <header class="casa-set__head">
+      {%- if s.kicker  != blank -%}<p class="casa-set__mono">{{ s.kicker }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="casa-set__h">{{ s.heading }}</h2>{%- endif -%}
+    </header>
+
+    {%- if section.blocks.size > 0 -%}
+      <ol class="casa-set__steps">
+        {%- for block in section.blocks -%}
+          {%- assign b = block.settings -%}
+          <li {{ block.shopify_attributes }}>
+            {%- if b.step_image != blank -%}
+              <figure class="casa-set__photo">
+                <img
+                  src="{{ b.step_image | image_url: width: 800 }}"
+                  srcset="{{ b.step_image | image_url: width: 800 }} 800w,
+                          {{ b.step_image | image_url: width: 600 }} 600w,
+                          {{ b.step_image | image_url: width: 400 }} 400w"
+                  sizes="(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw"
+                  alt="{{ b.step_image.alt | escape | default: b.step_title }}"
+                  loading="lazy"
+                  width="{{ b.step_image.width }}"
+                  height="{{ b.step_image.height }}"
+                >
+              </figure>
+            {%- endif -%}
+            {%- comment -%}
+              Optional brand-line SVG icon per step. Renders inline so colors
+              follow currentColor (--set-ink) and merchants can swap the
+              chosen icon from a fixed enum. Default 'none' = no icon.
+            {%- endcomment -%}
+            {%- if b.step_icon != blank and b.step_icon != 'none' -%}
+              <span class="casa-set__icon" aria-hidden="true">
+                {%- case b.step_icon -%}
+                  {%- when 'power' -%}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 L4 13 L11 13 L11 22 L20 11 L13 11 Z"/></svg>
+                  {%- when 'place' -%}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="5" width="10" height="10" rx="0.5"/><line x1="3" y1="19" x2="21" y2="19"/></svg>
+                  {%- when 'walk' -%}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="6" height="6" rx="0.5"/><path d="M3 12 A9 9 0 0 1 18 5"/><polyline points="18,2 18,5 15,5"/><path d="M21 12 A9 9 0 0 1 6 19"/><polyline points="6,22 6,19 9,19"/></svg>
+                  {%- when 'plug' -%}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2 L9 8 M15 2 L15 8"/><path d="M6 8 L18 8 L18 12 A6 6 0 0 1 6 12 Z"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+                  {%- when 'pair' -%}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7 L17 17"/><path d="M7 17 L12 12"/><path d="M17 7 L12 12"/><circle cx="7" cy="7" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+                  {%- when 'cable' -%}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12 Q8 4 12 12 T21 12"/></svg>
+                {%- endcase -%}
+              </span>
+            {%- endif -%}
+            <span class="casa-set__n">{{ b.step_number | default: forloop.index | prepend: '0' | slice: -2, 2 }}</span>
+            <div>
+              <strong>{{ b.step_title }}.</strong>
+              <span>{{ b.step_body }}</span>
+              {%- if b.step_spec != blank -%}
+                <p class="casa-set__spec">{{ b.step_spec }}</p>
+              {%- endif -%}
+            </div>
+          </li>
+        {%- endfor -%}
+      </ol>
+    {%- endif -%}
+  </div>
+</section>
+
+{% stylesheet %}
+.casa-set {
+  background: var(--set-paper);
+  color: var(--set-ink);
+  padding: var(--set-pt) 0 var(--set-pb);
+  border-top: 1px solid var(--set-line);
+  font-family: var(--font-body--family);
+}
+.casa-set__inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px);
+  display: grid;
+  /* 2026-05-15: was a 2-col grid (head left 320px, steps right 1fr).
+     "Three steps. 90 seconds." can't fit one line at brand-locked
+     H2 spec inside a 320px column — restructured to single column
+     with head full-width above the steps. Cleaner editorial pattern
+     (Stripe / Apple / Linear style) and lets the headline breathe. */
+  grid-template-columns: 1fr;
+  gap: 40px;
+}
+.casa-set__head {
+  max-width: 1080px;
+}
+
+/* ── Kicker — brand book §03 Tag/Kicker spec ──
+   11px JetBrains Mono / 0.12em / weight 500 / opacity 0.5 (quiet chrome). */
+.casa-set__mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--set-ink);
+  opacity: 0.72;
+  margin: 0 0 16px;
+}
+
+/* ── H2 — locked brand book v1 §03 spec ──
+   Consumes --casa-pdp-h2-* tokens from assets/casa-base.css. The em
+   accent is the section's one "moment" — italic, weight 500-600, full
+   purple→pink→cyan trinity gradient. NEVER weight 800; NEVER 2-stop. */
+.casa-set__h {
+  font-family:    var(--casa-pdp-h2-family, 'Inter', sans-serif);
+  font-size:      var(--casa-pdp-h2-size,   clamp(28px, 4vw, 40px));
+  font-weight:    var(--casa-pdp-h2-weight, 500);
+  letter-spacing: var(--casa-pdp-h2-tracking, -0.015em);
+  line-height:    var(--casa-pdp-h2-line,  1.10);
+  color: var(--set-ink);
+  /* 2026-05-15: force one line ("Three steps. 90 seconds." on one
+     row). text-wrap: balance was splitting the heading into 2-3
+     lines inside the old 320px left column. With the head now
+     full-width, white-space:nowrap keeps the headline tight and
+     readable. */
+  white-space: nowrap;
+  margin: 0;
+}
+.casa-set__h em {
+  font-style: italic;
+  font-weight: 600;
+  /* Gradient accent reads larger than surrounding text — merchant
+     directive 2026-05-15 (brand book emphasis register). */
+  font-size: 1.25em;
+  background: linear-gradient(90deg, var(--set-purple), var(--set-pink), var(--set-cyan));
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* ── Steps grid — desktop is 3-up row, mobile collapses to a vertical
+   timeline (see media-query block at the bottom of this file). ── */
+.casa-set__steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+.casa-set__steps li {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* Quiet hairline (was --set-ink which is heavy chrome). */
+  border-top: 1px solid var(--set-line);
+  padding-top: 16px;
+}
+/* Optional photo per step — when bound, becomes the dominant visual of
+   the card. Sits above the step number/title/body. Aspect 4/3 lets the
+   3 photos read as a clean row at desktop. */
+.casa-set__photo {
+  margin: 0 0 4px;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--set-ink);
+}
+.casa-set__photo img {
+  /* height: auto + aspect-ratio instead of height: 100% — the figure's
+     height comes from its own aspect-ratio, and Safari 26 can fail to
+     resolve a %-height against that (the /cart flat-thumbnail class;
+     immune pattern from .cart-items__media-image in snippets/cart-products.liquid). */
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+}
+.casa-set__steps li > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Step number — elevated to the brand "moment" register. Brand purple
+   at full opacity. Matches brand book §01 ("01 · Brand essence" purple
+   kicker). The number becomes each step's brand-trinity anchor. */
+.casa-set__n {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--set-purple);
+}
+
+/* Brand-line icon per step — inline SVG sized 32×32 on desktop. Stroke
+   inherits via currentColor so it matches the section's Ink token. The
+   icon sits between the kicker number and the title in the per-step
+   card on desktop. Mobile rules below scale it up and use it as the
+   timeline-rail anchor in place of the number. */
+.casa-set__icon {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  color: var(--set-ink);
+  flex-shrink: 0;
+}
+.casa-set__icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Step title — Body Large register (18 / 500 / -0.005em). */
+.casa-set__steps strong {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--set-ink);
+  letter-spacing: -0.005em;
+  line-height: 1.30;
+}
+
+/* Step body — Body small (14 / 1.50). #54545C on #FAFAF7 = 6.83:1 (AA).
+   `:not(.casa-set__n)` so this rule does not also override the step
+   number span (which is a `<span>` too). The original CSS happened to
+   assign the same gray to both spans, masking the conflict — once the
+   number moved to brand purple the override surfaced. */
+.casa-set__steps span:not(.casa-set__n) {
+  font-size: 14px;
+  line-height: 1.50;
+  color: var(--set-mute);
+  text-wrap: pretty;
+  max-width: 38ch;
+}
+
+/* ── Spec line (optional, per step) — brand book §03 caption register ──
+   11px JetBrains Mono / 0.10em / UPPERCASE / opacity 0.5. Renders below
+   the body when the merchant fills `step_spec`. Use middle-dot separators
+   for multi-value lines (e.g. "23 × 23 CM BASE · CORNER FIT"). Adds
+   informational density without visual weight. */
+.casa-set__spec {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--set-ink);
+  opacity: 0.72;
+  margin: 6px 0 0;
+  max-width: 38ch;
+  line-height: 1.50;
+}
+
+/* ── Tablet (≤1024px) — inner gap tightens. (Head is already
+   full-width as of 2026-05-15.) ── */
+@media (max-width: 1024px) {
+  .casa-set__inner { gap: 32px; }
+}
+/* ── Tablet/desktop (≥901px) — step content scales up so it stops
+   feeling under-weighted next to the 40px H2. Mobile (≤640px) keeps
+   the compact density per merchant feedback "On mobile this is
+   perfect." Title bumps to 22 (between brand Body Large 18 and H3 24),
+   body lifts to 16 (brand Body register, was Body small 14), spec
+   line lands on its brand caption spec 12px / 0.08em (was 11px /
+   0.10em — kicker spec, intentionally smaller for mobile). Step
+   number also 12px so the new line height balances. ── */
+@media (min-width: 901px) {
+  .casa-set__steps li > div { gap: 8px; }
+  .casa-set__steps strong {
+    font-size: 22px;
+    line-height: 1.25;
+  }
+  .casa-set__steps span:not(.casa-set__n) {
+    font-size: 16px;
+    line-height: 1.55;
+    max-width: 42ch;
+  }
+  .casa-set__n {
+    font-size: 12px;
+    letter-spacing: 0.10em;
+  }
+  .casa-set__spec {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    margin-top: 8px;
+  }
+}
+
+/* ── Phone (≤749px) — keep "Three steps. 90 seconds." on a single
+   line at every phone width, not just iPhone SE. The 28px brand-book
+   floor wraps at any viewport < ~700px because "90 seconds." has wide
+   numerals (9, 0). Per merchant 2026-05-15: every Apollo PDP heading
+   reads as one line on phones. Considered per-section divergence from
+   brand-book v1 §03 H2 floor (28px) — applies only to viewports where
+   the brand-spec floor visibly wraps. ── */
+@media (max-width: 749px) {
+  .casa-set__h { font-size: clamp(20px, 5vw, 28px); }
+}
+
+/* ── iPhone SE / narrow phone — at viewport < 360px, the H2 at
+   28px (clamp floor) is 336px wide which overflows the container
+   by ~25px. Drop the H2 to 24px floor on the smallest screens
+   only; brand book v1 §03 allows a single-step typographic
+   reduction at the narrow extreme to preserve "headline on one
+   line." ── */
+@media (max-width: 360px) {
+  .casa-set__h { font-size: clamp(22px, 7vw, 28px); }
+}
+
+/* ── Smallest realistic viewports (≤320px ≈ Galaxy Fold inner,
+   iPhone 5/SE 1st gen): even at 22px floor the H2 with its 1.25×
+   <em> accent ("Three steps. 90 seconds.") still exceeds the
+   240px content width. The "headline on one line" intent is
+   abandoned ONLY at this extreme — we let the heading wrap at
+   the natural period break, producing a clean 2-line stack:
+       Three steps.
+       90 seconds.
+   Better than the headline rendering past the viewport edge. ── */
+@media (max-width: 320px) {
+  .casa-set__h {
+    white-space: normal;
+    text-wrap: balance;
+    font-size: clamp(20px, 6.5vw, 24px);
+  }
+  /* Cap the <em> accent at 1.05× instead of 1.25× — "90 seconds." at
+     1.25× scale was the longest single line and pushed past the right
+     edge by ~10px on its own. At 1.05× it tracks the base size, still
+     gradient + italic, but actually fits the container. */
+  .casa-set__h em { font-size: 1.05em; }
+  /* Spec strip ("100–240V WORLDWIDE · US / EU / UK / AU") is monospace
+     and long enough to overflow even at the floor font-size. Allow
+     mid-word break at the absolute narrowest so it never extends past
+     the timeline-indented content column. */
+  .casa-set__spec {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+}
+
+/* ── Mobile (≤640px) — steps collapse to a single-column vertical timeline.
+   A 1px hairline runs the full step-list height down the left side, with
+   each step number sitting on it as a brand-purple tick. Reads as a
+   connected three-step ritual rather than three identical rows. The
+   timeline only renders when no per-step photo is set (photo mode keeps
+   the original card layout — :has() falls back gracefully on older UAs). */
+@media (max-width: 640px) {
+  .casa-set__steps {
+    grid-template-columns: 1fr;
+    position: relative;
+    padding-left: 36px;
+    gap: 28px;
+  }
+  /* The timeline rail (only when no step uses a photo). */
+  .casa-set__steps:not(:has(.casa-set__photo))::before {
+    content: '';
+    position: absolute;
+    left: 12px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: var(--set-line);
+  }
+  .casa-set__steps:not(:has(.casa-set__photo)) li {
+    border-top: none;
+    padding-top: 0;
+    position: relative;
+  }
+  /* Step number sits on the rail as a tick — paper background masks the
+     line behind it so the digit reads as a labeled stop. */
+  .casa-set__steps:not(:has(.casa-set__photo)) .casa-set__n {
+    position: absolute;
+    left: -36px;
+    top: 2px;
+    width: 28px;
+    background: var(--set-paper);
+    padding: 2px 0;
+  }
+  /* When ANY step has a photo, fall back to the original stacked card
+     layout (photo dominant, then number/title/body inline). The hairline
+     comes back per step at the quieter --set-line color. */
+  .casa-set__steps:has(.casa-set__photo) li {
+    border-top: 1px solid var(--set-line);
+    padding-top: 16px;
+  }
+  /* When ANY step has a brand-line icon set, icons take over as the
+     visual anchor on mobile: rail + number tick are hidden, each row
+     becomes a flat horizontal layout [icon] [title]. The icons carry
+     the rhythm so the rail is redundant. Falls back to text-only with
+     rail on older browsers without :has(). */
+  .casa-set__steps:has(.casa-set__icon) {
+    padding-left: 0;
+    gap: 20px;
+  }
+  .casa-set__steps:has(.casa-set__icon)::before { display: none; }
+  .casa-set__steps:has(.casa-set__icon) .casa-set__n { display: none; }
+  .casa-set__steps:has(.casa-set__icon) li {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+  .casa-set__steps:has(.casa-set__icon) li > .casa-set__icon {
+    width: 36px;
+    height: 36px;
+    color: var(--set-purple);
+    flex-shrink: 0;
+  }
+  .casa-set__steps:has(.casa-set__icon) li > div {
+    flex: 1;
+  }
+  /* Step body on phones in icon-mode — short punchlines (2–4 words
+     per step). Merchant: "very weak section" when icons + titles only
+     rendered with no payoff. Tight one-line punchlines under each
+     title now pay off the step without bringing back the paragraph
+     bloat. .casa-set__spec stays hidden in icon-mode — it's a desktop
+     spec annotation that would clutter the icon row.
+     Merchant template should keep step_body to a 2–4 word phrase for
+     mobile readability in icon-mode. */
+  .casa-set__steps:has(.casa-set__icon) li > div > span {
+    display: block;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--set-mute);
+    margin-top: 2px;
+  }
+  .casa-set__steps:has(.casa-set__icon) li > div > .casa-set__spec {
+    display: none;
+  }
+  /* Text-only mode (no icons, e.g. Apollo) — keep the body visible
+     but trim its styling on mobile: smaller font (12 vs desktop's
+     14), tighter max-width (28ch vs 38ch), 6px margin under the
+     title. Brand book §03 quiet chrome — minimal, not chunky.
+     2026-05-15 added at merchant request. */
+  .casa-set__steps:not(:has(.casa-set__icon)) li > div > span {
+    font-size: 12px;
+    line-height: 1.55;
+    margin-top: 6px;
+    max-width: 28ch;
+  }
+  .casa-set__steps strong {
+    font-size: 17px;
+  }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Setup Strip",
+  "tag": "section",
+  "class": "casa-setup-strip-section",
+  "settings": [
+    { "type": "header", "content": "Heading" },
+    { "type": "text", "id": "kicker",  "label": "Kicker (mono)", "default": "06 · SETUP" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading (use <em>word</em> for italic gradient accent)", "default": "Three steps. <em>90 seconds.</em>" },
+
+    { "type": "header", "content": "Colors" },
+    { "type": "color", "id": "color_paper",  "label": "Paper",         "default": "#FAFAF7" },
+    { "type": "color", "id": "color_ink",    "label": "Ink",           "default": "#0A0A0F" },
+    { "type": "color", "id": "color_line",   "label": "Hairline",      "default": "#E1E1DC" },
+    { "type": "color", "id": "color_mute",   "label": "Muted text",    "default": "#54545C" },
+    { "type": "color", "id": "color_purple", "label": "Accent purple", "default": "#B0C3FA" },
+    { "type": "color", "id": "color_pink",   "label": "Accent pink",   "default": "#5E0A02" },
+    { "type": "color", "id": "color_cyan",   "label": "Accent cyan",   "default": "#F2FFA0", "info": "Third stop of the brand trinity gradient on the heading <em>." },
+
+    { "type": "header", "content": "Spacing" },
+    { "type": "range", "id": "padding_top",    "label": "Padding top",    "min": 0, "max": 160, "step": 4, "default": 64, "unit": "px" },
+    { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 160, "step": 4, "default": 64, "unit": "px" }
+  ],
+  "blocks": [
+    {
+      "type": "step",
+      "name": "Step",
+      "limit": 6,
+      "settings": [
+        { "type": "text",         "id": "step_number", "label": "Number (e.g. 01)",  "default": "01" },
+        { "type": "text",         "id": "step_title",  "label": "Title",             "default": "Place" },
+        { "type": "textarea",     "id": "step_body",   "label": "Body",              "default": "Stand the Apōllō in any corner. Slim 9 × 9 in (23 × 23 cm) base — fits behind a chair, beside a sofa, in a hallway." },
+        { "type": "text",         "id": "step_spec",   "label": "Spec line (mono, optional)", "info": "11px UPPERCASE mono. Use middle-dot · separators for multi-value lines (e.g. \"23 × 23 CM BASE · CORNER FIT\"). Leave blank to skip." },
+        { "type": "image_picker", "id": "step_image",  "label": "Photo (optional)",  "info": "When set, shows as the dominant visual of this step. Aspect 4/3, cover crop. Leave blank for text-only step." },
+        { "type": "select", "id": "step_icon", "label": "Brand-line icon (optional)", "info": "Inline SVG, inherits the section's Ink color. On mobile, icons replace the step number on the timeline.",
+          "options": [
+            { "value": "none",  "label": "None" },
+            { "value": "power", "label": "Power / lightning (turn on)" },
+            { "value": "place", "label": "Place (object on surface)" },
+            { "value": "walk",  "label": "Walk around (360°)" },
+            { "value": "plug",  "label": "Plug (power adapter)" },
+            { "value": "pair",  "label": "Pair (sync devices)" },
+            { "value": "cable", "label": "Cable (wave)" }
+          ],
+          "default": "none"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Apollo · 3 steps",
+      "blocks": [
+        { "type": "step", "settings": { "step_number": "01", "step_title": "Place",   "step_body": "Stand the Apōllō in any corner. Slim 9 × 9 in (23 × 23 cm) base — fits behind a chair, beside a sofa, in a hallway.", "step_spec": "23 × 23 CM BASE · CORNER FIT" } },
+        { "type": "step", "settings": { "step_number": "02", "step_title": "Plug in", "step_body": "Pick the adapter for your region from the worldwide kit — US, EU, UK, AU. Plug into any 100–240V outlet.", "step_spec": "100–240V WORLDWIDE · US / EU / UK / AU" } },
+        { "type": "step", "settings": { "step_number": "03", "step_title": "Pair",    "step_body": "Pop the batteries into the remote and press any button. The lamp links on the first press.", "step_spec": "PAIRS INSTANTLY · IR REMOTE" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

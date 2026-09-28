@@ -1,0 +1,847 @@
+{%- comment -%}
+  Seoul Glow Lab — AuraSphere Constellation Gallery
+  Pattern picker (Solo/Pair/Triad/Constellation) → animated Spheres on a wall.
+  Each Sphere is a back-lit halo wash on matte black disc (no front-facing LED).
+{%- endcomment -%}
+
+{%- liquid
+  assign cap = section.settings.container_max | default: 1440
+  assign py = section.settings.padding_y | default: 96
+  assign py_m = section.settings.padding_y_mobile | default: 56
+  assign cycle_ms = section.settings.scene_cycle_ms | default: 3000
+  assign aura_shape = section.settings.aura_shape | default: 'sphere'
+-%}
+
+<section
+  id="aurasphere-constellation-{{ section.id }}"
+  class="cdl-aurasphere-constellation"
+  data-section-id="{{ section.id }}"
+  data-cycle-ms="{{ cycle_ms }}"
+  data-aura-shape="{{ aura_shape }}"
+  style="
+    --cdl-cap: {{ cap }}px;
+    --cdl-py: {{ py }}px;
+    --cdl-py-m: {{ py_m }}px;
+  "
+>
+  <div class="cdl-as-cons__cap">
+    <div class="cdl-as-cons__head">
+      <div class="cdl-mono">{{ section.settings.kicker | default: '04 · WHAT MAKES IT AURASPHERE' }}</div>
+      <h2 class="cdl-h2">{{ section.settings.heading | default: 'It’s never just one. <em>Hang it as a constellation.</em>' }}</h2>
+      <p class="cdl-lede">{{ section.settings.lede | default: 'A floor lamp lives one per room. The Sphere lives in groups — a pair flanking a sofa, a triad up a stairwell, a five-piece gallery wall. Pick a pattern. They sync to the same scene through one remote.' }}</p>
+    </div>
+
+    <div class="cdl-as-cons__layout">
+      <div class="cdl-as-cons__column-left">
+      <div class="cdl-as-cons__picker-rail">
+      <div class="cdl-as-cons__picker" role="tablist" data-cons-picker>
+        {%- assign default_pattern = section.settings.default_pattern | default: 'triad' -%}
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'pattern' -%}
+            {%- assign pid = block.settings.pattern_id | default: block.id -%}
+            <button
+              class="cdl-as-cons__pick{% if pid == default_pattern %} is-on{% endif %}"
+              data-pattern="{{ pid }}"
+              data-pattern-data="{{ block.settings.positions | escape }}"
+              type="button"
+              role="tab"
+            >
+              <div class="cdl-as-cons__pick-mini">
+                <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid meet">
+                  {%- assign positions = block.settings.positions | split: ';' -%}
+                  {%- for pos in positions -%}
+                    {%- assign coords = pos | strip | split: ',' -%}
+                    {%- if coords.size >= 3 -%}
+                      {%- assign mini_size = coords[2] | strip | times: 0.5 -%}
+                      {%- assign mini_half = mini_size | divided_by: 2.0 -%}
+                      {%- assign mini_x = coords[0] | strip | minus: mini_half -%}
+                      {%- assign mini_y = coords[1] | strip | times: 0.6 | minus: mini_half -%}
+                      {%- case aura_shape -%}
+                        {%- when 'panel' -%}
+                          <rect x="{{ mini_x }}" y="{{ mini_y }}" width="{{ mini_size }}" height="{{ mini_size }}" rx="0.6" ry="0.6" fill="rgba(255,255,255,0.55)" stroke="rgba(255,255,255,0.85)" stroke-width="1" />
+                        {%- when 'frame' -%}
+                          <rect x="{{ mini_x }}" y="{{ mini_y }}" width="{{ mini_size }}" height="{{ mini_size }}" rx="0.4" ry="0.4" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.4" />
+                        {%- else -%}
+                          <circle cx="{{ coords[0] | strip }}" cy="{{ coords[1] | strip | times: 0.6 }}" r="{{ coords[2] | strip | times: 0.25 }}" fill="rgba(255,255,255,0.55)" stroke="rgba(255,255,255,0.85)" stroke-width="1" />
+                      {%- endcase -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+                </svg>
+              </div>
+              <div class="cdl-as-cons__pick-meta">
+                <span class="cdl-mono">{{ block.settings.numeral | default: '01' }}</span>
+                <strong>{{ block.settings.name | default: 'Pattern' }}</strong>
+                <em>{{ block.settings.sub | default: '' }}</em>
+              </div>
+            </button>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+      {%- comment -%}
+        Scroll arrows for the mobile horizontal picker. Hidden on desktop
+        (picker is column-flex there). On mobile, JS toggles `hidden` based
+        on scroll position — prev hidden at start, next hidden at end.
+      {%- endcomment -%}
+      <button class="cdl-as-cons__rail-arrow cdl-as-cons__rail-arrow--prev" type="button" aria-label="Scroll patterns left" data-cons-arrow="prev" hidden>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 4 L6 8 L10 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="cdl-as-cons__rail-arrow cdl-as-cons__rail-arrow--next" type="button" aria-label="Scroll patterns right" data-cons-arrow="next">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4 L10 8 L6 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      </div>{%- comment -%} /.cdl-as-cons__picker-rail {%- endcomment -%}
+
+      <div class="cdl-as-cons__strip">
+        {%- if section.settings.strip_1_label != blank or section.settings.strip_1_body != blank -%}
+          <div class="cdl-as-cons__strip-item">
+            <span class="cdl-as-cons__strip-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="8" y="3" width="8" height="18" rx="1.8"/><line x1="10" y1="6.5" x2="14" y2="6.5"/><circle cx="12" cy="11" r="1.4" fill="currentColor"/><line x1="10" y1="15" x2="14" y2="15"/><line x1="10" y1="17.5" x2="14" y2="17.5"/></svg>
+            </span>
+            <div class="cdl-as-cons__strip-text">
+              <div class="cdl-mono">{{ section.settings.strip_1_label | default: 'One remote' }}</div>
+              <p>{{ section.settings.strip_1_body | default: 'Pairs every Sphere in the cluster.' }}</p>
+            </div>
+          </div>
+        {%- endif -%}
+        {%- if section.settings.strip_2_label != blank or section.settings.strip_2_body != blank -%}
+          <div class="cdl-as-cons__strip-item">
+            <span class="cdl-as-cons__strip-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2"/><line x1="10" y1="5.5" x2="14" y2="5.5"/><circle cx="12" cy="18.5" r="1" fill="currentColor"/></svg>
+            </span>
+            <div class="cdl-as-cons__strip-text">
+              <div class="cdl-mono">{{ section.settings.strip_2_label | default: 'One app' }}</div>
+              <p>{{ section.settings.strip_2_body | default: 'Group, save scenes, schedule.' }}</p>
+            </div>
+          </div>
+        {%- endif -%}
+        {%- if section.settings.strip_3_label != blank or section.settings.strip_3_body != blank -%}
+          <div class="cdl-as-cons__strip-item">
+            <span class="cdl-as-cons__strip-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>
+            </span>
+            <div class="cdl-as-cons__strip-text">
+              <div class="cdl-mono">{{ section.settings.strip_3_label | default: 'No hub' }}</div>
+              <p>{{ section.settings.strip_3_body | default: 'Remote or app — no bridge, no extra hardware.' }}</p>
+            </div>
+          </div>
+        {%- endif -%}
+      </div>
+      </div>{%- comment -%} /.cdl-as-cons__column-left {%- endcomment -%}
+
+      <div class="cdl-as-cons__stage">
+        <div class="cdl-as-cons__wall" data-wall></div>
+        <svg viewBox="0 0 1000 220" preserveAspectRatio="none" class="cdl-as-cons__sofa" aria-hidden="true">
+          <rect x="180" y="40" width="640" height="110" rx="18" fill="#0f0f14" />
+          <rect x="180" y="40" width="60" height="110" rx="14" fill="#1a1a22" />
+          <rect x="760" y="40" width="60" height="110" rx="14" fill="#1a1a22" />
+          <rect x="240" y="55" width="170" height="70" rx="10" fill="#181820" />
+          <rect x="420" y="55" width="170" height="70" rx="10" fill="#181820" />
+          <rect x="600" y="55" width="160" height="70" rx="10" fill="#181820" />
+          <rect x="170" y="148" width="660" height="14" fill="#0a0a0e" />
+          <rect x="196" y="160" width="14" height="24" fill="#0a0a0e" />
+          <rect x="790" y="160" width="14" height="24" fill="#0a0a0e" />
+          <line x1="0" y1="190" x2="1000" y2="190" stroke="rgba(255,255,255,0.05)" />
+        </svg>
+        <div class="cdl-as-cons__floor"></div>
+
+        <div class="cdl-as-cons__caption">
+          <div class="cdl-mono cdl-mono--accent" data-cap-meta>—</div>
+          <p data-cap-hint>—</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="application/json" data-patterns>
+    {
+      {%- assign first = true -%}
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'pattern' -%}
+          {%- assign pid = block.settings.pattern_id | default: block.id -%}
+          {%- unless first -%},{%- endunless -%}
+          {{ pid | json }}: {
+            "num": {{ block.settings.numeral | default: '01' | json }},
+            "name": {{ block.settings.name | default: 'Pattern' | json }},
+            "sub": {{ block.settings.sub | default: '' | json }},
+            "hint": {{ block.settings.hint | default: '' | json }},
+            "positions": {{ block.settings.positions | default: '50,48,28' | json }}
+          }
+          {%- assign first = false -%}
+        {%- endif -%}
+      {%- endfor -%}
+    }
+  </script>
+
+  <script type="application/json" data-scene-pool>
+    [
+      {%- assign first = true -%}
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'scene_color' -%}
+          {%- unless first -%},{%- endunless -%}
+          {
+            "name": {{ block.settings.name | default: 'Cyan' | json }},
+            "hex":  {{ block.settings.hex | default: '#06B6D4' | json }}
+          }
+          {%- assign first = false -%}
+        {%- endif -%}
+      {%- endfor -%}
+    ]
+  </script>
+</section>
+
+{% stylesheet %}
+.cdl-aurasphere-constellation {
+  background: #0a0a0e;
+  color: var(--casa-border-on-paper);
+  padding: clamp(36px, 4.5vh, 64px) 24px;
+  font-family: var(--font-body--family);
+  position: relative;
+  overflow: hidden;
+}
+.cdl-aurasphere-constellation::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 60% 40%, rgba(176, 195, 250,0.07) 0%, transparent 60%);
+  pointer-events: none;
+}
+.cdl-as-cons__cap {
+  max-width: var(--cdl-cap, 1440px);
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+.cdl-as-cons__head { max-width: 720px; margin-bottom: clamp(16px, 2.4vh, 28px); }
+.cdl-as-cons__head .cdl-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 18px;
+}
+.cdl-as-cons__head h2.cdl-h2 {
+  font-family: var(--font-body--family);
+  font-weight: 300;
+  font-size: clamp(26px, 3.6vw, 38px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+  color: #fff;
+}
+.cdl-as-cons__head h2 em {
+  display: block;
+  font-style: italic;
+  font-weight: 800;
+  background: linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.cdl-as-cons__head p.cdl-lede {
+  font-size: 15px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.7);
+  max-width: 600px;
+  margin: 0;
+}
+
+.cdl-as-cons__layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+.cdl-as-cons__column-left {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+.cdl-as-cons__picker-rail {
+  position: relative;
+  /* Desktop layout — rail is just a passthrough wrapper. Mobile styles
+     below convert it into a relative-positioned container for the
+     absolutely-positioned scroll arrows. */
+}
+.cdl-as-cons__picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cdl-as-cons__rail-arrow { display: none; }
+.cdl-as-cons__pick {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+.cdl-as-cons__pick:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.20); }
+.cdl-as-cons__pick.is-on {
+  background: rgba(242, 255, 160,0.06);
+  border-color: rgba(242, 255, 160,0.45);
+  box-shadow: 0 0 20px rgba(242, 255, 160,0.10);
+}
+.cdl-as-cons__pick-mini {
+  width: 60px; height: 36px;
+  flex: 0 0 60px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+}
+.cdl-as-cons__pick-mini svg { width: 100%; height: 100%; }
+.cdl-as-cons__pick.is-on .cdl-as-cons__pick-mini svg circle {
+  fill: #F2FFA0 !important;
+  stroke: #F2FFA0 !important;
+}
+.cdl-as-cons__pick-meta { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.cdl-as-cons__pick-meta .cdl-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.45);
+}
+.cdl-as-cons__pick-meta strong {
+  font-family: var(--font-body--family);
+  font-size: 14px;
+  font-weight: 500;
+}
+.cdl-as-cons__pick-meta em {
+  font-style: normal;
+  font-size: 11px;
+  color: rgba(255,255,255,0.55);
+}
+
+.cdl-as-cons__stage {
+  position: relative;
+  background: linear-gradient(180deg, #0d0d14 0%, #07070a 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+  overflow: hidden;
+  min-height: 320px;
+  padding: 20px 24px 0;
+}
+.cdl-as-cons__wall {
+  position: relative;
+  width: 100%;
+  height: 240px;
+}
+.cdl-as-cons__sphere {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+.cdl-as-cons__sphere svg { width: 100%; height: 100%; display: block; }
+.cdl-as-cons__sofa {
+  width: 90%;
+  max-width: 720px;
+  display: block;
+  margin: 0 auto;
+  height: auto;
+  position: relative;
+  z-index: 1;
+  opacity: 0.85;
+}
+.cdl-as-cons__floor {
+  height: 6px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%);
+  margin-top: -2px;
+}
+.cdl-as-cons__caption {
+  padding: 14px 0 20px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  margin-top: 10px;
+}
+.cdl-as-cons__caption .cdl-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 8px;
+}
+.cdl-as-cons__caption .cdl-mono--accent { color: #F2FFA0; }
+.cdl-as-cons__caption p {
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.75);
+  margin: 0;
+  max-width: 540px;
+}
+
+.cdl-as-cons__strip {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.cdl-as-cons__strip-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.cdl-as-cons__strip-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: rgba(255,255,255,0.75);
+  padding-top: 2px;
+}
+.cdl-as-cons__strip-ico svg { width: 22px; height: 22px; }
+.cdl-as-cons__strip-text .cdl-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.78);
+  margin-bottom: 4px;
+}
+.cdl-as-cons__strip-text p {
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.55);
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .cdl-aurasphere-constellation { padding: 40px 24px; }
+  .cdl-as-cons__head { margin-bottom: 20px; }
+  .cdl-as-cons__head h2 em { display: inline; }
+  .cdl-as-cons__layout { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .cdl-as-cons__column-left { gap: 16px; }
+  /* All patterns in a 2-col grid — no horizontal scroll, so the
+     default-selected pattern (Triad, 3rd of 4) is always visible on
+     load. Replaces the scroll rail + chevron arrows that left the
+     selected pill off-screen to the right. */
+  .cdl-as-cons__picker {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .cdl-as-cons__pick { padding: 12px 12px; gap: 10px; }
+  .cdl-as-cons__pick-mini { flex: 0 0 46px; width: 46px; height: 30px; }
+  /* Scroll chevrons no longer needed — the grid shows every pattern. */
+  .cdl-as-cons__rail-arrow { display: none !important; }
+  .cdl-as-cons__stage { padding: 16px 16px 0; min-height: 280px; }
+  .cdl-as-cons__wall { height: 200px; }
+  .cdl-as-cons__strip { gap: 10px; padding-top: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cdl-as-cons__sphere svg * { animation: none !important; transition: none !important; }
+}
+{% endstylesheet %}
+
+{% javascript %}
+(function () {
+  function teardown(root) {
+    if (root.__cdlCycleId) { clearInterval(root.__cdlCycleId); root.__cdlCycleId = null; }
+    if (root.__cdlIO) { root.__cdlIO.disconnect(); root.__cdlIO = null; }
+    if (root.__cdlArrowResize) {
+      window.removeEventListener('resize', root.__cdlArrowResize);
+      root.__cdlArrowResize = null;
+    }
+    if (root.__cdlArrowFrame) { cancelAnimationFrame(root.__cdlArrowFrame); root.__cdlArrowFrame = null; }
+    root.__cdlASConsInit = false;
+  }
+
+  // Toggle scroll-arrow visibility based on picker's scroll position.
+  // Hidden when there's nothing to scroll to in that direction.
+  function bindArrows(root) {
+    var picker = root.querySelector('[data-cons-picker]');
+    var prev = root.querySelector('[data-cons-arrow="prev"]');
+    var next = root.querySelector('[data-cons-arrow="next"]');
+    if (!picker || (!prev && !next)) return;
+
+    function update() {
+      var sl = picker.scrollLeft;
+      var max = picker.scrollWidth - picker.clientWidth;
+      var canPrev = sl > 4;
+      var canNext = sl < max - 4 && max > 0;
+      if (prev) prev.hidden = !canPrev;
+      if (next) next.hidden = !canNext;
+    }
+
+    function scheduleUpdate() {
+      if (root.__cdlArrowFrame) cancelAnimationFrame(root.__cdlArrowFrame);
+      root.__cdlArrowFrame = requestAnimationFrame(update);
+    }
+
+    function scrollByStep(dir) {
+      var step = Math.max(140, Math.round(picker.clientWidth * 0.6));
+      picker.scrollBy({ left: dir * step, behavior: 'smooth' });
+    }
+
+    if (prev) prev.addEventListener('click', function () { scrollByStep(-1); });
+    if (next) next.addEventListener('click', function () { scrollByStep(1); });
+    picker.addEventListener('scroll', scheduleUpdate, { passive: true });
+    root.__cdlArrowResize = scheduleUpdate;
+    window.addEventListener('resize', root.__cdlArrowResize);
+    update();
+  }
+
+  function init(root) {
+    if (root.__cdlASConsInit) return; root.__cdlASConsInit = true;
+
+    var auraShape = root.dataset.auraShape || 'sphere';
+    var patternsNode = root.querySelector('[data-patterns]');
+    var poolNode = root.querySelector('[data-scene-pool]');
+    if (!patternsNode || !poolNode) return;
+
+    var PATTERNS, POOL;
+    try {
+      PATTERNS = JSON.parse(patternsNode.textContent);
+      POOL = JSON.parse(poolNode.textContent);
+    } catch (e) { return; }
+    if (!POOL || !POOL.length) {
+      POOL = [
+        { name: 'Cyan',     hex: '#06B6D4' },
+        { name: 'Magenta',  hex: '#EC4899' },
+        { name: 'Amber',    hex: '#F97316' },
+        { name: 'Emerald',  hex: '#10B981' },
+        { name: 'Spectrum', hex: '#9333EA' }
+      ];
+    }
+
+    var picks = root.querySelectorAll('[data-pattern]');
+    var wall = root.querySelector('[data-wall]');
+    var capMeta = root.querySelector('[data-cap-meta]');
+    var capHint = root.querySelector('[data-cap-hint]');
+    var cycleMs = parseInt(root.dataset.cycleMs, 10) || 3000;
+
+    var current = picks[0] && picks[0].dataset.pattern;
+    picks.forEach(function (b) { if (b.classList.contains('is-on')) current = b.dataset.pattern; });
+
+    var tickIdx = 0;
+    var phase = 0;
+    var lastFrame = performance.now();
+    var raf;
+
+    function parsePositions(str) {
+      if (!str) return [];
+      return str.split(';').map(function (s) {
+        var parts = s.trim().split(',');
+        if (parts.length < 3) return null;
+        return { x: parseFloat(parts[0]), y: parseFloat(parts[1]), d: parseFloat(parts[2]) };
+      }).filter(Boolean);
+    }
+
+    function buildSphere(parent, sceneIdx) {
+      var ns = 'http://www.w3.org/2000/svg';
+      var s = POOL[sceneIdx % POOL.length];
+      var color = s.hex;
+      var svg = document.createElementNS(ns, 'svg');
+      /* viewBox is 500×500 (not 400×400) so the bloom + blur has 50px of
+         bleed room on every side. With r=200 bloom + stdDeviation=10 blur,
+         the visible halo extends ~30px past the circle's edge — needs
+         padding inside the viewport or the SVG clips it abruptly. */
+      svg.setAttribute('viewBox', '0 0 500 500');
+      svg.style.color = color;
+
+      var defs = document.createElementNS(ns, 'defs');
+      var grad = document.createElementNS(ns, 'radialGradient');
+      var gid = 'casphereGrad-' + Math.random().toString(36).slice(2, 8);
+      grad.setAttribute('id', gid);
+      grad.setAttribute('cx', '50%'); grad.setAttribute('cy', '50%'); grad.setAttribute('r', '50%');
+      [
+        { o: '0%',   c: 'currentColor', op: 0 },
+        { o: '60%',  c: 'currentColor', op: 0 },
+        { o: '72%',  c: 'currentColor', op: 0.85 },
+        { o: '82%',  c: 'currentColor', op: 0.55 },
+        { o: '100%', c: 'currentColor', op: 0 }
+      ].forEach(function (st) {
+        var n = document.createElementNS(ns, 'stop');
+        n.setAttribute('offset', st.o);
+        n.setAttribute('stop-color', st.c);
+        n.setAttribute('stop-opacity', st.op);
+        grad.appendChild(n);
+      });
+      defs.appendChild(grad);
+
+      var fid = 'casphereFilt-' + Math.random().toString(36).slice(2, 8);
+      var filt = document.createElementNS(ns, 'filter');
+      filt.setAttribute('id', fid);
+      filt.setAttribute('x', '-50%'); filt.setAttribute('y', '-50%');
+      filt.setAttribute('width', '200%'); filt.setAttribute('height', '200%');
+      var blur = document.createElementNS(ns, 'feGaussianBlur');
+      blur.setAttribute('stdDeviation', '10');
+      filt.appendChild(blur);
+      defs.appendChild(filt);
+      // Two-layer LED bloom for non-sphere shapes:
+      //   · tight CORE (stdDev=8) → bright luminous edge right at the body
+      //   · wide WASH (stdDev=28) → soft ambient glow extending outward
+      // Stacking both at full opacity gives a vibrant "LED at the source"
+      // look that doesn't read as flat paint.
+      var cid = 'casphereCore-' + Math.random().toString(36).slice(2, 8);
+      var cfilt = document.createElementNS(ns, 'filter');
+      cfilt.setAttribute('id', cid);
+      cfilt.setAttribute('x', '-50%'); cfilt.setAttribute('y', '-50%');
+      cfilt.setAttribute('width', '200%'); cfilt.setAttribute('height', '200%');
+      var cblur = document.createElementNS(ns, 'feGaussianBlur');
+      cblur.setAttribute('stdDeviation', '8');
+      cfilt.appendChild(cblur);
+      defs.appendChild(cfilt);
+      var hid = 'casphereHalo-' + Math.random().toString(36).slice(2, 8);
+      var hfilt = document.createElementNS(ns, 'filter');
+      hfilt.setAttribute('id', hid);
+      hfilt.setAttribute('x', '-50%'); hfilt.setAttribute('y', '-50%');
+      hfilt.setAttribute('width', '200%'); hfilt.setAttribute('height', '200%');
+      var hblur = document.createElementNS(ns, 'feGaussianBlur');
+      hblur.setAttribute('stdDeviation', '28');
+      hfilt.appendChild(hblur);
+      defs.appendChild(hfilt);
+      // Ambient halo gradient — radial fade from bright center to
+      // FULLY transparent at the outer radius. Applied to a rect that
+      // fills the entire viewBox so the visible "edge" of the colored
+      // region is the gradient's transparent stop, never a primitive
+      // boundary. This eliminates the hard-cut artefact a blurred
+      // opaque-rect bloom produces against a dark background.
+      var ambId = 'casphereAmb-' + Math.random().toString(36).slice(2, 8);
+      var ambGrad = document.createElementNS(ns, 'radialGradient');
+      ambGrad.setAttribute('id', ambId);
+      ambGrad.setAttribute('cx', '50%'); ambGrad.setAttribute('cy', '50%'); ambGrad.setAttribute('r', '55%');
+      [
+        { o: '0%',   op: 0.42 },
+        { o: '35%',  op: 0.25 },
+        { o: '60%',  op: 0.12 },
+        { o: '80%',  op: 0.04 },
+        { o: '100%', op: 0 }
+      ].forEach(function (st) {
+        var n = document.createElementNS(ns, 'stop');
+        n.setAttribute('offset', st.o);
+        n.setAttribute('stop-color', 'currentColor');
+        n.setAttribute('stop-opacity', st.op);
+        ambGrad.appendChild(n);
+      });
+      defs.appendChild(ambGrad);
+      svg.appendChild(defs);
+
+      /* Light physics: the halo on the wall behind a back-lit LED
+         follows the product's perimeter geometry, not always a circle.
+           sphere  → solid disc body, ring of light around (circular wash)
+           ring    → HOLLOW band, wall lit through the open center too
+           panel   → solid square body, SQUARE halo following the perimeter
+           frame   → HOLLOW square outline, wall lit through center + around
+           edge    → thin vertical bar, VERTICAL elongated halo
+         All viewBox 500×500, center (250,250). */
+      function el(tag, attrs) {
+        var e = document.createElementNS(ns, tag);
+        for (var k in attrs) e.setAttribute(k, attrs[k]);
+        return e;
+      }
+
+      // Per-shape halo + body. The LEDs sit on the BACK of the matte body
+      // and bounce off the wall, so the visible glow is a halo around the
+      // body's PERIMETER — not a flood-fill of the canvas. Each non-sphere
+      // shape renders a heavily-blurred copy of the body in `currentColor`:
+      // the blur creates a soft falloff brightest at the body edge and
+      // fading both outward (onto surrounding wall) and inward (into the
+      // open center for hollow shapes). The full-canvas ambient gradient
+      // is sphere-only — for hollow shapes its bright center would leak
+      // through the opening and look like paint.
+
+      if (auraShape === 'panel') {
+        // Solid square panel — two-layer halo (wide wash + tight core) at
+        // full opacity. Wide layer rendered first so it sits behind.
+        svg.appendChild(el('rect', { x: 120, y: 120, width: 260, height: 260, rx: 12, ry: 12, fill: 'currentColor', filter: 'url(#' + hid + ')' }));
+        svg.appendChild(el('rect', { x: 120, y: 120, width: 260, height: 260, rx: 12, ry: 12, fill: 'currentColor', filter: 'url(#' + cid + ')' }));
+        svg.appendChild(el('rect', { x: 120, y: 120, width: 260, height: 260, rx: 8, ry: 8, fill: '#0a0a0e' }));
+        svg.appendChild(el('rect', { x: 120, y: 120, width: 260, height: 260, rx: 8, ry: 8, fill: 'none', stroke: 'rgba(255,255,255,0.04)', 'stroke-width': 1 }));
+      } else if (auraShape === 'frame') {
+        // Hollow square frame — two-layer halo radiates from the aluminum
+        // edge both outward AND inward. Even-odd path gives just the
+        // outline; tight core + wide wash gives the luminous LED look.
+        svg.appendChild(el('path', { d: 'M120 120 H380 V380 H120 Z M138 138 H362 V362 H138 Z', fill: 'currentColor', 'fill-rule': 'evenodd', filter: 'url(#' + hid + ')' }));
+        svg.appendChild(el('path', { d: 'M120 120 H380 V380 H120 Z M138 138 H362 V362 H138 Z', fill: 'currentColor', 'fill-rule': 'evenodd', filter: 'url(#' + cid + ')' }));
+        svg.appendChild(el('path', { d: 'M120 120 H380 V380 H120 Z M138 138 H362 V362 H138 Z', fill: '#0a0a0e', 'fill-rule': 'evenodd' }));
+      } else if (auraShape === 'edge') {
+        // Thin vertical bar — two-layer halo bleeds laterally onto walls.
+        svg.appendChild(el('rect', { x: 245, y: 50, width: 10, height: 400, rx: 3, ry: 3, fill: 'currentColor', filter: 'url(#' + hid + ')' }));
+        svg.appendChild(el('rect', { x: 245, y: 50, width: 10, height: 400, rx: 3, ry: 3, fill: 'currentColor', filter: 'url(#' + cid + ')' }));
+        svg.appendChild(el('rect', { x: 245, y: 50, width: 10, height: 400, rx: 3, ry: 3, fill: '#0a0a0e' }));
+        svg.appendChild(el('rect', { x: 245, y: 50, width: 10, height: 400, rx: 3, ry: 3, fill: 'none', stroke: 'rgba(255,255,255,0.04)', 'stroke-width': 1 }));
+      } else if (auraShape === 'ring') {
+        // Hollow ring — two-layer halo from the thin band.
+        svg.appendChild(el('circle', { cx: 250, cy: 250, r: 130, fill: 'none', stroke: 'currentColor', 'stroke-width': 14, filter: 'url(#' + hid + ')' }));
+        svg.appendChild(el('circle', { cx: 250, cy: 250, r: 130, fill: 'none', stroke: 'currentColor', 'stroke-width': 14, filter: 'url(#' + cid + ')' }));
+        svg.appendChild(el('circle', { cx: 250, cy: 250, r: 130, fill: 'none', stroke: '#0a0a0e', 'stroke-width': 14 }));
+        svg.appendChild(el('circle', { cx: 250, cy: 250, r: 123, fill: 'none', stroke: 'rgba(255,255,255,0.04)', 'stroke-width': 1 }));
+      } else {
+        // Sphere — full-canvas ambient + wash gradient ring + matte disc.
+        // Ambient and wash gradient stops are currentColor with opacity
+        // falloff, so they fade to transparent at the viewBox corners.
+        svg.appendChild(el('rect', { x: 0, y: 0, width: 500, height: 500, fill: 'url(#' + ambId + ')' }));
+        svg.appendChild(el('circle', { cx: 250, cy: 250, r: 180, fill: 'url(#' + gid + ')' }));
+        svg.appendChild(el('circle', { cx: 250, cy: 250, r: 130, fill: '#0a0a0e' }));
+        svg.appendChild(el('circle', { cx: 250, cy: 250, r: 129, fill: 'none', stroke: 'rgba(255,255,255,0.04)', 'stroke-width': 1 }));
+      }
+
+      parent.appendChild(svg);
+      return svg;
+    }
+
+    function paintPattern(patternKey) {
+      while (wall.firstChild) wall.removeChild(wall.firstChild);
+
+      var p = PATTERNS[patternKey];
+      if (!p) return;
+      var positions = parsePositions(p.positions);
+      positions.forEach(function (pos, i) {
+        var d = document.createElement('div');
+        d.className = 'cdl-as-cons__sphere';
+        d.style.left = pos.x + '%';
+        d.style.top = pos.y + '%';
+        d.style.width = pos.d + '%';
+        d.style.aspectRatio = '1 / 1';
+        wall.appendChild(d);
+        buildSphere(d, tickIdx + i);
+      });
+
+      if (capMeta) capMeta.textContent = (p.num || '') + ' · ' + (p.name || '').toUpperCase() + (p.sub ? ' · ' + p.sub.toUpperCase() : '');
+      if (capHint) capHint.textContent = p.hint || '';
+    }
+
+    picks.forEach(function (b) {
+      b.addEventListener('click', function () {
+        picks.forEach(function (x) { x.classList.remove('is-on'); });
+        b.classList.add('is-on');
+        current = b.dataset.pattern;
+        paintPattern(current);
+      });
+    });
+
+    paintPattern(current);
+    bindArrows(root);
+
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+
+    // Cycle scene every cycleMs — gated by IntersectionObserver so we
+    // don't burn CPU when the section is off-screen.
+    function startCycle() {
+      if (root.__cdlCycleId) return;
+      root.__cdlCycleId = setInterval(function () {
+        tickIdx = (tickIdx + 1) % POOL.length;
+        paintPattern(current);
+      }, cycleMs);
+    }
+    function stopCycle() {
+      if (root.__cdlCycleId) { clearInterval(root.__cdlCycleId); root.__cdlCycleId = null; }
+    }
+
+    if ('IntersectionObserver' in window) {
+      root.__cdlIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) startCycle(); else stopCycle();
+        });
+      }, { threshold: 0.15 });
+      root.__cdlIO.observe(root);
+    } else {
+      startCycle();
+    }
+  }
+
+  document.querySelectorAll('.cdl-aurasphere-constellation').forEach(init);
+  document.addEventListener('shopify:section:load', function (ev) {
+    var node = ev.target.querySelector('.cdl-aurasphere-constellation');
+    if (node) { teardown(node); init(node); }
+  });
+  document.addEventListener('shopify:section:unload', function (ev) {
+    var node = ev.target.querySelector('.cdl-aurasphere-constellation');
+    if (node) teardown(node);
+  });
+})();
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "AuraSphere Constellation",
+  "tag": "section",
+  "class": "casa-aurasphere-constellation-wrapper",
+  "settings": [
+    { "type": "header", "content": "Shape (per-product)" },
+    {
+      "type": "select",
+      "id": "aura_shape",
+      "label": "Aura shape",
+      "info": "Switches every lamp's silhouette on the wall — circles for spheres, rounded squares for panels.",
+      "default": "sphere",
+      "options": [
+        { "value": "sphere", "label": "Sphere (circle)" },
+        { "value": "panel",  "label": "Panel (rounded square)" },
+        { "value": "frame",  "label": "Frame (hollow rectangle)" },
+        { "value": "ring",   "label": "Ring (open circle)" },
+        { "value": "edge",   "label": "Edge (corner L-bar)" }
+      ]
+    },
+    { "type": "header", "content": "Header" },
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "04 · WHAT MAKES IT AURASPHERE" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "It’s never just one. <em>Hang it as a constellation.</em>" },
+    { "type": "textarea", "id": "lede", "label": "Lede", "default": "A floor lamp lives one per room. The Sphere lives in groups — a pair flanking a sofa, a triad up a stairwell, a five-piece gallery wall. Pick a pattern. They sync to the same scene through one remote." },
+    { "type": "header", "content": "Behavior" },
+    { "type": "text", "id": "default_pattern", "label": "Default pattern (id)", "default": "triad" },
+    { "type": "range", "id": "scene_cycle_ms", "label": "Scene cycle interval", "min": 1500, "max": 8000, "step": 250, "default": 3000, "unit": "ms" },
+    { "type": "header", "content": "Strip" },
+    { "type": "text", "id": "strip_1_label", "label": "Pill 1 — label", "default": "ONE REMOTE" },
+    { "type": "text", "id": "strip_1_body", "label": "Pill 1 — body", "default": "Pairs to every Sphere in the cluster. Press, hold, link — done." },
+    { "type": "text", "id": "strip_2_label", "label": "Pill 2 — label", "default": "ONE APP" },
+    { "type": "text", "id": "strip_2_body", "label": "Pill 2 — body", "default": "Group spheres into a room. Save the cluster’s scene. Schedule sunrise + sunset." },
+    { "type": "text", "id": "strip_3_label", "label": "Pill 3 — label", "default": "NO HUB" },
+    { "type": "text", "id": "strip_3_body", "label": "Pill 3 — body", "default": "Remote or app — no bridge, no extra hardware." },
+    { "type": "header", "content": "Layout" },
+    { "type": "range", "id": "container_max", "label": "Container max width", "min": 1100, "max": 1600, "step": 20, "default": 1440, "unit": "px" },
+    { "type": "range", "id": "padding_y", "label": "Vertical padding (desktop)", "min": 32, "max": 160, "step": 8, "default": 96, "unit": "px" },
+    { "type": "range", "id": "padding_y_mobile", "label": "Vertical padding (mobile)", "min": 24, "max": 96, "step": 4, "default": 56, "unit": "px" }
+  ],
+  "blocks": [
+    {
+      "type": "pattern",
+      "name": "Pattern",
+      "settings": [
+        { "type": "text", "id": "pattern_id", "label": "Pattern ID", "default": "solo", "info": "Lowercase, no spaces. Used to wire default selection." },
+        { "type": "text", "id": "numeral", "label": "Numeral", "default": "01" },
+        { "type": "text", "id": "name", "label": "Name", "default": "Solo" },
+        { "type": "text", "id": "sub", "label": "Subtitle", "default": "1 sphere" },
+        { "type": "textarea", "id": "hint", "label": "Caption hint", "default": "Above a sofa, dining table, or bed headboard. The simplest hang." },
+        { "type": "textarea", "id": "positions", "label": "Sphere positions", "info": "Semicolon-separated x,y,diameter triplets (in % of stage). e.g. 50,48,28;30,40,20", "default": "50,48,28" }
+      ]
+    },
+    {
+      "type": "scene_color",
+      "name": "Scene color (cycle pool)",
+      "settings": [
+        { "type": "text", "id": "name", "label": "Name", "default": "Cyan" },
+        { "type": "color", "id": "hex", "label": "Hex", "default": "#F2FFA0" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "AuraSphere Constellation",
+      "settings": { "default_pattern": "triad" },
+      "blocks": [
+        { "type": "pattern",     "settings": { "pattern_id": "solo",    "numeral": "01", "name": "Solo",          "sub": "1 sphere",  "hint": "Above a sofa, dining table, or bed headboard. The simplest hang.",     "positions": "50,48,28" } },
+        { "type": "pattern",     "settings": { "pattern_id": "pair",    "numeral": "02", "name": "Pair",          "sub": "2 spheres", "hint": "Flanking a fireplace or bed. Symmetry reads architectural.",            "positions": "32,48,22;68,48,22" } },
+        { "type": "pattern",     "settings": { "pattern_id": "triad",   "numeral": "03", "name": "Triad",         "sub": "3 spheres", "hint": "Stacked above a sectional, or stepped up a stairwell.",                 "positions": "24,50,20;50,32,20;76,50,20" } },
+        { "type": "pattern",     "settings": { "pattern_id": "cluster", "numeral": "04", "name": "Constellation", "sub": "5 spheres", "hint": "Gallery wall. Five same-size Spheres scattered — each glowing its own scene, or all synced as one.", "positions": "18,38,16;38,26,16;50,56,16;70,32,16;82,60,16" } },
+        { "type": "scene_color", "settings": { "name": "Cyan",     "hex": "#06B6D4" } },
+        { "type": "scene_color", "settings": { "name": "Cobalt",   "hex": "#2A6FDB" } },
+        { "type": "scene_color", "settings": { "name": "Emerald",  "hex": "#10B981" } },
+        { "type": "scene_color", "settings": { "name": "Amber",    "hex": "#F97316" } },
+        { "type": "scene_color", "settings": { "name": "Magenta",  "hex": "#EC4899" } },
+        { "type": "scene_color", "settings": { "name": "Spectrum", "hex": "#9333EA" } },
+        { "type": "scene_color", "settings": { "name": "Aurora",   "hex": "#A855F7" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

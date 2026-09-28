@@ -38,6 +38,9 @@ export class OverflowList extends DeclarativeShadowElement {
    * @param {string} newValue
    */
   attributeChangedCallback(name, oldValue, newValue) {
+    // Attributes can change before the awaited #initialize() has run;
+    // #refs doesn't exist yet and #reset()/#reflowItems() would throw.
+    if (!this.#refs) return;
     if (name === 'disabled') {
       if (newValue === 'true') {
         this.#reset();

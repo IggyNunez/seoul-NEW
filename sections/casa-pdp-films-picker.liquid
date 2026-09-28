@@ -1,0 +1,1417 @@
+{%- comment -%} sync-marker 2026-05-17-phoenix-films-carousel-rework {%- endcomment -%}
+{%- comment -%}
+  Seoul Glow Lab — Phoenix Films Carousel (§02 of Phoenix PDP)
+
+  Apollo CSP architecture, Phoenix content. Mirrors casa-color-scene-player
+  exactly so the Phoenix §02 reads as one editorial voice with the rest of
+  the PDP system:
+
+    - 100svh − 96px section so it fits one frame above the sticky cart bar
+    - Desktop ≥1101px: 3-col grid — header LEFT, big square stage CENTER,
+      HUD legend RIGHT.
+    - Below the stage: 5 dots + pause + gradient scrubber + count tagline.
+    - Side-bar ambient glow paints the section edges with the current film
+      hex; in-stage screen-blend vignette echoes the lamp body.
+    - Autoplay through films with smooth crossfade; scrubber + dots seek;
+      pause toggle.
+
+  Phoenix-specific:
+    - Surface Ink (matches Apollo CSP — the carousel reads as the same
+      anchor section). Header text and HUD are Paper-on-Ink.
+    - Scrubber gradient is the sunset palette (gold→amber→blush→red→violet)
+      rendered from the actual film hex blocks so any merchant edit flows
+      through.
+    - H2 em accent receives the sunset gradient via the global rule in
+      assets/casa-phoenix.css (selector-driven so inline_richtext doesn't
+      strip a class).
+
+  Block schema preserved (name, number, hex, image, image_url, blurb) so
+  the existing merchant data on the Phoenix product carries over.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign film_count = section.blocks.size
+-%}
+
+{%- if film_count > 0 -%}
+<section
+  id="casa-films-{{ section.id }}"
+  class="casa-films"
+  data-film-count="{{ film_count }}"
+  data-period="{{ s.scene_seconds | default: 2 }}"
+  data-autoplay="{% if s.autoplay %}1{% else %}0{% endif %}"
+  {%- comment -%} Seamless sunset gradient coordinator (Phoenix §02–§06).
+    When on, JS paints ONE scroll-anchored gradient behind §02 through
+    §06 and flattens each section's own base + ambient wash so the whole
+    span reads as a single continuous sunset. Phoenix-only: this section
+    is used by no other template, so nothing else is touched. {%- endcomment -%}
+  data-seamless="{% if s.seamless_gradient %}1{% else %}0{% endif %}"
+  {%- comment -%}
+    Deep-Ink base + faint sunset wash (merchant 2026-07-21). The previous
+    mid-tone rose->violet sweep sat at luminance 0.087-0.148 while Ink is
+    0.0032 — 30-46x too bright for a product whose whole value is EMITTED
+    light. Measured against that ground the sunset films lost their punch,
+    and deep red (#DC2626) came in at 1.10:1, i.e. the same luminance as the
+    backdrop: one of the five signature films was effectively invisible.
+    These stops are the same five sunset hues mixed 18% over Ink #0A0A0F, so
+    the warm->cool drift survives but the ground drops to ~0.011 luminance.
+    Deep red goes 1.10 -> 3.56, gold 2.91 -> 9.41, white text 17.2:1.
+  {%- endcomment -%}
+  data-seamless-stops="{{ s.grad_1 | default: '#26171C' }} 0%, {{ s.grad_2 | default: '#23151D' }} 30%, {{ s.grad_3 | default: '#20151E' }} 58%, {{ s.grad_4 | default: '#1E141F' }} 85%, {{ s.grad_5 | default: '#191622' }} 100%"
+  style="
+    --pt: {{ s.padding_top    | default: 24 }}px;
+    --pb: {{ s.padding_bottom | default: 24 }}px;
+    --paper: {{ s.color_paper | default: '#FAFAF7' }};
+    --ink:   {{ s.color_ink   | default: '#0A0A0F' }};
+  "
+>
+  <header class="casa-films__head">
+    {%- if s.kicker != blank -%}
+      <p class="casa-films__mono">{{ s.kicker }}</p>
+    {%- endif -%}
+    {%- if s.heading != blank -%}
+      <h2 class="casa-films__h2">{{ s.heading }}</h2>
+    {%- endif -%}
+    {%- if s.lede != blank -%}
+      <div class="casa-films__lede">{{ s.lede }}</div>
+    {%- endif -%}
+  </header>
+
+  {%- comment -%} Section-wide ambient side glow. JS sets `--film-c` on the
+    section root to the current film hex; a heavily-blurred radial mask
+    paints the left+right edges so the chrome bars flanking the stage
+    carry the active film color in soft continuous flow. {%- endcomment -%}
+  <div class="casa-films__bg-glow" aria-hidden="true"></div>
+
+  {%- comment -%} .casa-films__viz wraps stage + HUD as a positioning unit.
+    On mobile/iPad: viz acts like the stage wrapper, HUD overlays absolutely
+    in the stage's top-right. On desktop ≥1101px: viz becomes display:contents
+    so stage + HUD promote to direct grid items (cols 2 + 3). {%- endcomment -%}
+  <div class="casa-films__viz">
+    <div class="casa-films__stage">
+      <div class="casa-films__layers">
+        {%- for block in section.blocks -%}
+          {%- assign b = block.settings -%}
+          {%- if b.image != blank -%}
+            {%- assign img_src = b.image | image_url: width: 2000 -%}
+          {%- else -%}
+            {%- assign img_src = b.image_url -%}
+          {%- endif -%}
+          <div
+            class="casa-films__layer"
+            data-idx="{{ forloop.index0 }}"
+            data-hex="{{ b.hex | default: '#E95F77' }}"
+            data-name="{{ b.name | default: 'Scene' | escape }}"
+            data-number="{{ b.number | default: forloop.index | escape }}"
+            data-blurb="{{ b.blurb | strip_html | strip_newlines | escape }}"
+            {{ block.shopify_attributes }}
+            style="background-image: url({{ img_src }}); opacity: {% if forloop.first %}1{% else %}0{% endif %};"
+          ></div>
+        {%- endfor -%}
+      </div>
+
+      {%- comment -%} In-stage glow vignette — JS sets a radial gradient
+        from the dominant film hex over the lamp body, screen-blended so
+        it reads as soft incandescent light, not paint. {%- endcomment -%}
+      <div class="casa-films__glow"></div>
+
+      {%- comment -%} Caption pill anchored bottom-left of the stage.
+        Title-only — the full blurb lives in the HUD on desktop and below
+        the section on mobile (lede already explains the system). {%- endcomment -%}
+      <div class="casa-films__caption">
+        <h3 data-cap-title>{{ section.blocks.first.settings.name }}</h3>
+      </div>
+    </div>
+
+    {%- comment -%} HUD = compact lab-style chip with SCENE / ACCENT / INDEX
+      readouts. Glass card with backdrop blur, sits in stage top-right on
+      mobile/iPad, promotes to col-3 sidebar on desktop ≥1101px. {%- endcomment -%}
+    <aside class="casa-films__hud" aria-hidden="true">
+      <div class="casa-films__hud-row">
+        <span class="k">SCENE</span>
+        <span class="v" data-hud-name>{{ section.blocks.first.settings.name }}</span>
+      </div>
+      <div class="casa-films__hud-row">
+        <span class="k">ACCENT</span>
+        <span class="v">
+          <span class="casa-films__sw" data-hud-sw></span>
+          <span data-hud-hex>{{ section.blocks.first.settings.hex | upcase }}</span>
+        </span>
+      </div>
+      <div class="casa-films__hud-row">
+        <span class="k">INDEX</span>
+        <span class="v" data-hud-index>01 / {{ film_count }}</span>
+      </div>
+    </aside>
+  </div>{%- comment -%} /.casa-films__viz {%- endcomment -%}
+
+  {%- comment -%} Dot indicators — lifted out of the stage so they sit on
+    the chrome below, centered. Each dot wears its film hex. {%- endcomment -%}
+  <div class="casa-films__dots" role="tablist" aria-label="Lighting scenes">
+    {%- for block in section.blocks -%}
+      {%- assign b = block.settings -%}
+      <button
+        type="button"
+        class="casa-films__dot{% if forloop.first %} is-on{% endif %}"
+        data-films-go="{{ forloop.index0 }}"
+        aria-label="Jump to {{ b.name | default: 'scene' | escape }}"
+        style="--c: {{ b.hex | default: '#E95F77' }}; --c-glow: {{ b.hex | default: '#E95F77' }};"
+      ></button>
+    {%- endfor -%}
+  </div>
+
+  <div class="casa-films__ctrl">
+    <button
+      type="button"
+      class="casa-films__btn{% if s.autoplay %} is-on{% endif %}"
+      data-films-toggle
+      aria-pressed="{% if s.autoplay %}true{% else %}false{% endif %}"
+    >
+      <span class="ico" aria-hidden="true">
+        <svg class="ico-play" viewBox="0 0 12 12" width="10" height="10" focusable="false"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg>
+        <svg class="ico-pause" viewBox="0 0 12 12" width="10" height="10" focusable="false"><path d="M2.5 1.5h2.6v9H2.5zM6.9 1.5h2.6v9H6.9z" fill="currentColor"/></svg>
+      </span>
+      <span data-films-label>{% if s.autoplay %}Pause{% else %}Play{% endif %}</span>
+    </button>
+
+    <div class="casa-films__track-wrap">
+      <div class="casa-films__ticks" aria-hidden="true">
+        {%- for block in section.blocks -%}
+          {%- assign b = block.settings -%}
+          <span>{{ b.name | default: 'Scene' | upcase }}</span>
+        {%- endfor -%}
+      </div>
+      <input
+        type="range"
+        min="0"
+        max="1000"
+        value="0"
+        class="casa-films__track"
+        data-films-track
+        aria-label="Scene scrubber"
+        style="background: {%- assign stops = '' -%}{%- for block in section.blocks -%}{%- assign hex = block.settings.hex | default: '#E95F77' -%}{%- assign p1 = forloop.index0 | times: 100 | divided_by: film_count -%}{%- assign p2 = forloop.index | times: 100 | divided_by: film_count -%}{%- assign sum = p1 | plus: p2 -%}{%- assign mid = sum | divided_by: 2 -%}{%- capture stop -%}{{ hex }} {{ mid }}%{%- endcapture -%}{%- if forloop.first -%}{%- assign stops = stop -%}{%- else -%}{%- assign stops = stops | append: ', ' | append: stop -%}{%- endif -%}{%- endfor -%}linear-gradient(90deg, {{ stops }});"
+      >
+      <p class="casa-films__count" aria-hidden="true">
+        <span class="k">{{ s.count_value | default: '25' }}</span>
+        <span class="v">{{ s.count_label | default: 'individual films · five effects' }}</span>
+      </p>
+    </div>
+  </div>
+</section>
+{%- elsif request.design_mode -%}
+  <section class="casa-films casa-films--empty"><p>Add scene blocks via the theme editor.</p></section>
+{%- endif -%}
+
+{% stylesheet %}
+.casa-films {
+  /* Section now ships the same sunset gradient recipe as §04 / §06
+     (merchant 2026-05-18 18th pass: "make this section's gradient
+     look better, there are odd dark spots... we want the whole
+     section to look like there is gradient light"). The previous
+     bg was pure ink #0A0A0F with only a side-edge .casa-films__bg-glow
+     overlay tinted by the active film — leaving the center dark.
+
+     Three layered backgrounds:
+       1. Top + bottom 8-stop ease feather to PURE INK so both
+          section boundaries (buy-box above, §03 stats below) meet
+          neighbors at identical #0A0A0F — invisible seam.
+       2. Sunset radial wash ellipse 95% × 92% at section center,
+          amber → red → violet stops. Reaches every corner of the
+          section so the whole frame reads as sunset, not pure ink.
+       3. #0A0A0F base — same color the feather + adjacent sections
+          collapse to.
+
+     The .casa-films__bg-glow overlay below is preserved — it adds
+     the DYNAMIC per-film side-glow that swaps color when the
+     merchant clicks Gold/Amber/Blush/Red/Violet. So the section
+     now has BOTH: a static sunset wash (always on) + an interactive
+     side-glow that tints with the active film. */
+  position: relative;
+  background:
+    linear-gradient(180deg,
+      #0A0A0F 0%,
+      rgba(10, 10, 15, 0.86) 6%,
+      rgba(10, 10, 15, 0.40) 14%,
+      rgba(10, 10, 15, 0) 22%,
+      rgba(10, 10, 15, 0) 78%,
+      rgba(10, 10, 15, 0.40) 86%,
+      rgba(10, 10, 15, 0.86) 94%,
+      #0A0A0F 100%
+    ),
+    radial-gradient(ellipse 95% 92% at 50% 50%,
+      rgba(245, 158, 11, 0.34) 0%,
+      rgba(220, 38, 38, 0.22) 30%,
+      rgba(167, 139, 250, 0.14) 60%,
+      rgba(30, 16, 40, 0.04) 85%,
+      rgba(10, 10, 15, 0) 100%
+    ),
+    #0A0A0F;
+  color: var(--paper, #FAFAF7);
+  padding: var(--pt, 24px) 0 var(--pb, 24px);
+  overflow: hidden;
+  font-family: var(--font-body--family, 'Inter', sans-serif);
+  /* One-frame fit minus BOTH stickies via --casa-vh-fit (casa-base.css):
+     header group + cart bar, JS-measured. The old fixed 96px ignored the
+     always-sticky header (~100px). The var() fallback covers a missing
+     token (stale cached casa-base.css) only; pre-svh engines resolve to
+     auto (IACVT) — same benign degradation the old 100svh code had. */
+  height: calc(100vh - 196px);
+  height: var(--casa-vh-fit, calc(100svh - 96px));
+  max-height: var(--casa-vh-fit, calc(100svh - 96px));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* Side-bar ambient glow. `--film-c` set by JS to the current film hex.
+   Two radial masks reveal the left + right edges only — the chrome
+   flanking the centered stage carries soft color flow. */
+.casa-films__bg-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--film-c, transparent);
+  opacity: 0.4;
+  filter: blur(50px);
+  -webkit-mask-image:
+    radial-gradient(ellipse 55% 110% at 0% 50%, black 0%, transparent 70%),
+    radial-gradient(ellipse 55% 110% at 100% 50%, black 0%, transparent 70%);
+          mask-image:
+    radial-gradient(ellipse 55% 110% at 0% 50%, black 0%, transparent 70%),
+    radial-gradient(ellipse 55% 110% at 100% 50%, black 0%, transparent 70%);
+  transition: background 0.3s ease;
+}
+
+.casa-films__head,
+.casa-films__viz,
+.casa-films__stage,
+.casa-films__ctrl,
+.casa-films__dots { position: relative; z-index: 1; }
+
+.casa-films__viz {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.casa-films__head {
+  max-width: 720px;
+  margin: 0 auto 20px;
+  padding: 0 clamp(20px, 5vw, 64px);
+  flex: 0 0 auto;
+}
+.casa-films__mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: inherit;
+  opacity: 0.5;
+  margin: 0 0 16px;
+}
+.casa-films__h2 {
+  font-family:    var(--casa-pdp-h2-family);
+  font-size:      var(--casa-pdp-h2-size, clamp(28px, 4vw, 40px));
+  font-weight:    var(--casa-pdp-h2-weight, 500);
+  letter-spacing: var(--casa-pdp-h2-tracking, -0.015em);
+  line-height:    var(--casa-pdp-h2-line, 1.1);
+  margin: 0 0 10px;
+  color: var(--paper);
+  text-wrap: balance;
+}
+.casa-films__h2 em {
+  /* Gradient + italic + weight come from assets/casa-phoenix.css
+     (`:root.is-phoenix .casa-films__h2 em`). Per merchant 2026-05-17
+     em accent must match the H2 size exactly — no emphasis-register
+     bump. The gradient + italic carry the accent without the size shift. */
+  font-size: 1em;
+}
+.casa-films__lede {
+  font-size: clamp(13px, 1.4vw, 15px);
+  line-height: 1.55;
+  /* Was 0.75 on the old mid-tone rose backdrop, where it measured 3.74:1 —
+     under the 4.5:1 AA floor. Briefly raised to 0.92 to clear it; once the
+     backdrop went deep-ink (2026-07-21) that became unnecessary and flattened
+     the lede/heading hierarchy. 0.82 on the new ground measures ~11.9:1, so
+     it clears AA with room to spare AND still reads as secondary. */
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 56ch;
+  margin: 0;
+  text-wrap: pretty;
+}
+.casa-films__lede p { margin: 0; }
+
+/* Stage = centered 1:1 card. Photos crossfade as opacity layers. */
+.casa-films__stage {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  margin: 0 auto;
+  aspect-ratio: 1 / 1;
+  height: 100%;
+  width: auto;
+  max-width: calc(100% - 2 * clamp(20px, 5vw, 64px));
+  border-radius: 18px;
+  overflow: hidden;
+  background: #050507;
+  /* Dropped the inset 1px white hairline (was rgba 0.06) — it produced
+     a faint blurred bar at the top edge once the layer's screen-blend
+     glow lit it. Outer drop-shadow kept for elevation. */
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.8);
+}
+.casa-films__layers { position: absolute; inset: 0; }
+.casa-films__layer {
+  position: absolute;
+  inset: 0;
+  /* Cover-fit centered. The earlier `background-size: 110%; background-position:
+     50% 100%` zoomed in 10% with a bottom anchor — that hard-cropped the lamp's
+     top (disc heads), upscaled the bitmap (low-quality blur on browsers that
+     don't sharpen scaled bg-images), and produced a visible blurred band at
+     the stage's top edge as the photo's ceiling area showed through the
+     screen-blend glow. Plain cover/center fits the photo proportionally
+     without zoom and lets the lamp sit centered in the frame. */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: opacity 0.15s linear;
+  will-change: opacity;
+}
+.casa-films__glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Soft color tint hint, not a wash. Cut from 0.5 → 0.28 + heavier blur so
+     the photo's natural colors carry the scene; the glow only nudges the
+     overall tone toward the active film hex. */
+  mix-blend-mode: screen;
+  opacity: 0.28;
+  filter: blur(18px);
+  transition: background 0.15s linear;
+}
+
+/* Caption = title-only pill, bottom-left of stage. */
+.casa-films__caption {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  max-width: 60%;
+  background: rgba(10, 10, 15, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  padding: 7px 16px;
+  color: var(--paper);
+}
+.casa-films__caption h3 {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  margin: 0;
+  color: #fff;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* HUD = compact lab-style chip overlay (mobile/iPad). Glass card with
+   backdrop blur, sits in stage's top-right corner. Uses --films-stage-w
+   (JS-measured) so right offset lands on stage edge even though the viz
+   extends past it. */
+.casa-films__hud {
+  position: absolute;
+  top: 14px;
+  right: calc((100% - var(--films-stage-w, 72svh)) / 2 + 14px);
+  z-index: 3;
+  width: clamp(160px, 14vw, 190px);
+  background: rgba(10, 10, 15, 0.55);
+  /* Backdrop blur 14px → 10px + will-change (2026-05-17). HUD sits
+     absolute over animated films picker; same fix pattern as
+     2e7e8e4 (header). */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  color: var(--paper);
+  letter-spacing: 0.08em;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+}
+.casa-films__hud-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.casa-films__hud-row .k { color: rgba(255, 255, 255, 0.5); }
+.casa-films__hud-row .v {
+  color: #fff;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.casa-films__sw {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 10px currentColor;
+  background: var(--film-gold, #E8B86A);
+}
+
+/* Dots row in chrome below the stage. Glass pill, centered. */
+.casa-films__dots {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 14px auto 0;
+  padding: 6px 14px;
+  background: rgba(10, 10, 15, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 100px;
+  width: fit-content;
+}
+.casa-films__dot {
+  width: 10px;
+  height: 10px;
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--c, #fff);
+  opacity: 0.45;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+/* The dots are the ONLY manual film-navigation control on Phoenix (the
+   scrubber + ctrl row are display:none'd in casa-phoenix.css). A ::before
+   pseudo expands each 8–10px dot's tap target out to ~44px (WCAG 2.5.5 /
+   2.5.8, mobile pre-flight item 4) without changing the visible chrome —
+   same technique as .casa-films__btn::before below. inset:-17px on the
+   10px base = 44px; the 9/8px responsive variants land ~42px, well clear
+   of the 24px floor. */
+.casa-films__dot::before {
+  content: "";
+  position: absolute;
+  inset: -17px;
+  border-radius: 50%;
+}
+.casa-films__dot:hover { opacity: 0.75; }
+.casa-films__dot.is-on {
+  opacity: 1;
+  transform: scale(1.25);
+  box-shadow: 0 0 10px var(--c-glow, var(--c));
+}
+
+/* Controls row. Phone portrait: button + scrubber on the same row, button on
+   the left. Landscape ≥768: 3-col so PAUSE sits OUTSIDE the stage left and
+   the bar is pixel-centered under the carousel via --films-stage-w. */
+.casa-films__ctrl {
+  margin: 14px auto 0;
+  max-width: calc(100% - 2 * clamp(20px, 5vw, 64px));
+  width: 100%;
+  display: grid;
+  gap: 14px;
+  align-items: center;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  grid-template-columns: auto minmax(0, 1fr);
+  justify-items: stretch;
+}
+@media (min-width: 768px) and (orientation: landscape) {
+  .casa-films__ctrl {
+    grid-template-columns:
+      minmax(min-content, 1fr)
+      min(var(--films-stage-w, 72svh), 100%)
+      minmax(0, 1fr);
+    justify-items: stretch;
+  }
+  .casa-films__btn { justify-self: end; transform: translateY(-6px); }
+  .casa-films__btn:hover { transform: translateY(-6px) scale(1.08); }
+  .casa-films__track-wrap { justify-self: stretch; }
+}
+
+.casa-films__btn {
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--paper);
+  font-family: var(--font-body--family);
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
+  transform: translateY(-14px);
+}
+.casa-films__btn:hover  { background: rgba(255, 255, 255, 0.18); transform: translateY(-14px) scale(1.08); }
+.casa-films__btn:focus-visible { outline: 2px solid var(--film-gold, #E8B86A); outline-offset: 3px; }
+@media (min-width: 641px) {
+  .casa-films__btn       { transform: translateY(-6px); }
+  .casa-films__btn:hover { transform: translateY(-6px) scale(1.08); }
+}
+@media (max-height: 720px) {
+  .casa-films__btn       { transform: translateY(0); }
+  .casa-films__btn:hover { transform: scale(1.08); }
+}
+.casa-films__btn.is-on {
+  background: var(--film-gold, #E8B86A);
+  color: var(--ink, #0A0A0F);
+  border-color: transparent;
+}
+.casa-films__btn .ico { display: inline-flex; align-items: center; }
+/* Both icons ship in the DOM; .is-on (already JS-toggled) picks one —
+   the U+25B6 text glyph fell through Inter to the iOS emoji font. All
+   four state rules share a shape so source order decides, not specificity. */
+.casa-films__btn .ico-play { display: block; }
+.casa-films__btn .ico-pause { display: none; }
+.casa-films__btn.is-on .ico-play { display: none; }
+.casa-films__btn.is-on .ico-pause { display: block; }
+.casa-films__btn [data-films-label] {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.casa-films__track-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  justify-self: stretch;
+}
+.casa-films__ticks {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.5);
+  gap: 6px;
+}
+.casa-films__ticks span {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* Slim sunset scrubber bar — the "color bar" the merchant called out.
+   Gradient is rendered inline via Liquid from the actual film blocks. */
+.casa-films__track {
+  -webkit-appearance: none;
+          appearance: none;
+  height: 4px;
+  border-radius: 100px;
+  outline: none;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  margin: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+.casa-films__track:focus-visible {
+  outline: 2px solid var(--film-gold, #E8B86A);
+  outline-offset: 4px;
+}
+.casa-films__track::-webkit-slider-thumb {
+  -webkit-appearance: none;
+          appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--paper, #FAFAF7);
+  border: 1px solid rgba(10, 10, 15, 0.9);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.casa-films__track::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--paper, #FAFAF7);
+  border: 1px solid rgba(10, 10, 15, 0.9);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.casa-films__track:hover::-webkit-slider-thumb { transform: scale(1.15); }
+.casa-films__track:hover::-moz-range-thumb    { transform: scale(1.15); }
+
+.casa-films__count {
+  margin: 0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+  text-align: center;
+}
+.casa-films__count .k {
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+  letter-spacing: 0.04em;
+}
+
+/* 13" laptops — tighter header (HUD sizing handled per-breakpoint below). */
+@media (max-width: 1280px) {
+  .casa-films__head { margin-bottom: 8px; }
+  .casa-films__h2   { margin-bottom: 4px; }
+  .casa-films__lede { font-size: 13px; }
+}
+
+/* Tablet / iPad ≤1100px — HUD overlays stage top-right. */
+@media (max-width: 1100px) {
+  .casa-films__head { margin-bottom: 10px; }
+  .casa-films__hud  {
+    position: absolute;
+    top: 10px;
+    right: calc((100% - var(--films-stage-w, 72svh)) / 2 + 10px);
+    width: clamp(130px, 18vw, 160px);
+    padding: 8px 10px;
+    font-size: 9px;
+    gap: 3px;
+    border-radius: 9px;
+  }
+  .casa-films__hud-row  { gap: 8px; }
+  .casa-films__caption  { left: 14px; bottom: 14px; padding: 6px 14px; }
+  .casa-films__caption h3 { font-size: 13px; }
+  .casa-films__sw       { width: 8px; height: 8px; }
+  .casa-films__dots     { padding: 5px 12px; gap: 9px; margin-top: 10px; }
+}
+
+/* Desktop ≥1101 — 3-col editorial: title LEFT, big stage CENTER, HUD RIGHT.
+   Controls (dots + pause + bar) span all 3 cols UNDER the stage.
+   2026-05-18 6th pass: restore the 3-col grid after the stacked-hero
+   experiment (37444ae) put the HUD inside the image and over-zoomed
+   the stage. Merchant: "Nothing should be on the image. They should
+   all be on the sides. Text + title left. Legend right. Color bar +
+   pill + pause centered under the image." */
+@media (min-width: 1101px) {
+  .casa-films {
+    display: grid;
+    /* Symmetric 1fr | stage | 1fr grid (merchant 2026-05-18 8th pass:
+       "all center aligned and nothing is misplaced or zig-zagged").
+       Previous asymmetric grid (380-480 | stage | 200-260) put the stage
+       off-center to the right of the viewport while dots/ctrl spanned
+       the full grid centered at viewport center — visible zig-zag.
+       Equal-width side cols make the stage sit exactly on the viewport
+       centerline; dots + ctrl (which span 1/-1) now share that center. */
+    grid-template-columns:
+      1fr
+      min(72svh, 720px)
+      1fr;
+    grid-template-rows: 1fr auto auto;
+    column-gap: clamp(20px, 2vw, 40px);
+    row-gap: clamp(10px, 1.4vh, 20px);
+    align-items: center;
+    justify-content: center;
+    padding: 10px clamp(24px, 2vw, 40px);
+  }
+  /* Viz is a wrapper around stage+HUD; on desktop it dissolves so both
+     promote to direct grid items in cols 2 + 3. */
+  .casa-films__viz { display: contents; }
+
+  .casa-films__head {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    width: 100%;
+    max-width: 480px;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+    align-self: center;
+    justify-self: start;
+  }
+  .casa-films__mono {
+    /* Kicker bumped 11 → 12px on desktop per merchant 2026-05-18 9th pass
+       ("text on the left-hand side should be a bit bigger"). Kept tight
+       4px margin-bottom so the header still lands at ~115px total. */
+    font-size: 12px;
+    margin: 0 0 4px;
+  }
+  .casa-films__h2 {
+    /* Sizing history (this section, this pass):
+         clamp(28, 2.4vw, 36) → clamp(28, 2.4vw, 40) (2026-05-18 9th pass).
+       Low-end + slope unchanged so the H2 still fits col 1 at 1280-1440
+       (col 1 = ~331-352px there, H2 text ~317-335px). Cap raised 36 → 40
+       so 1666+ viewports get a bigger heading; at 1920+ head caps at
+       480px which easily fits 40px nowrap (~387 text). */
+    font-size: clamp(28px, 2.4vw, 40px);
+    white-space: nowrap;
+    margin: 0 0 6px;
+  }
+  .casa-films__h2 em {
+    display: inline;
+    font-size: 1em;
+  }
+  .casa-films__lede {
+    /* Lede bumped clamp(14,1.1vw,16) → clamp(15,1.2vw,18) per merchant
+       2026-05-18 9th pass. Max-width 38ch → 42ch so the lede fills more
+       of col 1 instead of wrapping early. line-height 1.45 → 1.5 for
+       editorial readability at the larger size. */
+    font-size: clamp(15px, 1.2vw, 18px);
+    line-height: 1.5;
+    max-width: 42ch;
+    margin: 8px 0 0;
+  }
+
+  /* Stage — col 2, fills row 1's 1fr height while staying square via
+     its own aspect-ratio (set in the base rule above). */
+  .casa-films__stage {
+    grid-column: 2;
+    grid-row: 1;
+    flex: none;
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+    max-height: 100%;
+    margin: 0;
+    align-self: center;
+    justify-self: center;
+  }
+
+  /* HUD — col 3, static positioning (NOT overlaying the stage). Same
+     glass chrome as the tablet overlay, just placed in the right column. */
+  .casa-films__hud {
+    grid-column: 3;
+    grid-row: 1;
+    position: static;
+    top: auto;
+    right: auto;
+    left: auto;
+    bottom: auto;
+    z-index: auto;
+    align-self: center;
+    justify-self: start;
+    width: 100%;
+    max-width: 260px;
+    padding: 14px 16px;
+    font-size: 12px;
+    gap: 8px;
+    border-radius: 14px;
+    background: rgba(10, 10, 15, 0.55);
+    /* Mobile HUD variant — same fix pattern (2026-05-17). */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    will-change: backdrop-filter;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .casa-films__hud-row { gap: 16px; }
+  .casa-films__sw      { width: 12px; height: 12px; }
+
+  /* Controls — dots row 2, ctrl row 3, both span all 3 cols centered. */
+  .casa-films__dots { grid-column: 1 / -1; grid-row: 2; margin-top: 0; }
+  .casa-films__ctrl { grid-column: 1 / -1; grid-row: 3; margin-top: 0; }
+}
+
+/* Phone — HUD hidden (info conveyed by caption + dots + scrubber).
+   Per merchant 2026-05-18 mobile pass: title bigger, pause button smaller. */
+@media (max-width: 640px) {
+  .casa-films        { padding: 12px 0; }
+  .casa-films__head  { margin-bottom: 10px; padding: 0 24px; }
+  /* H2 forced to ONE LINE across every phone width via white-space: nowrap
+     (merchant directive 2026-05-18, second pass). Clamp tuned so the text
+     doesn't overflow the head's content area (viewport − 48 side padding)
+     at the narrowest viewport that matters (iPhone SE 375):
+       375 SE       → 5.5vw = 20.6px → "A sunset in five films." ≈ 283px
+                                                    (head content = 327px ✓)
+       430 14 PMax  → 23.6px ≈ 326px  (382 ✓)
+       600 small tablet → capped 28px ≈ 386px  (552 ✓)
+     Bigger than the original 18-24 range but guaranteed single-line. */
+  .casa-films__h2    {
+    font-size: clamp(20px, 5.5vw, 28px);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    text-wrap: nowrap;
+  }
+  .casa-films__mono  { margin-bottom: 6px; font-size: 10px; }
+  .casa-films__lede  { font-size: 13px; line-height: 1.45; }
+  .casa-films__hud   { display: none; }
+
+  .casa-films__caption    { left: 10px; bottom: 12px; padding: 5px 12px; max-width: 70%; }
+  .casa-films__caption h3 { font-size: 12px; }
+
+  .casa-films__dots  { padding: 5px 11px; gap: 8px; margin-top: 8px; }
+  .casa-films__dot   { width: 9px; height: 9px; }
+  .casa-films__ticks { display: none; }
+  /* Pause button shrunk from 40 → 28 — was dominating the 4px scrubber
+     visually. A ::before pseudo expands the tap target back out to 44px
+     (WCAG 2.5.5) without changing the visible chrome size. */
+  .casa-films__btn   {
+    width: 28px;
+    height: 28px;
+    position: relative;
+  }
+  .casa-films__btn::before {
+    content: "";
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+  }
+  .casa-films__count .k { font-size: 14px; }
+}
+
+/* Short laptop viewports — lede hidden (above 640px width). */
+@media (max-height: 820px) {
+  .casa-films       { padding-top: 12px; padding-bottom: 12px; }
+  .casa-films__head { margin-bottom: 6px; }
+  .casa-films__h2   { margin-bottom: 3px; }
+  /* Kicker bumped 10 → 11 per merchant 2026-05-18 9th pass — short
+     laptops should still feel readable, not micro-sized. */
+  .casa-films__mono { margin-bottom: 4px; font-size: 11px; }
+  .casa-films__ctrl { margin-top: 6px; }
+  .casa-films__dots { margin-top: 8px; padding: 5px 12px; gap: 8px; }
+  .casa-films__dot  { width: 9px; height: 9px; }
+}
+@media (max-height: 820px) and (min-width: 641px) {
+  .casa-films__lede { display: none; }
+}
+@media (max-height: 720px) {
+  .casa-films       { padding-top: 8px; padding-bottom: 8px; }
+  .casa-films__head { margin-bottom: 4px; }
+  .casa-films__h2   { margin-bottom: 2px; }
+  /* Kicker bumped 9.5 → 10.5 for the same readability reason. */
+  .casa-films__mono { margin-bottom: 3px; font-size: 10.5px; }
+  .casa-films__ctrl { margin-top: 4px; }
+  .casa-films__btn  { width: 28px; height: 28px; }
+  .casa-films__btn .ico svg { width: 9px; height: 9px; }
+  .casa-films__ticks { font-size: 8.5px; }
+  .casa-films__dots  { margin-top: 6px; padding: 4px 10px; gap: 7px; }
+  .casa-films__dot   { width: 8px; height: 8px; }
+  .casa-films__count { display: none; }
+  .casa-films__hud   { font-size: 9px; padding: 7px 10px; gap: 3px; }
+  .casa-films__sw    { width: 8px; height: 8px; }
+}
+
+/* Portrait viewports — section is content-height, no flex grow on stage. */
+@media (max-aspect-ratio: 1 / 1) {
+  .casa-films {
+    height: auto;
+    justify-content: flex-start;
+  }
+  .casa-films__viz { flex: 0 0 auto; }
+  .casa-films__stage {
+    flex: 0 0 auto;
+    width: 100%;
+    height: auto;
+    max-width: calc(100% - 2 * clamp(12px, 4vw, 24px));
+    max-height: 70vh;
+  }
+  .casa-films__head { margin-bottom: 12px; }
+  .casa-films__ctrl {
+    margin-top: 12px;
+    max-width: calc(100% - 2 * clamp(12px, 4vw, 24px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .casa-films__layer,
+  .casa-films__glow,
+  .casa-films__bg-glow,
+  .casa-films__caption,
+  .casa-films__dot,
+  .casa-films__btn { transition: none; }
+}
+{% endstylesheet %}
+
+{% javascript %}
+(function () {
+  function init(root) {
+    if (!root || root.dataset.filmsInit === '1') return;
+    root.dataset.filmsInit = '1';
+
+    var layers = Array.prototype.slice.call(root.querySelectorAll('.casa-films__layer'));
+    var dots   = Array.prototype.slice.call(root.querySelectorAll('[data-films-go]'));
+    var track  = root.querySelector('[data-films-track]');
+    var btn    = root.querySelector('[data-films-toggle]');
+    var label  = root.querySelector('[data-films-label]');
+    var glow   = root.querySelector('.casa-films__glow');
+
+    var hudName  = root.querySelector('[data-hud-name]');
+    var hudHex   = root.querySelector('[data-hud-hex]');
+    var hudSw    = root.querySelector('[data-hud-sw]');
+    var hudIndex = root.querySelector('[data-hud-index]');
+    var capTitle = root.querySelector('[data-cap-title]');
+
+    var total = layers.length;
+    if (total < 1) return;
+
+    var stage = root.querySelector('.casa-films__stage');
+    if (stage && typeof ResizeObserver === 'function') {
+      if (root._filmsRO) root._filmsRO.disconnect();
+      var ro = new ResizeObserver(function (entries) {
+        var w = entries[0].contentRect.width;
+        if (w > 0) root.style.setProperty('--films-stage-w', Math.round(w) + 'px');
+      });
+      ro.observe(stage);
+      root._filmsRO = ro;
+    }
+
+    var period = parseFloat(root.dataset.period) || 2;
+    var prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var auto = root.dataset.autoplay === '1' && !prefersReducedMotion;
+    var t = 0;
+    var rafId = null;
+    var last = null;
+    // IO gate: only run the rAF loop while the section is on-screen.
+    // Without IntersectionObserver support we assume in-view (no gate).
+    var inView = !('IntersectionObserver' in window);
+    // Dirty-check caches so render() skips DOM writes when values are unchanged
+    // (between crossfades everything is static — the loop would otherwise
+    // rewrite identical styles/text 60×/s).
+    var lastGlowHex = null;
+    var lastDomIdx = -1;
+
+    function smoothstep(a, b, x) {
+      var v = Math.max(0, Math.min(1, (x - a) / (b - a)));
+      return v * v * (3 - 2 * v);
+    }
+    function mixHex(a, b, p) {
+      var ah = parseInt(a.slice(1), 16), bh = parseInt(b.slice(1), 16);
+      var ar = (ah >> 16) & 255, ag = (ah >> 8) & 255, ab = ah & 255;
+      var br = (bh >> 16) & 255, bg = (bh >> 8) & 255, bb = bh & 255;
+      var r = Math.round(ar + (br - ar) * p);
+      var g = Math.round(ag + (bg - ag) * p);
+      var bl = Math.round(ab + (bb - ab) * p);
+      return '#' + ((1 << 24) | (r << 16) | (g << 8) | bl).toString(16).slice(1);
+    }
+    function pad2(n) { return ('0' + n).slice(-2); }
+
+    function render() {
+      var cont = t * total;
+      var idx = Math.min(Math.floor(cont), total - 1);
+      var localT = cont - idx;
+      var xfade = smoothstep(0.88, 1, localT);
+      var nextIdx = (idx + 1) % total;
+
+      for (var i = 0; i < total; i++) {
+        var op = 0;
+        if (i === idx) op = 1 - xfade;
+        else if (i === nextIdx) op = xfade;
+        if (layers[i]._filmsOp !== op) {
+          layers[i]._filmsOp = op;
+          layers[i].style.opacity = op;
+        }
+      }
+
+      var cur = layers[idx];
+      var nxt = layers[nextIdx];
+      var glowHex = mixHex(cur.dataset.hex, nxt.dataset.hex, xfade);
+
+      if (glowHex !== lastGlowHex) {
+        lastGlowHex = glowHex;
+        glow.style.background = 'radial-gradient(circle at 50% 55%, '
+          + glowHex + '40 0%, '
+          + glowHex + '2e 18%, '
+          + glowHex + '1c 35%, '
+          + glowHex + '0e 55%, '
+          + 'transparent 80%)';
+      }
+
+      var dom    = (xfade > 0.5) ? nxt : cur;
+      var domIdx = (xfade > 0.5) ? nextIdx : idx;
+
+      // Everything below depends only on the dominant film — skip until it flips.
+      if (domIdx !== lastDomIdx) {
+        lastDomIdx = domIdx;
+        var domHex = dom.dataset.hex || glowHex;
+        var domName = dom.dataset.name || '';
+
+        // Side-bar ambient color flow
+        root.style.setProperty('--film-c', domHex);
+
+        // H2 em gradient: 3-stop slice of the sunset palette anchored on the
+        // dominant film. prev → curr → next wraps at the ends so each film
+        // gets a unique gradient that still reads as part of the same sunset.
+        // Snap-syncs to the same moment the dominant photo flips (xfade > 0.5)
+        // so the eye sees the gradient and image change together.
+        var prevIdx = (domIdx - 1 + total) % total;
+        var aheadIdx = (domIdx + 1) % total;
+        var prevHex = layers[prevIdx].dataset.hex || domHex;
+        var aheadHex = layers[aheadIdx].dataset.hex || domHex;
+        root.style.setProperty('--films-em-grad',
+          'linear-gradient(90deg, ' + prevHex + ' 0%, ' + domHex + ' 50%, ' + aheadHex + ' 100%)');
+
+        if (hudName)  hudName.textContent  = domName;
+        if (hudHex)   hudHex.textContent   = domHex.toUpperCase();
+        if (hudSw) {
+          hudSw.style.background = domHex;
+          hudSw.style.boxShadow  = '0 0 10px ' + domHex;
+        }
+        if (hudIndex) hudIndex.textContent = pad2(domIdx + 1) + ' / ' + pad2(total);
+        if (capTitle) capTitle.textContent = domName;
+
+        for (var j = 0; j < dots.length; j++) {
+          if (j === domIdx) dots[j].classList.add('is-on'); else dots[j].classList.remove('is-on');
+        }
+      }
+      if (track) {
+        var tv = String(Math.round(t * 1000));
+        if (track.value !== tv) track.value = tv;
+      }
+    }
+
+    function tick(now) {
+      if (last == null) last = now;
+      var dt = (now - last) / 1000;
+      last = now;
+      var totalSec = total * period;
+      t += dt / totalSec;
+      if (t >= 1) t = 0;
+      render();
+      rafId = requestAnimationFrame(tick);
+    }
+
+    // The loop itself only runs while the user wants autoplay AND the
+    // section is on-screen (IO-gated) — same pattern as the AuraSphere
+    // scene player. `auto` tracks intent; loopOn/loopOff track the rAF.
+    function loopOn() {
+      if (rafId != null || !auto || !inView) return;
+      last = null;
+      rafId = requestAnimationFrame(tick);
+    }
+    function loopOff() {
+      if (rafId != null) cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+
+    function start() {
+      auto = true;
+      if (btn) { btn.classList.add('is-on'); btn.setAttribute('aria-pressed', 'true'); }
+      if (label) label.textContent = 'Pause';
+      loopOn();
+    }
+    function stop() {
+      auto = false;
+      if (btn) { btn.classList.remove('is-on'); btn.setAttribute('aria-pressed', 'false'); }
+      if (label) label.textContent = 'Play';
+      loopOff();
+    }
+
+    if (btn) btn.addEventListener('click', function () { auto ? stop() : start(); });
+    if (track) track.addEventListener('input', function (ev) {
+      stop();
+      t = parseFloat(ev.target.value) / 1000;
+      render();
+    });
+    dots.forEach(function (dot) {
+      dot.addEventListener('click', function () {
+        stop();
+        var i = parseInt(dot.dataset.filmsGo, 10) || 0;
+        t = (i + 0.05) / total;
+        render();
+      });
+    });
+
+    // Start/stop the rAF loop as the section enters/leaves the viewport,
+    // so an off-screen carousel never burns main-thread frames
+    // (casa-aurasphere-scenes pattern).
+    if ('IntersectionObserver' in window) {
+      if (root.__filmsIO) root.__filmsIO.disconnect();
+      root.__filmsIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          inView = entry.isIntersecting;
+          if (inView) loopOn(); else loopOff();
+        });
+      }, { threshold: 0.15, rootMargin: '200px' });
+      root.__filmsIO.observe(root);
+    }
+
+    // Teardown hook for the theme editor (section:unload / re-init).
+    root.__filmsTeardown = function () {
+      loopOff();
+      if (root.__filmsIO) { root.__filmsIO.disconnect(); root.__filmsIO = null; }
+      if (root._filmsRO) { root._filmsRO.disconnect(); root._filmsRO = null; }
+      root.dataset.filmsInit = '';
+    };
+
+    render();
+    if (auto) start();
+  }
+
+  function bootAll() {
+    document.querySelectorAll('.casa-films').forEach(init);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootAll);
+  } else {
+    bootAll();
+  }
+  document.addEventListener('shopify:section:load', function (ev) {
+    if (ev.target) ev.target.querySelectorAll('.casa-films').forEach(init);
+  });
+  document.addEventListener('shopify:section:unload', function (ev) {
+    if (!ev.target) return;
+    ev.target.querySelectorAll('.casa-films').forEach(function (root) {
+      if (root.__filmsTeardown) root.__filmsTeardown();
+      if (root.__seamlessTeardown) root.__seamlessTeardown();
+    });
+  });
+
+  /* ── Seamless sunset gradient coordinator (Phoenix §02–§06) ──────────
+     Paints ONE scroll-anchored gradient behind the five stacked sections
+     and flattens each one's own base + ambient wash, so the whole span
+     reads as a single continuous sunset with no section edges. Lives
+     entirely here (films-picker is Phoenix-only) — the shared stats/moods
+     sections are only restyled at runtime, their files untouched. */
+  function initSeamless(root) {
+    if (!root || root.dataset.seamless !== '1' || root.__seamlessInit) return;
+    var filmsWrap = root.closest('.shopify-section');
+    if (!filmsWrap) return;
+    root.__seamlessInit = '1';
+
+    // The group, in order: §02 films → §03 stats → §04 arms → §05 moods →
+    // §06 form. Walk siblings from films' wrapper, collecting each that
+    // holds one of these roots, and stop at the first that doesn't (FAQ).
+    var GROUP = ['.casa-films', '.casa-st', '.casa-arms', '.casa-am', '.casa-form', '.casa-faq2'];
+    // Section-wide ambient wash layers to hide (chrome, not product light).
+    var AMBIENT = ['.casa-films__bg-glow', '.casa-arms__ambient', '.casa-am__ambient'];
+
+    var wraps = [];
+    var roots = [];
+    var w = filmsWrap;
+    var wanted = 0;
+    while (w && wanted < GROUP.length) {
+      if (!w.classList || !w.classList.contains('shopify-section')) { w = w.nextElementSibling; continue; }
+      var el = w.querySelector(GROUP[wanted]);
+      if (!el) break; // chain broke — reached FAQ or a reorder; stop.
+      wraps.push(w);
+      roots.push(el);
+      wanted++;
+      w = w.nextElementSibling;
+    }
+    if (wraps.length < 2) { root.__seamlessInit = ''; return; } // nothing to blend
+
+    var container = filmsWrap.parentElement;
+    var prevContainerPos = container.style.position;
+    if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
+
+    // Backdrop lives in the SAME container as the sections so z-index is
+    // reliable across one stacking context. Sections float above it.
+    var backdrop = document.createElement('div');
+    backdrop.className = 'casa-phx-sunset';
+    backdrop.setAttribute('aria-hidden', 'true');
+    backdrop.style.cssText = 'position:absolute;left:0;right:0;top:0;z-index:0;pointer-events:none;';
+    backdrop.style.background = 'linear-gradient(180deg, ' + (root.dataset.seamlessStops || '#0E0C1A 0%, #0A0A0F 100%') + ')';
+    container.insertBefore(backdrop, filmsWrap);
+
+    // Flatten: transparentize each section's own base + hide ambient washes;
+    // lift content above the backdrop. Saved for teardown.
+    var restore = [];
+    wraps.forEach(function (wr) { restore.push([wr, wr.style.position, wr.style.zIndex]); wr.style.position = 'relative'; wr.style.zIndex = '1'; });
+    roots.forEach(function (el) {
+      restore.push([el, el.style.background, null]);
+      el.style.setProperty('background', 'transparent', 'important');
+    });
+    var hidden = [];
+    AMBIENT.forEach(function (sel) {
+      roots.forEach(function (el) {
+        el.querySelectorAll(sel).forEach(function (g) { hidden.push([g, g.style.display]); g.style.display = 'none'; });
+      });
+    });
+
+    function place() {
+      var first = wraps[0].getBoundingClientRect();
+      var last = wraps[wraps.length - 1].getBoundingClientRect();
+      /* Position and size BOTH from rects, measured against the container.
+         Previously `top` came from wraps[0].offsetTop while `height` came from
+         rects. offsetTop is relative to the element's OWN offsetParent, which
+         isn't necessarily this container — when it wasn't, the backdrop was
+         shifted (measured 160px up on the live PDP), so it over-covered the
+         top and fell 160px short at the bottom, leaving the tail of the FAQ
+         with no gradient and a visible colour step. Same basis for both
+         values keeps the layer locked to the section range. (2026-07-16) */
+      var cRect = container.getBoundingClientRect();
+      /* BLEED: overshoot the group top and bottom. The neighbours (buy box
+         above, recommendations below) are opaque, so the overshoot is never
+         seen — but it means a few px of drift, or a re-layout landing between
+         two place() passes, can no longer expose a hard edge where the
+         gradient starts or stops. Cheap insurance against the "beam" class of
+         bug entirely. (2026-07-16) */
+      var BLEED = 320;
+      var top = first.top - cRect.top - BLEED;
+      var height = (last.bottom - first.top) + BLEED * 2;
+      backdrop.style.top = Math.round(top) + 'px';
+      backdrop.style.height = Math.round(height) + 'px';
+    }
+    // Coalesce resize + all 5 ResizeObserver callbacks that can fire in one
+    // frame into a single place() so we don't force-reflow N times per frame.
+    var placeRaf = null;
+    function schedulePlace() {
+      if (placeRaf) return;
+      placeRaf = requestAnimationFrame(function () { placeRaf = null; place(); });
+    }
+    place();
+
+    // Heights settle after images/fonts/carousel paint — recompute on a
+    // few passes + on any group resize + window resize.
+    var raf = requestAnimationFrame(place);
+    var t1 = setTimeout(place, 300), t2 = setTimeout(place, 1200);
+    window.addEventListener('resize', schedulePlace);
+    var ro = null;
+    if (typeof ResizeObserver === 'function') {
+      ro = new ResizeObserver(schedulePlace);
+      wraps.forEach(function (wr) { ro.observe(wr); });
+      /* ALSO observe <body>. The group observer only fires when a group
+         section changes SIZE — but the common failure is the group being
+         PUSHED DOWN by content above it (the buy box carries ~130 images;
+         each one that decodes shifts everything below). The group's own size
+         never changes, so the observer stayed silent and the backdrop kept a
+         stale top: measured 382px high, which left a hard gradient edge over
+         the buy box and another 382px short of the FAQ end — the two "beams"
+         (merchant 2026-07-16). Watching body catches any page-height change. */
+      ro.observe(document.body);
+    }
+    /* Belt-and-braces for the same problem: images finishing after the last
+       timed pass. Cheap — one-shot listener per not-yet-complete image. */
+    var imgs = [].slice.call(document.images);
+    imgs.forEach(function (im) {
+      if (!im.complete) {
+        im.addEventListener('load', schedulePlace, { once: true });
+        im.addEventListener('error', schedulePlace, { once: true });
+      }
+    });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedulePlace);
+
+    root.__seamlessTeardown = function () {
+      cancelAnimationFrame(raf); clearTimeout(t1); clearTimeout(t2);
+      if (placeRaf) cancelAnimationFrame(placeRaf);
+      window.removeEventListener('resize', schedulePlace);
+      if (ro) ro.disconnect();
+      if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+      container.style.position = prevContainerPos;
+      restore.forEach(function (r) {
+        if (r[2] === null) r[0].style.background = r[1] || '';
+        else { r[0].style.position = r[1] || ''; r[0].style.zIndex = r[2] || ''; }
+      });
+      hidden.forEach(function (h) { h[0].style.display = h[1] || ''; });
+      root.__seamlessInit = '';
+      root.__seamlessTeardown = null; // idempotent: can't double-run
+    };
+  }
+  function bootSeamless() { document.querySelectorAll('.casa-films').forEach(initSeamless); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootSeamless);
+  else bootSeamless();
+  // Rebuild the whole group treatment on ANY section load/unload — the
+  // backdrop spans FIVE sections, so a reorder/remove/settings-change of a
+  // MIDDLE group section (not just §02) must recompute. Tear down + re-init
+  // each films root; rAF-debounced so the editor DOM settles first, and it
+  // no-ops cleanly if §02 itself was the section removed.
+  var resyncRaf = null;
+  function resyncSeamless() {
+    if (resyncRaf) cancelAnimationFrame(resyncRaf);
+    resyncRaf = requestAnimationFrame(function () {
+      resyncRaf = null;
+      document.querySelectorAll('.casa-films').forEach(function (root) {
+        if (root.__seamlessTeardown) root.__seamlessTeardown();
+        initSeamless(root);
+      });
+    });
+  }
+  document.addEventListener('shopify:section:load', resyncSeamless);
+  document.addEventListener('shopify:section:unload', resyncSeamless);
+})();
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "Casa Films Carousel",
+  "tag": "section",
+  "class": "shopify-section-casa-films-picker",
+  "settings": [
+    { "type": "header", "content": "Heading" },
+    { "type": "text",  "id": "kicker",  "label": "Kicker (mono)", "default": "02 · LIGHTING COMPOSITIONS" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading (use <em>word</em> for sunset gradient accent)", "default": "Five scenes. <em>Endless combinations.</em>" },
+    { "type": "richtext", "id": "lede", "label": "Lede", "default": "<p>Your Phoenix includes five curated effects, with five matching films for each: <strong>Rose Ember</strong> (pink-red), <strong>Emerald Glow</strong> (green), <strong>Cobalt Dusk</strong> (deep blue), <strong>Turquoise Horizon</strong> (turquoise blue), and <strong>Aurora Fusion</strong> (red-and-blue gradient). The photographs below are styling examples and may combine effects.</p>" },
+
+    { "type": "header", "content": "Carousel behavior" },
+    { "type": "checkbox", "id": "autoplay", "label": "Autoplay on load", "default": true },
+    { "type": "range",    "id": "scene_seconds", "label": "Seconds per scene", "min": 1.5, "max": 8, "step": 0.5, "default": 2, "unit": "s" },
+
+    { "type": "header", "content": "Counter tagline (under the scrubber)" },
+    { "type": "text", "id": "count_value", "label": "Big number", "default": "25" },
+    { "type": "text", "id": "count_label", "label": "Label",      "default": "individual films · five effects" },
+
+    { "type": "header", "content": "Surface" },
+    { "type": "color", "id": "color_paper", "label": "Paper", "default": "#FAFAF7" },
+    { "type": "color", "id": "color_ink",   "label": "Ink",   "default": "#0A0A0F" },
+
+    { "type": "header", "content": "Seamless sunset gradient (§2–§6)" },
+    { "type": "paragraph", "content": "One continuous scroll-anchored sunset behind sections 2–6. Flattens each section's own base + ambient wash so the whole span reads as a single gradient. Phoenix-only." },
+    { "type": "checkbox", "id": "seamless_gradient", "label": "Enable seamless gradient", "default": true },
+    { "type": "color", "id": "grad_1", "label": "Stop 1 — top of §2 (ink + rose)", "default": "#26171C", "visible_if": "{{ section.settings.seamless_gradient }}" },
+    { "type": "color", "id": "grad_2", "label": "Stop 2 (ink + rose)",             "default": "#23151D", "visible_if": "{{ section.settings.seamless_gradient }}" },
+    { "type": "color", "id": "grad_3", "label": "Stop 3 (ink + deep rose)",        "default": "#20151E", "visible_if": "{{ section.settings.seamless_gradient }}" },
+    { "type": "color", "id": "grad_4", "label": "Stop 4 (ink + plum)",             "default": "#1E141F", "visible_if": "{{ section.settings.seamless_gradient }}" },
+    { "type": "color", "id": "grad_5", "label": "Stop 5 — bottom of support (ink + violet)", "default": "#191622", "visible_if": "{{ section.settings.seamless_gradient }}" },
+
+    { "type": "header", "content": "Spacing" },
+    { "type": "range", "id": "padding_top",    "label": "Padding top",    "min": 0, "max": 160, "step": 4, "default": 24, "unit": "px" },
+    { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 160, "step": 4, "default": 24, "unit": "px" }
+  ],
+  "blocks": [
+    {
+      "type": "film",
+      "name": "Scene",
+      "limit": 8,
+      "settings": [
+        { "type": "text",         "id": "name",     "label": "Name",   "default": "Layered Sunset" },
+        { "type": "text",         "id": "number",   "label": "Number", "default": "01" },
+        { "type": "color",        "id": "hex",      "label": "Accent", "default": "#E95F77" },
+        { "type": "image_picker", "id": "image",    "label": "Scene image" },
+        { "type": "text",         "id": "image_url","label": "Scene image URL (fallback)" },
+        { "type": "richtext",     "id": "blurb",    "label": "Blurb",  "default": "<p>Describe the styling scene and note when it combines included effects.</p>" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Films Carousel",
+      "blocks": [
+        { "type": "film", "settings": { "name": "Layered Sunset", "number": "01", "hex": "#E95F77" } },
+        { "type": "film", "settings": { "name": "Gallery Glow",   "number": "02", "hex": "#F29A55" } },
+        { "type": "film", "settings": { "name": "Warm Focus",     "number": "03", "hex": "#F1B97A" } },
+        { "type": "film", "settings": { "name": "Dusk Contrast",  "number": "04", "hex": "#5367D5" } },
+        { "type": "film", "settings": { "name": "Rosy Twilight",  "number": "05", "hex": "#A84FD5" } }
+      ]
+    }
+  ],
+  "enabled_on": {
+    "templates": ["product"]
+  }
+}
+{% endschema %}

@@ -1,27 +1,31 @@
 {%- comment -%}
-  Seoul Glow Lab Trust Bar — Fully customizable
+  Seoul Glow Lab Trust Bar — Fully customizable.
 {%- endcomment -%}
 
 {%- liquid
-  assign bg_color = section.settings.bg_color | default: '#0a0a0f'
+  assign bg_color = section.settings.bg_color | default: '#0A0A0F'
   assign text_color = section.settings.text_color | default: '#cccccc'
-  assign icon_color = section.settings.icon_color | default: '#9333ea'
+  assign icon_color = section.settings.icon_color | default: '#B0C3FA'
   assign border_color = section.settings.border_color | default: '#1a1a2e'
   assign font_size = section.settings.font_size | default: 14
   assign font_weight = section.settings.font_weight | default: '400'
   assign icon_size = section.settings.icon_size | default: 24
   assign padding_y = section.settings.padding_y | default: 24
-  assign gap = section.settings.gap | default: 80
+  assign gap = section.settings.gap | default: 32
   assign layout = section.settings.layout | default: 'horizontal'
   assign show_border_top = section.settings.show_border_top
   assign show_border_bottom = section.settings.show_border_bottom
   assign icon_bg = section.settings.icon_bg
   assign icon_radius = section.settings.icon_radius | default: 10
   assign show_icon_bg = section.settings.show_icon_bg
+  assign mobile_alignment = section.settings.mobile_alignment | default: 'center'
+  assign mobile_layout = section.settings.mobile_layout | default: 'grid'
+  assign scroll_gap = section.settings.scroll_gap | default: 40
+  assign scroll_speed = section.settings.scroll_speed | default: 25
 -%}
 
 <div
-  class="casa-trust-bar casa-trust-bar--{{ layout }}"
+  class="casa-trust-bar casa-trust-bar--{{ layout }} casa-trust-bar--mobile-{{ mobile_layout }}"
   style="
     --ctb-bg: {{ bg_color }};
     --ctb-text: {{ text_color }};
@@ -34,23 +38,38 @@
     --ctb-gap: {{ gap }}px;
     --ctb-icon-radius: {{ icon_radius }}px;
     {%- if icon_bg != blank %}--ctb-icon-bg: {{ icon_bg }};{% endif -%}
+    --ctb-mobile-align: {{ mobile_alignment }};
+    --ctb-scroll-gap: {{ scroll_gap }}px;
+    --ctb-scroll-speed: {{ scroll_speed }}s;
   "
 >
   {%- if show_border_top -%}<div class="casa-trust-bar__border-top"></div>{%- endif -%}
   <div class="casa-trust-bar__inner">
-    {%- for block in section.blocks -%}
-      <div class="casa-trust-bar__item" {{ block.shopify_attributes }}>
-        <div class="casa-trust-bar__icon{% if show_icon_bg %} casa-trust-bar__icon--bg{% endif %}">
-          {%- render 'casa-icon', icon: block.settings.icon, size: icon_size -%}
+
+    {%- capture trust_items -%}
+      {%- for block in section.blocks -%}
+        <div class="casa-trust-bar__item" {{ block.shopify_attributes }}>
+          <div class="casa-trust-bar__icon{% if show_icon_bg %} casa-trust-bar__icon--bg{% endif %}">
+            {%- render 'casa-icon', icon: block.settings.icon, size: icon_size -%}
+          </div>
+          <div class="casa-trust-bar__text">
+            <span class="casa-trust-bar__title">{{ block.settings.text | default: block.settings.title }}</span>
+            {%- if block.settings.subtitle != blank -%}
+              <span class="casa-trust-bar__subtitle">{{ block.settings.subtitle }}</span>
+            {%- endif -%}
+          </div>
         </div>
-        <div class="casa-trust-bar__text">
-          <span class="casa-trust-bar__title">{{ block.settings.text | default: block.settings.title }}</span>
-          {%- if block.settings.subtitle != blank -%}
-            <span class="casa-trust-bar__subtitle">{{ block.settings.subtitle }}</span>
-          {%- endif -%}
-        </div>
-      </div>
-    {%- endfor -%}
+      {%- endfor -%}
+    {%- endcapture -%}
+
+    {%- if mobile_layout == 'scroll' -%}
+      {%- comment -%} Ticker: two copies for seamless infinite loop {%- endcomment -%}
+      <div class="casa-trust-bar__ticker" aria-hidden="false">{{ trust_items }}</div>
+      <div class="casa-trust-bar__ticker" aria-hidden="true">{{ trust_items }}</div>
+    {%- else -%}
+      {{ trust_items }}
+    {%- endif -%}
+
   </div>
   {%- if show_border_bottom -%}<div class="casa-trust-bar__border-bottom"></div>{%- endif -%}
 </div>
@@ -71,7 +90,36 @@
       ],
       "default": "horizontal"
     },
-    { "type": "range", "id": "gap", "label": "Item spacing", "min": 16, "max": 120, "step": 4, "default": 80, "unit": "px" },
+    {
+      "type": "select", "id": "mobile_layout", "label": "Mobile layout",
+      "options": [
+        { "value": "grid", "label": "Grid (2 columns)" },
+        { "value": "scroll", "label": "Auto-scroll ticker" }
+      ],
+      "default": "grid"
+    },
+    {
+      "type": "range", "id": "scroll_gap", "label": "Scroll gap",
+      "info": "Space between items in ticker mode",
+      "min": 16, "max": 80, "step": 4, "default": 40, "unit": "px",
+      "visible_if": "{{ section.settings.mobile_layout == 'scroll' }}"
+    },
+    {
+      "type": "range", "id": "scroll_speed", "label": "Scroll speed",
+      "info": "Lower = faster",
+      "min": 10, "max": 60, "step": 5, "default": 25, "unit": "s",
+      "visible_if": "{{ section.settings.mobile_layout == 'scroll' }}"
+    },
+    {
+      "type": "select", "id": "mobile_alignment", "label": "Mobile alignment",
+      "info": "Applies to grid layout only",
+      "options": [
+        { "value": "start", "label": "Left" },
+        { "value": "center", "label": "Center" }
+      ],
+      "default": "center"
+    },
+    { "type": "range", "id": "gap", "label": "Item spacing", "min": 16, "max": 120, "step": 4, "default": 32, "unit": "px" },
     { "type": "range", "id": "padding_y", "label": "Vertical padding", "min": 8, "max": 60, "step": 4, "default": 24, "unit": "px" },
     { "type": "header", "content": "Typography" },
     { "type": "range", "id": "font_size", "label": "Font size", "min": 10, "max": 20, "step": 1, "default": 14, "unit": "px" },
@@ -92,9 +140,9 @@
     { "type": "color", "id": "icon_bg", "label": "Icon background color", "info": "Only visible when icon background is enabled" },
     { "type": "range", "id": "icon_radius", "label": "Icon bg radius", "min": 0, "max": 50, "step": 2, "default": 10, "unit": "px" },
     { "type": "header", "content": "Colors" },
-    { "type": "color", "id": "bg_color", "label": "Background", "default": "#0a0a0f" },
+    { "type": "color", "id": "bg_color", "label": "Background", "default": "#0A0A0F" },
     { "type": "color", "id": "text_color", "label": "Text color", "default": "#cccccc" },
-    { "type": "color", "id": "icon_color", "label": "Icon color", "default": "#9333ea" },
+    { "type": "color", "id": "icon_color", "label": "Icon color", "default": "#B0C3FA" },
     { "type": "color", "id": "border_color", "label": "Border color", "default": "#1a1a2e" },
     { "type": "header", "content": "Borders" },
     { "type": "checkbox", "id": "show_border_top", "label": "Show top border", "default": false },
@@ -123,7 +171,7 @@
           ],
           "default": "truck"
         },
-        { "type": "text", "id": "title", "label": "Title", "default": "Free Worldwide Shipping" },
+        { "type": "text", "id": "title", "label": "Title", "default": "Free Express Shipping Worldwide" },
         { "type": "text", "id": "subtitle", "label": "Subtitle", "info": "Optional smaller text below title" },
         { "type": "text", "id": "text", "label": "Text (legacy)", "info": "Fallback if title is empty" }
       ]
@@ -145,7 +193,7 @@
 
 <style>
 .casa-trust-bar {
-  background: var(--ctb-bg, #0a0a0f);
+  background: var(--ctb-bg, var(--casa-ink));
   padding: var(--ctb-padding, 24px) 0;
 }
 .casa-trust-bar__border-top,
@@ -159,27 +207,31 @@
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 40px;
-  display: flex;
-  justify-content: center;
-  gap: var(--ctb-gap, 80px);
-  flex-wrap: wrap;
-}
-.casa-trust-bar--grid-2 .casa-trust-bar__inner {
+  /* Stable equal-column grid (NOT flex-wrap) so items never produce
+     orphan rows. auto-fit + minmax(180px, 1fr) means: as many equal-width
+     columns as fit at 180px min each. With 4 items in a wide container
+     = 4 cols. Narrower screens drop columns predictably (4→3→2→1).
+     minmax(0, 1fr) instead of 1fr — prevents content from overflowing
+     the column (CLAUDE.md grid overflow rule). */
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--ctb-gap, 40px);
-  justify-items: center;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--ctb-gap, 32px);
+  align-items: center;
+}
+/* Explicit grid-2 / grid-4 layouts override auto-fit when merchant
+   explicitly picks a column count in the editor. */
+.casa-trust-bar--grid-2 .casa-trust-bar__inner {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .casa-trust-bar--grid-4 .casa-trust-bar__inner {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--ctb-gap, 40px);
-  justify-items: center;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .casa-trust-bar__item {
   display: flex;
   align-items: center;
+  justify-content: center; /* center the icon+text pair within the equal-width cell */
   gap: 12px;
+  min-width: 0; /* allow text to wrap inside the cell instead of overflowing */
 }
 .casa-trust-bar__icon {
   flex-shrink: 0;
@@ -188,14 +240,14 @@
   justify-content: center;
 }
 .casa-trust-bar__icon svg {
-  stroke: var(--ctb-icon, #9333ea);
+  stroke: var(--ctb-icon, #B0C3FA);
   width: var(--ctb-icon-size, 24px);
   height: var(--ctb-icon-size, 24px);
 }
 .casa-trust-bar__icon--bg {
   width: calc(var(--ctb-icon-size, 24px) + 16px);
   height: calc(var(--ctb-icon-size, 24px) + 16px);
-  background: var(--ctb-icon-bg, rgba(147, 51, 234, 0.1));
+  background: var(--ctb-icon-bg, rgba(176, 195, 250, 0.1));
   border-radius: var(--ctb-icon-radius, 10px);
 }
 .casa-trust-bar__text {
@@ -216,29 +268,79 @@
   font-weight: 400;
   line-height: 1.3;
 }
+
+/* Ticker wrappers on desktop: act as transparent containers so items
+   flow into the parent grid normally. Hide the duplicate copy. */
+.casa-trust-bar__ticker { display: contents; }
+.casa-trust-bar__ticker[aria-hidden="true"] { display: none; }
+
 @media (max-width: 900px) {
-  .casa-trust-bar__inner { gap: calc(var(--ctb-gap, 80px) * 0.5); }
-  .casa-trust-bar--grid-4 .casa-trust-bar__inner { grid-template-columns: repeat(2, 1fr); }
+  /* Tablet: clean 2x2 grid (4 items). Equal-width columns (1fr) so items
+     in column 1 align to the same x-position, items in column 2 align to
+     the same x-position — no ragged "different starting places". */
+  .casa-trust-bar__inner {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 16px 24px;
+    padding: 0 24px;
+  }
 }
 @media (max-width: 600px) {
-  .casa-trust-bar__inner {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr);
+  .casa-trust-bar:not(.casa-trust-bar--mobile-scroll) .casa-trust-bar__inner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px 16px;
     padding: 0 16px;
   }
-  .casa-trust-bar__title { font-size: calc(var(--ctb-font-size, 14px) - 2px); }
-  .casa-trust-bar__subtitle { font-size: calc(var(--ctb-font-size, 14px) - 4px); }
+  .casa-trust-bar__title { font-size: clamp(10px, 2.5vw, 13px); white-space: nowrap; }
+  .casa-trust-bar__subtitle { font-size: clamp(9px, 2vw, 11px); }
   .casa-trust-bar__icon svg { width: calc(var(--ctb-icon-size, 24px) - 4px); height: calc(var(--ctb-icon-size, 24px) - 4px); }
   .casa-trust-bar__icon--bg { width: calc(var(--ctb-icon-size, 24px) + 8px); height: calc(var(--ctb-icon-size, 24px) + 8px); }
+
+  /* Auto-scrolling ticker on mobile */
+  .casa-trust-bar--mobile-scroll {
+    overflow: hidden;
+  }
+  .casa-trust-bar--mobile-scroll .casa-trust-bar__inner {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    width: max-content;
+    gap: 0 !important;
+    padding: 0 !important;
+    animation: ctb-ticker var(--ctb-scroll-speed, 25s) linear infinite;
+  }
+  .casa-trust-bar--mobile-scroll .casa-trust-bar__ticker,
+  .casa-trust-bar--mobile-scroll .casa-trust-bar__ticker[aria-hidden="true"] {
+    display: flex !important;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--ctb-scroll-gap, 40px);
+    padding-right: var(--ctb-scroll-gap, 40px);
+  }
+  .casa-trust-bar--mobile-scroll .casa-trust-bar__item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    width: auto !important;
+  }
 }
 @media (max-width: 380px) {
   .casa-trust-bar { padding: var(--ctb-padding, 16px) 0; }
-  .casa-trust-bar__inner { gap: 10px 12px; padding: 0 12px; }
+  .casa-trust-bar:not(.casa-trust-bar--mobile-scroll) .casa-trust-bar__inner { gap: 10px 12px; padding: 0 12px; }
   .casa-trust-bar__item { gap: 8px; }
-  .casa-trust-bar__title { font-size: 11px; }
-  .casa-trust-bar__subtitle { display: none; }
+  .casa-trust-bar__title { font-size: var(--font-h6--size, 11px); }
+  .casa-trust-bar:not(.casa-trust-bar--mobile-scroll) .casa-trust-bar__subtitle { display: none; }
   .casa-trust-bar__icon svg { width: 18px; height: 18px; }
   .casa-trust-bar__icon--bg { width: 30px; height: 30px; }
+}
+
+/* Ticker animation (global scope — keyframes can't nest inside media queries in all browsers) */
+@keyframes ctb-ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .casa-trust-bar--mobile-scroll .casa-trust-bar__inner {
+    animation: none !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 </style>

@@ -1,0 +1,452 @@
+{%- comment -%}
+  Casa Spec Strip
+  Tight one-line feature summary for the PDP buy-box. Renders up to 5 icon+label
+  chips separated by hairline dots on a single horizontal line.
+
+  Three render variants (`variant` setting):
+    c1 — Terse labels       (icon + short label, 5 chips)
+    c2 — Icons + numbers    (icons solo for 1/3/5, icon+label for 2/4)
+    c3 — Four features      (icon + full label, 4 chips, drop feature_5)
+
+  ─── SINGLE SOURCE OF TRUTH — PRODUCT METAFIELDS (2026-05-18) ───────────────
+
+  Chip labels + icons are read EXCLUSIVELY from product metafields:
+      custom.spec_strip_chip_1..5   (label, text)
+      custom.spec_strip_icon_1..5   (icon key, text — see icon enum below)
+      custom.spec_strip_mood        ('portal' | 'material', drives style)
+
+  Per-template block settings for chips have been removed. The block schema
+  only carries `variant` and `mood` now — chip content is product data, not
+  template data. Pre-2026-05-18 the block had a fallback path that read
+  `feature_1..5` / `icon_1..5` from block.settings when no spec_strip_mood
+  metafield was set. That dual-path created two bugs: (1) hardcoded smart-RGB
+  defaults baked into 20 template JSONs as dormant fallbacks, (2) inconsistent
+  rendering when a merchant cleared a metafield expecting blank but got the
+  template default instead. Single source eliminates both.
+
+  Allowed icon enum (case-sensitive, set as custom.spec_strip_icon_N value):
+      smartphone, palette, music, zap, moon, clock, wifi, bluetooth, sun,
+      shield, mic, remote, prism, diamond, swatch, halo, leaf, droplet,
+      flame, battery, hand, brush, grid, sparkle, triangle, check
+  Unknown values render as ✓.
+
+  ─── EXCEPTION: LED Neon Sign tag override ──────────────────────────────────
+
+  Products tagged `LED Neon Sign` still get a hardcoded chip set
+  (Hand-Crafted · RGB Remote · Dimmable · Pre-set Effects) from the Liquid
+  block below. This is a documented violation of the single-source rule,
+  carried because populating 24+ neon-sign metafields is a separate data-write
+  task. TODO: replace with per-product metafields and remove this branch.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = block.settings
+  assign variant = s.variant | default: 'c1'
+
+  # neon-sign tag override — see header comment.
+  assign is_neon_sign = false
+  if closest.product.tags contains 'LED Neon Sign'
+    assign is_neon_sign = true
+  endif
+
+  # mood — Portal (icons + labels, default) | Material (text-only, italic separators).
+  # Resolution: block setting (if explicit) > product metafield > 'portal'.
+  # When `mood` block setting is 'auto' or blank, we read the product metafield;
+  # otherwise the per-template explicit choice wins (style decision can be
+  # per-template, but chip CONTENT is always per-product).
+  #
+  # Note: neon-sign products used to be force-routed to 'material' here so the
+  # text-only register matched the "sculptural / craft" register. Merchant
+  # 2026-05-19 wanted them in Portal mood so the brand-purple icons match
+  # the other RGB products (Apollo et al.). The forced override was removed.
+  # The chip CONTENT override (Hand-Crafted · RGB Remote · Dimmable · Pre-set
+  # Effects) still applies via the `is_neon_sign` branch in the loop below.
+  assign mood = s.mood
+  if mood == blank or mood == 'auto'
+    assign mood = closest.product.metafields.custom.spec_strip_mood | default: 'portal'
+  endif
+
+  assign feat_ids = '1,2,3,4,5' | split: ','
+
+  # decide visibility per chip per variant
+  if variant == 'c3'
+    assign max_chips = 4
+    assign icon_only_for = ''
+  elsif variant == 'c2'
+    assign max_chips = 5
+    assign icon_only_for = '1,3,5'
+  else
+    assign max_chips = 5
+    assign icon_only_for = ''
+  endif
+-%}
+
+{%- comment -%}
+  Capture the chip output first. If no chips render (every label is blank),
+  skip the wrapper entirely — products without curated metafields show NOTHING
+  rather than an empty hairline-bracketed strip.
+{%- endcomment -%}
+{%- capture chips_html -%}
+    {%- assign rendered = 0 -%}
+    {%- for fid in feat_ids -%}
+      {%- assign mf_label_key = 'spec_strip_chip_' | append: fid -%}
+      {%- assign mf_icon_key  = 'spec_strip_icon_' | append: fid -%}
+      {%- if is_neon_sign -%}
+        {%- comment -%} See header comment — tag-gated hardcoded override. {%- endcomment -%}
+        {%- case fid -%}
+          {%- when '1' -%}{%- assign label = 'Hand-Crafted' -%}{%- assign icon = 'hand' -%}
+          {%- when '2' -%}{%- assign label = 'RGB Remote' -%}{%- assign icon = 'remote' -%}
+          {%- when '3' -%}{%- assign label = 'Dimmable' -%}{%- assign icon = 'sun' -%}
+          {%- when '4' -%}{%- assign label = 'Pre-set Effects' -%}{%- assign icon = 'sparkle' -%}
+          {%- when '5' -%}{%- assign label = '' -%}{%- assign icon = 'check' -%}
+        {%- endcase -%}
+      {%- else -%}
+        {%- assign label = closest.product.metafields.custom[mf_label_key] -%}
+        {%- assign icon = closest.product.metafields.custom[mf_icon_key] | default: 'check' -%}
+      {%- endif -%}
+
+      {%- if label != blank -%}
+        {%- assign rendered = rendered | plus: 1 -%}
+        {%- if rendered > max_chips -%}{% break %}{%- endif -%}
+
+        {%- assign hide_label = false -%}
+        {%- if icon_only_for contains fid -%}
+          {%- assign hide_label = true -%}
+        {%- endif -%}
+
+        {%- unless rendered == 1 -%}
+          <span class="casa-ss__sep" aria-hidden="true">·</span>
+        {%- endunless -%}
+
+        <span class="casa-ss__chip" role="listitem"{% if hide_label %} aria-label="{{ label | escape }}"{% endif %}>
+          <span class="casa-ss__icon" aria-hidden="true">
+            {%- case icon -%}
+              {%- when 'smartphone' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg>
+              {%- when 'palette' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+              {%- when 'music' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              {%- when 'zap' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              {%- when 'moon' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              {%- when 'clock' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              {%- when 'wifi' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg>
+              {%- when 'bluetooth' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/></svg>
+              {%- when 'sun' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              {%- when 'shield' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              {%- when 'mic' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+              {%- when 'remote' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>
+              {%- comment -%} ── Material-mood sculptural icons (thinner, more delicate) ── {%- endcomment -%}
+              {%- when 'prism' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L21 19 L3 19 Z"/><path d="M12 3 L12 19" opacity="0.5"/></svg>
+              {%- when 'diamond' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L20 9 L12 21 L4 9 Z"/><path d="M4 9 L20 9" opacity="0.5"/></svg>
+              {%- when 'swatch' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="6"/><circle cx="16" cy="12" r="6" opacity="0.55"/></svg>
+              {%- when 'halo' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" opacity="0.5"/></svg>
+              {%- when 'leaf' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19 C 5 11, 11 5, 19 5 C 19 13, 13 19, 5 19 Z"/><path d="M5 19 L 14 10" opacity="0.5"/></svg>
+              {%- when 'droplet' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 C 8 9, 5 13, 5 16 a7 7 0 0 0 14 0 c 0 -3 -3 -7 -7 -13 Z"/></svg>
+              {%- when 'flame' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 C 14 7, 18 9, 18 14 a6 6 0 0 1 -12 0 c 0 -3 2 -5 3 -7 c 1 2 2 3 3 4 c 0 -3 0 -5 0 -8 Z"/></svg>
+              {%- when 'battery' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="18" height="10" rx="1.5"/><path d="M22 11 L22 13"/><line x1="6" y1="11" x2="6" y2="13" opacity="0.55"/><line x1="9" y1="11" x2="9" y2="13" opacity="0.55"/></svg>
+              {%- when 'hand' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11 L 9 4 a1.5 1.5 0 0 1 3 0 L 12 11 L 12 7 a1.5 1.5 0 0 1 3 0 L 15 11 L 15 8 a1.5 1.5 0 0 1 3 0 L 18 14 a6 6 0 0 1 -12 0 L 6 9 a1.5 1.5 0 0 1 3 0 L 9 11 Z"/></svg>
+              {%- when 'brush' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4 L20 10 L14 16"/><path d="M3 21 C 5 19, 8 17, 12 14 L 14 16 C 11 20, 9 22, 7 24"/><path d="M3 21 L 7 17" opacity="0.55"/></svg>
+              {%- when 'grid' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="0.5"/><rect x="13" y="4" width="7" height="7" rx="0.5"/><rect x="4" y="13" width="7" height="7" rx="0.5"/><rect x="13" y="13" width="7" height="7" rx="0.5" opacity="0.55"/></svg>
+              {%- when 'sparkle' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L 14 10 L 21 12 L 14 14 L 12 21 L 10 14 L 3 12 L 10 10 Z"/></svg>
+              {%- when 'triangle' -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 L21 20 L3 20 Z"/></svg>
+              {%- else -%}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            {%- endcase -%}
+          </span>
+          {%- unless hide_label -%}
+            <span class="casa-ss__label">{{ label }}</span>
+          {%- endunless -%}
+        </span>
+      {%- endif -%}
+    {%- endfor -%}
+{%- endcapture -%}
+
+{%- assign chips_html_stripped = chips_html | strip -%}
+{%- if chips_html_stripped != blank -%}
+<div class="casa-ss casa-ss--{{ variant }} casa-ss--mood-{{ mood }}" {{ block.shopify_attributes }}>
+  <div class="casa-ss__strip" role="list">
+    {{- chips_html -}}
+  </div>
+</div>
+<script>
+  (function() {
+    /* Toggle data-ss-overflow="1" on the casa-ss wrapper when the inner
+       strip overflows, so the right-edge fade gradient only shows when
+       the user can actually scroll. ResizeObserver re-checks on every
+       width change (viewport resize, font reflow, variant swap). */
+    var roots = document.querySelectorAll('.casa-ss:not([data-ss-bound])');
+    roots.forEach(function(root) {
+      root.setAttribute('data-ss-bound', '1');
+      var strip = root.querySelector('.casa-ss__strip');
+      if (!strip) return;
+      function update() {
+        var hasOverflow = strip.scrollWidth - strip.clientWidth > 1;
+        var atEnd = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 1;
+        root.setAttribute('data-ss-overflow', (hasOverflow && !atEnd) ? '1' : '0');
+      }
+      update();
+      strip.addEventListener('scroll', update, { passive: true });
+      if (typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(update).observe(strip);
+      } else {
+        window.addEventListener('resize', update);
+      }
+    });
+  })();
+</script>
+{%- endif -%}
+
+{%- stylesheet -%}
+.casa-ss {
+  /* shrink to content so the hairlines bracket only the chips,
+     not the full buy-box width on desktop */
+  display: block;
+  width: -moz-fit-content;
+  width: fit-content;
+  max-width: 100%;
+  /* No own margin — the buy-box group already supplies a 10px block gap.
+     The earlier `margin: 4px 0 0` stacked on top of that and made the
+     air above the strip 4px larger than below (asymmetric). The hairline
+     rules do the visual separating, so the strip sits snug to its
+     neighbours and relies on the group gap. */
+  margin: 0;
+  padding: 4px 0;
+  border-top: 1px solid rgba(10, 10, 15, 0.08);
+  border-bottom: 1px solid rgba(10, 10, 15, 0.08);
+  box-sizing: border-box;
+  /* Right-edge fade affordance — the inner .casa-ss__strip is an
+     overflow-x: auto chip rail; when chips exceed container width
+     (≤360px viewports with 4 chips, common case), a mid-word abrupt
+     clip looked like a layout bug. The 24px paper→transparent mask
+     fades the trailing chip into the right edge, signaling "swipe
+     for more" the same way iOS Safari and App Store chip rails do.
+     Mask is conditional on the strip actually overflowing — use
+     :has() to scope it; falls back to no-fade on older browsers
+     (still functional, just no fade). */
+  position: relative;
+}
+.casa-ss:has(.casa-ss__strip)::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 24px;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    rgba(250, 250, 247, 0) 0%,
+    var(--set-paper, #FAFAF7) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+/* Only show the fade when the strip is actually scrollable (i.e.
+   content overflows). Use the data-overflow attribute set by JS
+   below — falls back to always-off if JS doesn't run. */
+.casa-ss[data-ss-overflow="1"]::after {
+  opacity: 1;
+}
+
+.casa-ss__strip {
+  display: flex;
+  align-items: center;
+  /* HARD single-line contract — never wrap on any viewport, desktop or mobile.
+     If total chip width exceeds the buy-box, the strip scrolls horizontally
+     rather than dropping to a second line. Wrapped chips were producing
+     ragged 2-row layouts on desktop buy boxes that look unintentional —
+     scroll is a known mobile/desktop pattern (App Store chip rails) that
+     reads as one row at any width. Merchants should keep each chip label
+     ≤12 chars and total ≤50 chars to avoid scroll on most viewports. */
+  flex-wrap: nowrap;
+  column-gap: 7px;
+  font-family: var(--font-body--family);
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(10, 10, 15, 0.7);
+  line-height: 1.4;
+  min-width: 0;
+
+  /* horizontal-scroll fallback when chips exceed container width.
+     Scrollbar is hidden visually (still keyboard-accessible via Tab
+     into focusable chips if/when chips become tappable). */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* Edge legacy */
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+.casa-ss__strip::-webkit-scrollbar { display: none; }
+
+.casa-ss__chip {
+  white-space: nowrap;            /* keep each chip atomic so labels never break mid-word */
+  scroll-snap-align: start;
+}
+
+.casa-ss__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.casa-ss__icon {
+  display: inline-flex;
+  width: 13px;
+  height: 13px;
+  color: #B0C3FA;
+  flex-shrink: 0;
+}
+.casa-ss__icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.casa-ss__label {
+  font-feature-settings: "tnum" 1;
+}
+
+.casa-ss__sep {
+  color: rgba(10, 10, 15, 0.18);
+  font-weight: 700;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* C₂: icons + numbers — icons sit closer together since no labels between them */
+.casa-ss--c2 .casa-ss__strip {
+  gap: 0 10px;
+}
+.casa-ss--c2 .casa-ss__icon {
+  width: 15px;
+  height: 15px;
+}
+.casa-ss--c2 .casa-ss__sep {
+  display: none; /* separators not used when chips are icon-clusters */
+}
+
+/* C₃: fewer chips, slightly more breathing room */
+.casa-ss--c3 .casa-ss__strip {
+  gap: 0 9px;
+}
+
+/* Very small phones (Galaxy Fold closed, etc.): tighten font + gap so more
+   chips fit visually before scroll kicks in. Mobile-first: small-screen
+   defaults shrink, larger screens inherit the base 12px / 7px above. */
+@media (max-width: 360px) {
+  .casa-ss__strip { column-gap: 5px; font-size: 11.5px; }
+  .casa-ss__icon  { width: 12px; height: 12px; }
+}
+
+/* ───────── MOOD: MATERIAL ─────────
+   Daylit / Editorial register — text-only, italic separators, no icons,
+   thinner hairlines, smaller font. For sculptural + craft products where
+   tech-spec icons would feel out of register. */
+.casa-ss--mood-material {
+  border-top-color: rgba(10, 10, 15, 0.06);
+  border-bottom-color: rgba(10, 10, 15, 0.06);
+  padding: 3px 0;
+}
+.casa-ss--mood-material .casa-ss__strip {
+  gap: 0 9px;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: rgba(10, 10, 15, 0.62);
+  letter-spacing: 0.005em;
+}
+.casa-ss--mood-material .casa-ss__icon {
+  /* Sculptural register: smaller, ink-toned (not brand purple), thinner stroke.
+     Icons feel like delicate embellishments rather than tech badges. */
+  width: 11px;
+  height: 11px;
+  color: rgba(10, 10, 15, 0.5);
+  margin-right: 1px;
+}
+.casa-ss--mood-material .casa-ss__chip {
+  gap: 5px;
+}
+.casa-ss--mood-material .casa-ss__label {
+  font-feature-settings: normal;
+}
+.casa-ss--mood-material .casa-ss__sep {
+  font-style: italic;
+  font-weight: 400;
+  color: rgba(10, 10, 15, 0.28);
+  /* Inter italic — brand rule: no serifs anywhere */
+}
+.casa-ss--mood-material .casa-ss__chip:active {
+  /* no press feedback — these aren't tappable affordances */
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .casa-ss__chip { transition: opacity 0.15s ease-out; }
+  .casa-ss__chip:active { opacity: 0.6; }
+}
+{%- endstylesheet -%}
+
+{% schema %}
+{
+  "name": "Casa Spec Strip",
+  "tag": null,
+  "settings": [
+    {
+      "type": "select",
+      "id": "mood",
+      "label": "Mood",
+      "options": [
+        { "value": "auto",     "label": "Auto (read product metafield)" },
+        { "value": "portal",   "label": "Portal — icons + labels" },
+        { "value": "material", "label": "Material — text-only" }
+      ],
+      "default": "auto",
+      "info": "Portal: icons + qualified labels (tech). Material: text-only, italic separators (sculptural / craft). Auto reads custom.spec_strip_mood metafield."
+    },
+    {
+      "type": "select",
+      "id": "variant",
+      "label": "Visual variant",
+      "options": [
+        { "value": "c1", "label": "C₁ — Terse, 5 chips (recommended)" },
+        { "value": "c2", "label": "C₂ — Icons + numbers (most compact)" },
+        { "value": "c3", "label": "C₃ — 4 features, full prose" }
+      ],
+      "default": "c1",
+      "info": "All variants single-line on every viewport (long labels scroll horizontally, hidden scrollbar). C₁ = 5 chips, C₂ = icons + numbers, C₃ = 4 chips."
+    },
+    {
+      "type": "paragraph",
+      "content": "Chip labels and icons are read EXCLUSIVELY from product metafields (custom.spec_strip_chip_1..5 + custom.spec_strip_icon_1..5). Edit them per product in the product editor's Custom data section. There are no per-template chip overrides — single source of truth is the product."
+    }
+  ],
+  "presets": [
+    {
+      "name": "Smart RGB spec strip"
+    }
+  ]
+}
+{% endschema %}

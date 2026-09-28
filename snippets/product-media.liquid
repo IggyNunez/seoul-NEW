@@ -11,6 +11,8 @@
   @param {object} [selected_product] - The currently selected product.
   @param {boolean} [first_3d_model] - Indicates if this is the first 3D model.
   @param {boolean} [is_main_product_media] - Indicates if this is the main product image.
+  @param {string} [video_preload] - Passed to the video snippet; 'none' for copies that start hidden (zoom dialog).
+  @param {boolean} [is_neighbor] - Indicates this slide is the next/prev neighbor of the LCP slide. Gets loading="eager" AND fetchpriority="high" so the browser starts the request on initial render, not when the IntersectionObserver fires. Fixes the iOS Safari white-slice on carousel swipe.
 
   @example
   {% render 'product-media', media: media, preview_image_only: false, loading: 'lazy' %}
@@ -18,6 +20,21 @@
 
 {% liquid
   assign widths = widths | default: '240, 352, 832, 1200, 1600, 1920, 2560, 3840'
+  if is_main_product_media and loading == nil
+    assign loading = 'eager'
+  endif
+  # Neighbors (slide 1 + last slide on carousels with 3+ images) get eager
+  # loading too. The original implementation kept them lazy with fetchpriority
+  # high — that priority hint only helps once the lazy heuristic decides to
+  # fetch. iOS Safari's lazy heuristic for horizontal scroll-snap carousels
+  # waits until the slide is ~90% visible, so the request fires mid-swipe and
+  # the user sees a white slice while the bytes (WebP scanlines) finish
+  # arriving. Promoting to eager fires the request on initial render and
+  # the neighbor is in cache before the user starts swiping. The eager hint
+  # only kicks in for neighbors — anything beyond ±1 from the LCP stays lazy.
+  if is_neighbor and loading == nil
+    assign loading = 'eager'
+  endif
 %}
 
 <div
@@ -29,6 +46,8 @@
     assign high_res_url = media.preview_image | image_url: width: 3840
     assign fetch_priority = 'auto'
     if is_main_product_media
+      assign fetch_priority = 'high'
+    elsif is_neighbor
       assign fetch_priority = 'high'
     endif
     assign focal_point_style = '--focal-point: ' | append: media.presentation.focal_point | append: ';'
@@ -121,11 +140,13 @@
       {% when 'video', 'external_video' %}
         {%- render 'video',
           video: media,
+          video_autoplay: block.settings.video_autoplay,
           video_loop: block.settings.video_loop,
           widths: widths,
           sizes: sizes,
           loading: loading,
           disable_controls: true,
+          video_preload: video_preload,
           section_id: section.id
         -%}
     {% endcase %}

@@ -14,11 +14,11 @@
   assign full_width   = section.settings.full_width
 
   # ── Colors ──
-  assign bg_color      = section.settings.bg_color | default: '#0a0a0f'
-  assign text_color    = section.settings.text_color | default: '#ffffff'
+  assign bg_color      = section.settings.bg_color | default: '#0A0A0F'
+  assign text_color    = section.settings.text_color | default: '#FAFAF7'
   assign text_muted    = section.settings.text_muted | default: '#a0a0b0'
-  assign accent_1      = section.settings.accent_primary | default: '#9333ea'
-  assign accent_2      = section.settings.accent_secondary | default: '#ec4899'
+  assign accent_1      = section.settings.accent_primary | default: '#B0C3FA'
+  assign accent_2      = section.settings.accent_secondary | default: '#5E0A02'
 
   # ── Content ──
   assign heading       = section.settings.heading | default: ''
@@ -63,8 +63,15 @@
   # ── Title processing ──
   assign display_title = heading
   if accent_word != blank and heading contains accent_word
+    assign accent_style = section.settings.accent_style | default: 'current'
+    assign accent_class = 'casa-home-hero__accent casa-home-hero__accent--' | append: accent_style
+    if accent_style == 'shimmer'
+      assign accent_class = accent_class | append: ' text-grad-shimmer'
+    elsif accent_style == 'text'
+      assign accent_class = accent_class | append: ' text-grad-text'
+    endif
     assign parts = heading | split: accent_word
-    assign display_title = parts[0] | append: '<span class="casa-home-hero__accent">' | append: accent_word | append: '</span>' | append: parts[1]
+    assign display_title = parts[0] | append: '<span class="' | append: accent_class | append: '">' | append: accent_word | append: '</span>' | append: parts[1]
   endif
 
   # ── Collect blocks ──
@@ -82,18 +89,11 @@
     endcase
   endfor
 
-  # Title size classes
+  # Title size: legacy --sm/--md/--lg/--xl modifiers are no longer
+  # applied — title sizing now flows through hh_heading_level
+  # dropdown → Theme Settings → Typography. Class kept as a stable
+  # selector hook (no size modifier appended).
   assign title_class = 'casa-home-hero__title'
-  case title_size
-    when 'small'
-      assign title_class = title_class | append: ' casa-home-hero__title--sm'
-    when 'medium'
-      assign title_class = title_class | append: ' casa-home-hero__title--md'
-    when 'large'
-      assign title_class = title_class | append: ' casa-home-hero__title--lg'
-    when 'extra-large'
-      assign title_class = title_class | append: ' casa-home-hero__title--xl'
-  endcase
 -%}
 
 {%- capture section_id -%}casa-home-hero-{{ section.id }}{%- endcapture -%}
@@ -107,6 +107,26 @@
     --chh-muted: {{ text_muted }};
     --chh-accent1: {{ accent_1 }};
     --chh-accent2: {{ accent_2 }};
+    {%- if section.settings.eyebrow_color != blank %}--chh-eyebrow: {{ section.settings.eyebrow_color }};{% endif -%}
+    {%- comment -%}
+      Heading-scale dropdowns: title + accent pull size/weight/lh/ls/case
+      from Theme Settings → Typography (H1-H6 / Paragraph) — same pattern
+      as casa-hero / casa-brand-story / casa-testimonials etc.
+    {%- endcomment -%}
+    {%- assign _hh_title_h = section.settings.hh_heading_level | default: 'h1' -%}
+    --hh-title-fs:   var(--font-{{ _hh_title_h }}--size);
+    --hh-title-fw:   var(--font-{{ _hh_title_h }}--weight);
+    --hh-title-lh:   var(--font-{{ _hh_title_h }}--line-height);
+    --hh-title-ls:   var(--font-{{ _hh_title_h }}--letter-spacing);
+    --hh-title-case: var(--font-{{ _hh_title_h }}--case);
+    {%- assign _hh_accent_h = section.settings.hh_accent_heading_level | default: 'inherit' -%}
+    {%- if _hh_accent_h != 'inherit' -%}
+    --hh-accent-fs:   var(--font-{{ _hh_accent_h }}--size);
+    --hh-accent-fw:   var(--font-{{ _hh_accent_h }}--weight);
+    --hh-accent-lh:   var(--font-{{ _hh_accent_h }}--line-height);
+    --hh-accent-ls:   var(--font-{{ _hh_accent_h }}--letter-spacing);
+    --hh-accent-case: var(--font-{{ _hh_accent_h }}--case);
+    {%- endif -%}
     --chh-pad-top: {{ pad_top }}px;
     --chh-pad-bot: {{ pad_bot }}px;
     --chh-min-h: {% if min_height > 0 %}{{ min_height }}px{% else %}auto{% endif %};
@@ -114,15 +134,26 @@
     --chh-align: {{ content_align }};
   "
   data-layout="{{ layout }}"
+  data-casa-anim-gate
 >
 
   {%- comment -%}── MEDIA LAYER ──{%- endcomment -%}
   {%- if layout != 'gradient_mesh' -%}
     <div class="casa-home-hero__media">
       {%- if bg_video_url != blank -%}
+        {%- comment -%}
+          preload="metadata" — without it the browser defaults to
+          preload="auto" and downloads the full video file
+          aggressively on page load, competing with the hero image
+          (loading="eager" fetchpriority="high") for HTTP/2 high-
+          priority slots. metadata fetches just the first few KB
+          for autoplay; the rest streams in once the image is done.
+          The poster image covers the video until bytes arrive.
+        {%- endcomment -%}
         <video
           class="casa-home-hero__video"
-          autoplay muted loop playsinline
+          data-casa-pause muted loop playsinline
+          preload="metadata"
           {% if hero_img_d %}poster="{{ hero_img_d | image_url: width: 1920 }}"{% endif %}
         >
           <source src="{{ bg_video_url }}" type="video/mp4">
@@ -135,6 +166,8 @@
           <img
             class="casa-home-hero__img{% if enable_parallax %} casa-home-hero__img--parallax{% endif %}"
             src="{{ hero_img_d | image_url: width: 1920 }}"
+            width="{{ hero_img_d.width }}"
+            height="{{ hero_img_d.height }}"
             srcset="{{ hero_img_d | image_url: width: 1200 }} 1200w, {{ hero_img_d | image_url: width: 1920 }} 1920w, {{ hero_img_d | image_url: width: 2560 }} 2560w"
             sizes="100vw"
             alt="{{ heading | escape }}"
@@ -177,6 +210,8 @@
           <img
             class="casa-home-hero__split-img"
             src="{{ hero_img_d | image_url: width: 1200 }}"
+            width="{{ hero_img_d.width }}"
+            height="{{ hero_img_d.height }}"
             srcset="{{ hero_img_d | image_url: width: 800 }} 800w, {{ hero_img_d | image_url: width: 1200 }} 1200w"
             sizes="50vw"
             alt="{{ heading | escape }}"
@@ -227,14 +262,16 @@
 
     {%- comment -%}CTAs{%- endcomment -%}
     {%- if cta1_text != blank or cta2_text != blank -%}
+      {%- assign hh_cta1_treatment = section.settings.cta1_treatment | default: 'featured' -%}
+      {%- assign hh_cta2_treatment = section.settings.cta2_treatment | default: 'secondary-on-dark' -%}
       <div class="casa-home-hero__ctas">
         {%- if cta1_text != blank -%}
-          <a href="{{ cta1_link }}" class="casa-home-hero__btn casa-home-hero__btn--{{ cta1_style }} casa-home-hero__btn--{{ cta1_size }}" style="{% if cta1_bg != blank %}background: {{ cta1_bg }};{% endif %}{% if cta1_text_color != blank %}color: {{ cta1_text_color }};{% endif %}border-radius: {{ cta1_radius }}px;">
+          <a href="{{ cta1_link }}" class="btn btn-{{ hh_cta1_treatment }} casa-home-hero__btn casa-home-hero__btn--{{ cta1_size }}">
             {{ cta1_text }}
           </a>
         {%- endif -%}
         {%- if cta2_text != blank -%}
-          <a href="{{ cta2_link }}" class="casa-home-hero__btn casa-home-hero__btn--{{ cta2_style }} casa-home-hero__btn--{{ cta2_size }}" style="{% if cta2_bg != blank %}background: {{ cta2_bg }};{% endif %}{% if cta2_text_color != blank %}color: {{ cta2_text_color }};{% endif %}border-radius: {{ cta2_radius }}px;">
+          <a href="{{ cta2_link }}" class="btn btn-{{ hh_cta2_treatment }} casa-home-hero__btn casa-home-hero__btn--{{ cta2_size }}">
             {{ cta2_text }}
           </a>
         {%- endif -%}
@@ -324,12 +361,17 @@
 {%- comment -%}
   ═══════════════════════════════════════
   STYLES
+  Hoisted into Shopify's section-group stylesheet (bundled into
+  <head>) so the hero is fully styled on first paint. A raw <style>
+  block here would render after the section markup, producing FOUC:
+  the title would briefly span one line in the body fallback font and
+  reflow once the CSS applied.
   ═══════════════════════════════════════
 {%- endcomment -%}
-<style>
+{% stylesheet %}
   /* ── Reset & Base ── */
   .casa-home-hero {
-    position: relative;
+  position: relative;
     overflow: hidden;
     background: var(--chh-bg);
     color: var(--chh-text);
@@ -404,11 +446,11 @@
     gap: 6px;
     padding: 6px 16px;
     border-radius: 999px;
-    background: rgba(147, 51, 234, 0.15);
-    border: 1px solid rgba(147, 51, 234, 0.3);
+    background: rgba(176, 195, 250, 0.15);
+    border: 1px solid rgba(176, 195, 250, 0.3);
     font-size: 13px;
     font-weight: 500;
-    color: var(--chh-accent1);
+    color: var(--c-purple);
     letter-spacing: 0.02em;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -421,28 +463,53 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.15em;
-    color: var(--chh-accent1);
+    /* Merchant override (eyebrow_color setting) → brand --c-purple fallback */
+    color: var(--chh-eyebrow, var(--c-purple));
   }
 
   /* ── Title ── */
+  /* Title — pulls size, weight, line-height, letter-spacing, and
+     case from Theme Settings → Typography via the hh_heading_level
+     dropdown (--hh-title-* vars). */
   .casa-home-hero__title {
-    font-weight: 700;
-    line-height: 1.08;
-    letter-spacing: -0.03em;
+    font-size:      var(--hh-title-fs);
+    font-weight:    var(--hh-title-fw, 700);
+    line-height:    var(--hh-title-lh, 1.08);
+    letter-spacing: var(--hh-title-ls, -0.03em);
+    text-transform: var(--hh-title-case, none);
     color: var(--chh-text);
   }
-  .casa-home-hero__title--sm { font-size: clamp(1.5rem, 3vw, 2rem); }
-  .casa-home-hero__title--md { font-size: clamp(2rem, 4vw, 3rem); }
-  .casa-home-hero__title--lg { font-size: clamp(2.5rem, 5.5vw, 4.5rem); }
-  .casa-home-hero__title--xl { font-size: clamp(3rem, 7vw, 6rem); }
 
-  /* Accent word gradient */
+  /* Accent word — base layout/clipping + heading-scale support.
+     Defaults to inherit so it matches the title's chosen scale;
+     merchant can override to a different H1-H6 / Paragraph via
+     hh_accent_heading_level. Color comes from one of the
+     --current / --text / --shimmer modifier classes below. */
   .casa-home-hero__accent {
-    background: linear-gradient(135deg, var(--chh-accent1), var(--chh-accent2));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    display: inline-block;
+    font-size:      var(--hh-accent-fs, inherit);
+    font-weight:    var(--hh-accent-fw, inherit);
+    line-height:    var(--hh-accent-lh, inherit);
+    letter-spacing: var(--hh-accent-ls, inherit);
+    text-transform: var(--hh-accent-case, inherit);
   }
+
+  /* Legacy "current" mode — uses the merchant's section accent
+     colors. Active by default for back-compat. background-image
+     (not the shorthand) so background-clip:text holds — see
+     casa-brand-tokens skill Bug 1. */
+  .casa-home-hero__accent--current {
+    background-image: linear-gradient(135deg, var(--chh-accent1), var(--chh-accent2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* --shimmer / --text modifiers add no color of their own — the
+     parallel .text-grad-shimmer / .text-grad-text brand classes
+     (assets/casa-buttons.css) paint via --grad-shimmer / --grad-text
+     brand tokens. */
 
   /* ── Description ── */
   .casa-home-hero__desc {
@@ -462,48 +529,21 @@
   .casa-home-hero__content--center .casa-home-hero__ctas { justify-content: center; }
   .casa-home-hero__content--right .casa-home-hero__ctas { justify-content: flex-end; }
 
-  .casa-home-hero__btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 13px 28px;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    text-decoration: none;
-    letter-spacing: 0.01em;
-    transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
-    cursor: pointer;
-    border: none;
-    line-height: 1;
-    white-space: nowrap;
-  }
+  /* .casa-home-hero__btn — class kept as a hook for size variants
+     and the heavier hover lift. Brand class .btn .btn-[treatment]
+     provides everything else (display, padding, radius, font, color,
+     bg, transition, text-transform, letter-spacing). The legacy
+     --gradient / --solid / --outline modifier rules were removed
+     2026-05-05 because cta1_style / cta2_style schema fields are
+     hidden — the modifiers were dead and were also fighting the
+     brand class via specificity (Treatment dropdown did nothing
+     until this commit). */
   .casa-home-hero__btn:hover {
+    /* Heavier hover lift than brand baseline (-1px). Matches the
+       hero pattern. */
     transform: translateY(-2px);
   }
-  .casa-home-hero__btn--gradient {
-    background: linear-gradient(135deg, var(--chh-accent1), var(--chh-accent2));
-    color: #fff;
-    box-shadow: 0 4px 20px rgba(147, 51, 234, 0.35);
-  }
-  .casa-home-hero__btn--gradient:hover {
-    box-shadow: 0 8px 30px rgba(147, 51, 234, 0.5);
-  }
-  .casa-home-hero__btn--solid {
-    background: var(--chh-accent1);
-    color: #fff;
-  }
-  .casa-home-hero__btn--outline {
-    background: transparent;
-    color: var(--chh-text);
-    border: 1px solid rgba(255,255,255,0.2);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-  }
-  .casa-home-hero__btn--outline:hover {
-    border-color: rgba(255,255,255,0.4);
-    background: rgba(255,255,255,0.05);
-  }
+  /* Size variants override brand .btn padding/font-size only. */
   .casa-home-hero__btn--small { padding: 9px 18px; font-size: 12px; }
   .casa-home-hero__btn--medium { padding: 13px 28px; font-size: 14px; }
   .casa-home-hero__btn--large { padding: 16px 36px; font-size: 16px; }
@@ -528,7 +568,7 @@
   .casa-home-hero__trust-icon {
     display: flex;
     align-items: center;
-    color: var(--chh-accent1);
+    color: var(--c-purple);
     opacity: 0.85;
   }
 
@@ -574,19 +614,27 @@
     gap: 20px;
   }
 
-  /* Editorial stagger animation */
+  /* Editorial stagger animation.
+     Delays compressed 2026-05-12: prior ladder ran 0.1s → 0.8s, which
+     on the SECOND homepage_hero instance (bottom of page) left
+     nth-child(7) at opacity:0 for 800ms after first paint. Users
+     scrolling fast caught the section mid-stagger with elements
+     invisible. Compressed to 0.05s → 0.25s — same visual rhythm at a
+     ~70% shorter total duration, so the worst-case "still loading"
+     window is gone. forwards fill-mode preserved so a missed frame
+     can't strand at opacity:0. */
   .casa-home-hero__content--animate > * {
     opacity: 0;
     transform: translateY(24px);
-    animation: chh-fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: chh-fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
-  .casa-home-hero__content--animate > *:nth-child(1) { animation-delay: 0.1s; }
-  .casa-home-hero__content--animate > *:nth-child(2) { animation-delay: 0.2s; }
-  .casa-home-hero__content--animate > *:nth-child(3) { animation-delay: 0.35s; }
-  .casa-home-hero__content--animate > *:nth-child(4) { animation-delay: 0.5s; }
-  .casa-home-hero__content--animate > *:nth-child(5) { animation-delay: 0.6s; }
-  .casa-home-hero__content--animate > *:nth-child(6) { animation-delay: 0.7s; }
-  .casa-home-hero__content--animate > *:nth-child(7) { animation-delay: 0.8s; }
+  .casa-home-hero__content--animate > *:nth-child(1) { animation-delay: 0.05s; }
+  .casa-home-hero__content--animate > *:nth-child(2) { animation-delay: 0.1s; }
+  .casa-home-hero__content--animate > *:nth-child(3) { animation-delay: 0.15s; }
+  .casa-home-hero__content--animate > *:nth-child(4) { animation-delay: 0.2s; }
+  .casa-home-hero__content--animate > *:nth-child(5) { animation-delay: 0.22s; }
+  .casa-home-hero__content--animate > *:nth-child(6) { animation-delay: 0.24s; }
+  .casa-home-hero__content--animate > *:nth-child(7) { animation-delay: 0.25s; }
 
   @keyframes chh-fadeUp {
     to { opacity: 1; transform: translateY(0); }
@@ -611,13 +659,14 @@
   }
   .casa-home-hero__card {
     background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(20px) saturate(1.3);
-    -webkit-backdrop-filter: blur(20px) saturate(1.3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
     padding: 48px 40px;
     max-width: 560px;
     width: 100%;
+    /* perf-justified: paused off-screen by data-casa-anim-gate on the section root (casa-anim-gate.js) */
     animation: chh-cardFloat 6s ease-in-out infinite;
   }
   .casa-home-hero__card .casa-home-hero__content {
@@ -651,6 +700,7 @@
   .casa-home-hero__marquee-text {
     display: flex;
     white-space: nowrap;
+    /* perf-justified: paused off-screen by data-casa-anim-gate on the section root (casa-anim-gate.js) */
     animation: chh-marqueeScroll 25s linear infinite;
     font-size: clamp(6rem, 15vw, 14rem);
     font-weight: 900;
@@ -696,7 +746,7 @@
   .casa-home-hero__split-placeholder {
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, var(--chh-accent1), var(--chh-accent2));
+    background: var(--grad-primary);
     opacity: 0.3;
   }
   .casa-home-hero__split-content {
@@ -735,35 +785,39 @@
   .casa-home-hero__mesh-blob--1 {
     width: 45%;
     padding-bottom: 45%;
-    background: var(--chh-accent1);
+    background: var(--c-purple);
     top: -10%;
     left: -5%;
+    /* perf-justified: paused off-screen by data-casa-anim-gate on the section root (casa-anim-gate.js) */
     animation: chh-meshMove1 18s ease-in-out infinite;
   }
   .casa-home-hero__mesh-blob--2 {
     width: 40%;
     padding-bottom: 40%;
-    background: var(--chh-accent2);
+    background: var(--c-pink);
     top: 20%;
     right: -10%;
+    /* perf-justified: paused off-screen by data-casa-anim-gate on the section root (casa-anim-gate.js) */
     animation: chh-meshMove2 22s ease-in-out infinite;
   }
   .casa-home-hero__mesh-blob--3 {
     width: 35%;
     padding-bottom: 35%;
-    background: var(--chh-accent1);
+    background: var(--c-purple);
     bottom: -15%;
     left: 30%;
     opacity: 0.3;
+    /* perf-justified: paused off-screen by data-casa-anim-gate on the section root (casa-anim-gate.js) */
     animation: chh-meshMove3 20s ease-in-out infinite;
   }
   .casa-home-hero__mesh-blob--4 {
     width: 25%;
     padding-bottom: 25%;
-    background: var(--chh-accent2);
+    background: var(--c-pink);
     top: 50%;
     left: 10%;
     opacity: 0.25;
+    /* perf-justified: paused off-screen by data-casa-anim-gate on the section root (casa-anim-gate.js) */
     animation: chh-meshMove4 24s ease-in-out infinite;
   }
   @keyframes chh-meshMove1 {
@@ -796,6 +850,7 @@
     z-index: 3;
     color: var(--chh-muted);
     opacity: 0.5;
+    /* perf-justified: paused off-screen by data-casa-anim-gate on the section root (casa-anim-gate.js) */
     animation: chh-scrollBounce 2s ease-in-out infinite;
   }
   @keyframes chh-scrollBounce {
@@ -905,7 +960,7 @@
     .casa-home-hero__scroll { animation: none !important; }
     .casa-home-hero__mesh-blob { animation: none !important; }
   }
-</style>
+{% endstylesheet %}
 
 {%- comment -%}
   ═══════════════════════════════════════
@@ -989,14 +1044,47 @@
     {
       "type": "select",
       "id": "title_size",
-      "label": "Title Size",
+      "label": "Title Size (legacy)",
+      "info": "Deprecated. Superseded by Title heading scale below.",
       "options": [
         { "value": "small", "label": "Small" },
         { "value": "medium", "label": "Medium" },
         { "value": "large", "label": "Large" },
         { "value": "extra-large", "label": "Extra Large" }
       ],
-      "default": "large"
+      "default": "large",
+      "visible_if": "{{ false }}"
+    },
+    {
+      "type": "select",
+      "id": "hh_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "select",
+      "id": "hh_accent_heading_level",
+      "label": "Accent heading scale",
+      "info": "Heading scale for the gradient accent word. Inherit matches the title.",
+      "options": [
+        { "value": "inherit", "label": "Inherit (match title)" },
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "inherit"
     },
     {
       "type": "checkbox",
@@ -1065,6 +1153,18 @@
       "default": "Illuminate"
     },
     {
+      "type": "select",
+      "id": "accent_style",
+      "label": "Accent word style",
+      "info": "current = legacy 2-stop using section accent colors. text = brand book static gradient (purple→pink→cyan). shimmer = brand book animated 5-stop. Brand book reserves shimmer for hero only — one per page max.",
+      "options": [
+        { "value": "current", "label": "Current (legacy 2-stop)" },
+        { "value": "text",    "label": "Gradient (static, 3-color)" },
+        { "value": "shimmer", "label": "Shimmer (animated, brand)" }
+      ],
+      "default": "current"
+    },
+    {
       "type": "header",
       "content": "Primary CTA"
     },
@@ -1072,7 +1172,7 @@
       "type": "text",
       "id": "cta1_text",
       "label": "Button Text",
-      "default": "Shop Best Sellers"
+      "default": "SHOP BESTSELLERS"
     },
     {
       "type": "url",
@@ -1082,24 +1182,43 @@
     {
       "type": "select",
       "id": "cta1_style",
-      "label": "Button Style",
+      "label": "Button Style (legacy)",
+      "info": "Deprecated. Superseded by Button treatment below.",
       "options": [
         { "value": "gradient", "label": "Gradient" },
         { "value": "solid", "label": "Solid" },
         { "value": "outline", "label": "Outline" }
       ],
-      "default": "gradient"
+      "default": "gradient",
+      "visible_if": "{{ false }}"
+    },
+    {
+      "type": "select",
+      "id": "cta1_treatment",
+      "label": "Button treatment",
+      "info": "Brand-book button style. Featured (gradient) is rare per brand book — reserved for hero/launch CTAs.",
+      "options": [
+        { "value": "primary",            "label": "Primary — solid ink (light surface)" },
+        { "value": "primary-on-dark",    "label": "Primary — solid white (dark surface)" },
+        { "value": "secondary",          "label": "Secondary — outline (light surface)" },
+        { "value": "secondary-on-dark",  "label": "Secondary — outline (dark surface)" },
+        { "value": "tertiary",           "label": "Tertiary — underlined link" },
+        { "value": "featured",           "label": "Featured — purple→pink gradient" }
+      ],
+      "default": "featured"
     },
     {
       "type": "color",
       "id": "cta1_bg",
       "label": "Button background",
-      "info": "Overrides style preset. Leave blank for default."
+      "info": "Overrides style preset. Leave blank for default.",
+      "visible_if": "{{ false }}"
     },
     {
       "type": "color",
       "id": "cta1_text_color",
-      "label": "Button text color"
+      "label": "Button text color",
+      "visible_if": "{{ false }}"
     },
     {
       "type": "range",
@@ -1109,7 +1228,8 @@
       "max": 50,
       "step": 2,
       "default": 10,
-      "unit": "px"
+      "unit": "px",
+      "visible_if": "{{ false }}"
     },
     {
       "type": "select",
@@ -1140,24 +1260,43 @@
     {
       "type": "select",
       "id": "cta2_style",
-      "label": "Button Style",
+      "label": "Button Style (legacy)",
+      "info": "Deprecated. Superseded by Button treatment below.",
       "options": [
         { "value": "outline", "label": "Outline" },
         { "value": "gradient", "label": "Gradient" },
         { "value": "solid", "label": "Solid" }
       ],
-      "default": "outline"
+      "default": "outline",
+      "visible_if": "{{ false }}"
+    },
+    {
+      "type": "select",
+      "id": "cta2_treatment",
+      "label": "Button treatment",
+      "info": "Brand-book button style for the secondary CTA.",
+      "options": [
+        { "value": "primary",            "label": "Primary — solid ink (light surface)" },
+        { "value": "primary-on-dark",    "label": "Primary — solid white (dark surface)" },
+        { "value": "secondary",          "label": "Secondary — outline (light surface)" },
+        { "value": "secondary-on-dark",  "label": "Secondary — outline (dark surface)" },
+        { "value": "tertiary",           "label": "Tertiary — underlined link" },
+        { "value": "featured",           "label": "Featured — purple→pink gradient" }
+      ],
+      "default": "secondary-on-dark"
     },
     {
       "type": "color",
       "id": "cta2_bg",
       "label": "Button background",
-      "info": "Overrides style preset. Leave blank for default."
+      "info": "Overrides style preset. Leave blank for default.",
+      "visible_if": "{{ false }}"
     },
     {
       "type": "color",
       "id": "cta2_text_color",
-      "label": "Button text color"
+      "label": "Button text color",
+      "visible_if": "{{ false }}"
     },
     {
       "type": "range",
@@ -1167,7 +1306,8 @@
       "max": 50,
       "step": 2,
       "default": 10,
-      "unit": "px"
+      "unit": "px",
+      "visible_if": "{{ false }}"
     },
     {
       "type": "select",
@@ -1225,13 +1365,13 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background Color",
-      "default": "#0a0a0f"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
       "id": "text_color",
       "label": "Text Color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
@@ -1241,15 +1381,25 @@
     },
     {
       "type": "color",
+      "id": "eyebrow_color",
+      "label": "Eyebrow color",
+      "info": "Subheading text color. Leave blank to use the brand purple token (--c-purple)."
+    },
+    {
+      "type": "color",
       "id": "accent_primary",
-      "label": "Accent Primary",
-      "default": "#9333ea"
+      "label": "Accent word — start color (legacy)",
+      "info": "Only applied when Accent word style = Current. Decorative icons / glows / mesh blobs use the brand --c-purple / --c-pink tokens instead.",
+      "default": "#B0C3FA",
+      "visible_if": "{{ section.settings.accent_style == 'current' }}"
     },
     {
       "type": "color",
       "id": "accent_secondary",
-      "label": "Accent Secondary",
-      "default": "#ec4899"
+      "label": "Accent word — end color (legacy)",
+      "info": "Only applied when Accent word style = Current.",
+      "default": "#5E0A02",
+      "visible_if": "{{ section.settings.accent_style == 'current' }}"
     }
   ],
   "blocks": [
@@ -1261,8 +1411,8 @@
         {
           "type": "text",
           "id": "pill_icon",
-          "label": "Icon (emoji)",
-          "default": "✨"
+          "label": "Icon (optional)",
+          "info": "Leave blank for a text-only pill."
         },
         {
           "type": "text",
@@ -1322,7 +1472,7 @@
         "subheading": "Seoul Glow Lab",
         "description": "Nordic-inspired lighting & decor that transforms ordinary spaces into extraordinary experiences.",
         "accent_word": "Illuminate",
-        "cta1_text": "Shop Best Sellers",
+        "cta1_text": "Shop Bestsellers",
         "cta2_text": "New Arrivals",
         "content_align": "center",
         "title_size": "large"
@@ -1331,7 +1481,7 @@
         {
           "type": "announcement_pill",
           "settings": {
-            "pill_icon": "✨",
+            "pill_icon": "",
             "pill_text": "New Collection Drop \u2022 Shop Now"
           }
         },

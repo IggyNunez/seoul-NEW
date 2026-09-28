@@ -1,0 +1,221 @@
+{%- comment -%}
+  casa-mirror-guide-v4.liquid
+  Seoul Glow Lab — Chapter 06 "Built for a better infinity" (OctaMirror v4 PDP)
+
+  The authority centrepiece: how to judge any infinity mirror, in five
+  criteria, then — factually — how the OctaMirror answers each. Not a
+  feature grid, not a comparison table: an editorial list with hairlines,
+  one evidence image, and a compact demonstration of the electronics
+  (the same front-on render in several real states, plus three lines).
+
+  Used by: templates/product.infinity-octamirror-v4.json
+  Blocks:  criterion (title, why, look_for, octa, image, image_alt) — five
+  Settings: kicker, heading, lede, labels, closing; controls module:
+            ctl_kicker, ctl_title, state_N_image/label (1..5), ctl_line_1..3,
+            padding.
+
+  Media: evidence images cropped 4:5, lazy; the controls stage 1:1.
+  Motion: opacity crossfade between states only.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign uid = section.id
+-%}
+
+<section
+  id="casa-mg-{{ uid }}"
+  class="casa-mg"
+  data-casa-section="guide"
+  style="--casa-mg-pt: {{ s.padding_top | default: 72 }}px; --casa-mg-pb: {{ s.padding_bottom | default: 64 }}px;"
+>
+  <div class="casa-mg__cap">
+    <header class="casa-mg__head">
+      {%- if s.kicker != blank -%}<p class="casa-mg__mono">{{ s.kicker | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="casa-mg__h2">{{ s.heading }}</h2>{%- endif -%}
+      {%- if s.lede != blank -%}<p class="casa-mg__lede">{{ s.lede | escape }}</p>{%- endif -%}
+    </header>
+
+    <ol class="casa-mg__list">
+      {%- for block in section.blocks limit: 5 -%}
+        {%- assign b = block.settings -%}
+        <li class="casa-mg__item{% if b.image != blank %} casa-mg__item--img{% endif %}" {{ block.shopify_attributes }}>
+          <span class="casa-mg__num" aria-hidden="true">{{ forloop.index | prepend: '0' | slice: -2, 2 }}</span>
+          <div class="casa-mg__text">
+            <h3 class="casa-mg__h3">{{ b.title | escape }}</h3>
+            {%- if b.why != blank -%}<p class="casa-mg__p">{{ b.why | escape }}</p>{%- endif -%}
+            {%- if b.look_for != blank -%}<p class="casa-mg__p"><span class="casa-mg__lab">{{ s.label_look | default: 'Look for' | escape }}</span>{{ b.look_for | escape }}</p>{%- endif -%}
+            {%- if b.octa != blank -%}<p class="casa-mg__p casa-mg__p--octa"><span class="casa-mg__lab casa-mg__lab--octa">{{ s.label_octa | default: 'OctaMirror' | escape }}</span>{{ b.octa | escape }}</p>{%- endif -%}
+          </div>
+          {%- if b.image != blank -%}
+            <figure class="casa-mg__fig">
+              {{ b.image | image_url: width: 1200 | image_tag:
+                widths: '390, 560, 780, 1000, 1200',
+                sizes: '(min-width: 990px) 30vw, 100vw',
+                loading: 'lazy',
+                decoding: 'async',
+                class: 'casa-mg__img',
+                alt: b.image_alt | default: b.title }}
+            </figure>
+          {%- endif -%}
+        </li>
+      {%- endfor -%}
+    </ol>
+
+    {%- assign has_states = false -%}
+    {%- for i in (1..5) -%}{%- assign ik = 'state_' | append: i | append: '_image' -%}{%- if s[ik] != blank -%}{%- assign has_states = true -%}{%- endif -%}{%- endfor -%}
+    {%- if has_states -%}
+      <div class="casa-mg__ctl">
+        <div class="casa-mg__ctl-media">
+          <div class="casa-mg__stage" data-casa-mg-stage>
+            {%- for i in (1..5) -%}
+              {%- assign ik = 'state_' | append: i | append: '_image' -%}
+              {%- assign lk = 'state_' | append: i | append: '_label' -%}
+              {%- if s[ik] != blank -%}
+                {{ s[ik] | image_url: width: 1600 | image_tag:
+                  widths: '480, 768, 1080, 1440, 1600',
+                  sizes: '(min-width: 990px) 50vw, 100vw',
+                  loading: 'lazy',
+                  decoding: 'async',
+                  class: 'casa-mg__state',
+                  data-casa-mg-img: i,
+                  alt: s[lk] | escape }}
+              {%- endif -%}
+            {%- endfor -%}
+          </div>
+          <div class="casa-mg__sw" role="group" aria-label="Mirror state">
+            {%- for i in (1..5) -%}
+              {%- assign ik = 'state_' | append: i | append: '_image' -%}
+              {%- assign lk = 'state_' | append: i | append: '_label' -%}
+              {%- if s[ik] != blank -%}
+                <button type="button" class="casa-mg__swb" data-casa-mg-sw="{{ i }}" aria-pressed="false">{{ s[lk] | escape }}</button>
+              {%- endif -%}
+            {%- endfor -%}
+          </div>
+        </div>
+        <div class="casa-mg__ctl-text">
+          {%- if s.ctl_kicker != blank -%}<p class="casa-mg__mono">{{ s.ctl_kicker | escape }}</p>{%- endif -%}
+          {%- if s.ctl_title != blank -%}<h3 class="casa-mg__h3">{{ s.ctl_title | escape }}</h3>{%- endif -%}
+          <ul class="casa-mg__ctl-lines" role="list">
+            {%- for i in (1..4) -%}
+              {%- assign lk = 'ctl_line_' | append: i -%}
+              {%- if s[lk] != blank -%}<li>{{ s[lk] | escape }}</li>{%- endif -%}
+            {%- endfor -%}
+          </ul>
+        </div>
+      </div>
+    {%- endif -%}
+
+    {%- if s.closing != blank -%}<p class="casa-mg__closing">{{ s.closing | escape }}</p>{%- endif -%}
+  </div>
+</section>
+
+<script>
+  (function () {
+    'use strict';
+    var root = document.getElementById('casa-mg-{{ uid }}');
+    if (!root || root.dataset.casaMgInit === '1') return;
+    root.dataset.casaMgInit = '1';
+    var imgs = Array.prototype.slice.call(root.querySelectorAll('[data-casa-mg-img]'));
+    var sws = Array.prototype.slice.call(root.querySelectorAll('[data-casa-mg-sw]'));
+    if (!sws.length) return;
+    function pick(n, silent) {
+      imgs.forEach(function (im) { im.classList.toggle('is-on', im.dataset.casaMgImg === n); });
+      sws.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.casaMgSw === n)); });
+      if (!silent && window.casa && window.casa.pdpEvent) window.casa.pdpEvent('state_interaction', { section: 'guide', label: n });
+    }
+    sws.forEach(function (b) { b.addEventListener('click', function () { pick(b.dataset.casaMgSw, false); }); });
+    pick(sws[sws.length - 1].dataset.casaMgSw, true);
+  })();
+</script>
+
+{% stylesheet %}
+  .casa-mg { background: var(--bg-paper, #FAFAF7); color: var(--t-on-light, #0A0A0F); padding-block: var(--casa-mg-pt) var(--casa-mg-pb); }
+  .casa-mg__cap { max-width: 1280px; margin-inline: auto; padding-inline: clamp(20px, 5vw, 48px); }
+  .casa-mg__head { max-width: 44ch; margin-bottom: clamp(24px, 4vw, 44px); }
+  .casa-mg__mono { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--t-on-light-muted, #54545C); margin: 0 0 12px; }
+  .casa-mg__h2 { font-family: var(--casa-pdp-h2-family); font-weight: var(--casa-pdp-h2-weight); font-size: var(--casa-pdp-h2-size); letter-spacing: var(--casa-pdp-h2-tracking); line-height: var(--casa-pdp-h2-line); margin: 0; text-wrap: balance; }
+  .casa-mg__h2 em { font-style: italic; font-weight: 800; background-image: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; padding-right: 0.05em; }
+  .casa-mg__lede { font-family: var(--font-body--family); font-size: 16px; line-height: 1.5; color: var(--t-on-light-muted, #54545C); margin: 12px 0 0; max-width: 48ch; }
+
+  .casa-mg__list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border-on-light, rgba(10,10,15,0.14)); }
+  .casa-mg__item { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 4px 12px; padding: 26px 0; border-bottom: 1px solid var(--border-on-light, rgba(10,10,15,0.14)); }
+  .casa-mg__num { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.12em; color: var(--t-on-light-muted, #54545C); padding-top: 6px; }
+  .casa-mg__h3 { font-family: var(--font-body--family); font-size: 21px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.2; margin: 0 0 10px; text-wrap: balance; max-width: 28ch; }
+  .casa-mg__p { font-family: var(--font-body--family); font-size: 15px; line-height: 1.55; margin: 0 0 8px; max-width: 58ch; text-wrap: pretty; }
+  .casa-mg__lab { display: block; font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--t-on-light-muted, #54545C); margin-bottom: 2px; }
+  .casa-mg__lab--octa { color: #0A0A0F; }
+  .casa-mg__p--octa { margin-top: 12px; }
+  .casa-mg__fig { grid-column: 1 / -1; margin: 14px 0 0; aspect-ratio: 4 / 5; overflow: hidden; }
+  .casa-mg__img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; display: block; }
+
+  .casa-mg__ctl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; margin-top: 40px; }
+  .casa-mg__ctl-media { margin-inline: calc(-1 * clamp(20px, 5vw, 48px)); }
+  .casa-mg__stage { position: relative; aspect-ratio: 1 / 1; overflow: hidden; background: #0A0A0F; }
+  .casa-mg__state { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0; transition: opacity 360ms var(--ease-out, ease); }
+  .casa-mg__state.is-on { opacity: 1; }
+  .casa-mg__sw { display: flex; flex-wrap: wrap; gap: 4px 22px; padding: 12px clamp(20px, 5vw, 48px) 0; }
+  .casa-mg__swb { appearance: none; background: none; border: 0; padding: 0; min-height: 44px; color: var(--t-on-light-muted, #54545C); font-family: var(--font-body--family); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 6px; }
+  .casa-mg__swb[aria-pressed="true"] { color: #0A0A0F; text-decoration-color: var(--c-pink, #5E0A02); }
+  .casa-mg__swb:focus-visible { outline: 2px solid var(--c-purple, #B0C3FA); outline-offset: 2px; }
+  .casa-mg__ctl-lines { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 0; }
+  .casa-mg__ctl-lines li { font-family: var(--font-body--family); font-size: 15px; line-height: 1.5; padding: 10px 0; border-bottom: 1px solid var(--border-on-light, rgba(10,10,15,0.14)); }
+  .casa-mg__closing { font-family: var(--font-body--family); font-size: 17px; line-height: 1.5; margin: 32px 0 0; max-width: 52ch; text-wrap: pretty; }
+
+  @media (min-width: 990px) {
+    .casa-mg__item { grid-template-columns: 64px minmax(0, 1fr); gap: 0 24px; padding: 36px 0; }
+    .casa-mg__item--img { grid-template-columns: 64px minmax(0, 1fr) minmax(0, 32%); }
+    .casa-mg__h3 { font-size: 24px; }
+    .casa-mg__fig { grid-column: 3; grid-row: 1; margin: 0; }
+    .casa-mg__ctl { grid-template-columns: minmax(0, 52fr) minmax(0, 48fr); gap: 48px; align-items: center; margin-top: 56px; }
+    .casa-mg__ctl-media { margin-inline: 0; }
+    .casa-mg__sw { padding-inline: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { .casa-mg__state { transition: none; } }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Mirror Guide v4",
+  "tag": "section",
+  "class": "casa-mirror-guide-section",
+  "settings": [
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "06 · Built for a better infinity" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "What makes one infinity mirror better than <em>another?</em>" },
+    { "type": "textarea", "id": "lede", "label": "Lede", "default": "Five things decide it. Hold any mirror to them, ours included." },
+    { "type": "text", "id": "label_look", "label": "Label: what to look for", "default": "Look for" },
+    { "type": "text", "id": "label_octa", "label": "Label: this product", "default": "OctaMirror" },
+    { "type": "header", "content": "Electronics, demonstrated" },
+    { "type": "text", "id": "ctl_kicker", "label": "Module kicker", "default": "04 · In practice" },
+    { "type": "text", "id": "ctl_title", "label": "Module title", "default": "The part you will touch every day." },
+    { "type": "image_picker", "id": "state_1_image", "label": "State 1 image" }, { "type": "text", "id": "state_1_label", "label": "State 1 label", "default": "Off" },
+    { "type": "image_picker", "id": "state_2_image", "label": "State 2 image" }, { "type": "text", "id": "state_2_label", "label": "State 2 label", "default": "Blue" },
+    { "type": "image_picker", "id": "state_3_image", "label": "State 3 image" }, { "type": "text", "id": "state_3_label", "label": "State 3 label", "default": "Purple" },
+    { "type": "image_picker", "id": "state_4_image", "label": "State 4 image" }, { "type": "text", "id": "state_4_label", "label": "State 4 label", "default": "Red" },
+    { "type": "image_picker", "id": "state_5_image", "label": "State 5 image" }, { "type": "text", "id": "state_5_label", "label": "State 5 label", "default": "Multicolour" },
+    { "type": "text", "id": "ctl_line_1", "label": "Line 1", "default": "Remote in the box: power, brightness, scenes, music mode." },
+    { "type": "text", "id": "ctl_line_2", "label": "Line 2", "default": "Tuya Smart app over 2.4 GHz Wi-Fi: custom scenes, timers, several mirrors at once." },
+    { "type": "text", "id": "ctl_line_3", "label": "Line 3", "default": "Works with Alexa, Google Assistant and Siri through Tuya." },
+    { "type": "text", "id": "ctl_line_4", "label": "Line 4", "default": "1M+ colours, 360+ effects, dimmable, sleep and wake timer." },
+    { "type": "textarea", "id": "closing", "label": "Closing line" },
+    { "type": "range", "id": "padding_top", "label": "Top padding", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 72 },
+    { "type": "range", "id": "padding_bottom", "label": "Bottom padding", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 64 }
+  ],
+  "blocks": [
+    {
+      "type": "criterion",
+      "name": "Criterion",
+      "settings": [
+        { "type": "text", "id": "title", "label": "Title", "default": "Reflection quality" },
+        { "type": "textarea", "id": "why", "label": "Why it matters" },
+        { "type": "textarea", "id": "look_for", "label": "What to look for" },
+        { "type": "textarea", "id": "octa", "label": "How the OctaMirror answers it (facts only)" },
+        { "type": "image_picker", "id": "image", "label": "Evidence photo (optional)" },
+        { "type": "text", "id": "image_alt", "label": "Alt text" }
+      ]
+    }
+  ],
+  "max_blocks": 5,
+  "presets": [ { "name": "Casa Mirror Guide v4", "category": "Product" } ]
+}
+{% endschema %}

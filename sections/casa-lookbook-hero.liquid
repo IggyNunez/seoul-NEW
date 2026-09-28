@@ -12,11 +12,11 @@
   assign enable_parallax = section.settings.enable_parallax
 
   # ── Colors ──
-  assign bg_color   = section.settings.bg_color | default: '#0a0a0f'
-  assign text_color = section.settings.text_color | default: '#ffffff'
+  assign bg_color   = section.settings.bg_color | default: '#0A0A0F'
+  assign text_color = section.settings.text_color | default: '#FAFAF7'
   assign text_muted = section.settings.text_muted | default: '#a0a0b0'
-  assign accent_1   = section.settings.accent_primary | default: '#9333ea'
-  assign accent_2   = section.settings.accent_secondary | default: '#ec4899'
+  assign accent_1   = section.settings.accent_primary | default: '#B0C3FA'
+  assign accent_2   = section.settings.accent_secondary | default: '#5E0A02'
 
   # ── Content ──
   assign badge_text   = section.settings.badge_text | default: ''
@@ -76,7 +76,7 @@
      Casa Lookbook Hero
      ═══════════════════════════════════════════════ */
   .casa-lb-hero {
-    position: relative;
+  position: relative;
     width: 100%;
     min-height: {{ section_height | strip }};
     display: flex;
@@ -162,6 +162,7 @@
     height: 6px;
     border-radius: 50%;
     background: {{ accent_1 }};
+    /* perf-justified: paused off-screen by data-casa-anim-gate on the section root (casa-anim-gate.js) */
     animation: casa-lb-hero-pulse 2s ease-in-out infinite;
   }
 
@@ -222,39 +223,34 @@
     line-height: 1;
   }
 
-  /* ── CTA ── */
+  /* ── CTA ──
+     Brand class .btn .btn-{{treatment}} provides display, padding,
+     radius, font, transition, text-transform, letter-spacing, and
+     hover lift baseline. Legacy --gradient/--solid/--outline modifier
+     rules below remain so any merchant template still using the
+     deprecated `cta_style` setting keeps rendering until they pick a
+     new treatment. Section-specific override: heavier hover lift. */
   .casa-lb-hero__cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 14px 32px;
-    border-radius: 10px;
-    font-size: 15px;
-    font-weight: 600;
-    text-decoration: none;
-    cursor: pointer;
-    transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
-    border: none;
     margin-top: 4px;
   }
   .casa-lb-hero__cta:hover {
     transform: translateY(-2px);
   }
   .casa-lb-hero__cta--gradient {
-    color: #fff;
+    color: var(--casa-text-on-ink);
     background: linear-gradient(135deg, {{ accent_1 }}, {{ accent_2 }});
-    box-shadow: 0 4px 24px rgba(147,51,234,0.3);
+    box-shadow: 0 4px 24px rgba(176, 195, 250,0.3);
   }
   .casa-lb-hero__cta--gradient:hover {
-    box-shadow: 0 8px 32px rgba(147,51,234,0.45);
+    box-shadow: 0 8px 32px rgba(176, 195, 250,0.45);
   }
   .casa-lb-hero__cta--solid {
-    color: #fff;
+    color: var(--casa-text-on-ink);
     background: {{ accent_1 }};
-    box-shadow: 0 4px 20px rgba(147,51,234,0.25);
+    box-shadow: 0 4px 20px rgba(176, 195, 250,0.25);
   }
   .casa-lb-hero__cta--solid:hover {
-    box-shadow: 0 8px 28px rgba(147,51,234,0.4);
+    box-shadow: 0 8px 28px rgba(176, 195, 250,0.4);
   }
   .casa-lb-hero__cta--outline {
     color: {{ text_color }};
@@ -263,7 +259,7 @@
   }
   .casa-lb-hero__cta--outline:hover {
     border-color: {{ accent_1 }};
-    box-shadow: 0 4px 20px rgba(147,51,234,0.2);
+    box-shadow: 0 4px 20px rgba(176, 195, 250,0.2);
   }
 
   /* ── Scroll Indicator ── */
@@ -279,8 +275,13 @@
     gap: 4px;
     color: {{ text_muted }};
     opacity: 0.6;
+    /* perf-justified: paused off-screen by data-casa-anim-gate on the section root (casa-anim-gate.js) */
     animation: casa-lb-hero-bounce 2.2s ease-in-out infinite;
     pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .casa-lb-hero__badge-dot,
+    .casa-lb-hero__scroll { animation: none; }
   }
   .casa-lb-hero__scroll-label {
     font-size: 10px;
@@ -337,13 +338,14 @@
   id="section-{{ section.id }}"
   data-section-id="{{ section.id }}"
   data-parallax="{{ enable_parallax }}"
+  data-casa-anim-gate
 >
   {%- comment -%} ── Media ── {%- endcomment -%}
   {%- if has_media -%}
     <div class="casa-lb-hero__media{% if enable_parallax %} casa-lb-hero__media--parallax{% endif %}">
       {%- if bg_video_url != blank -%}
         <video
-          autoplay
+          data-casa-pause
           muted
           loop
           playsinline
@@ -357,6 +359,8 @@
           <img
             class="casa-lb-hero__img-desktop"
             src="{{ hero_img_d | image_url: width: 1920 }}"
+            width="{{ hero_img_d.width }}"
+            height="{{ hero_img_d.height }}"
             srcset="
               {{ hero_img_d | image_url: width: 1024 }} 1024w,
               {{ hero_img_d | image_url: width: 1440 }} 1440w,
@@ -372,6 +376,8 @@
           <img
             class="casa-lb-hero__img-mobile"
             src="{{ hero_img_m | image_url: width: 750 }}"
+            width="{{ hero_img_m.width }}"
+            height="{{ hero_img_m.height }}"
             srcset="
               {{ hero_img_m | image_url: width: 480 }} 480w,
               {{ hero_img_m | image_url: width: 750 }} 750w
@@ -424,14 +430,13 @@
     {%- endif -%}
 
     {%- if cta_text != blank and cta_link != blank -%}
+      {%- assign lbh_cta_treatment = section.settings.cta_treatment | default: 'featured' -%}
       <a
         href="{{ cta_link }}"
-        class="casa-lb-hero__cta casa-lb-hero__cta--{{ cta_style }}"
+        class="btn btn-{{ lbh_cta_treatment }} casa-lb-hero__cta casa-lb-hero__cta--{{ cta_style }}"
       >
         {{ cta_text }}
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <span class="arrow" aria-hidden="true">&rarr;</span>
       </a>
     {%- endif -%}
   </div>
@@ -631,7 +636,7 @@
       "type": "text",
       "id": "cta_text",
       "label": "Button text",
-      "default": "Explore Collection"
+      "default": "EXPLORE COLLECTION"
     },
     {
       "type": "url",
@@ -641,13 +646,30 @@
     {
       "type": "select",
       "id": "cta_style",
-      "label": "Button style",
+      "label": "Button style (legacy)",
+      "info": "Deprecated. Superseded by Button treatment below.",
       "options": [
         { "value": "gradient", "label": "Gradient" },
         { "value": "solid", "label": "Solid" },
         { "value": "outline", "label": "Outline" }
       ],
-      "default": "gradient"
+      "default": "gradient",
+      "visible_if": "{{ false }}"
+    },
+    {
+      "type": "select",
+      "id": "cta_treatment",
+      "label": "Button treatment",
+      "info": "Brand-book button style. Featured (gradient) is rare per brand book — reserved for hero/launch CTAs.",
+      "options": [
+        { "value": "primary",            "label": "Primary — solid ink (light surface)" },
+        { "value": "primary-on-dark",    "label": "Primary — solid white (dark surface)" },
+        { "value": "secondary",          "label": "Secondary — outline (light surface)" },
+        { "value": "secondary-on-dark",  "label": "Secondary — outline (dark surface)" },
+        { "value": "tertiary",           "label": "Tertiary — underlined link" },
+        { "value": "featured",           "label": "Featured — purple→pink gradient" }
+      ],
+      "default": "featured"
     },
     {
       "type": "header",
@@ -657,13 +679,13 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background color",
-      "default": "#0a0a0f"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
       "id": "text_color",
       "label": "Text color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
@@ -675,13 +697,13 @@
       "type": "color",
       "id": "accent_primary",
       "label": "Accent primary",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "accent_secondary",
       "label": "Accent secondary",
-      "default": "#ec4899"
+      "default": "#5E0A02"
     }
   ],
   "blocks": [
@@ -699,8 +721,8 @@
         {
           "type": "text",
           "id": "icon",
-          "label": "Icon (emoji or symbol, optional)",
-          "info": "e.g. ✨ or 🏠"
+          "label": "Icon (optional short text)",
+          "info": "Leave blank for a text-only tag."
         }
       ]
     }
@@ -724,17 +746,17 @@
         "bg_color": "#0a0a0f",
         "text_color": "#ffffff",
         "text_muted": "#a0a0b0",
-        "accent_primary": "#9333ea",
-        "accent_secondary": "#ec4899"
+        "accent_primary": "#B0C3FA",
+        "accent_secondary": "#5E0A02"
       },
       "blocks": [
-        { "type": "mood_tag", "settings": { "text": "Modern", "icon": "✨" } },
-        { "type": "mood_tag", "settings": { "text": "Minimalist", "icon": "◽" } },
-        { "type": "mood_tag", "settings": { "text": "Cozy", "icon": "🕯️" } },
-        { "type": "mood_tag", "settings": { "text": "Ambient", "icon": "💡" } }
+        { "type": "mood_tag", "settings": { "text": "Modern", "icon": "" } },
+        { "type": "mood_tag", "settings": { "text": "Minimalist", "icon": "" } },
+        { "type": "mood_tag", "settings": { "text": "Cozy", "icon": "" } },
+        { "type": "mood_tag", "settings": { "text": "Ambient", "icon": "" } }
       ]
     }
   ],
-  "templates": ["page"]
+  "enabled_on": { "templates": ["page"] }
 }
 {% endschema %}

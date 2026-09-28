@@ -4,12 +4,16 @@
 {%- endcomment -%}
 
 {%- liquid
-  assign _cn_grad_start = section.settings.gradient_start | default: '#9333ea'
-  assign _cn_grad_end = section.settings.gradient_end | default: '#ec4899'
-  assign _cn_text = section.settings.text_color | default: '#ffffff'
-  assign _cn_btn_bg = section.settings.btn_bg | default: '#ffffff'
-  assign _cn_btn_text = section.settings.btn_text | default: '#9333ea'
+  assign _cn_grad_start = section.settings.gradient_start | default: '#B0C3FA'
+  assign _cn_grad_end = section.settings.gradient_end | default: '#5E0A02'
+  assign _cn_text = section.settings.text_color | default: '#FAFAF7'
+  assign _cn_btn_bg = section.settings.btn_bg | default: '#FAFAF7'
+  assign _cn_btn_text = section.settings.btn_text | default: '#B0C3FA'
 -%}
+{%- comment -%}
+  Heading-scale dropdown: merchant picks H1-H6 from Theme Settings -> Typography.
+{%- endcomment -%}
+{%- assign _cn_title_h = section.settings.cn_heading_level | default: 'h1' -%}
 <section
   class="casa-newsletter"
   style="
@@ -20,6 +24,11 @@
     --cn-text: {{ _cn_text }};
     --cn-btn-bg: {{ _cn_btn_bg }};
     --cn-btn-text: {{ _cn_btn_text }};
+    --cn-title-fs:   var(--font-{{ _cn_title_h }}--size);
+    --cn-title-fw:   var(--font-{{ _cn_title_h }}--weight);
+    --cn-title-lh:   var(--font-{{ _cn_title_h }}--line-height);
+    --cn-title-ls:   var(--font-{{ _cn_title_h }}--letter-spacing);
+    --cn-title-case: var(--font-{{ _cn_title_h }}--case);
   "
 >
   <div class="casa-newsletter__content">
@@ -44,8 +53,8 @@
           required
           autocomplete="email"
         >
-        <button type="submit" class="casa-newsletter__btn">
-          {{ section.settings.button_text | default: 'Subscribe' }}
+        <button type="submit" class="btn btn-primary-on-dark">
+          {{ section.settings.button_text | default: 'SUBSCRIBE' }}
         </button>
         {%- if form.errors -%}
           <p class="casa-newsletter__error">{{ form.errors.translated_fields['email'] | capitalize }} {{ form.errors.messages['email'] }}</p>
@@ -79,10 +88,25 @@
   "class": "casa-newsletter-section",
   "settings": [
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "title",
-      "label": "Title",
-      "default": "Join the Casa Family"
+      "label": "Title (use <em>word</em> for italic gradient accent)",
+      "default": "Join the <em>Casa Family.</em>"
+    },
+    {
+      "type": "select",
+      "id": "cn_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
     },
     {
       "type": "text",
@@ -100,7 +124,7 @@
       "type": "text",
       "id": "button_text",
       "label": "Button text",
-      "default": "Subscribe"
+      "default": "SUBSCRIBE"
     },
     {
       "type": "text",
@@ -116,31 +140,31 @@
       "type": "color",
       "id": "gradient_start",
       "label": "Gradient start",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "gradient_end",
       "label": "Gradient end",
-      "default": "#ec4899"
+      "default": "#5E0A02"
     },
     {
       "type": "color",
       "id": "text_color",
       "label": "Text color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
       "id": "btn_bg",
       "label": "Button background",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
       "id": "btn_text",
       "label": "Button text",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "header",
@@ -191,7 +215,7 @@
 }
 {% endschema %}
 
-<style>
+{% stylesheet %}
   /* Override base theme input background for dark newsletter */
   .casa-newsletter__input,
   .casa-newsletter__input:hover,
@@ -211,26 +235,60 @@
     transition: background-color 5000s ease-in-out 0s;
     caret-color: var(--cn-text, #ffffff);
   }
-</style>
 
-{% stylesheet %}
 .casa-newsletter {
   --cn-padding-top: 80px;
   --cn-padding-bottom: 80px;
 
-  background: linear-gradient(to right, var(--cn-gradient-start, #9333ea), var(--cn-gradient-end, #ec4899));
+  /* Brand v1 — surfaces are Paper or Ink only. Gradient was previously
+     the entire surface (purple→pink wash); brand decision is to keep
+     that gradient as a small accent on heading <em> instead. The legacy
+     gradient_start/gradient_end schema settings remain to preserve any
+     stored merchant values, but they no longer affect the surface.
+     Adopt --cn-bg with an Ink default; merchant can still override. */
+  background: var(--cn-bg, var(--casa-ink));
   text-align: center;
   padding: var(--cn-padding-top) 80px var(--cn-padding-bottom);
+  position: relative;
+  overflow: hidden;
 }
+
+/* Purple seam blooms — mirror the testimonials::after above and the
+   footer::before below so the color at both touching lines is
+   identical on each side. Same shape/opacity/falloff as the footer's
+   existing top glow (800x400 centered ellipse, rgba(176, 195, 250,0.12)
+   peak, transparent at 70% radius). */
+.casa-newsletter::before,
+.casa-newsletter::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(176, 195, 250, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.casa-newsletter::before { top: 0; }
+.casa-newsletter::after  { bottom: 0; }
 
 .casa-newsletter__content {
   max-width: 600px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .casa-newsletter__title {
-  font-size: 42px;
-  font-weight: 300;
+  /* Heading scale comes from Theme Settings -> Typography via the
+     cn_heading_level dropdown; legacy font-h2 token preserved as fallback. */
+  font-size: var(--cn-title-fs, var(--font-h2--size, 42px));
+  font-weight: var(--cn-title-fw, 300);
+  line-height: var(--cn-title-lh, normal);
+  letter-spacing: var(--cn-title-ls, normal);
+  text-transform: var(--cn-title-case, none);
   color: var(--cn-text, #ffffff);
   margin: 0 0 16px 0;
 }
@@ -269,23 +327,10 @@
 }
 
 
-.casa-newsletter__btn {
-  padding: 14px 32px;
-  background: var(--cn-btn-bg, #ffffff);
-  color: var(--cn-btn-text, #9333ea);
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  white-space: nowrap;
-}
-
-.casa-newsletter__btn:hover {
-  transform: scale(1.05);
-}
+/* .casa-newsletter__btn rules removed 2026-05-09 — submit button now
+   uses the brand .btn .btn-primary-on-dark classes from
+   assets/casa-buttons.css. The legacy cn_btn_bg / cn_btn_text schema
+   settings remain (orphaned data) and can be removed in a follow-up. */
 
 .casa-newsletter__success {
   font-size: 16px;
@@ -315,9 +360,7 @@
     padding: 60px 20px;
   }
 
-  .casa-newsletter__title {
-    font-size: 28px;
-  }
+  /* Title font-size handled by Horizon heading tokens. */
 
   .casa-newsletter__subtitle {
     font-size: 16px;

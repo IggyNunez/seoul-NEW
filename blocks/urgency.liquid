@@ -92,22 +92,32 @@
 
 <script>
   (function() {
-    var el = document.querySelector('[data-urgency-viewers]');
-    if (!el) return;
-    var min = parseInt(el.dataset.min) || 15;
-    var max = parseInt(el.dataset.max) || 35;
-    var countEl = el.querySelector('[data-urgency-count]');
-    if (!countEl) return;
-    function randomCount() {
-      return Math.floor(Math.random() * (max - min + 1)) + min;
+    // Per-element init (not first-match-only, so two urgency blocks can
+    // coexist); intervals self-clear when their element leaves the DOM,
+    // so theme-editor re-renders don't stack timers.
+    function initUrgencyViewers(scope) {
+      (scope || document).querySelectorAll('[data-urgency-viewers]:not([data-urgency-bound])').forEach(function(el) {
+        el.setAttribute('data-urgency-bound', '1');
+        var min = parseInt(el.dataset.min) || 15;
+        var max = parseInt(el.dataset.max) || 35;
+        var countEl = el.querySelector('[data-urgency-count]');
+        if (!countEl) return;
+        countEl.textContent = Math.floor(Math.random() * (max - min + 1)) + min;
+        var timer = setInterval(function() {
+          if (!el.isConnected) { clearInterval(timer); return; }
+          var current = parseInt(countEl.textContent);
+          var change = Math.random() > 0.5 ? 1 : -1;
+          countEl.textContent = Math.max(min, Math.min(max, current + change));
+        }, 5000 + Math.random() * 5000);
+      });
     }
-    countEl.textContent = randomCount();
-    setInterval(function() {
-      var current = parseInt(countEl.textContent);
-      var change = Math.random() > 0.5 ? 1 : -1;
-      var next = Math.max(min, Math.min(max, current + change));
-      countEl.textContent = next;
-    }, 5000 + Math.random() * 5000);
+    initUrgencyViewers(document);
+    if (!window.__casaUrgencyLoadBound) {
+      window.__casaUrgencyLoadBound = true;
+      document.addEventListener('shopify:section:load', function(e) {
+        if (e.target) initUrgencyViewers(e.target);
+      });
+    }
   })();
 </script>
 
@@ -319,6 +329,15 @@
   flex-direction: column;
   gap: 6px;
 }
+/* Collapse the block when it renders no rows (low-stock not triggered,
+   viewers off, no custom text). An empty .casa-urgency is still a flex
+   child of the buy-box group, so it injects its 8px padding box PLUS a
+   full row-gap on each side — ~28px of dead space above whatever follows
+   it (e.g. the spec strip). Removing it from flow drops that to one clean
+   group gap. :has() is already used elsewhere in this block + casa-ss. */
+.casa-urgency:not(:has(.casa-urgency__row)) {
+  display: none;
+}
 .casa-urgency--has-bg {
   background: var(--cu-bg);
   border: 1px solid var(--cu-border, transparent);
@@ -339,11 +358,17 @@
   border-radius: 50%;
   background: var(--cu-dot, #ef4444);
   flex-shrink: 0;
+  /* perf-justified: 8px dot, 1.5s pulse, GPU-composited (only opacity +
+     transform animate). Lives inside the above-the-fold buy box so the
+     animation runs briefly before the user scrolls past. */
   animation: casaUrgencyPulse 1.5s ease-in-out infinite;
 }
 @keyframes casaUrgencyPulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(0.8); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .casa-urgency__dot { animation: none; }
 }
 .casa-urgency__icon {
   flex-shrink: 0;
@@ -353,5 +378,26 @@
 }
 .casa-urgency__text strong {
   font-weight: 700;
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   Viewer row demotion (Apple-style social-proof footnote, not a banner)
+   ──────────────────────────────────────────────────────────────────────
+   The merchant flagged that the "X people are viewing this right now"
+   row was getting its own full-width row with a 16px eye icon — too
+   prominent for what's a soft-conviction signal. Demoting to a
+   footnote: smaller text, muted opacity, smaller icon. The stock and
+   custom-text rows are unaffected (they keep their full presence).
+*/
+.casa-urgency__row:has([data-urgency-viewers]) {
+  font-size: calc(var(--cu-font-size, 14px) - 2px);
+  opacity: 0.65;
+}
+.casa-urgency__row:has([data-urgency-viewers]) .casa-urgency__icon svg {
+  width: 12px;
+  height: 12px;
+}
+.casa-urgency__text[data-urgency-viewers] strong {
+  font-weight: 500;
 }
 </style>

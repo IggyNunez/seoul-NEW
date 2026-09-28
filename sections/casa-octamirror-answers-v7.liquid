@@ -1,0 +1,786 @@
+{% liquid
+  assign guarantee_url = pages['faq'].url | default: '/pages/faq'
+  assign guarantee_url = guarantee_url | append: '#warranty'
+  assign shipping_url = shop.shipping_policy.url | default: '/policies/shipping-policy'
+  assign returns_url = shop.refund_policy.url | default: '/policies/refund-policy'
+  assign support_url = pages['contact-us'].url
+
+  if support_url == blank
+    assign support_url = pages['contact'].url
+  endif
+
+  if support_url == blank
+    assign support_url = '/pages/contact-us'
+  endif
+
+  assign group_keys = 'mirror|setup|ownership' | split: '|'
+%}
+
+<section id="casa-octa-answers" class="casa-v7-answers" aria-labelledby="casa-v7-answers-title-{{ section.id }}">
+  <div class="casa-v7-answers__inner">
+    <header class="casa-v7-answers__header">
+      <span class="casa-v7-answers__eyebrow">{{ section.settings.eyebrow }}</span>
+      <h2 id="casa-v7-answers-title-{{ section.id }}">{{ section.settings.heading }}</h2>
+      <p>{{ section.settings.lede }}</p>
+    </header>
+
+    <div class="casa-v7-answers__nav" role="tablist" aria-label="{{ section.settings.nav_label | escape }}">
+      <button id="casa-v7-answer-tab-mirror-{{ section.id }}" type="button" role="tab" aria-selected="true" aria-controls="casa-v7-answers-mirror-{{ section.id }}" data-v7-answer-tab="mirror">{{ section.settings.mirror_title }}</button>
+      <button id="casa-v7-answer-tab-setup-{{ section.id }}" type="button" role="tab" aria-selected="false" aria-controls="casa-v7-answers-setup-{{ section.id }}" data-v7-answer-tab="setup">{{ section.settings.setup_title }}</button>
+      <button id="casa-v7-answer-tab-ownership-{{ section.id }}" type="button" role="tab" aria-selected="false" aria-controls="casa-v7-answers-ownership-{{ section.id }}" data-v7-answer-tab="ownership">{{ section.settings.ownership_title }}</button>
+    </div>
+
+    <div class="casa-v7-answers__chapters">
+      {% for group_key in group_keys %}
+
+
+        <section id="casa-v7-answers-{{ group_key }}-{{ section.id }}" class="casa-v7-answers__chapter" role="tabpanel" data-v7-answer-panel="{{ group_key }}" aria-labelledby="casa-v7-answer-tab-{{ group_key }}-{{ section.id }}">
+
+
+          <div class="casa-v7-answers__list">
+            {% assign group_item_index = 0 %}
+            {% for block in section.blocks %}
+              {% if block.settings.group == group_key and block.settings.question != blank %}
+                {% liquid
+                  assign group_item_index = group_item_index | plus: 1
+                  assign answer_url = ''
+
+                  case block.settings.link_target
+                    when 'size'
+                      assign answer_url = '#casa-v7-size-guide'
+                    when 'reviews'
+                      assign answer_url = '#casa-octa-reviews'
+                    when 'guarantee'
+                      assign answer_url = guarantee_url
+                    when 'shipping'
+                      assign answer_url = shipping_url
+                    when 'returns'
+                      assign answer_url = returns_url
+                    when 'support'
+                      assign answer_url = support_url
+                  endcase
+                %}
+
+                <details class="casa-v7-answer" data-casa-v7-faq="{{ block.id }}"{% if block.settings.open_by_default %} open{% endif %} {{ block.shopify_attributes }}>
+                  <summary>
+
+                    <span class="casa-v7-answer__summary-copy">
+                      <strong>{{ block.settings.question }}</strong>
+
+                    </span>
+
+
+                    <span class="casa-v7-answer__plus" aria-hidden="true"></span>
+                  </summary>
+
+                  <div class="casa-v7-answer__body">
+                    {% if block.settings.lead != blank %}<p class="casa-v7-answer__lead">{{ block.settings.lead }}</p>{% endif %}
+                    {% if block.settings.answer != blank %}<div class="casa-v7-answer__rte rte">{{ block.settings.answer }}</div>{% endif %}
+
+
+                    {% if answer_url != blank and block.settings.link_label != blank %}
+                      <a class="casa-v7-answer__link" href="{{ answer_url }}">{{ block.settings.link_label }} <span aria-hidden="true">&rarr;</span></a>
+                    {% endif %}
+                  </div>
+                </details>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+
+    <aside class="casa-v7-answers__contact" aria-labelledby="casa-v7-answers-contact-title-{{ section.id }}">
+      <div>
+        <span>{{ section.settings.contact_eyebrow }}</span>
+        <h3 id="casa-v7-answers-contact-title-{{ section.id }}">{{ section.settings.contact_title }}</h3>
+        <p>{{ section.settings.contact_text }}</p>
+      </div>
+      <a href="{{ support_url }}">{{ section.settings.contact_label }} <span aria-hidden="true">&rarr;</span></a>
+    </aside>
+  </div>
+</section>
+
+{% stylesheet %}
+  .casa-v7-answers {
+    --answer-bg: #08080d;
+    --answer-panel: #111116;
+    --answer-panel-raised: #16161d;
+    --answer-line: rgba(255, 255, 255, 0.12);
+    --answer-muted: #a7a7b2;
+    --answer-purple: #a738f0;
+    --answer-pink: #ed3f9b;
+    --answer-cyan: #16c5df;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: var(--answer-bg);
+    color: #f8f8fb;
+    border-top: 3px solid transparent;
+    border-image: linear-gradient(90deg, var(--answer-purple), var(--answer-pink), var(--answer-cyan)) 1;
+  }
+
+  .casa-v7-answers::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    width: min(48rem, 70vw);
+    aspect-ratio: 1;
+    top: -32rem;
+    right: -10rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(176, 195, 250, 0.2), transparent 68%);
+    pointer-events: none;
+  }
+
+  .casa-v7-answers__inner {
+    width: min(1540px, calc(100% - 64px));
+    margin: 0 auto;
+    padding: 56px 0 88px;
+  }
+
+  .casa-v7-answers__chapter[hidden] {
+    display: none;
+  }
+
+  .casa-v7-answers__header {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+    column-gap: clamp(32px, 6vw, 96px);
+    align-items: end;
+    max-width: none;
+  }
+
+  .casa-v7-answers__header .casa-v7-answers__eyebrow {
+    grid-column: 1 / -1;
+  }
+
+  .casa-v7-answers__eyebrow,
+  .casa-v7-answers__chapter-head > span,
+  .casa-v7-answers__contact > div > span {
+    display: block;
+    color: var(--answer-purple);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    line-height: 1.25;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-answers__header h2 {
+    max-width: 16ch;
+    margin: 12px 0 0;
+    color: #fff;
+    font-size: clamp(36px, 3.7vw, 58px);
+    font-weight: 520;
+    letter-spacing: -0.045em;
+    line-height: 1;
+  }
+
+  .casa-v7-answers__header h2 em {
+    color: transparent;
+    background: linear-gradient(100deg, var(--answer-purple), var(--answer-pink) 55%, var(--answer-cyan));
+    background-clip: text;
+    -webkit-background-clip: text;
+    font-weight: 650;
+  }
+
+  .casa-v7-answers__header > p {
+    max-width: 560px;
+    margin: 0 0 4px;
+    color: var(--answer-muted);
+    font-size: clamp(16px, 1.3vw, 19px);
+    line-height: 1.45;
+  }
+
+  .casa-v7-answers__promises {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin: 30px 0 20px;
+    border: 1px solid var(--answer-line);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.025);
+    overflow: hidden;
+  }
+
+  .casa-v7-answers__promises > div {
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    column-gap: 16px;
+    align-items: center;
+    min-width: 0;
+    padding: 24px 28px;
+  }
+
+  .casa-v7-answers__promises > div + div {
+    border-left: 1px solid var(--answer-line);
+  }
+
+  .casa-v7-answers__promises span {
+    display: grid;
+    grid-row: 1 / span 2;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    color: var(--answer-purple);
+    border-radius: 14px;
+    background: linear-gradient(145deg, rgba(167, 56, 240, 0.22), rgba(22, 197, 223, 0.07));
+  }
+
+  .casa-v7-answers__promises svg {
+    width: 26px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.5;
+  }
+
+  .casa-v7-answers__promises strong {
+    font-size: 16px;
+    line-height: 1.25;
+  }
+
+  .casa-v7-answers__promises small {
+    margin-top: 4px;
+    color: var(--answer-muted);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .casa-v7-answers__nav {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin: 30px 0 0;
+    border: 1px solid var(--answer-line);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .casa-v7-answers__nav button {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    min-height: 58px;
+    padding: 12px 18px;
+    border: 0;
+    color: #f8f8fb;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 180ms ease, color 180ms ease;
+  }
+
+  .casa-v7-answers__nav button + button {
+    border-left: 1px solid var(--answer-line);
+  }
+
+  .casa-v7-answers__nav button:hover,
+  .casa-v7-answers__nav button:focus-visible,
+  .casa-v7-answers__nav button[aria-selected='true'] {
+    color: #fff;
+    background: rgba(167, 56, 240, 0.14);
+  }
+
+  .casa-v7-answers__nav button[aria-selected='true'] {
+    box-shadow: inset 0 -3px var(--answer-purple);
+  }
+
+  .casa-v7-answers__nav button span {
+    color: var(--answer-purple);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+
+  .casa-v7-answers__chapter {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.32fr) minmax(0, 0.68fr);
+    gap: clamp(32px, 6vw, 96px);
+    padding: 54px 0 46px;
+    border-top: 1px solid var(--answer-line);
+    scroll-margin-top: 110px;
+  }
+
+  .casa-v7-answers__chapter-head {
+    align-self: start;
+    position: sticky;
+    top: 120px;
+  }
+
+  .casa-v7-answers__chapter-head h3 {
+    margin: 15px 0 14px;
+    color: #fff;
+    font-size: clamp(30px, 3.2vw, 50px);
+    font-weight: 520;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .casa-v7-answers__chapter-head p {
+    max-width: 340px;
+    margin: 0;
+    color: var(--answer-muted);
+    font-size: 16px;
+    line-height: 1.55;
+  }
+
+  .casa-v7-answers__list {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .casa-v7-answer {
+    border: 1px solid var(--answer-line);
+    border-radius: 18px;
+    background: var(--answer-panel);
+    overflow: clip;
+    transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+  }
+
+  .casa-v7-answer[open] {
+    border-color: rgba(167, 56, 240, 0.72);
+    background: var(--answer-panel-raised);
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(237, 63, 155, 0.08) inset;
+  }
+
+  .casa-v7-answer summary {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr) auto 32px;
+    gap: 18px;
+    align-items: center;
+    min-height: 94px;
+    padding: 18px 22px;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .casa-v7-answer summary::-webkit-details-marker { display: none; }
+
+  .casa-v7-answer summary:focus-visible {
+    outline: 2px solid var(--answer-cyan);
+    outline-offset: -3px;
+  }
+
+  .casa-v7-answer__icon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    color: var(--answer-purple);
+    border: 1px solid rgba(167, 56, 240, 0.28);
+    border-radius: 15px;
+    background: rgba(167, 56, 240, 0.09);
+  }
+
+  .casa-v7-answer[open] .casa-v7-answer__icon {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(145deg, var(--answer-purple), var(--answer-pink));
+  }
+
+  .casa-v7-answer__icon svg {
+    width: 27px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.5;
+  }
+
+  .casa-v7-answer__summary-copy {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .casa-v7-answer__summary-copy strong {
+    color: #fff;
+    font-size: clamp(17px, 1.5vw, 21px);
+    font-weight: 680;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+  }
+
+  .casa-v7-answer__summary-copy small {
+    color: var(--answer-muted);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .casa-v7-answer__quick {
+    max-width: 190px;
+    color: #d6d6df;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    line-height: 1.35;
+    text-align: right;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-answer__plus {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .casa-v7-answer__plus::before,
+  .casa-v7-answer__plus::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 11px;
+    height: 1.5px;
+    background: currentColor;
+    transform: translate(-50%, -50%);
+    transition: transform 180ms ease;
+  }
+
+  .casa-v7-answer__plus::after { transform: translate(-50%, -50%) rotate(90deg); }
+  .casa-v7-answer[open] .casa-v7-answer__plus::after { transform: translate(-50%, -50%) rotate(0); }
+
+  .casa-v7-answer__body {
+    margin: 0 22px 22px 92px;
+    padding: 25px 28px 28px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  .casa-v7-answer__lead {
+    max-width: 760px;
+    margin: 0 0 14px;
+    color: #fff;
+    font-size: clamp(18px, 1.7vw, 23px);
+    font-weight: 570;
+    letter-spacing: -0.02em;
+    line-height: 1.35;
+  }
+
+  .casa-v7-answer__rte {
+    max-width: 760px;
+    color: #b8b8c3;
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  .casa-v7-answer__rte > * { margin-top: 0; }
+  .casa-v7-answer__rte > *:last-child { margin-bottom: 0; }
+  .casa-v7-answer__rte strong { color: #eeeef4; }
+  .casa-v7-answer__rte em { color: #858591; font-style: normal; }
+  .casa-v7-answer__rte ul,
+  .casa-v7-answer__rte ol { padding-left: 1.25em; }
+  .casa-v7-answer__rte li + li { margin-top: 7px; }
+
+  .casa-v7-answer__proofs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  .casa-v7-answer__proofs span {
+    padding: 8px 11px;
+    color: #f0e8f8;
+    border: 1px solid rgba(167, 56, 240, 0.3);
+    border-radius: 999px;
+    background: rgba(167, 56, 240, 0.08);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1.25;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-answer__link {
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 22px;
+    color: var(--answer-cyan);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-answer__link:hover span { transform: translateX(3px); }
+  .casa-v7-answer__link span { transition: transform 180ms ease; }
+
+  .casa-v7-answers__contact {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 24px;
+    padding: clamp(28px, 4vw, 52px);
+    border: 1px solid transparent;
+    border-radius: 22px;
+    background:
+      linear-gradient(var(--answer-panel), var(--answer-panel)) padding-box,
+      linear-gradient(110deg, var(--answer-purple), var(--answer-pink), var(--answer-cyan)) border-box;
+  }
+
+  .casa-v7-answers__contact h3 {
+    margin: 12px 0 8px;
+    color: #fff;
+    font-size: clamp(26px, 3vw, 42px);
+    font-weight: 560;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .casa-v7-answers__contact p {
+    margin: 0;
+    color: var(--answer-muted);
+    font-size: 16px;
+  }
+
+  .casa-v7-answers__contact > a {
+    display: inline-flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    min-width: 210px;
+    min-height: 56px;
+    padding: 14px 22px;
+    color: #fff;
+    border-radius: 999px;
+    background: linear-gradient(105deg, var(--answer-purple), var(--answer-pink));
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 899px) {
+    .casa-v7-answers__inner {
+      width: min(100% - 32px, 720px);
+      padding: 44px 0 72px;
+    }
+
+    .casa-v7-answers__header {
+      grid-template-columns: 1fr;
+      row-gap: 14px;
+    }
+
+    .casa-v7-answers__header h2 { margin-top: 10px; }
+
+    .casa-v7-answers__promises {
+      grid-template-columns: 1fr;
+      margin-top: 28px;
+    }
+
+    .casa-v7-answers__promises > div { padding: 20px; }
+    .casa-v7-answers__promises > div + div { border-top: 1px solid var(--answer-line); border-left: 0; }
+
+    .casa-v7-answers__nav {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 24px;
+    }
+
+    .casa-v7-answers__nav button {
+      display: grid;
+      gap: 5px;
+      justify-items: start;
+      min-height: 62px;
+      padding: 10px;
+      font-size: 11px;
+      text-align: left;
+    }
+
+    .casa-v7-answers__nav button + button { border-left: 1px solid var(--answer-line); }
+
+    .casa-v7-answers__chapter {
+      grid-template-columns: 1fr;
+      gap: 28px;
+      padding: 52px 0;
+      scroll-margin-top: 80px;
+    }
+
+    .casa-v7-answers__chapter-head { position: static; }
+    .casa-v7-answers__chapter-head p { max-width: 560px; }
+
+    .casa-v7-answer summary {
+      grid-template-columns: 46px minmax(0, 1fr) 28px;
+      gap: 13px;
+      min-height: 82px;
+      padding: 16px;
+    }
+
+    .casa-v7-answer__icon { width: 46px; height: 46px; border-radius: 13px; }
+    .casa-v7-answer__icon svg { width: 24px; }
+    .casa-v7-answer__quick { display: none; }
+    .casa-v7-answer__body { margin: 0 14px 14px; padding: 20px; }
+
+    .casa-v7-answers__contact {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .casa-v7-answers__contact > a { width: 100%; }
+  }
+
+  @media (max-width: 420px) {
+    .casa-v7-answers__inner { width: calc(100% - 24px); }
+    .casa-v7-answers__header h2 { font-size: 34px; }
+    .casa-v7-answer__summary-copy strong { font-size: 16px; }
+    .casa-v7-answer__summary-copy small { font-size: 12px; }
+    .casa-v7-answer__body { padding: 18px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .casa-v7-answer,
+    .casa-v7-answer__plus::before,
+    .casa-v7-answer__plus::after,
+    .casa-v7-answer__link span { transition: none; }
+  }
+{% endstylesheet %}
+
+{% javascript %}
+  function initializeCasaV7AnswerTabs(scope) {
+    const roots = scope.querySelectorAll('.casa-v7-answers:not([data-v7-tabs-ready])');
+    roots.forEach((root) => {
+      root.dataset.v7TabsReady = 'true';
+      const tabs = Array.from(root.querySelectorAll('[data-v7-answer-tab]'));
+      const panels = Array.from(root.querySelectorAll('[data-v7-answer-panel]'));
+
+      const activate = (key, focusTab) => {
+        tabs.forEach((tab) => {
+          const active = tab.dataset.v7AnswerTab === key;
+          tab.setAttribute('aria-selected', String(active));
+          tab.tabIndex = active ? 0 : -1;
+          if (active && focusTab) tab.focus();
+        });
+        panels.forEach((panel) => {
+          const active = panel.dataset.v7AnswerPanel === key;
+          panel.hidden = !active;
+          if (!active) panel.querySelectorAll('details[open]').forEach((answer) => answer.removeAttribute('open'));
+        });
+      };
+
+      tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => activate(tab.dataset.v7AnswerTab, false));
+        tab.addEventListener('keydown', (event) => {
+          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+          event.preventDefault();
+          const direction = event.key === 'ArrowRight' ? 1 : -1;
+          const next = (index + direction + tabs.length) % tabs.length;
+          activate(tabs[next].dataset.v7AnswerTab, true);
+        });
+      });
+
+      root.querySelectorAll('details').forEach((answer) => {
+        answer.addEventListener('toggle', () => {
+          if (!answer.open) return;
+          answer.closest('[data-v7-answer-panel]')?.querySelectorAll('details[open]').forEach((other) => {
+            if (other !== answer) other.removeAttribute('open');
+          });
+        });
+      });
+
+      activate(tabs[0]?.dataset.v7AnswerTab || 'mirror', false);
+    });
+  }
+
+  initializeCasaV7AnswerTabs(document);
+  document.addEventListener('shopify:section:load', (event) => initializeCasaV7AnswerTabs(event.target));
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "Octa answers V7",
+  "tag": "section",
+  "class": "section-casa-octa-answers-v7",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "THE DETAILS" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "Everything to know, <em>before it arrives.</em>" },
+    { "type": "textarea", "id": "lede", "label": "Introduction", "default": "Sizing, setup, controls, delivery and ownership—answered clearly in one place." },
+    { "type": "text", "id": "promise_label", "label": "Promise row label", "default": "Three important answers" },
+    { "type": "text", "id": "promise_1_title", "label": "Promise one title", "default": "A real mirror when off" },
+    { "type": "text", "id": "promise_1_text", "label": "Promise one text", "default": "Not a dark screen on your wall." },
+    { "type": "text", "id": "promise_2_title", "label": "Promise two title", "default": "Remote works immediately" },
+    { "type": "text", "id": "promise_2_text", "label": "Promise two text", "default": "The app and Wi-Fi are optional." },
+    { "type": "text", "id": "promise_3_title", "label": "Promise three title", "default": "Protected after purchase" },
+    { "type": "text", "id": "promise_3_text", "label": "Promise three text", "default": "Two-year Casa Guarantee and human help." },
+    { "type": "text", "id": "nav_label", "label": "Chapter navigation label", "default": "Jump to an answer group" },
+    { "type": "text", "id": "mirror_title", "label": "Mirror chapter title", "default": "The mirror" },
+    { "type": "textarea", "id": "mirror_intro", "label": "Mirror chapter introduction", "default": "What you will see, how the effect works, and what each size physically asks of your wall." },
+    { "type": "text", "id": "setup_title", "label": "Setup chapter title", "default": "Setup & control" },
+    { "type": "textarea", "id": "setup_intro", "label": "Setup chapter introduction", "default": "What arrives in the crate and every way to hang, power and control it." },
+    { "type": "text", "id": "ownership_title", "label": "Ownership chapter title", "default": "Delivery & ownership" },
+    { "type": "textarea", "id": "ownership_intro", "label": "Ownership chapter introduction", "default": "How it travels, what happens after delivery, and who answers when you need help." },
+    { "type": "text", "id": "at_a_glance_label", "label": "Proof chip label", "default": "At a glance" },
+    { "type": "text", "id": "contact_eyebrow", "label": "Contact eyebrow", "default": "A REAL PERSON, WHEN YOU NEED ONE" },
+    { "type": "text", "id": "contact_title", "label": "Contact title", "default": "Still deciding? Ask us about your wall." },
+    { "type": "textarea", "id": "contact_text", "label": "Contact text", "default": "Send a room photo or your installation question. The Seoul Glow Lab team will help you choose and set it up." },
+    { "type": "text", "id": "contact_label", "label": "Contact button label", "default": "Talk to Casa support" }
+  ],
+  "blocks": [
+    {
+      "type": "answer",
+      "name": "Answer",
+      "settings": [
+        { "type": "select", "id": "group", "label": "Chapter", "options": [
+          { "value": "mirror", "label": "The mirror" },
+          { "value": "setup", "label": "Setup & control" },
+          { "value": "ownership", "label": "Delivery & ownership" }
+        ], "default": "mirror" },
+        { "type": "select", "id": "icon", "label": "Icon", "options": [
+          { "value": "mirror", "label": "Mirror" },
+          { "value": "layers", "label": "Layers" },
+          { "value": "size", "label": "Size" },
+          { "value": "weight", "label": "Weight" },
+          { "value": "care", "label": "Care" },
+          { "value": "box", "label": "Box" },
+          { "value": "install", "label": "Installation" },
+          { "value": "remote", "label": "Remote" },
+          { "value": "wifi", "label": "Wi-Fi" },
+          { "value": "music", "label": "Music" },
+          { "value": "power", "label": "Power" },
+          { "value": "shipping", "label": "Shipping" },
+          { "value": "shield", "label": "Guarantee" },
+          { "value": "return", "label": "Returns" },
+          { "value": "support", "label": "Support" },
+          { "value": "clock", "label": "Lifespan" }
+        ], "default": "mirror" },
+        { "type": "text", "id": "question", "label": "Question", "default": "What should I know?" },
+        { "type": "text", "id": "summary", "label": "Closed-row summary", "default": "The short answer, before opening." },
+        { "type": "text", "id": "quick_fact", "label": "Quick fact", "default": "ANSWER AT A GLANCE" },
+        { "type": "textarea", "id": "lead", "label": "Answer lead", "default": "Lead with the direct answer." },
+        { "type": "richtext", "id": "answer", "label": "Answer detail", "default": "<p>Add only the detail a customer needs to decide.</p>" },
+        { "type": "text", "id": "proof_1", "label": "Proof chip one" },
+        { "type": "text", "id": "proof_2", "label": "Proof chip two" },
+        { "type": "text", "id": "proof_3", "label": "Proof chip three" },
+        { "type": "select", "id": "link_target", "label": "Link target", "options": [
+          { "value": "none", "label": "None" },
+          { "value": "size", "label": "Size guide" },
+          { "value": "reviews", "label": "Reviews" },
+          { "value": "guarantee", "label": "Guarantee page" },
+          { "value": "shipping", "label": "Shipping policy" },
+          { "value": "returns", "label": "Return policy" },
+          { "value": "support", "label": "Contact support" }
+        ], "default": "none" },
+        { "type": "text", "id": "link_label", "label": "Link label" },
+        { "type": "checkbox", "id": "open_by_default", "label": "Open by default", "default": false }
+      ]
+    }
+  ],
+  "presets": [{ "name": "Octa answers V7" }]
+}
+{% endschema %}

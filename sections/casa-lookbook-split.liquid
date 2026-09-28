@@ -4,15 +4,30 @@
   Supports alternating layout, glassmorphic borders, mobile stacking.
 {%- endcomment -%}
 
+{%- comment -%} Auto-hide when no image and no content blocks exist {%- endcomment -%}
+{%- assign _has_content = false -%}
+{%- if section.settings.image != blank -%}
+  {%- assign _has_content = true -%}
+{%- endif -%}
+{%- for block in section.blocks -%}
+  {%- if block.settings.text != blank or block.settings.richtext != blank -%}
+    {%- assign _has_content = true -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if _has_content == false and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
 {%- liquid
   assign image_pos  = section.settings.image_position | default: 'left'
   assign img_width  = section.settings.image_width | default: 50
   assign img_radius = section.settings.image_radius | default: 0
   assign img_border = section.settings.image_border | default: 'none'
   assign v_align    = section.settings.content_vertical_align | default: 'center'
-  assign bg_color   = section.settings.bg_color | default: '#0a0a0a'
-  assign text_color  = section.settings.text_color | default: '#f5f5f5'
-  assign accent      = section.settings.accent_color | default: '#9333ea'
+  assign bg_color   = section.settings.bg_color | default: '#0A0A0F'
+  assign text_color  = section.settings.text_color | default: '#E5E3DC'
+  assign accent      = section.settings.accent_color | default: '#B0C3FA'
   assign pad_top     = section.settings.padding_top | default: 80
   assign pad_bottom  = section.settings.padding_bottom | default: 80
   assign content_width = 100 | minus: img_width
@@ -114,9 +129,10 @@
 
             {%- when 'button' -%}
               {%- if block.settings.text != blank -%}
+                {%- assign lbsplit_btn_treatment = block.settings.treatment | default: 'featured' -%}
                 <a
                   href="{{ block.settings.url | default: '#' }}"
-                  class="casa-lb-split__btn casa-lb-split__btn--{{ block.settings.style | default: 'primary' }}"
+                  class="btn btn-{{ lbsplit_btn_treatment }} casa-lb-split__btn casa-lb-split__btn--{{ block.settings.style | default: 'primary' }}"
                   {{ block.shopify_attributes }}
                 >
                   {{ block.settings.text }}
@@ -137,11 +153,11 @@
   </div>
 </section>
 
-<style>
+{% stylesheet %}
   /* ===== Casa Lookbook Split ===== */
   .casa-lb-split {
-    background: var(--clbs-bg, #0a0a0a);
-    color: var(--clbs-text, #f5f5f5);
+    background: var(--clbs-bg, var(--casa-ink));
+    color: var(--clbs-text, var(--casa-border-on-paper));
     padding-top: var(--clbs-pad-top, 80px);
     padding-bottom: var(--clbs-pad-bottom, 80px);
     overflow: hidden;
@@ -228,7 +244,7 @@
     font-size: clamp(0.7rem, 0.8vw, 0.8rem);
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: var(--clbs-accent, #9333ea);
+    color: var(--clbs-accent, #B0C3FA);
     margin: 0 0 16px;
     font-weight: 500;
   }
@@ -260,7 +276,7 @@
   }
 
   .casa-lb-split__richtext a {
-    color: var(--clbs-accent, #9333ea);
+    color: var(--clbs-accent, #B0C3FA);
     text-decoration: underline;
     text-underline-offset: 3px;
   }
@@ -269,49 +285,42 @@
     opacity: 0.8;
   }
 
-  /* --- Buttons --- */
+  /* --- Buttons ---
+     Brand class .btn .btn-[treatment] provides display, padding,
+     gap, font, radius, transition, text-transform, letter-spacing,
+     hover. Section-specific override: margin-top spacer.
+     Legacy --primary/--outline/--ghost modifier rules below kept so
+     any merchant template still using deprecated `style` block setting
+     keeps rendering until they pick a new treatment. */
   .casa-lb-split__btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 14px 36px;
-    font-size: 0.85rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    text-decoration: none;
-    border-radius: 4px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    cursor: pointer;
     margin-top: 8px;
   }
 
   .casa-lb-split__btn--primary {
-    background: var(--clbs-accent, #9333ea);
-    color: #fff;
-    border: 1px solid var(--clbs-accent, #9333ea);
+    background: var(--clbs-accent, #B0C3FA);
+    color: var(--casa-text-on-ink);
+    border: 1px solid var(--clbs-accent, #B0C3FA);
   }
 
   .casa-lb-split__btn--primary:hover {
     background: transparent;
-    color: var(--clbs-accent, #9333ea);
+    color: var(--clbs-accent, #B0C3FA);
   }
 
   .casa-lb-split__btn--outline {
     background: transparent;
-    color: var(--clbs-text, #f5f5f5);
+    color: var(--clbs-text, var(--casa-border-on-paper));
     border: 1px solid rgba(255, 255, 255, 0.25);
   }
 
   .casa-lb-split__btn--outline:hover {
-    border-color: var(--clbs-accent, #9333ea);
-    color: var(--clbs-accent, #9333ea);
+    border-color: var(--clbs-accent, #B0C3FA);
+    color: var(--clbs-accent, #B0C3FA);
   }
 
   .casa-lb-split__btn--ghost {
     background: transparent;
-    color: var(--clbs-accent, #9333ea);
+    color: var(--clbs-accent, #B0C3FA);
     border: none;
     padding-left: 0;
     padding-right: 0;
@@ -358,7 +367,7 @@
       width: 100%;
     }
   }
-</style>
+{% endstylesheet %}
 
 {% schema %}
 {
@@ -458,19 +467,19 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background color",
-      "default": "#0a0a0a"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
       "id": "text_color",
       "label": "Text color",
-      "default": "#f5f5f5"
+      "default": "#E5E3DC"
     },
     {
       "type": "color",
       "id": "accent_color",
       "label": "Accent color",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "header",
@@ -567,13 +576,30 @@
         {
           "type": "select",
           "id": "style",
-          "label": "Style",
+          "label": "Style (legacy)",
+          "info": "Deprecated. Superseded by Button treatment below.",
           "options": [
             { "value": "primary", "label": "Primary (filled)" },
             { "value": "outline", "label": "Outline" },
             { "value": "ghost", "label": "Ghost (underline)" }
           ],
-          "default": "primary"
+          "default": "primary",
+          "visible_if": "{{ false }}"
+        },
+        {
+          "type": "select",
+          "id": "treatment",
+          "label": "Button treatment",
+          "info": "Brand-book button style. Featured (gradient) is rare per brand book — reserved for hero/launch CTAs.",
+          "options": [
+            { "value": "primary",            "label": "Primary — solid ink (light surface)" },
+            { "value": "primary-on-dark",    "label": "Primary — solid white (dark surface)" },
+            { "value": "secondary",          "label": "Secondary — outline (light surface)" },
+            { "value": "secondary-on-dark",  "label": "Secondary — outline (dark surface)" },
+            { "value": "tertiary",           "label": "Tertiary — underlined link" },
+            { "value": "featured",           "label": "Featured — purple→pink gradient" }
+          ],
+          "default": "featured"
         }
       ]
     },
@@ -606,6 +632,6 @@
       ]
     }
   ],
-  "templates": ["page"]
+  "enabled_on": { "templates": ["page"] }
 }
 {% endschema %}

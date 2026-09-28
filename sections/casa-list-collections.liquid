@@ -1,0 +1,435 @@
+{%- comment -%}
+  casa-list-collections.liquid
+  Used by: templates/list-collections.json
+  Purpose: Casa-branded /collections index. Replaces the inherited
+  Horizon main-collection-list section, which dumped 20 collections
+  alphabetically — including backend tag-target collections
+  (Discount Code Applicable Products) and out-of-season campaigns.
+  Settings:
+    - eyebrow, heading (inline_richtext, supports <em> gradient), lede
+    - blocklist textarea (handles to exclude from auto fallback)
+    - sort order, image ratio, columns per breakpoint, surface
+  Blocks:
+    - collection_card: optional manual curation. If any present,
+      they take precedence and auto-from-`collections` is skipped.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign surface = s.surface | default: 'paper'
+  assign image_ratio = s.image_ratio | default: '4/5'
+  assign cols_mobile = s.mobile_columns | default: '1'
+  assign cols_tablet = s.tablet_columns | default: 2
+  assign cols_desktop = s.desktop_columns | default: 3
+
+  # Build the curated list from blocks if any
+  assign block_collections = ''
+  for block in section.blocks
+    if block.type == 'collection_card' and block.settings.collection != blank
+      assign block_collections = block_collections | append: block.settings.collection.handle | append: '|'
+    endif
+  endfor
+
+  # Parse blocklist textarea — comma-separated handles. Spaces are stripped
+  # so "a, b" and "a,b" both work. Newlines are removed (use commas instead).
+  assign raw_blocklist = s.blocklist | default: ''
+  assign normalized_blocklist = raw_blocklist | strip_newlines | replace: ' ', ''
+  assign blocked_handles = normalized_blocklist | split: ','
+
+  assign sort_mode = s.sort_mode | default: 'alphabetical'
+-%}
+
+<div class="cdl-coll-list cdl-coll-list--{{ surface }}" data-section-id="{{ section.id }}">
+  {%- if s.eyebrow != blank or s.heading != blank or s.lede != blank -%}
+    <header class="cdl-coll-list__hero">
+      {%- if s.eyebrow != blank -%}
+        <p class="cdl-coll-list__eyebrow">{{ s.eyebrow }}</p>
+      {%- endif -%}
+      {%- if s.heading != blank -%}
+        <h1 class="cdl-coll-list__title">{{ s.heading }}</h1>
+      {%- endif -%}
+      {%- if s.lede != blank -%}
+        <div class="cdl-coll-list__lede">{{ s.lede }}</div>
+      {%- endif -%}
+    </header>
+  {%- endif -%}
+
+  <div
+    class="cdl-coll-list__grid"
+    style="--cdl-cols-m: {{ cols_mobile }}; --cdl-cols-t: {{ cols_tablet }}; --cdl-cols-d: {{ cols_desktop }}; --cdl-ratio: {{ image_ratio }};"
+  >
+    {%- if block_collections != '' -%}
+      {%- comment -%} Manual curation path {%- endcomment -%}
+      {%- for block in section.blocks -%}
+        {%- if block.type != 'collection_card' -%}{%- continue -%}{%- endif -%}
+        {%- assign coll = block.settings.collection -%}
+        {%- if coll == blank -%}{%- continue -%}{%- endif -%}
+        {%- assign override_title = block.settings.title_override -%}
+        {%- assign override_image = block.settings.image_override -%}
+        {%- render 'casa-coll-card',
+          coll: coll,
+          override_title: override_title,
+          override_image: override_image,
+          show_count: s.show_count,
+          forloop_index: forloop.index,
+          block: block
+        -%}
+      {%- endfor -%}
+    {%- else -%}
+      {%- comment -%} Auto path with blocklist {%- endcomment -%}
+      {%- assign source_collections = collections -%}
+      {%- if sort_mode == 'products_desc' -%}
+        {%- assign source_collections = collections | sort: 'all_products_count' | reverse -%}
+      {%- elsif sort_mode == 'products_asc' -%}
+        {%- assign source_collections = collections | sort: 'all_products_count' -%}
+      {%- endif -%}
+      {%- assign rendered = 0 -%}
+      {%- for coll in source_collections -%}
+        {%- if blocked_handles contains coll.handle -%}{%- continue -%}{%- endif -%}
+        {%- if coll.all_products_count == 0 -%}{%- continue -%}{%- endif -%}
+        {%- render 'casa-coll-card',
+          coll: coll,
+          show_count: s.show_count,
+          forloop_index: forloop.index
+        -%}
+        {%- assign rendered = rendered | plus: 1 -%}
+        {%- if s.max_collections > 0 and rendered >= s.max_collections -%}{%- break -%}{%- endif -%}
+      {%- endfor -%}
+
+      {%- if rendered == 0 -%}
+        <p class="cdl-coll-list__empty">No collections to display.</p>
+      {%- endif -%}
+    {%- endif -%}
+  </div>
+</div>
+
+{% stylesheet %}
+  .cdl-coll-list {
+    --cdl-bg: var(--casa-paper, #FAFAF7);
+    --cdl-ink: var(--casa-ink, #0A0A0F);
+    --cdl-rule: rgba(10, 10, 15, 0.08);
+    --cdl-muted: rgba(10, 10, 15, 0.55);
+    background: var(--cdl-bg);
+    color: var(--cdl-ink);
+    padding: clamp(40px, 6vw, 88px) clamp(16px, 4vw, 48px);
+    box-sizing: border-box;
+  }
+  .cdl-coll-list--ink {
+    --cdl-bg: var(--casa-ink, #0A0A0F);
+    --cdl-ink: #FAFAF7;
+    --cdl-rule: rgba(255, 255, 255, 0.08);
+    --cdl-muted: rgba(255, 255, 255, 0.55);
+  }
+
+  .cdl-coll-list__hero {
+    max-width: 1320px;
+    margin: 0 auto clamp(32px, 5vw, 64px);
+    padding-bottom: clamp(24px, 3vw, 40px);
+    border-bottom: 1px solid var(--cdl-rule);
+    text-align: left;
+  }
+  .cdl-coll-list__eyebrow {
+    font-family: var(--font-mono--family, 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cdl-muted);
+    margin: 0 0 16px;
+  }
+  .cdl-coll-list__title {
+    font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+    font-size: clamp(36px, 5.5vw, 68px);
+    font-weight: 600;
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    color: var(--cdl-ink);
+    margin: 0 0 16px;
+    text-wrap: balance;
+  }
+  .cdl-coll-list__title em {
+    font-style: italic;
+    font-weight: 700;
+    background: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .cdl-coll-list__lede {
+    font-family: var(--font-body--family, 'Inter', sans-serif);
+    font-size: clamp(15px, 1.4vw, 18px);
+    line-height: 1.55;
+    color: var(--cdl-muted);
+    max-width: 880px;
+    text-wrap: pretty;
+  }
+  .cdl-coll-list__lede p { margin: 0; }
+
+  .cdl-coll-list__grid {
+    max-width: 1320px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(var(--cdl-cols-m, 1), minmax(0, 1fr));
+    gap: clamp(20px, 3vw, 40px) clamp(16px, 2vw, 28px);
+  }
+  @media (min-width: 750px) {
+    .cdl-coll-list__grid {
+      grid-template-columns: repeat(var(--cdl-cols-t, 2), minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1100px) {
+    .cdl-coll-list__grid {
+      grid-template-columns: repeat(var(--cdl-cols-d, 3), minmax(0, 1fr));
+    }
+  }
+
+  .cdl-coll-card {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 12px;
+    transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .cdl-coll-card:focus { outline: none; }
+  .cdl-coll-card:focus-visible {
+    outline: 2px solid var(--cdl-ink);
+    outline-offset: 6px;
+  }
+  @media (hover: hover) {
+    .cdl-coll-card:hover { transform: translateY(-2px); }
+    .cdl-coll-card:hover .cdl-coll-card__img {
+      transform: scale(1.03);
+    }
+  }
+  .cdl-coll-card__media {
+    aspect-ratio: var(--cdl-ratio, 4/5);
+    width: 100%;
+    overflow: hidden;
+    border-radius: 12px;
+    background: rgba(10, 10, 15, 0.04);
+    position: relative;
+  }
+  .cdl-coll-list--ink .cdl-coll-card__media {
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .cdl-coll-card__img {
+    /* height: auto + aspect-ratio instead of height: 100% — the media
+       wrapper's height comes from its own aspect-ratio (--cdl-ratio,
+       merchant-set), and Safari 26 can fail to resolve a %-height against
+       that (the /cart flat-thumbnail class; immune pattern from
+       .cart-items__media-image in snippets/cart-products.liquid). */
+    width: 100%;
+    height: auto;
+    aspect-ratio: inherit;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 480ms cubic-bezier(0.16, 1, 0.3, 1);
+    display: block;
+  }
+  .cdl-coll-card__placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-family: var(--font-mono--family, 'JetBrains Mono', monospace);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--cdl-muted);
+  }
+  .cdl-coll-card__meta {
+    padding: 16px 4px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .cdl-coll-card__count {
+    font-family: var(--font-mono--family, 'JetBrains Mono', monospace);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cdl-muted);
+  }
+  .cdl-coll-card__title {
+    font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+    font-size: clamp(18px, 1.6vw, 22px);
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    color: var(--cdl-ink);
+    margin: 0;
+    text-wrap: pretty;
+  }
+
+  .cdl-coll-list__empty {
+    grid-column: 1 / -1;
+    padding: 48px 0;
+    text-align: center;
+    font-family: var(--font-body--family, 'Inter', sans-serif);
+    color: var(--cdl-muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cdl-coll-card,
+    .cdl-coll-card__img {
+      transition: none;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa · Collections list",
+  "tag": "section",
+  "class": "cdl-coll-list-section",
+  "settings": [
+    { "type": "header", "content": "Hero" },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow",
+      "default": "BROWSE · SEOUL GLOW LAB"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading (use <em>word</em> for italic-gradient accent)",
+      "default": "Shop the <em>collections.</em>"
+    },
+    {
+      "type": "richtext",
+      "id": "lede",
+      "label": "Lede",
+      "default": "<p>Light-emitting sculpture, mirrors, and home decor — organized by what you're shopping for.</p>"
+    },
+    { "type": "header", "content": "Layout" },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "label": "Card image ratio",
+      "options": [
+        { "value": "1/1",  "label": "Square (1:1)" },
+        { "value": "4/5",  "label": "Portrait (4:5)" },
+        { "value": "3/4",  "label": "Portrait (3:4)" },
+        { "value": "16/9", "label": "Landscape (16:9)" }
+      ],
+      "default": "4/5"
+    },
+    {
+      "type": "select",
+      "id": "mobile_columns",
+      "label": "Mobile columns",
+      "options": [
+        { "value": "1", "label": "1 column" },
+        { "value": "2", "label": "2 columns" }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "range",
+      "id": "tablet_columns",
+      "label": "Tablet columns",
+      "min": 2,
+      "max": 4,
+      "step": 1,
+      "default": 2
+    },
+    {
+      "type": "range",
+      "id": "desktop_columns",
+      "label": "Desktop columns",
+      "min": 2,
+      "max": 5,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "checkbox",
+      "id": "show_count",
+      "label": "Show product count under image",
+      "default": true
+    },
+    { "type": "header", "content": "Surface" },
+    {
+      "type": "select",
+      "id": "surface",
+      "label": "Surface",
+      "options": [
+        { "value": "paper", "label": "Paper (#FAFAF7)" },
+        { "value": "ink",   "label": "Ink (#0A0A0F)" }
+      ],
+      "default": "paper"
+    },
+    { "type": "header", "content": "Auto fallback (when no manual blocks)" },
+    {
+      "type": "select",
+      "id": "sort_mode",
+      "label": "Sort order",
+      "options": [
+        { "value": "alphabetical",  "label": "Alphabetical" },
+        { "value": "products_desc", "label": "Most products first" },
+        { "value": "products_asc",  "label": "Fewest products first" }
+      ],
+      "default": "products_desc"
+    },
+    {
+      "type": "range",
+      "id": "max_collections",
+      "label": "Max collections to show (0 = all)",
+      "min": 0,
+      "max": 30,
+      "step": 1,
+      "default": 18
+    },
+    {
+      "type": "textarea",
+      "id": "blocklist",
+      "label": "Hide these collection handles",
+      "info": "Comma-separated handles (spaces optional). These never appear on /collections.",
+      "default": "discount-code-applicable-products, add-ons, 6-must-haves, back-to-school, mothers-day-gift-guide, valentines-gifts, build-your-dream-bedroom, build-your-dream-office, living-room-picks, holiday-gift-ideas, all"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "collection_card",
+      "name": "Featured collection",
+      "settings": [
+        {
+          "type": "collection",
+          "id": "collection",
+          "label": "Collection"
+        },
+        {
+          "type": "text",
+          "id": "title_override",
+          "label": "Title override (optional)",
+          "info": "Overrides the collection's own title."
+        },
+        {
+          "type": "image_picker",
+          "id": "image_override",
+          "label": "Image override (optional)",
+          "info": "Used instead of the collection's image."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa · Collections list",
+      "settings": {
+        "eyebrow": "BROWSE · SEOUL GLOW LAB",
+        "heading": "Shop the <em>collections.</em>",
+        "lede": "<p>Light-emitting sculpture, mirrors, and home decor — organized by what you're shopping for.</p>"
+      }
+    }
+  ],
+  "enabled_on": {
+    "templates": ["list-collections"]
+  }
+}
+{% endschema %}

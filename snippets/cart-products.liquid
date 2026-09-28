@@ -4,6 +4,7 @@
   Renders the cart products list or empty cart state.
 
   @param {boolean} [force_empty] - Force render empty cart state
+  @param {block} [block] - Optional cart block context
 
   @example
   {% render 'cart-products', force_empty: true %}
@@ -29,6 +30,152 @@
   fetchpriority="low"
 ></script>
 
+<script>
+  /* ────────────────────────────────────────────────────────────────
+     Empty cart drawer: populate Recently Viewed grid from localStorage
+     ──────────────────────────────────────────────────────────────── */
+  (function() {
+    if (window.__casaCartEmptyRvBound) return;
+    window.__casaCartEmptyRvBound = true;
+
+    var STORAGE_KEY = 'casa_recently_viewed';
+    /* Cache the rendered HTML so we only set innerHTML once per
+       unique state — avoids the visible reflow / blink when
+       multiple triggers fire (DOMContentLoaded + dialog mutation
+       + cart:update can all hit within ~200ms). */
+    var lastSignature = '';
+
+    /* Live, current-Market price per product — fetched once (cached) from the
+       casa-qv-price-data SRA fragment. The old code formatted the localStorage
+       `price` (raw cents captured at view time) with a hardcoded '$', so a EUR
+       shopper saw '$281.95' and a VND-captured price rendered as a massive
+       '$8,841,000.00'. Fetching the fragment gives the correct symbol, amount,
+       and separators for the shopper's active Market. */
+    var __rvPriceCache = {};
+    function fetchCardPrice(handle) {
+      if (Object.prototype.hasOwnProperty.call(__rvPriceCache, handle)) {
+        return Promise.resolve(__rvPriceCache[handle]);
+      }
+      return fetch('/products/' + encodeURIComponent(handle) + '?section_id=casa-qv-price-data')
+        .then(function(r) { return r.ok ? r.text() : ''; })
+        .then(function(t) {
+          var out = { price: '', compare: '' };
+          var s = new DOMParser().parseFromString(t, 'text/html').querySelector('[data-casa-qv-price-data]');
+          if (s) {
+            try {
+              var d = JSON.parse(s.textContent || '{}');
+              out.price = d.card_price || '';
+              out.compare = d.card_compare || '';
+            } catch (e) {}
+          }
+          __rvPriceCache[handle] = out;
+          return out;
+        })
+        .catch(function() { __rvPriceCache[handle] = { price: '', compare: '' }; return __rvPriceCache[handle]; });
+    }
+
+    function buildHtml(picks) {
+      return picks.map(function(p) {
+        var img = p.image || '';
+        if (img.indexOf('//') === 0) img = 'https:' + img;
+        var pd = p._card || {};
+        var price = pd.price || '';
+        var compare = pd.compare || '';
+        return '<a class="cart-empty-rv__card" href="' + (p.url || ('/products/' + p.handle)) + '">' +
+          (img ? '<div class="cart-empty-rv__img"><img src="' + img + '" alt="' + (p.title || '') + '" width="300" height="300" loading="lazy" decoding="async"></div>' : '<div class="cart-empty-rv__img cart-empty-rv__img--placeholder"></div>') +
+          '<div class="cart-empty-rv__info">' +
+            '<span class="cart-empty-rv__title-text">' + (p.title || '') + '</span>' +
+            (price ?
+              '<span class="cart-empty-rv__price-row">' +
+                '<span class="cart-empty-rv__price">' + price + '</span>' +
+                (compare ? '<s class="cart-empty-rv__compare">' + compare + '</s>' : '') +
+              '</span>'
+              : '') +
+          '</div>' +
+        '</a>';
+      }).join('');
+    }
+
+    function hydrateEmptyCartRv() {
+      /* Always re-query — the wrapper may be re-rendered when cart
+         drawer swaps between empty / full states. */
+      var wraps = document.querySelectorAll('[data-cart-empty-rv]');
+      if (!wraps.length) return;
+
+      var items = [];
+      try { items = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch (e) {}
+      var picks = items
+        .filter(function(p) { return p && p.handle && p.title; })
+        .slice(0, 4);
+
+      /* Idempotent: only touch DOM if the data signature changed.
+         Otherwise repeated triggers leave the grid alone — no blink. */
+      var signature = picks.map(function(p) { return p.handle; }).join('|');
+
+      if (!picks.length) {
+        wraps.forEach(function(wrap) { if (!wrap.hidden) wrap.hidden = true; });
+        lastSignature = signature;
+        return;
+      }
+
+      /* Fast path: every wrapper already shows this exact set — leave it
+         (prices are stable per handle within a Market), no re-fetch. */
+      var allCurrent = Array.prototype.every.call(wraps, function(wrap) {
+        var grid = wrap.querySelector('[data-cart-empty-rv-grid]');
+        return grid && wrap.dataset.signature === signature && grid.children.length === picks.length;
+      });
+      if (allCurrent) { wraps.forEach(function(w) { if (w.hidden) w.hidden = false; }); return; }
+
+      /* Resolve the live current-Market price for each pick (cached), THEN
+         build once — so the grid never flashes a wrong/stale price. Wrapper
+         stays hidden until prices are in. */
+      Promise.all(picks.map(function(p) {
+        return fetchCardPrice(p.handle).then(function(cp) { p._card = cp; });
+      })).then(function() {
+        wraps.forEach(function(wrap) {
+          var grid = wrap.querySelector('[data-cart-empty-rv-grid]');
+          if (!grid) return;
+          grid.innerHTML = buildHtml(picks);
+          wrap.dataset.signature = signature;
+          wrap.hidden = false;
+        });
+        lastSignature = signature;
+      });
+    }
+
+    /* Initial hydration */
+    if (document.readyState !== 'loading') {
+      hydrateEmptyCartRv();
+    } else {
+      document.addEventListener('DOMContentLoaded', hydrateEmptyCartRv, { once: true });
+    }
+
+    /* Re-hydrate when the drawer opens. Watch for the single
+       attribute we care about, debounced. */
+    var dialog = document.querySelector('.cart-drawer__dialog');
+    var pending = null;
+    function debouncedHydrate() {
+      if (pending) cancelAnimationFrame(pending);
+      pending = requestAnimationFrame(function() { pending = null; hydrateEmptyCartRv(); });
+    }
+    if (dialog && 'MutationObserver' in window) {
+      var mo = new MutationObserver(function(muts) {
+        for (var i = 0; i < muts.length; i++) {
+          if (muts[i].attributeName === 'open') {
+            if (dialog.hasAttribute('open')) debouncedHydrate();
+            return;
+          }
+        }
+      });
+      mo.observe(dialog, { attributes: true, attributeFilter: ['open'] });
+    }
+
+    /* Re-hydrate once after cart transitions (e.g. last item removed →
+       drawer becomes empty). Single fire, debounced via the same hook. */
+    document.addEventListener('cart:update', debouncedHydrate);
+  })();
+</script>
+
 <div
   {{ block.shopify_attributes }}
   class="cart-items__wrapper"
@@ -51,6 +198,16 @@
         {{ 'actions.continue_shopping' | t }}
       </span>
     </a>
+
+    {%- comment -%}
+      Recently Viewed grid — only renders if the visitor has localStorage
+      entries from previous browsing. JS-driven; falls back to nothing
+      when there's no history (acceptable empty state).
+    {%- endcomment -%}
+    <div class="cart-empty-rv" data-cart-empty-rv hidden>
+      <h3 class="cart-empty-rv__title">Recently viewed</h3>
+      <div class="cart-empty-rv__grid" data-cart-empty-rv-grid></div>
+    </div>
   {%- else -%}
     <span
       class="visually-hidden"
@@ -121,13 +278,50 @@
           </thead>
 
           <tbody role="rowgroup">
+            {%- comment -%} free-gift (casa-free-gift.js): does ANY line qualify? Computed once;
+                gift rows render hidden when nothing qualifies so the removal intermediate
+                state (mirror gone, gift not yet reconciled away) never paints at $79.99. {%- endcomment -%}
+            {%- assign casa_fg_cart_has_qualifying = false -%}
+            {%- for casa_fg_scan in cart.items -%}
+              {%- if casa_fg_scan.variant.metafields.custom.free_gift_enabled.value -%}
+                {%- assign casa_fg_cart_has_qualifying = true -%}
+                {%- break -%}
+              {%- endif -%}
+            {%- endfor -%}
             {% for item in cart.items %}
+              {%- comment -%}
+                RC-3: a stable `id` per line so morph.js keys rows by getNodeKey (element.id)
+                instead of pairing them positionally. Without it, a shifted row list makes the
+                morph reuse one product's <tr> for another's content and strip data-removing
+                mid-animation (the "trash armed on a product I never pressed" bug). Prefixed
+                `line-` here vs `casa-line-` on the /cart page snippet because the header drawer
+                and the main cart render in the SAME document on /cart — distinct prefixes avoid
+                duplicate ids. Colons in item.key are valid in an id; nothing in CSS targets it.
+              {%- endcomment -%}
+              {%- liquid
+                # free-gift line detection + qualifying config for casa-free-gift.js
+                assign casa_fg_gift_line = false
+                for casa_fg_prop in item.properties
+                  if casa_fg_prop.first == '_free_gift'
+                    assign casa_fg_gift_line = true
+                  endif
+                endfor
+                assign casa_fg_ref = item.variant.metafields.custom.free_gift_variant.value
+                assign casa_fg_locked = false
+                if casa_fg_gift_line and item.final_price == 0
+                  assign casa_fg_locked = true
+                endif
+              -%}
               <tr
+                id="line-{{ item.key }}"
                 role="row"
                 class="cart-items__table-row{% if item.parent_relationship.parent != null %} cart-items__nested-line{% endif %}"
                 ref="cartItemRows[]"
                 data-parent-key="{{ item.parent_relationship.parent.key }}"
                 data-key="{{ item.key }}"
+                {% if casa_fg_gift_line %}data-casa-fg-gift="1"{% endif %}
+                {% if item.variant.metafields.custom.free_gift_enabled.value and casa_fg_ref %}data-casa-fg-qualifying="{{ casa_fg_ref.id }}" data-casa-fg-available="{{ casa_fg_ref.available }}"{% endif %}
+                {% if casa_fg_gift_line and casa_fg_cart_has_qualifying == false %}hidden style="display: none;"{% endif %}
               >
                 <td
                   class="cart-items__media"
@@ -154,8 +348,21 @@
                       class="cart-items__media-container"
                       style="--ratio:{{ ratio }};"
                     >
+                      {%- comment -%}
+                        `sizes` matters here — without it a w-descriptor srcset defaults to a
+                        100vw slot, inflating the image's intrinsic size to viewport width
+                        (full mechanism documented in snippets/casa-cart-items.liquid, where
+                        that inflated intrinsic + Safari 26's %-height resolution produced the
+                        flat plum thumbnail). This drawer never broke visually because
+                        .cart-items__media-image uses height:auto + aspect-ratio, but the
+                        sizes-less srcset was still fetching as if the slot were the whole
+                        viewport. The drawer container is 56px (casa-header override).
+                        `alt` must be explicit because `image_url` hands `image_tag` a string,
+                        which yields alt="" on a link that wraps only the image (WCAG 2.4.4 /
+                        4.1.2, Level A). Do not add `| escape` — image_tag already escapes.
+                      {%- endcomment -%}
                       {%- liquid
-                        echo item.image | image_url: width: 250 | image_tag: class: 'cart-items__media-image border-style', style: border_override
+                        echo item.image | image_url: width: 250 | image_tag: class: 'cart-items__media-image border-style', alt: item.title, widths: '60, 120, 180', sizes: '56px', style: border_override
                       -%}
                     </a>
                   {%- endif %}
@@ -224,22 +431,9 @@
                   {%- endif -%}
 
                   {%- comment -%} 4. STAR RATING {%- endcomment -%}
-                  {%- liquid
-                    assign rating_value = item.product.metafields.reviews.rating.value.rating | default: 0 | plus: 0
-                    assign rating_count = item.product.metafields.reviews.rating_count.value | default: 0 | plus: 0
-                  -%}
-                  {%- if rating_value > 0 or rating_count > 0 -%}
-                    <div class="cart-items__rating">
-                      <span class="cart-items__stars">
-                        {%- for i in (1..5) -%}
-                          {%- if i <= rating_value -%}★{%- else -%}☆{%- endif -%}
-                        {%- endfor -%}
-                      </span>
-                      {%- if rating_count > 0 -%}
-                        <span class="cart-items__rating-count">{{ rating_count }}</span>
-                      {%- endif -%}
-                    </div>
-                  {%- endif -%}
+                  <div class="cart-items__rating">
+                    {% render 'casa-judgeme-rating', product: item.product %}
+                  </div>
 
                   {%- comment -%} Bundle items (if applicable) {%- endcomment -%}
                   {%- if item.item_components.size != 0 -%}
@@ -256,21 +450,74 @@
                   {%- endif -%}
 
                   {%- comment -%} Properties & Selling Plan {%- endcomment -%}
-                  {%- if item.properties.size > 0 or item.selling_plan_allocation != null -%}
+                  {%- comment -%}
+                    Gate on `!= empty`, NOT `.size > 0`: the properties drop returns no
+                    usable number for `.size` on this theme, so `> 0` was permanently
+                    false and the block never rendered (Prestige uses `!= empty` and DOES
+                    render). The inner loop still filters underscore-prefixed + blank props.
+                  {%- endcomment -%}
+                  {%- comment -%} Only render the meta box if a NON-EDD visible property or a selling plan
+                      exists — Estimated delivery is excluded from the loop (it renders full-width below),
+                      so gating on `!= empty` alone would emit an empty box. {%- endcomment -%}
+                  {%- assign has_visible_prop = false -%}
+                  {%- for property in item.properties -%}
+                    {%- assign pfc = property.first | slice: 0 -%}
+                    {%- if property.last != blank and pfc != '_' and property.first != 'Estimated delivery' -%}{%- assign has_visible_prop = true -%}{%- break -%}{%- endif -%}
+                  {%- endfor -%}
+                  {%- if has_visible_prop or item.selling_plan_allocation != null -%}
                     <div class="cart-items__meta">
                       {%- for property in item.properties -%}
                         {%- assign property_first_char = property.first | slice: 0 -%}
-                        {%- if property.last != blank and property_first_char != '_' -%}
-                          <div class="cart-items__property">
-                            <span class="cart-items__property-label">{{ property.first }}:</span>
-                            <span class="cart-items__property-value">
-                              {%- if property.last contains '/uploads/' -%}
-                                <a href="{{ property.last }}">{{ property.last | split: '/' | last }}</a>
-                              {%- else -%}
-                                {{ property.last }}
-                              {%- endif -%}
-                            </span>
-                          </div>
+                        {%- comment -%} `Estimated delivery` renders as its own full-width row below (grid-area edd), so keep it out of this narrow in-column loop. {%- endcomment -%}
+                        {%- if property.last != blank and property_first_char != '_' and property.first != 'Estimated delivery' -%}
+                          {%- if property.first == 'Message' and item.product.gift_card? -%}
+                            {%- comment -%}
+                              A gift-card note can run to 200 chars. Collapse it behind a
+                              "Message" disclosure (chevron), collapsed by default, so it
+                              doesn't dominate the cart line. Native <details> = keyboard
+                              accessible, no JS. Keep the <details> display:block — flex/grid
+                              on it breaks the native collapse.
+                            {%- endcomment -%}
+                            <details class="cart-items__message">
+                              <summary class="cart-items__message-summary">
+                                <span class="cart-items__property-label">{{ property.first }}</span>
+                                <span class="cart-items__message-caret" aria-hidden="true">
+                                  {{- 'icon-caret.svg' | inline_asset_content -}}
+                                </span>
+                              </summary>
+                              <div class="cart-items__message-text">{{ property.last }}</div>
+                            </details>
+                          {%- else -%}
+                            {%- liquid
+                              # Gift-card recipient "Send on" is an ISO date. Show it as a
+                              # customer-facing delivery line ("Delivers: Jul 31, 2026") instead
+                              # of the raw "Send on: 2026-07-31". A bare date carries no timezone
+                              # so the filter renders the same calendar day; fall back to the raw
+                              # value if it ever fails to parse.
+                              assign property_label = property.first
+                              assign property_is_send_on = false
+                              if property.first == 'Send on' and item.product.gift_card?
+                                assign property_is_send_on = true
+                                assign property_label = 'Delivers'
+                                assign property_send_on = property.last | date: '%b %-d, %Y'
+                                if property_send_on == blank
+                                  assign property_send_on = property.last
+                                endif
+                              endif
+                            -%}
+                            <div class="cart-items__property">
+                              <span class="cart-items__property-label">{{ property_label }}:</span>
+                              <span class="cart-items__property-value">
+                                {%- if property_is_send_on -%}
+                                  {{ property_send_on }}
+                                {%- elsif property.last contains '/uploads/' -%}
+                                  <a href="{{ property.last }}">{{ property.last | split: '/' | last }}</a>
+                                {%- else -%}
+                                  {{ property.last }}
+                                {%- endif -%}
+                              </span>
+                            </div>
+                          {%- endif -%}
                         {%- endif -%}
                       {%- endfor -%}
                       {% if item.selling_plan_allocation %}
@@ -278,15 +525,6 @@
                       {% endif %}
                     </div>
                   {%- endif -%}
-
-                  {%- comment -%} Discounts {%- endcomment -%}
-                  {% if item.line_level_discount_allocations.size > 0 %}
-                    <ul class="cart-items__discounts list-unstyled">
-                      {%- for discount in item.line_level_discount_allocations -%}
-                        <li class="cart-items__discount">{{ discount.discount_application.title | escape }}</li>
-                      {%- endfor -%}
-                    </ul>
-                  {% endif %}
 
                   {%- comment -%} Low Stock Warning {%- endcomment -%}
                   {%- if settings.cart_show_low_stock -%}
@@ -308,31 +546,21 @@
                     {%- endif -%}
                   {%- endif -%}
 
-                  {%- comment -%} Inline quantity (compact, shown in drawer only via CSS) {%- endcomment -%}
+                  {%- comment -%}
+                    can_update_quantity / can_remove are computed here but consumed by the grid
+                    quantity cell below AND the drawer inline-qty cell after the price cell —
+                    Liquid assigns are template-scoped, so both later cells read them. The delivery
+                    estimate and the drawer stepper now render as their own full-width cells after
+                    the price cell (see below) so the estimate spans the card above the stepper
+                    instead of wrapping in this narrow details column.
+                  {%- endcomment -%}
                   {% assign can_update_quantity = item.instructions.can_update_quantity
                     | default: true, allow_false: true
                   %}
                   {% assign can_remove = item.instructions.can_remove | default: true, allow_false: true %}
-                  <div class="cart-items__inline-qty">
-                    {% render 'quantity-selector',
-                      product: item.product,
-                      variant: item.variant,
-                      in_cart_quantity: item.quantity,
-                      line_index: item.index,
-                      class: 'cart-primary-typography',
-                      can_update_quantity: can_update_quantity
-                    %}
-                    <button
-                      class="button cart-items__remove"
-                      type="button"
-                      aria-label="{{ 'accessibility.remove_item' | t: title: item.title | escape }}"
-                      on:click="/onLineItemRemove/{{ item.index | plus: 1 }}"
-                      {% if can_remove == false %}hidden{% endif %}
-                    >
-                      {{- 'icon-delete.svg' | inline_asset_content -}}
-                      <span class="visually-hidden">{{ 'accessibility.remove' | t }}</span>
-                    </button>
-                  </div>
+                  {% if casa_fg_locked %}
+                    {% assign can_update_quantity = false %}
+                  {% endif %}
                 </td>
                 <td
                   class="cart-items__quantity"
@@ -346,20 +574,25 @@
                       quantity: item.quantity
                     %}
 
-                    {% render 'quantity-selector',
-                      product: item.product,
-                      variant: item.variant,
-                      in_cart_quantity: item.quantity,
-                      line_index: item.index,
-                      class: 'cart-primary-typography',
-                      can_update_quantity: can_update_quantity
-                    %}
+                    {%- comment -%} $0 gift line: no stepper — disabled buttons are dead chrome
+                        on a fixed-qty free item (same rule as casa-cart-items.liquid). {%- endcomment -%}
+                    {% unless casa_fg_locked %}
+                      {% render 'quantity-selector',
+                        product: item.product,
+                        variant: item.variant,
+                        in_cart_quantity: item.quantity,
+                        line_index: item.index,
+                        line_item_key: item.key,
+                        class: 'cart-primary-typography',
+                        can_update_quantity: can_update_quantity
+                      %}
+                    {% endunless %}
 
                     <button
                       class="button cart-items__remove"
                       type="button"
                       aria-label="{{ 'accessibility.remove_item' | t: title: item.title | escape }}"
-                      on:click="/onLineItemRemove/{{ item.index | plus: 1 }}"
+                      on:click="/onLineItemRemove"
                       {% assign can_remove = item.instructions.can_remove | default: true, allow_false: true %}
                       {% if can_remove == false %}
                         hidden
@@ -370,10 +603,10 @@
                     </button>
                   </div>
                 </td>
+                {%- comment -%} RC-4: error cell resolved live by class from the keyed row, not an index-named ref {%- endcomment -%}
                 <td
                   class="cart-items__error hidden"
                   role="cell"
-                  ref="cartItemErrorContainer-{{ item.index | plus: 1 }}"
                   headers="quantity"
                 >
                   <div
@@ -383,10 +616,7 @@
                     <span class="svg-wrapper">
                       {{- 'icon-error.svg' | inline_asset_content -}}
                     </span>
-                    <small
-                      class="cart-item__error-text cart-primary-typography"
-                      ref="cartItemError-{{ item.index | plus: 1 }}"
-                    ></small>
+                    <small class="cart-item__error-text cart-primary-typography"></small>
                   </div>
                 </td>
                 <td
@@ -421,15 +651,103 @@
                       endif
                     endif
                   -%}
-                  <text-component value="{{ price | strip_html }}" {% if col_has_compare %}class="cart-items__price--sale"{% endif %}>{{ price }}</text-component>
+                  {%- if casa_fg_locked -%}
+                    <text-component value="FREE" class="cart-items__price--sale">FREE</text-component>
+                  {%- else -%}
+                    <text-component value="{{ price | strip_html }}" {% if col_has_compare %}class="cart-items__price--sale"{% endif %}>{{ price }}</text-component>
+                  {%- endif -%}
                   {%- if col_has_compare -%}
                     <span class="cart-items__compare-price">{{ col_compare_price }}</span>
+                  {%- endif -%}
+                  {%- comment -%} Discount chip DIRECTLY under the strikethrough (merchant rule).
+                      It participates in the price column's width honestly — no intrinsic-width
+                      hacks — because the two failure modes are both fenced: the chip is
+                      single-line nowrap with a hard max-width + ellipsis backstop (so a long
+                      title cannot inflate the column past ~150px), and at container widths
+                      where even that would starve the details column the drawer has already
+                      switched to its compact 2-column stack (casa-header.liquid @container).
+                      Gift rows get the fixed-copy badge; other rows echo real allocations
+                      with amount > 0 (BXGY stamps a $0 allocation on the BUY line). {%- endcomment -%}
+                  {%- if casa_fg_locked -%}
+                    <ul class="cart-items__discounts list-unstyled">
+                      <li class="cart-items__discount">
+                        {%- render 'casa-icon', icon: 'tag', size: 12 -%}
+                        <span class="cart-items__discount-code">Free gift</span>
+                      </li>
+                    </ul>
+                  {%- elsif item.line_level_discount_allocations.size > 0 -%}
+                    <ul class="cart-items__discounts list-unstyled">
+                      {%- for discount in item.line_level_discount_allocations -%}
+                        {%- if discount.discount_application.title != blank and discount.amount > 0 -%}
+                          <li class="cart-items__discount">
+                            {%- render 'casa-icon', icon: 'tag', size: 12 -%}
+                            <span class="cart-items__discount-code">{{ discount.discount_application.title | escape }}</span>
+                          </li>
+                        {%- endif -%}
+                      {%- endfor -%}
+                    </ul>
                   {%- endif -%}
                   {%- if item.unit_price_measurement -%}
                     <div class="cart-items__price-unit cart-secondary-typography">
                       {% render 'unit-price', price: unit_price, measurement: item.unit_price_measurement %}
                     </div>
                   {%- endif -%}
+                </td>
+                {%- comment -%}
+                  Drawer full-width rows. The delivery estimate and the compact stepper each get
+                  their own grid cell spanning the content columns (grid-area edd / qty in the
+                  .cart-drawer 3-row grid), stacked below the title/price row — so the estimate
+                  renders full-width on one line ABOVE the stepper instead of wrapping in the
+                  narrow details column. The edd cell is ALWAYS emitted (uniform cell count keeps
+                  the cart morph stable) and hidden via --empty when there's no estimate. Off the
+                  drawer (base grid) both cells fall back to full-width auto rows.
+                {%- endcomment -%}
+                {%- comment -%}
+                  Estimated delivery, from the real `Estimated delivery` line-item property
+                  (casa-edd.js normalises it to one value per variant on add, so it can't
+                  split the variant onto two lines) — which also carries it to checkout and
+                  the order. Rendered here as its own full-width row (grid-area edd) so the
+                  date never wraps in the narrow details column, and excluded from the
+                  in-column properties loop above so it shows exactly once. Suppressed on gift
+                  cards (digital, no shipment). The cell is ALWAYS emitted (uniform cell count
+                  keeps the cart morph stable) and hidden via --empty when there's no date.
+                {%- endcomment -%}
+                {%- assign edd_value = item.properties['Estimated delivery'] -%}
+                {%- assign has_edd = false -%}
+                {%- unless item.product.gift_card? -%}
+                  {%- if edd_value != blank -%}{%- assign has_edd = true -%}{%- endif -%}
+                {%- endunless -%}
+                <td class="cart-items__edd-cell{% unless has_edd %} cart-items__edd-cell--empty{% endunless %}" role="cell" headers="productInformation">
+                  {%- if has_edd -%}
+                    <div class="cart-items__edd">Estimated delivery: {{ edd_value | escape }}</div>
+                  {%- endif -%}
+                </td>
+                <td class="cart-items__inline-qty-cell" role="cell" headers="quantity">
+                  <div class="cart-items__inline-qty">
+                    {%- comment -%} $0 gift line: no stepper — disabled buttons are dead chrome
+                        on a fixed-qty free item (same rule as casa-cart-items.liquid). {%- endcomment -%}
+                    {% unless casa_fg_locked %}
+                      {% render 'quantity-selector',
+                        product: item.product,
+                        variant: item.variant,
+                        in_cart_quantity: item.quantity,
+                        line_index: item.index,
+                        line_item_key: item.key,
+                        class: 'cart-primary-typography',
+                        can_update_quantity: can_update_quantity
+                      %}
+                    {% endunless %}
+                    <button
+                      class="button cart-items__remove"
+                      type="button"
+                      aria-label="{{ 'accessibility.remove_item' | t: title: item.title | escape }}"
+                      on:click="/onLineItemRemove"
+                      {% if can_remove == false %}hidden{% endif %}
+                    >
+                      {{- 'icon-delete.svg' | inline_asset_content -}}
+                      <span class="visually-hidden">{{ 'accessibility.remove' | t }}</span>
+                    </button>
+                  </div>
                 </td>
               </tr>
             {% endfor %}
@@ -549,6 +867,11 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    /* Long product titles and gift-card recipient emails are single
+       unbreakable tokens in a narrow column — break them instead of
+       clipping mid-character (mirrors .casa-cart-items__property on the
+       /cart page). Inherited by the title/variant/property children. */
+    overflow-wrap: anywhere;
   }
 
   .cart-items__details a {
@@ -638,6 +961,11 @@
     gap: 6px;
     margin-top: 2px;
   }
+  .cart-items__rating:empty,
+  .cart-items__rating:has(.jdgm-widget:empty),
+  .cart-items__rating:has(.jdgm-prev-badge[data-number-of-reviews="0"]) {
+    display: none;
+  }
 
   .cart-items__stars {
     color: #fbbf24;
@@ -666,28 +994,153 @@
     color: rgb(var(--color-foreground-rgb) / 0.6);
   }
 
+  /* Estimated-delivery line (from the `Estimated delivery` line-item property, normalised
+     to one value per variant by casa-edd.js). Rendered in its own full-width cell
+     (.cart-items__edd-cell) so it spans the card and stays on one line ABOVE the stepper
+     instead of wrapping in the narrow details column. grid-column:1/-1 is the base/non-drawer
+     fallback; the .cart-drawer grid re-places both the edd and the stepper cell via grid-area
+     (see sections/casa-header.liquid). */
+  .cart-items__edd-cell {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  .cart-items__edd-cell--empty {
+    display: none;
+  }
+  .cart-items__inline-qty-cell {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  .cart-items__edd {
+    font-size: 12px;
+    color: rgb(var(--color-foreground-rgb) / 0.6);
+    overflow-wrap: anywhere;
+  }
+
+  /* Property rows (gift-card recipient email/name, engraving, etc.). flex-wrap
+     lets a long value drop to its own line instead of the flex algorithm
+     shrinking BOTH label and value on one line — which broke "Recipient email:"
+     mid-phrase into "Recipient"/"email:" in the narrow drawer column. Mirrors
+     the working /cart pattern in casa-cart-items.liquid. */
   .cart-items__property {
     display: flex;
-    gap: 4px;
+    flex-wrap: wrap;
+    gap: 2px 4px;
   }
 
   .cart-items__property-label {
     opacity: 0.7;
+    flex-shrink: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .cart-items__property-value {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* Collapsible gift-card message — collapsed by default so a long note doesn't dominate
+     the line. Do NOT set flex/grid on the <details> (breaks the native collapse). */
+  .cart-items__message-summary {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: fit-content;
+    padding-block: 3px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .cart-items__message-summary::-webkit-details-marker {
+    display: none;
+  }
+  .cart-items__message-summary:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+  .cart-items__message-caret {
+    display: inline-flex;
+    transition: transform var(--animation-speed, 0.2s) var(--animation-easing, ease);
+  }
+  .cart-items__message-caret svg {
+    width: 11px;
+    height: 11px;
+  }
+  .cart-items__message[open] .cart-items__message-caret {
+    transform: rotate(180deg);
+  }
+  .cart-items__message-text {
+    margin-top: 2px;
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cart-items__message-caret {
+      transition: none;
+    }
   }
 
   .cart-items__selling-plan {
     margin-top: 2px;
   }
 
-  /* Discounts */
+  /* Discounts — discount-name label chip pinned under the price. Purple =
+     the ONE cart accent, same as the summary's code chip (merchant
+     2026-08-25: "colors should be consistent" — no green anywhere in cart
+     chrome; free-shipping ✓ and the You-saved chip are purple too). Text is
+     NOT bare #B0C3FA: on the warm card bg + 10% tint that measured 4.45:1
+     — a hair under AA — so it mixes 10% toward the scheme foreground,
+     measured 5.24:1 at 12px/600. Uppercase per merchant —
+     the chip voice is spec/tag caps ("FREE GIFT"; code names are caps
+     already). flex-wrap + max-width:100% keep a long discount name inside
+     the card at 280px. */
   .cart-items__discounts {
-    margin-top: 4px;
+    margin: 6px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
   }
 
   .cart-items__discount {
+    display: inline-flex;
+    /* Merchant rules, both absolute: a chip NEVER spans two lines, and it sits
+       directly under the strikethrough. nowrap keeps it one line; the hard
+       max-width is what lets it live in the price column without ever
+       inflating it past reason — a pathological title ellipsizes instead. */
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    align-items: center;
+    gap: 2px 6px;
+    min-width: 0;
+    max-width: 150px;
+    padding: 4px 9px;
+    border-radius: 8px;
     font-size: 12px;
-    color: #10b981;
+    line-height: 1.2;
     font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    background: color-mix(in srgb, var(--casa-purple, #B0C3FA) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--casa-purple, #B0C3FA) 30%, transparent);
+    color: color-mix(in srgb, var(--casa-purple, #B0C3FA) 90%, rgb(var(--color-foreground-rgb, 10 10 15)));
+  }
+  .cart-items__discount-code {
+    font-weight: 600;
+    /* NOT overflow-wrap: anywhere — that is what split "WELCOME2 / 0" mid-word.
+       Single line always; ellipsis is the last-resort backstop. */
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* [hidden] hardening: casa-header.liquid's .cart-drawer__items
+     .cart-items__remove sets display:flex unconditionally, which defeats the
+     hidden ATTRIBUTE (UA display:none loses to any author rule) — a remove
+     button with hidden="" still painted (2026-08-25, the gift row's phantom
+     trash can). Applies to every can_remove=false line, not just gifts. */
+  .cart-items__remove[hidden] {
+    display: none !important;
   }
 
   /* Legacy compat */
@@ -731,6 +1184,11 @@
     justify-content: center;
     box-shadow: none;
     padding: 0;
+    /* iOS: opt trash-spam out of double-tap-to-zoom so rapid taps each fire a click
+       immediately (the ~300ms zoom-disambiguation delay otherwise eats every 2nd tap).
+       Mirrors the stepper buttons; the remedy for Test F. Real-iPhone verification still
+       required — Playwright/desktop don't run the gesture layer. */
+    touch-action: manipulation;
   }
 
   .cart-items__media {
@@ -773,12 +1231,105 @@
     padding-block: var(--padding-lg);
   }
 
+  /* ── Empty cart Recently Viewed ── */
+  .cart-empty-rv {
+    margin-top: 32px;
+    width: 100%;
+    text-align: left;
+  }
+  .cart-empty-rv__title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 12px;
+    color: rgb(var(--color-foreground-rgb) / 0.7);
+    text-align: center;
+  }
+  .cart-empty-rv__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .cart-empty-rv__card {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgb(var(--color-foreground-rgb) / 0.04);
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+  .cart-empty-rv__card:hover {
+    transform: translateY(-2px);
+    background: rgb(var(--color-foreground-rgb) / 0.06);
+  }
+  .cart-empty-rv__img {
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: rgb(var(--color-foreground-rgb) / 0.06);
+  }
+  .cart-empty-rv__img img {
+    /* height: auto + aspect-ratio instead of height: 100% — the wrapper's
+       height comes from its own aspect-ratio, and Safari 26 can fail to
+       resolve a %-height against that (the /cart flat-thumbnail class;
+       immune pattern from .cart-items__media-image above). */
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    display: block;
+  }
+  .cart-empty-rv__img--placeholder {
+    background: linear-gradient(135deg, rgb(var(--color-foreground-rgb) / 0.04), rgb(var(--color-foreground-rgb) / 0.08));
+  }
+  .cart-empty-rv__info {
+    padding: 8px 10px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .cart-empty-rv__title-text {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .cart-empty-rv__price-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .cart-empty-rv__price {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgb(var(--color-foreground-rgb) / 0.85);
+  }
+  .cart-empty-rv__compare {
+    font-size: 11px;
+    font-weight: 400;
+    color: rgb(var(--color-foreground-rgb) / 0.5);
+    text-decoration: line-through;
+  }
+
   /* Error message */
   .cart-items__error {
     display: flex;
     align-items: flex-start;
     width: 100%;
     grid-area: error;
+    /* Casa fix: the error area spans into the minmax(_, auto) price column; without
+       min-width:0 its long text forces that auto track wider, which collapses the
+       minmax(0,1fr) details column to 0 and makes the title overlap the price.
+       Letting the box shrink (and span the full row) keeps the item layout intact. */
+    min-width: 0;
+    grid-column: 1 / -1;
     margin-block-start: var(--margin-xs);
     opacity: 1;
     overflow: hidden;
@@ -796,8 +1347,14 @@
     display: flex;
     align-items: flex-start;
     width: 100%;
+    min-width: 0;
     font-size: var(--font-size--sm);
     padding-block: var(--padding-2xs);
+  }
+
+  .cart-item__error-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .cart-item__error .svg-wrapper {

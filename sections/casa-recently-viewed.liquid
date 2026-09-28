@@ -9,23 +9,81 @@
   assign rv_subtitle = section.settings.subtitle
   assign max_products = section.settings.max_products | default: 8
   assign cards_per_row = section.settings.cards_per_row | default: 4
-  assign show_compare_price = section.settings.show_compare_price | default: true
-  assign show_sale_badge = section.settings.show_sale_badge
   assign show_clear_button = section.settings.show_clear_button | default: false
 
-  assign bg_color = section.settings.bg_color | default: '#0a0a0f'
-  assign text_color = section.settings.text_color | default: '#ffffff'
+  # Card display + colors — single override gate.
+  # When override is OFF, every card-related flag/color falls back to
+  # the global Theme Settings → Casa Product Cards (settings.card_*).
+  # When ON, the section's local fields take effect.
+  # `allow_false: true` is critical so unchecking a section toggle is
+  # respected instead of silently falling through to the theme value.
+  assign override_card_settings = section.settings.override_card_settings
+  if override_card_settings
+    assign show_compare_price = section.settings.show_compare_price
+    assign show_sale_badge = section.settings.show_sale_badge
+    assign show_savings_highlight = section.settings.show_savings_highlight
+    # Installments hard-locked off on the recently-viewed rail — it's
+    # a product-card surface, and per merchant rule 2026-05-16 BNPL
+    # appears only on the PDP buy-box + above cart checkout.
+    assign show_installments = false
+    assign show_rating = section.settings.show_rating
+    assign review_style = section.settings.review_style | default: 'full'
+    assign card_bg = section.settings.card_bg
+    assign card_border = section.settings.card_border
+    assign price_color = section.settings.price_color
+    assign compare_color = section.settings.compare_price_color
+    assign stars_color = section.settings.stars_color
+  else
+    assign show_compare_price = settings.card_show_compare_price
+    assign show_sale_badge = settings.card_show_sale_badge
+    assign show_savings_highlight = settings.card_show_savings_highlight
+    # Installments hard-locked off — see comment above.
+    assign show_installments = false
+    assign show_rating = settings.card_show_rating
+    assign review_style = settings.card_review_style | default: 'full'
+    assign card_bg = settings.card_bg_color
+    assign card_border = blank
+    assign price_color = settings.card_price_color
+    assign compare_color = settings.compare_price_color
+    assign stars_color = settings.card_stars_color
+  endif
+
+  # Section-only colors (no global product-card equivalent) — always local
+  assign bg_color = section.settings.bg_color | default: '#0A0A0F'
+  assign text_color = section.settings.text_color | default: '#FAFAF7'
   assign subtitle_color = section.settings.subtitle_color | default: 'rgba(255,255,255,0.55)'
-  assign accent_color = section.settings.accent_color | default: '#9333ea'
-  assign card_bg = section.settings.card_bg | default: 'rgba(255,255,255,0.04)'
-  assign card_border = section.settings.card_border | default: 'rgba(255,255,255,0.08)'
-  assign price_color = section.settings.price_color | default: '#ec4899'
-  assign compare_color = section.settings.compare_price_color | default: 'rgba(255,255,255,0.35)'
+  assign accent_color = section.settings.accent_color | default: '#B0C3FA'
+
+  # Clear-history button colors (defaults preserve previous hard-coded look)
+  # Defaults updated 2026-05-12 for the Paper-section register the
+  # section now ships on. Resting: solid Ink #0A0A0F bg + 1px Ink
+  # border + Paper text. Hover: Ink lifted to #1a1a1f + Paper text.
+  # Hover lift (translateY + soft shadow) is in CSS, not merchant-
+  # controlled, so feedback is consistent regardless of colors.
+  assign clear_btn_bg = section.settings.clear_btn_bg | default: '#0A0A0F'
+  assign clear_btn_border = section.settings.clear_btn_border | default: '#0A0A0F'
+  assign clear_btn_text = section.settings.clear_btn_text | default: '#FAFAF7'
+  assign clear_btn_bg_hover = section.settings.clear_btn_bg_hover | default: '#1a1a1f'
+  assign clear_btn_border_hover = section.settings.clear_btn_border_hover | default: '#1a1a1f'
+  assign clear_btn_text_hover = section.settings.clear_btn_text_hover | default: '#FAFAF7'
+
+  # Color fallbacks for safety (if global value also unset)
+  assign card_bg = card_bg | default: 'rgba(255,255,255,0.04)'
+  assign card_border = card_border | default: 'rgba(255,255,255,0.08)'
+  assign price_color = price_color | default: '#5E0A02'
+  assign compare_color = compare_color | default: 'rgba(255,255,255,0.35)'
+  assign stars_color = stars_color | default: '#fbbf24'
 
   assign padding_top = section.settings.padding_top | default: 60
   assign padding_bottom = section.settings.padding_bottom | default: 60
   assign padding_mobile_top = section.settings.padding_mobile_top | default: 40
   assign padding_mobile_bottom = section.settings.padding_mobile_bottom | default: 40
+
+  # Gap between the header row (title + subtitle + CLEAR HISTORY) and
+  # the first product card. Merchant-controlled, always-on (no gate),
+  # so the slider has immediate effect in the editor.
+  assign header_gap = section.settings.header_gap | default: 20
+  assign header_gap_mobile = section.settings.header_gap_mobile | default: 12
 -%}
 
 {%- comment -%} ── Track current product on product pages ── {%- endcomment -%}
@@ -35,14 +93,19 @@
   try {
     var STORAGE_KEY = 'casa_recently_viewed';
     var rvData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    {%- comment -%}
+      No price fields here — see the note in layout/theme.liquid. A stored price
+      is a Market-frozen snapshot (stale the moment the shopper switches
+      currency); the renderer below fetches live server-rendered cards via the
+      Section Rendering API and lets Liquid's money_with_currency do the
+      conversion. Store identity + display fields only.
+    {%- endcomment -%}
     var current = {
       id: {{ product.id }},
       handle: {{ product.handle | json }},
       title: {{ product.title | json }},
       url: {{ product.url | json }},
       image: {{ product.featured_image | image_url: width: 600 | json }},
-      price: {{ product.price }},
-      compare_at_price: {{ product.compare_at_price | default: 0 }},
       available: {{ product.available }},
       vendor: {{ product.vendor | json }},
       type: {{ product.type | json }},
@@ -58,7 +121,29 @@
 </script>
 {%- endif -%}
 
-{%- comment -%} Track product clicks from any page — saves product data from card HTML before navigation {%- endcomment -%}
+{%- comment -%}
+  ── One-time localStorage migration (schema 4) ──
+  Older schemas stored JS-parsed prices (base cents, visitor cents, and
+  100× values from a comma-decimal regex bug). The current schema stores
+  NO price fields at all — every recently-viewed surface fetches live
+  server-rendered cards via the Section Rendering API and lets Liquid's
+  money_with_currency do the Market conversion. Wipe legacy data once per
+  visitor so old corrupt entries don't survive into the new pipeline.
+  (New entries written above still carry no price; pre-existing
+  price-bearing entries self-heal on re-view / age out of the 20-item cap.)
+{%- endcomment -%}
+<script>
+(function(){
+  try {
+    if (localStorage.getItem('casa_recently_viewed__schema') !== '4') {
+      localStorage.removeItem('casa_recently_viewed');
+      localStorage.setItem('casa_recently_viewed__schema', '4');
+    }
+  } catch(e){}
+})();
+</script>
+
+{%- comment -%} Track product clicks from any page — saves only the identifiers needed to re-fetch the card server-side {%- endcomment -%}
 <script>
 (function(){
   if (window.__casa_rv_click_tracking) return;
@@ -74,60 +159,33 @@
     if (!match) return;
     var handle = match[1];
 
-    /* Extract product data from the card DOM — no fetch needed, instant save */
-    var card = link.closest('.casa-product-card, .product-card, [data-product-handle]');
-    var title = '';
-    var image = '';
-    var price = 0;
-    var comparePrice = 0;
-
+    /* Capture only the identifiers needed to fetch the live card later
+       via Section Rendering API. No price/title/image scraping — the
+       renderer fetches the real `casa-product-card` HTML from Shopify
+       on render, so visitor-currency conversion happens server-side
+       via Liquid's `money_with_currency` filter. */
+    var card = link.closest('.casa-product-card, [data-product-id], [data-product-handle], .product-card');
+    var productId = 0;
     if (card) {
-      var titleEl = card.querySelector('.casa-product-card__title, .product-card__title, h3');
-      title = titleEl ? titleEl.textContent.trim() : '';
-      var imgEl = card.querySelector('.casa-product-card__image, .product-card__image img, img');
-      image = imgEl ? (imgEl.src || imgEl.dataset.src || '') : '';
-      var priceEl = card.querySelector('.casa-product-card__price-current .money, .price .money');
-      if (priceEl) {
-        var priceText = priceEl.textContent.replace(/[^0-9.]/g, '');
-        price = Math.round(parseFloat(priceText) * 100) || 0;
-      }
-      var compareEl = card.querySelector('.casa-product-card__price-compare .money, .price--compare .money');
-      if (compareEl) {
-        var compText = compareEl.textContent.replace(/[^0-9.]/g, '');
-        comparePrice = Math.round(parseFloat(compText) * 100) || 0;
-      }
+      var idAttr = card.getAttribute('data-product-id');
+      if (idAttr) productId = parseInt(idAttr, 10) || 0;
     }
 
-    /* If we got a title from the card, save immediately (no async fetch needed) */
-    if (title) {
-      try {
-        var rvData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        var current = {
-          id: 0,
-          handle: handle,
-          title: title,
-          url: '/products/' + handle,
-          image: image.split('?')[0] + '?width=600',
-          price: price,
-          compare_at_price: comparePrice,
-          available: true,
-          vendor: '',
-          type: ''
-        };
-        /* Remove existing entry with same handle */
-        rvData = rvData.filter(function(item) { return item.handle !== handle; });
-        rvData.unshift(current);
-        if (rvData.length > 20) rvData = rvData.slice(0, 20);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(rvData));
-      } catch(ex){}
-    }
+    try {
+      var rvData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      /* Drop any prior entry for this handle (most recent always wins) */
+      rvData = rvData.filter(function(item) { return item.handle !== handle; });
+      rvData.unshift({ id: productId, handle: handle });
+      if (rvData.length > 20) rvData = rvData.slice(0, 20);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rvData));
+    } catch(ex){}
   });
 })();
 </script>
 
 {%- comment -%} ── Section markup ── {%- endcomment -%}
 <section
-  class="casa-rv-section"
+  class="casa-rv-section casa-rv-section--align-{{ section.settings.title_align | default: 'left' }}"
   id="casa-rv-{{ section.id }}"
   style="
     --casa-rv-bg: {{ bg_color }};
@@ -138,13 +196,35 @@
     --casa-rv-card-border: {{ card_border }};
     --casa-rv-price: {{ price_color }};
     --casa-rv-compare: {{ compare_color }};
-    --casa-rv-pt: {{ padding_top }}px;
-    --casa-rv-pb: {{ padding_bottom }}px;
-    --casa-rv-pt-m: {{ padding_mobile_top }}px;
-    --casa-rv-pb-m: {{ padding_mobile_bottom }}px;
+    {%- if section.settings.override_spacing -%}
+      --casa-rv-pt: {{ padding_top }}px;
+      --casa-rv-pb: {{ padding_bottom }}px;
+      --casa-rv-pt-m: {{ padding_mobile_top }}px;
+      --casa-rv-pb-m: {{ padding_mobile_bottom }}px;
+    {%- endif -%}
+    --casa-rv-header-mb: {{ header_gap }}px;
+    --casa-rv-header-mb-m: {{ header_gap_mobile }}px;
     --casa-rv-cols: {{ cards_per_row }};
     --casa-rv-img-ratio: {{ section.settings.image_ratio | default: '1 / 1' }};
-    --casa-rv-align: {{ section.settings.card_info_align | default: 'left' }};
+    --casa-rv-align: {{ settings.card_info_align | default: 'left' }};
+    --casa-rv-title-align: {{ section.settings.title_align | default: 'left' }};
+    --casa-rv-stars: {{ stars_color }};
+    --casa-rv-clear-bg: {{ clear_btn_bg }};
+    --casa-rv-clear-border: {{ clear_btn_border }};
+    --casa-rv-clear-text: {{ clear_btn_text }};
+    --casa-rv-clear-bg-h: {{ clear_btn_bg_hover }};
+    --casa-rv-clear-border-h: {{ clear_btn_border_hover }};
+    --casa-rv-clear-text-h: {{ clear_btn_text_hover }};
+    {%- comment -%}
+      Heading-scale dropdown: merchant picks H1-H6 from Theme Settings -> Typography.
+      Mirrors the categories / products-grid wiring.
+    {%- endcomment -%}
+    {%- assign _rv_title_h = section.settings.rv_heading_level | default: 'h1' -%}
+    --rv-title-fs:   var(--font-{{ _rv_title_h }}--size);
+    --rv-title-fw:   var(--font-{{ _rv_title_h }}--weight);
+    --rv-title-lh:   var(--font-{{ _rv_title_h }}--line-height);
+    --rv-title-ls:   var(--font-{{ _rv_title_h }}--letter-spacing);
+    --rv-title-case: var(--font-{{ _rv_title_h }}--case);
     display: none;
   "
 >
@@ -153,7 +233,8 @@
     <div class="casa-rv__header">
       <div class="casa-rv__header-text">
         {%- if rv_title != blank -%}
-          <h2 class="casa-rv__title">{{ rv_title }}</h2>
+          {%- assign _title_tag = section.settings.title_tag | default: 'h2' -%}
+          <{{ _title_tag }} class="casa-rv__title">{{ rv_title }}</{{ _title_tag }}>
         {%- endif -%}
         {%- if rv_subtitle != blank -%}
           <p class="casa-rv__subtitle">{{ rv_subtitle }}</p>
@@ -163,7 +244,7 @@
         {%- if show_clear_button -%}
           <button type="button" class="casa-rv__clear" data-rv-clear aria-label="Clear viewing history">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            Clear History
+            CLEAR HISTORY
           </button>
         {%- endif -%}
         <div class="casa-rv__nav">
@@ -179,6 +260,12 @@
 
     {%- comment -%} Carousel track {%- endcomment -%}
     <div class="casa-rv__track-wrapper">
+      <button type="button" class="casa-rv__overlay-arrow casa-rv__overlay-arrow--prev" data-rv-prev-overlay aria-label="Scroll left" disabled>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button type="button" class="casa-rv__overlay-arrow casa-rv__overlay-arrow--next" data-rv-next-overlay aria-label="Scroll right">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
       <div
         class="casa-rv__track"
         id="casa-rv-grid-{{ section.id }}"
@@ -186,11 +273,11 @@
         data-max-products="{{ max_products }}"
         data-show-compare="{{ show_compare_price }}"
         data-show-sale-badge="{{ show_sale_badge }}"
-        data-show-savings="{{ section.settings.show_savings_highlight }}"
-        data-title-tag="{{ section.settings.title_tag | default: 'h3' }}"
-        data-title-font-size="{% if section.settings.title_font_size > 0 %}{{ section.settings.title_font_size }}{% endif %}"
-        data-review-style="{{ section.settings.review_style | default: 'full' }}"
-        data-show-rating="{{ section.settings.show_rating | default: true }}"
+        data-show-savings="{{ show_savings_highlight }}"
+        data-show-installments="{{ show_installments }}"
+        data-card-title-tag="{{ settings.card_title_tag | default: 'h3' }}"
+        data-review-style="{{ review_style }}"
+        data-show-rating="{% if show_rating == false %}false{% else %}true{% endif %}"
         {%- if request.page_type == 'product' -%}
           data-exclude-id="{{ product.id }}"
           data-exclude-handle="{{ product.handle }}"
@@ -215,14 +302,8 @@
   if (!track) return;
 
   var maxProducts = parseInt(track.dataset.maxProducts, 10) || 8;
-  var showCompare = track.dataset.showCompare === 'true';
-  var showSaleBadge = track.dataset.showSaleBadge !== 'false';
-  var showSavings = track.dataset.showSavings === 'true';
-  var titleTag = track.dataset.titleTag || 'h3';
-  var titleFontSize = track.dataset.titleFontSize || '';
-  var reviewStyle = track.dataset.reviewStyle || 'full';
-  var showRating = track.dataset.showRating !== 'false';
   var excludeId = track.dataset.excludeId ? parseInt(track.dataset.excludeId, 10) : null;
+  var excludeHandle = track.dataset.excludeHandle || '';
 
   /* ── Read localStorage ── */
   var rvData;
@@ -232,8 +313,7 @@
     rvData = [];
   }
 
-  /* Exclude current product (by ID or handle) */
-  var excludeHandle = track.dataset.excludeHandle || '';
+  /* Exclude current product (when section is on a PDP) */
   if (excludeId || excludeHandle) {
     rvData = rvData.filter(function(p){
       if (excludeId && p.id === excludeId) return false;
@@ -242,152 +322,195 @@
     });
   }
 
-  /* Deduplicate by handle (click tracker may create duplicates with id:0) */
+  /* Deduplicate by handle */
   var seen = {};
   rvData = rvData.filter(function(p) {
     var key = p.handle || p.id;
-    if (seen[key]) return false;
+    if (!key || seen[key]) return false;
     seen[key] = true;
     return true;
   });
 
-  /* Limit */
+  /* Limit to merchant-configured max */
   rvData = rvData.slice(0, maxProducts);
 
   /* If nothing to show, keep section hidden */
   if (rvData.length === 0) return;
 
-  /* ── Format money (cents to formatted string using store locale) ── */
-  var shopCurrency = {{ shop.currency | json }};
-  var shopLocale = {{ request.locale.iso_code | json }};
-  function formatMoney(cents) {
-    if (cents == null || isNaN(cents)) return '';
-    try {
-      return new Intl.NumberFormat(shopLocale, {
-        style: 'currency',
-        currency: shopCurrency,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(cents / 100);
-    } catch(e) {
-      return (cents / 100).toFixed(2);
-    }
+  /* ── Resolve any handles missing a numeric ID ──
+     The SRA query needs Shopify product IDs (`id:X` search syntax).
+     Entries seeded by older click-trackers / cards that lacked a
+     data-product-id attribute only have a handle, so look the ID up
+     via /products/{handle}.js before issuing the search. */
+  function resolveIds(items) {
+    return Promise.all(items.map(function(p) {
+      if (p.id && p.id !== 0) return Promise.resolve(p);
+      if (!p.handle) return Promise.resolve(null);
+      return fetch('/products/' + p.handle + '.js', { credentials: 'same-origin' })
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(prod) {
+          if (prod && prod.id) { p.id = prod.id; return p; }
+          return null;
+        })
+        .catch(function(){ return null; });
+    }));
   }
 
-  /* ── Build card HTML ── */
-  function buildCard(p) {
-    var hasCompare = showCompare && p.compare_at_price && p.compare_at_price > p.price;
-    var soldOut = p.available === false;
+  /* ── Fetch + inject cards via Section Rendering API ──
+     One round-trip for all visible cards. Shopify renders the sibling
+     casa-collection-recently-viewed section server-side with search.
+     results populated; that section emits real `casa-product-card`
+     snippets (wishlist, swatches, ATC, hover image, ratings, Liquid
+     `money_with_currency` prices — everything every other card on the
+     site shows). We extract them, reorder to match recency, and drop
+     them into the carousel track. */
+  function renderCards() {
+    return resolveIds(rvData).then(function(resolvedRaw) {
+      var resolved = resolvedRaw.filter(Boolean);
+      if (!resolved.length) return;
 
-    var html = '<a href="' + p.url + '" class="casa-rv__card" aria-label="' + escapeHtml(p.title) + '">';
-    html += '<div class="casa-rv__card-image">';
-    if (p.image) {
-      html += '<img src="' + p.image + '" alt="' + escapeHtml(p.title) + '" loading="lazy">';
-    } else {
-      html += '<div class="casa-rv__card-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>';
-    }
-    if (soldOut) {
-      html += '<span class="casa-rv__badge casa-rv__badge--sold-out">Sold Out</span>';
-    } else if (hasCompare && showSaleBadge) {
-      var pct = Math.round((1 - p.price / p.compare_at_price) * 100);
-      html += '<span class="casa-rv__badge casa-rv__badge--sale">-' + pct + '%</span>';
-    }
-    html += '</div>'; /* end card-image */
+      /* Persist newly-resolved IDs back to storage so subsequent loads
+         don't have to re-hit /products/{handle}.js. */
+      try {
+        var fullList = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        resolved.forEach(function(item) {
+          var match = fullList.find(function(p){ return p.handle === item.handle; });
+          if (match && (!match.id || match.id === 0)) match.id = item.id;
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(fullList));
+      } catch(_){}
 
-    html += '<div class="casa-rv__card-info">';
-    var titleStyle = titleFontSize ? ' style="font-size:' + titleFontSize + 'px;"' : '';
-    html += '<' + titleTag + ' class="casa-rv__card-title"' + titleStyle + '>' + escapeHtml(p.title) + '</' + titleTag + '>';
+      var ids = resolved.map(function(p){ return p.id; });
+      var query = ids.map(function(id){ return 'id:' + id; }).join(' OR ');
+      var url = '/search?type=product&section_id=casa-collection-recently-viewed&q=' + encodeURIComponent(query);
 
-    /* Rating */
-    if (showRating && p.rating_count && p.rating_count > 0) {
-      var rv = p.rating_value || 5;
-      var rc = p.rating_count;
-      html += '<div class="casa-rv__card-rating">';
-      if (reviewStyle === 'full') {
-        html += '<span class="casa-rv__card-stars">';
-        for (var s = 1; s <= 5; s++) html += s <= rv ? '\u2605' : '\u2606';
-        html += '</span>';
-        html += '<span class="casa-rv__card-rating-count">' + rc + ' reviews</span>';
-      } else if (reviewStyle === 'compact') {
-        html += '<span class="casa-rv__card-stars">\u2605</span>';
-        html += '<span class="casa-rv__card-rating-count">' + rv + '.0 (' + rc + ')</span>';
-      } else if (reviewStyle === 'stars-only') {
-        html += '<span class="casa-rv__card-stars">';
-        for (var s = 1; s <= 5; s++) html += s <= rv ? '\u2605' : '\u2606';
-        html += '</span>';
-      } else if (reviewStyle === 'text-only') {
-        html += '<span class="casa-rv__card-rating-count">' + rv + '.0 \u00b7 ' + rc + ' reviews</span>';
-      }
-      html += '</div>';
-    }
+      return fetch(url, { credentials: 'same-origin' })
+        .then(function(r){ return r.ok ? r.text() : ''; })
+        .then(function(html) {
+          if (!html) return;
+          var doc = new DOMParser().parseFromString(html, 'text/html');
+          var resultsRoot = doc.querySelector('[data-rv-search-results]');
+          if (!resultsRoot) return;
 
-    /* Price */
-    html += '<div class="casa-rv__card-price">';
-    html += '<span class="casa-rv__card-price--current">' + formatMoney(p.price) + '</span>';
-    if (hasCompare) {
-      html += '<span class="casa-rv__card-price--compare">' + formatMoney(p.compare_at_price) + '</span>';
-      if (showSavings) {
-        var saveAmt = formatMoney(p.compare_at_price - p.price);
-        html += '<span class="casa-rv__card-save">Save' + saveAmt + '</span>';
-      }
-    }
-    html += '</div>'; /* end price */
-    html += '</div>'; /* end card-info */
-    html += '</a>';
+          var rawCards = Array.from(resultsRoot.querySelectorAll('[data-product-id]'));
+          if (!rawCards.length) return;
 
-    return html;
+          /* Reorder to match localStorage recency. Search returns results
+             in Shopify's order (often by relevance / catalog order), not
+             ours. */
+          var ordered = [];
+          ids.forEach(function(id) {
+            var card = rawCards.find(function(c){ return c.dataset.productId === String(id); });
+            if (card) ordered.push(card);
+          });
+          if (!ordered.length) ordered = rawCards;
+
+          /* Inject into carousel track. Each card is wrapped in a
+             .casa-rv__slide div that handles flex sizing; the inner
+             casa-product-card brings its own appearance. */
+          track.innerHTML = '';
+          ordered.forEach(function(cardNode) {
+            var slide = document.createElement('div');
+            slide.className = 'casa-rv__slide';
+            slide.appendChild(cardNode);
+            track.appendChild(slide);
+          });
+
+          /* When fewer slides than columns, center them in the track
+             so a single recently-viewed card lands in the middle
+             instead of hugging the left edge. Toggling a class
+             (rather than always justify-content:center) avoids the
+             scroll-overflow gotcha where centered tracks can't be
+             scrolled back to their pre-center starting position. */
+          var rvCols = parseInt(getComputedStyle(track).getPropertyValue('--casa-rv-cols'), 10) || 4;
+          if (ordered.length < rvCols) {
+            track.classList.add('casa-rv__track--centered');
+          } else {
+            track.classList.remove('casa-rv__track--centered');
+          }
+
+          sectionEl.style.display = '';
+
+          /* Re-init Judge.me preview badges. jdgm-loader can race the
+             section render, so poll briefly until reloadAllElements is
+             exposed, then call it. */
+          (function pollJdgm(attempt) {
+            if (window.jdgm && typeof window.jdgm.reloadAllElements === 'function') {
+              window.jdgm.reloadAllElements();
+              return;
+            }
+            if (attempt < 30) setTimeout(function(){ pollJdgm(attempt + 1); }, 400);
+          })(0);
+
+          /* Entrance animation — stagger capped at 4 so late cards
+             don't wait forever after reveal. */
+          var slides = track.querySelectorAll('.casa-rv__slide');
+          slides.forEach(function(slide, i) {
+            var staggerIndex = Math.min(i, 4);
+            slide.style.opacity = '0';
+            slide.style.transform = 'translateY(16px)';
+            setTimeout(function(){
+              slide.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+              slide.style.opacity = '1';
+              slide.style.transform = 'translateY(0)';
+            }, 60 + staggerIndex * 70);
+          });
+
+          /* Safety net: force-visible after 1.5s in case setTimeout
+             gets starved by a long task. */
+          setTimeout(function() {
+            slides.forEach(function(slide) {
+              if (slide.style.opacity === '0' || slide.style.opacity === '') {
+                slide.style.transition = 'opacity 0.2s ease';
+                slide.style.opacity = '1';
+                slide.style.transform = 'translateY(0)';
+              }
+            });
+          }, 1500);
+
+          /* Initialize arrow state after layout settles. */
+          setTimeout(updateArrows, 100);
+        });
+    }).catch(function(){ /* fail silently — section stays hidden */ });
   }
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  /* ── Render cards ── */
-  var cardsHtml = '';
-  rvData.forEach(function(p) {
-    cardsHtml += buildCard(p);
-  });
-  track.innerHTML = cardsHtml;
-
-  /* Show section */
-  sectionEl.style.display = '';
-
-  /* ── Entrance animation ── */
-  var cards = track.querySelectorAll('.casa-rv__card');
-  cards.forEach(function(card, i) {
-    card.style.opacity = '0';
-    card.style.transform = 'translateY(16px)';
-    setTimeout(function() {
-      card.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-      card.style.opacity = '1';
-      card.style.transform = 'translateY(0)';
-    }, 60 + i * 70);
-  });
 
   /* ── Carousel navigation ── */
   var prevBtn = sectionEl.querySelector('[data-rv-prev]');
   var nextBtn = sectionEl.querySelector('[data-rv-next]');
+  var prevOverlay = sectionEl.querySelector('[data-rv-prev-overlay]');
+  var nextOverlay = sectionEl.querySelector('[data-rv-next-overlay]');
 
   function updateArrows() {
-    if (!prevBtn || !nextBtn) return;
     var sl = track.scrollLeft;
     var maxScroll = track.scrollWidth - track.clientWidth;
-    prevBtn.disabled = sl <= 2;
-    nextBtn.disabled = sl >= maxScroll - 2;
+    var atStart = sl <= 2;
+    var atEnd = sl >= maxScroll - 2;
+    var noOverflow = maxScroll <= 2;
+    if (prevBtn) prevBtn.disabled = atStart;
+    if (nextBtn) nextBtn.disabled = atEnd;
+    if (prevOverlay) {
+      prevOverlay.disabled = atStart;
+      prevOverlay.classList.toggle('is-hidden', noOverflow);
+    }
+    if (nextOverlay) {
+      nextOverlay.disabled = atEnd;
+      nextOverlay.classList.toggle('is-hidden', noOverflow);
+    }
   }
 
-  function scrollBy(dir) {
-    /* Scroll by one card width + gap */
-    var card = track.querySelector('.casa-rv__card');
-    if (!card) return;
+  function scrollByDir(dir) {
+    /* Scroll by one slide width + gap */
+    var slide = track.querySelector('.casa-rv__slide');
+    if (!slide) return;
     var gap = parseInt(getComputedStyle(track).gap) || 20;
-    var scrollAmount = (card.offsetWidth + gap) * dir;
+    var scrollAmount = (slide.offsetWidth + gap) * dir;
     track.scrollBy({ left: scrollAmount, behavior: 'smooth' });
   }
 
-  if (prevBtn) prevBtn.addEventListener('click', function(){ scrollBy(-1); });
-  if (nextBtn) nextBtn.addEventListener('click', function(){ scrollBy(1); });
+  if (prevBtn) prevBtn.addEventListener('click', function(){ scrollByDir(-1); });
+  if (nextBtn) nextBtn.addEventListener('click', function(){ scrollByDir(1); });
+  if (prevOverlay) prevOverlay.addEventListener('click', function(){ scrollByDir(-1); });
+  if (nextOverlay) nextOverlay.addEventListener('click', function(){ scrollByDir(1); });
 
   track.addEventListener('scroll', updateArrows, { passive: true });
   /* Initial arrow state (after render) */
@@ -402,17 +525,21 @@
       sectionEl.style.display = 'none';
     });
   }
+
+  /* Kick off the render once everything is wired (arrow handlers
+     defined above so updateArrows() in the render path can fire). */
+  renderCards();
 })();
 </script>
 
-<style>
+{% stylesheet %}
 /* ════════════════════════════════════════════
    CASA-RV — Recently Viewed Products
    ════════════════════════════════════════════ */
 .casa-rv-section {
-  background: var(--casa-rv-bg, #0a0a0f);
+  background: var(--casa-rv-bg, var(--casa-ink));
   color: var(--casa-rv-text, #fff);
-  padding: var(--casa-rv-pt, 60px) 0 var(--casa-rv-pb, 60px);
+  padding: var(--casa-rv-pt, var(--casa-section-pt, 60px)) 0 var(--casa-rv-pb, var(--casa-section-pb, 60px));
   overflow: hidden;
 }
 
@@ -428,25 +555,76 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 36px;
+  /* Gap below the header (title + subtitle + clear-history) is
+     merchant-controlled via the Spacing → Gap between header and
+     cards (desktop) slider. Fallback 20px matches the prior hard-
+     coded value so old configs without the new setting still render
+     identically. */
+  margin-bottom: var(--casa-rv-header-mb, 20px);
+}
+
+.casa-rv-section--align-center .casa-rv__header {
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+}
+
+.casa-rv-section--align-center .casa-rv__header-actions {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* In centered alignment, the header-nav arrows would stack below the
+   CLEAR HISTORY button and add ~56px of vertical space (40px arrows +
+   16px gap) between the button and the first product card. They're
+   also visually near-invisible against --casa-ink (rgba(255,255,255,
+   0.12) border, 0.04 background) so the only thing the gap reads as
+   is empty space. The overlay arrows on the carousel itself
+   (.casa-rv__overlay-arrow) are the primary visible control — hide
+   the redundant header set in centered mode. */
+.casa-rv-section--align-center .casa-rv__nav {
+  display: none;
+}
+
+.casa-rv-section--align-right .casa-rv__header {
+  flex-direction: row-reverse;
 }
 
 .casa-rv__header-text {
   flex: 1;
   min-width: 0;
+  text-align: var(--casa-rv-title-align, left);
 }
 
 .casa-rv__title {
-  font-size: clamp(24px, 3vw, 36px);
-  font-weight: 300;
-  letter-spacing: -0.5px;
-  line-height: 1.2;
   margin: 0;
   color: var(--casa-rv-text, #fff);
+  /* Brand book v1 §03 locked H2 spec — Inter 500 / -0.015em / 1.10 LH.
+     white-space: nowrap forces single-line per merchant. */
+  font-size: clamp(22px, 4vw, 40px);
+  font-weight: 500;
+  line-height: 1.10;
+  letter-spacing: -0.015em;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+/* Italic accent inside title — LARGER (1.15em) per merchant. */
+.casa-rv__title em {
+  font-size: 1.15em;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1;
+  background-image: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .casa-rv__subtitle {
-  font-size: 15px;
+  font-size: var(--casa-subtitle-size, 17px);
   color: var(--casa-rv-subtitle, rgba(255,255,255,0.55));
   margin: 8px 0 0;
   line-height: 1.5;
@@ -461,26 +639,58 @@
 }
 
 /* ─── Clear button ─── */
+/* Brand book button spec for utility-on-dark register: small
+   outlined treatment (.btn-secondary-on-dark.btn-sm baseline
+   in spirit), brand --r-lg radius (NOT pill — brand book "never
+   uses --r-pill for CTAs"), Inter 600, 0.06em tracking, 13px. */
 .casa-rv__clear {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: none;
-  border: 1px solid rgba(255,255,255,0.12);
-  color: rgba(255,255,255,0.45);
-  font-size: 12px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  padding: 6px 14px;
-  border-radius: 100px;
-  cursor: pointer;
-  transition: all 0.25s ease;
+  background: var(--casa-rv-clear-bg);
+  border: 1px solid var(--casa-rv-clear-border);
+  color: var(--casa-rv-clear-text);
   font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 8px 18px;
+  border-radius: var(--r-lg, 12px);
+  cursor: pointer;
+  /* Animate color shift AND the lift in one curve so the button
+     feels like a single tactile object. */
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
-.casa-rv__clear:hover {
-  color: #fff;
-  border-color: rgba(255,255,255,0.3);
-  background: rgba(255,255,255,0.05);
+.casa-rv__clear:hover,
+.casa-rv__clear:focus-visible {
+  color: var(--casa-rv-clear-text-h);
+  border-color: var(--casa-rv-clear-border-h);
+  background: var(--casa-rv-clear-bg-h);
+  /* Subtle lift + Ink-toned shadow — quiet-chrome feedback that
+     reads as "tappable" without competing with primary CTAs.
+     Brand-conformant: stays in the Ink palette, no gradient,
+     no red, just a slight rise off the page. */
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(10, 10, 15, 0.18);
+}
+.casa-rv__clear:focus-visible {
+  outline: 2px solid var(--casa-glow-primary, #B0C3FA);
+  outline-offset: 3px;
+}
+.casa-rv__clear:active {
+  /* Settle back to baseline on press — touch feedback. */
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(10, 10, 15, 0.18);
+}
+@media (prefers-reduced-motion: reduce) {
+  .casa-rv__clear,
+  .casa-rv__clear:hover,
+  .casa-rv__clear:focus-visible,
+  .casa-rv__clear:active {
+    transform: none;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+  }
 }
 
 /* ─── Navigation arrows ─── */
@@ -495,7 +705,7 @@
   border-radius: 50%;
   border: 1px solid rgba(255,255,255,0.12);
   background: rgba(255,255,255,0.04);
-  color: #fff;
+  color: var(--casa-text-on-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -503,8 +713,8 @@
   transition: all 0.25s ease;
 }
 .casa-rv__arrow:hover:not(:disabled) {
-  background: var(--casa-rv-accent, #9333ea);
-  border-color: var(--casa-rv-accent, #9333ea);
+  background: var(--casa-rv-accent, #B0C3FA);
+  border-color: var(--casa-rv-accent, #B0C3FA);
 }
 .casa-rv__arrow:disabled {
   opacity: 0.25;
@@ -514,10 +724,69 @@
 /* ─── Carousel track ─── */
 .casa-rv__track-wrapper {
   position: relative;
+  isolation: isolate;
+}
+
+/* Overlay arrows — large, obvious carousel indicators */
+.casa-rv__overlay-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(10, 10, 15, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--casa-text-on-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+.casa-rv__overlay-arrow:hover:not(:disabled) {
+  background: var(--casa-paper);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: var(--casa-ink);
+  transform: translateY(-50%) scale(1.05);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.25),
+    0 0 0 4px rgba(176, 195, 250, 0.18),
+    0 0 22px rgba(94, 10, 2, 0.35);
+}
+.casa-rv__overlay-arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.casa-rv__overlay-arrow.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.casa-rv__overlay-arrow--prev { left: -8px; }
+.casa-rv__overlay-arrow--next { right: -8px; }
+
+@media (max-width: 900px) {
+  .casa-rv__overlay-arrow {
+    width: 40px;
+    height: 40px;
+  }
+  .casa-rv__overlay-arrow--prev { left: 4px; }
+  .casa-rv__overlay-arrow--next { right: 4px; }
 }
 
 .casa-rv__track {
   display: flex;
+  /* Slides default to align-items: stretch — every card matches the
+     row's tallest. The merchant wants equal-height cards. To minimize
+     the visible dead space below the shorter card's content, the
+     in-card padding-bottom override below tightens the per-card
+     bottom padding inside this carousel only. */
   gap: 20px;
   overflow-x: auto;
   overflow-y: hidden;
@@ -527,11 +796,50 @@
   scrollbar-width: none;
   padding-bottom: 4px;
 }
+
+/* Scoped tightening — the global casa-product-card rule reserves
+   24px below the price block so the card doesn't read "chopped off".
+   Inside the recently-viewed carousel, equal-height slides already
+   give the shorter card extra bottom space (the visible dead area
+   the merchant flagged); 24px on top of that compounds the gap.
+   Cut to 4px here only — leaves the price comfortable but lets the
+   slide end as close to the content as the row's tallest allows. */
+.casa-rv__slide .casa-product-card:not(:has(.casa-product-card__installment)) .casa-product-card__info {
+  padding-bottom: 4px;
+}
 .casa-rv__track::-webkit-scrollbar {
   display: none;
 }
 
-/* ─── Product card ─── */
+/* Centered short rail. JS adds this class when slide count is less
+   than the configured columns so a 1- or 2-product history sits
+   centered instead of hugging the left edge. Safe to combine with
+   overflow-x:auto because slides won't overflow when count < cols. */
+.casa-rv__track--centered {
+  justify-content: center;
+}
+
+/* ─── Slide wrapper ───
+   Each server-rendered casa-product-card is dropped into one of these
+   wrappers. The wrapper handles only flex sizing + scroll snapping;
+   the inner card brings its own appearance (border, padding, hover,
+   wishlist, swatches, ATC) so we get full parity with collection pages
+   and the rest of the site without duplicating any styling here. */
+.casa-rv__slide {
+  flex: 0 0 calc((100% - (var(--casa-rv-cols, 4) - 1) * 20px) / var(--casa-rv-cols, 4));
+  min-width: 0;
+  scroll-snap-align: start;
+  display: flex;
+}
+.casa-rv__slide > * {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ─── Legacy .casa-rv__card rules (no longer emitted by the JS
+   renderer post-SRA refactor, but kept so any merchant-saved theme
+   blocks that still reference the class don't break visually). The
+   selector now matches nothing in the live DOM. ─── */
 .casa-rv__card {
   flex: 0 0 calc((100% - (var(--casa-rv-cols, 4) - 1) * 20px) / var(--casa-rv-cols, 4));
   min-width: 0;
@@ -548,8 +856,8 @@
 }
 .casa-rv__card:hover {
   transform: translateY(-4px);
-  border-color: var(--casa-rv-accent, #9333ea);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 0 1px var(--casa-rv-accent, #9333ea);
+  border-color: var(--casa-rv-accent, #B0C3FA);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 0 1px var(--casa-rv-accent, #B0C3FA);
 }
 
 /* ─── Card image ─── */
@@ -592,8 +900,8 @@
   pointer-events: none;
 }
 .casa-rv__badge--sale {
-  background: var(--casa-rv-price, #ec4899);
-  color: #fff;
+  background: var(--casa-rv-price, #5E0A02);
+  color: var(--casa-text-on-ink);
 }
 .casa-rv__badge--sold-out {
   background: rgba(255,255,255,0.12);
@@ -615,7 +923,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: var(--casa-rv-accent, #9333ea);
+  color: var(--casa-rv-accent, #B0C3FA);
   font-weight: 500;
 }
 
@@ -624,9 +932,6 @@
 }
 
 .casa-rv__card-title {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.3;
   margin: 0;
   color: var(--casa-rv-text, #fff);
   display: -webkit-box;
@@ -649,7 +954,7 @@
 .casa-rv__card-price--current {
   font-size: 15px;
   font-weight: 500;
-  color: var(--casa-rv-price, #ec4899);
+  color: var(--casa-rv-price, #5E0A02);
 }
 
 .casa-rv__card-price--compare {
@@ -664,8 +969,13 @@
   gap: 6px;
   margin-top: 4px;
 }
+.casa-rv__card-rating:empty,
+.casa-rv__card-rating:has(.jdgm-widget:empty),
+.casa-rv__card-rating:has(.jdgm-prev-badge[data-number-of-reviews="0"]) {
+  display: none;
+}
 .casa-rv__card-stars {
-  color: var(--casa-rv-accent, #fbbf24);
+  color: var(--casa-rv-stars, #fbbf24);
   font-size: 13px;
   letter-spacing: -1px;
 }
@@ -674,13 +984,41 @@
   color: var(--casa-rv-subtitle, rgba(255,255,255,0.5));
 }
 
+.casa-rv__card-installment {
+  font-size: 11px;
+  color: var(--casa-rv-subtitle, rgba(255,255,255,0.55));
+  margin-top: 4px;
+  line-height: 1.4;
+  /* CLS-friendly placeholder height — matches the height of Shopify's
+     rendered shopify-payment-terms widget so injecting the real
+     fragment doesn't shift layout. */
+  min-height: 16px;
+}
+.casa-rv__card-installment .casa-rv-installment-fragment {
+  margin: 0;
+}
+.casa-rv__card-installment .casa-rv-installment-fragment__form {
+  margin: 0;
+}
+/* Make Shopify's widget readable on dark RV background */
+.casa-rv__card-installment shopify-payment-terms {
+  --shopify-payment-terms-color: var(--casa-rv-subtitle, rgba(255,255,255,0.7));
+  font-size: 11px;
+  line-height: 1.4;
+  display: block;
+}
+/* Hide the wrapper if the variant is ineligible (no widget got injected) */
+.casa-rv__card-installment[data-loaded="1"]:not(:has(shopify-payment-terms)) {
+  display: none;
+}
+
 .casa-rv__card-save {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
   background: var(--savings-badge-bg, #fef2f2);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 4px;
+  border: var(--savings-badge-border-width, 1px) solid var(--savings-badge-border, rgba(239, 68, 68, 0.2));
+  border-radius: var(--savings-badge-radius, 4px);
   font-size: 11px;
   font-weight: 600;
   color: var(--savings-badge-text, #ef4444);
@@ -694,6 +1032,7 @@
   .casa-rv__track {
     gap: 16px;
   }
+  .casa-rv__slide,
   .casa-rv__card {
     flex: 0 0 calc((100% - (var(--casa-rv-cols, 4) - 1) * 16px) / var(--casa-rv-cols, 4));
   }
@@ -701,32 +1040,71 @@
 
 @media (max-width: 900px) {
   .casa-rv-section {
-    padding-top: var(--casa-rv-pt-m, 40px);
-    padding-bottom: var(--casa-rv-pb-m, 40px);
+    padding-top: var(--casa-rv-pt-m, var(--casa-section-pt-m, 40px));
+    padding-bottom: var(--casa-rv-pb-m, var(--casa-section-pb-m, 40px));
+  }
+  /* Mobile: scale down to keep "Still on your mind?" on one line.
+     white-space: nowrap inherited from base. */
+  .casa-rv__title {
+    font-size: clamp(14px, 4.5vw, 22px);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  .casa-rv__title em {
+    font-size: 1.15em;
+  }
+  .casa-rv__subtitle {
+    font-size: var(--casa-subtitle-size, 14px);
   }
   .casa-rv__container {
     padding: 0 24px;
   }
   .casa-rv__header {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 12px;
+    /* Mobile fallback 12px matches the desktop slider's mobile
+       sibling. In-header nav arrows are hidden on mobile (overlay
+       arrows on the carousel already serve nav), so the gap reflects
+       actual visible chrome only. */
+    margin-bottom: var(--casa-rv-header-mb-m, 12px);
   }
+  .casa-rv-section--align-left .casa-rv__header { align-items: flex-start; }
+  .casa-rv-section--align-center .casa-rv__header { align-items: center; }
+  .casa-rv-section--align-right .casa-rv__header { align-items: flex-end; }
+
   .casa-rv__header-actions {
     width: 100%;
     justify-content: space-between;
   }
+  .casa-rv-section--align-center .casa-rv__header-actions {
+    justify-content: center;
+  }
+  /* Overlay arrows on the carousel already handle navigation on touch;
+     the in-header arrow pair is redundant and, in centered alignment,
+     stacks below the clear-history button as a disabled-state ghost row
+     that bloats the gap to the first card. Hide on mobile. */
   .casa-rv__nav {
     display: none;
+  }
+  .casa-rv__arrow {
+    width: 36px;
+    height: 36px;
   }
   .casa-rv__track {
     gap: 14px;
   }
-  /* 2 cards visible on mobile */
+  /* ~2.3 cards visible — partial 3rd card peeks to signal "scroll for more" */
+  .casa-rv__slide,
   .casa-rv__card {
-    flex: 0 0 calc(50% - 7px);
-    min-width: calc(50% - 7px);
+    flex: 0 0 calc(43% - 6px);
+    min-width: calc(43% - 6px);
+  }
+  /* Card content flush to card edge on tablet portrait + below */
+  .casa-rv__card-info {
+    padding: 12px 0 0;
+  }
+  .casa-rv__card-installment {
+    padding: 0;
   }
 }
 
@@ -737,15 +1115,16 @@
   .casa-rv__track {
     gap: 12px;
   }
+  .casa-rv__slide,
   .casa-rv__card {
     flex: 0 0 calc(55% - 6px);
     min-width: calc(55% - 6px);
   }
   .casa-rv__card-info {
-    padding: 12px;
+    padding: 12px 0 0;
   }
-  .casa-rv__card-title {
-    font-size: 13px;
+  .casa-rv__card-installment {
+    padding: 0;
   }
   .casa-rv__card-price--current {
     font-size: 14px;
@@ -759,7 +1138,7 @@
     transition: none !important;
   }
 }
-</style>
+{% endstylesheet %}
 
 {% schema %}
 {
@@ -779,16 +1158,17 @@
       "content": "Content"
     },
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "title",
       "label": "Title",
-      "default": "Continue Where You Left Off"
+      "info": "Wrap a phrase in <em>...</em> for the brand italic-gradient accent (e.g. \"<em>Still on your mind?</em>\").",
+      "default": "<em>Still on your mind?</em>"
     },
     {
       "type": "text",
       "id": "subtitle",
       "label": "Subtitle",
-      "default": "Pick up where you left off with these recently viewed pieces"
+      "default": "The pieces still on your mind."
     },
     {
       "type": "range",
@@ -822,9 +1202,46 @@
       "default": "1 / 1"
     },
     {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "paragraph",
+      "content": "By default this section follows Theme settings → Casa Section Typography. Toggle override to customize."
+    },
+    {
       "type": "select",
-      "id": "card_info_align",
-      "label": "Card text alignment",
+      "id": "title_tag",
+      "label": "Title heading tag",
+      "info": "HTML tag (SEO). Visual scale is controlled separately via Title heading scale below.",
+      "options": [
+        { "value": "h2", "label": "H2" },
+        { "value": "h3", "label": "H3" },
+        { "value": "h4", "label": "H4" },
+        { "value": "h5", "label": "H5" },
+        { "value": "p", "label": "Paragraph" }
+      ],
+      "default": "h2"
+    },
+    {
+      "type": "select",
+      "id": "rv_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "select",
+      "id": "title_align",
+      "label": "Title alignment",
       "options": [
         { "value": "left", "label": "Left" },
         { "value": "center", "label": "Center" },
@@ -833,34 +1250,26 @@
       "default": "left"
     },
     {
-      "type": "select",
-      "id": "title_tag",
-      "label": "Title heading tag",
-      "options": [
-        { "value": "h2", "label": "H2" },
-        { "value": "h3", "label": "H3 (default)" },
-        { "value": "h4", "label": "H4" },
-        { "value": "h5", "label": "H5" },
-        { "value": "p", "label": "Paragraph" }
-      ],
-      "default": "h3"
+      "type": "header",
+      "content": "Card settings"
     },
     {
-      "type": "range",
-      "id": "title_font_size",
-      "label": "Title font size",
-      "info": "Leave at 0 to use theme default",
-      "min": 0,
-      "max": 24,
-      "step": 1,
-      "default": 0,
-      "unit": "px"
+      "type": "paragraph",
+      "content": "All card display settings (ratings, prices, badges) follow Theme Settings → Casa Product Cards by default. Toggle the checkbox below to override them just for this section."
+    },
+    {
+      "type": "checkbox",
+      "id": "override_card_settings",
+      "label": "Override theme card settings",
+      "info": "When OFF, this section uses the global Theme Settings. When ON, the toggles below take effect.",
+      "default": false
     },
     {
       "type": "checkbox",
       "id": "show_rating",
       "label": "Show star ratings",
-      "default": true
+      "default": true,
+      "visible_if": "{{ section.settings.override_card_settings }}"
     },
     {
       "type": "select",
@@ -872,27 +1281,46 @@
         { "value": "stars-only", "label": "Stars only" },
         { "value": "text-only", "label": "Rating number + count" }
       ],
-      "default": "full"
+      "default": "full",
+      "visible_if": "{{ section.settings.override_card_settings }}"
+    },
+    {
+      "type": "color",
+      "id": "stars_color",
+      "label": "Star color",
+      "default": "#fbbf24",
+      "visible_if": "{{ section.settings.override_card_settings }}"
     },
     {
       "type": "checkbox",
       "id": "show_compare_price",
       "label": "Show compare-at price",
-      "default": true
+      "default": true,
+      "visible_if": "{{ section.settings.override_card_settings }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_installments",
+      "label": "Show installment price",
+      "info": "Locked OFF on the recently-viewed rail per merchant rule 2026-05-16 (BNPL only on PDP + cart). Setting kept for schema/template compatibility, hidden from editor.",
+      "default": false,
+      "visible_if": "{{ false }}"
     },
     {
       "type": "checkbox",
       "id": "show_savings_highlight",
       "label": "Show savings badge",
       "info": "Shows 'Save $XX' badge next to the price",
-      "default": false
+      "default": false,
+      "visible_if": "{{ section.settings.override_card_settings }}"
     },
     {
       "type": "checkbox",
       "id": "show_sale_badge",
       "label": "Show sale % badge",
       "info": "Discount percentage badge on product image",
-      "default": true
+      "default": true,
+      "visible_if": "{{ section.settings.override_card_settings }}"
     },
     {
       "type": "checkbox",
@@ -902,19 +1330,67 @@
     },
     {
       "type": "header",
+      "content": "Clear History button",
+      "info": "Colors only apply when the button is shown. All fields accept rgba (translucent) values for subtle styling.",
+      "visible_if": "{{ section.settings.show_clear_button }}"
+    },
+    {
+      "type": "color_background",
+      "id": "clear_btn_bg",
+      "label": "Background",
+      "default": "rgba(0,0,0,0)",
+      "visible_if": "{{ section.settings.show_clear_button }}"
+    },
+    {
+      "type": "color_background",
+      "id": "clear_btn_border",
+      "label": "Border",
+      "default": "rgba(255,255,255,0.12)",
+      "visible_if": "{{ section.settings.show_clear_button }}"
+    },
+    {
+      "type": "color_background",
+      "id": "clear_btn_text",
+      "label": "Text + icon",
+      "default": "rgba(255,255,255,0.45)",
+      "visible_if": "{{ section.settings.show_clear_button }}"
+    },
+    {
+      "type": "color_background",
+      "id": "clear_btn_bg_hover",
+      "label": "Background (hover)",
+      "default": "rgba(255,255,255,0.05)",
+      "visible_if": "{{ section.settings.show_clear_button }}"
+    },
+    {
+      "type": "color_background",
+      "id": "clear_btn_border_hover",
+      "label": "Border (hover)",
+      "default": "rgba(255,255,255,0.3)",
+      "visible_if": "{{ section.settings.show_clear_button }}"
+    },
+    {
+      "type": "color_background",
+      "id": "clear_btn_text_hover",
+      "label": "Text + icon (hover)",
+      "default": "#FAFAF7",
+      "visible_if": "{{ section.settings.show_clear_button }}"
+    },
+    {
+      "type": "header",
       "content": "Colors"
     },
     {
       "type": "color",
       "id": "bg_color",
       "label": "Background",
-      "default": "#0a0a0f"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
       "id": "text_color",
       "label": "Text",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
@@ -926,35 +1402,70 @@
       "type": "color",
       "id": "accent_color",
       "label": "Accent",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "card_bg",
       "label": "Card background",
-      "default": "#131318"
+      "default": "#131318",
+      "visible_if": "{{ section.settings.override_card_settings }}"
     },
     {
       "type": "color",
       "id": "card_border",
       "label": "Card border",
-      "default": "#1e1e28"
+      "default": "#1e1e28",
+      "visible_if": "{{ section.settings.override_card_settings }}"
     },
     {
       "type": "color",
       "id": "price_color",
       "label": "Price",
-      "default": "#ec4899"
+      "default": "#5E0A02",
+      "visible_if": "{{ section.settings.override_card_settings }}"
     },
     {
       "type": "color",
       "id": "compare_price_color",
       "label": "Compare-at price",
-      "default": "#6b6b78"
+      "default": "#6b6b78",
+      "visible_if": "{{ section.settings.override_card_settings }}"
     },
     {
       "type": "header",
       "content": "Spacing"
+    },
+    {
+      "type": "paragraph",
+      "content": "Header gap controls the space between the title row (with the optional CLEAR HISTORY button) and the first product card. Outer padding sliders below control the space above and below the whole section — toggle override to use them."
+    },
+    {
+      "type": "range",
+      "id": "header_gap",
+      "label": "Gap between header and cards (desktop)",
+      "min": 0,
+      "max": 80,
+      "step": 2,
+      "default": 20,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "header_gap_mobile",
+      "label": "Gap between header and cards (mobile)",
+      "min": 0,
+      "max": 60,
+      "step": 2,
+      "default": 12,
+      "unit": "px"
+    },
+    {
+      "type": "checkbox",
+      "id": "override_spacing",
+      "label": "Override theme outer padding",
+      "info": "When OFF, the section's top/bottom padding follows Theme settings → Casa Section Spacing. When ON, the four sliders below take effect.",
+      "default": false
     },
     {
       "type": "range",
@@ -964,7 +1475,8 @@
       "max": 200,
       "step": 10,
       "default": 60,
-      "unit": "px"
+      "unit": "px",
+      "visible_if": "{{ section.settings.override_spacing }}"
     },
     {
       "type": "range",
@@ -974,7 +1486,8 @@
       "max": 200,
       "step": 10,
       "default": 60,
-      "unit": "px"
+      "unit": "px",
+      "visible_if": "{{ section.settings.override_spacing }}"
     },
     {
       "type": "range",
@@ -984,7 +1497,8 @@
       "max": 120,
       "step": 10,
       "default": 40,
-      "unit": "px"
+      "unit": "px",
+      "visible_if": "{{ section.settings.override_spacing }}"
     },
     {
       "type": "range",
@@ -994,7 +1508,8 @@
       "max": 120,
       "step": 10,
       "default": 40,
-      "unit": "px"
+      "unit": "px",
+      "visible_if": "{{ section.settings.override_spacing }}"
     }
   ],
   "presets": [

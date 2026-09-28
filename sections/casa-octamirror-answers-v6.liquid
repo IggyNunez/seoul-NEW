@@ -1,0 +1,373 @@
+{% liquid
+  assign guarantee_url = pages['faq'].url | default: '/pages/faq'
+  assign guarantee_url = guarantee_url | append: '#warranty'
+  assign shipping_url = shop.shipping_policy.url | default: '/policies/shipping-policy'
+  assign returns_url = shop.refund_policy.url | default: '/policies/refund-policy'
+  assign support_url = pages['contact-us'].url
+
+  if support_url == blank
+    assign support_url = pages['contact'].url
+  endif
+
+  if support_url == blank
+    assign support_url = '/pages/contact-us'
+  endif
+
+  assign group_keys = 'setup|ownership|mirror' | split: '|'
+%}
+
+<casa-answers-v6>
+<section id="casa-octa-answers" class="casa-v6-answers" data-build="20260922-topic-icons-1" aria-labelledby="casa-v6-answers-title-{{ section.id }}">
+  <div class="casa-v6-answers__inner">
+    <div class="casa-v6-answers__aside">
+      <header class="casa-v6-answers__header">
+        <p class="casa-v6-answers__eyebrow">{{ section.settings.eyebrow }}</p>
+        <h2 id="casa-v6-answers-title-{{ section.id }}">{{ section.settings.heading }}</h2>
+        <p class="casa-v6-answers__intro">{{ section.settings.lede }}</p>
+      </header>
+      <nav class="casa-v6-answers__nav" aria-label="{{ section.settings.nav_label | escape }}" hidden>
+        <button type="button" data-topic="popular" aria-pressed="true"><span class="casa-v6-answers__topic-label">{% render 'casa-octa-faq-icon', name: 'popular' %}{{ section.settings.popular_title }}</span><span data-topic-count="popular" aria-hidden="true"></span></button>
+        {% for group_key in group_keys %}
+          {% assign title_key = group_key | append: '_title' %}
+          <button type="button" data-topic="{{ group_key }}" aria-pressed="false"><span class="casa-v6-answers__topic-label">{% render 'casa-octa-faq-icon', name: group_key %}{{ section.settings[title_key] }}</span><span data-topic-count="{{ group_key }}" aria-hidden="true"></span></button>
+        {% endfor %}
+      </nav>
+      <aside class="casa-v6-answers__contact">
+        <p>{{ section.settings.contact_title }}</p>
+        <a href="{{ support_url }}">{{ section.settings.contact_label }} <span aria-hidden="true">↗</span></a>
+      </aside>
+    </div>
+    <div class="casa-v6-answers__content">
+      <div class="casa-v6-answers__search" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
+        <label class="casa-v6-answers__sr" for="faq-search-{{ section.id }}">{{ section.settings.search_label }}</label>
+        <input id="faq-search-{{ section.id }}" type="search" placeholder="{{ section.settings.search_label | escape }}" autocomplete="off" data-answer-search>
+        <button type="button" data-clear-search hidden aria-label="{{ section.settings.clear_label | escape }}">×</button>
+      </div>
+      <div class="casa-v6-answers__result" hidden><h3 data-results-title>{{ section.settings.popular_title }}</h3><span data-answer-status role="status" aria-live="polite"></span></div>
+      <div class="casa-v6-answers__groups">
+    {% for group_key in group_keys %}
+      {% assign title_key = group_key | append: '_title' %}
+      <section data-answer-group="{{ group_key }}" id="casa-v6-answers-{{ group_key }}-{{ section.id }}" class="casa-v6-answers__chapter" aria-labelledby="casa-v6-answers-{{ group_key }}-title-{{ section.id }}">
+        <h3 id="casa-v6-answers-{{ group_key }}-title-{{ section.id }}">{{ section.settings[title_key] }}</h3>
+        <div class="casa-v6-answers__list">
+          {% for block in section.blocks %}
+            {% if block.settings.group == group_key and block.settings.question != blank %}
+              {% liquid
+                assign answer_url = ''
+                case block.settings.link_target
+                  when 'size'
+                    assign answer_url = '#casa-v6-size-guide'
+                  when 'reviews'
+                    assign answer_url = '#casa-octa-reviews'
+                  when 'guarantee'
+                    assign answer_url = guarantee_url
+                  when 'shipping'
+                    assign answer_url = shipping_url
+                  when 'returns'
+                    assign answer_url = returns_url
+                  when 'support'
+                    assign answer_url = support_url
+                endcase
+              %}
+              <details class="casa-v6-answer" data-casa-v6-faq="{{ block.id }}" data-group="{{ group_key }}" data-start-here="{{ block.settings.start_here }}"{% if block.settings.open_by_default %} open{% endif %} {{ block.shopify_attributes }}>
+                <summary><strong>{{ block.settings.question }}</strong><span class="casa-v6-answer__plus" aria-hidden="true"></span></summary>
+                <div class="casa-v6-answer__body">
+                  {% case block.settings.icon %}
+                    {% when 'size' %}
+                      <figure class="casa-faq-visual casa-faq-sizes">
+                        <div class="casa-faq-sizes__row" aria-hidden="true">
+                          <div><svg viewBox="0 0 100 100" style="width:42.857%"><polygon points="29,2 71,2 98,29 98,71 71,98 29,98 2,71 2,29"/></svg><strong>11.8″</strong><span>30 cm</span></div>
+                          <div><svg viewBox="0 0 100 100" style="width:71.429%"><polygon points="29,2 71,2 98,29 98,71 71,98 29,98 2,71 2,29"/></svg><strong>19.7″</strong><span>50 cm</span></div>
+                          <div><svg viewBox="0 0 100 100" style="width:100%"><polygon points="29,2 71,2 98,29 98,71 71,98 29,98 2,71 2,29"/></svg><strong>27.6″</strong><span>70 cm</span></div>
+                        </div>
+                        <figcaption>Three widths, shown in proportion. Measure your wall before choosing.</figcaption>
+                      </figure>
+                    {% when 'install' %}
+                      <ol class="casa-faq-visual casa-faq-steps" aria-label="Wall mounting overview">
+                        <li><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M5 22h18M8 22V11h12v11M11 11l3-6 3 6M14 5v12"/></svg><div><b>1. Mount</b><span>Level and secure the wall bracket.</span></div></li>
+                        <li><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M14 4v15M9 14l5 5 5-5M7 23h14M10 23l4-4 4 4"/></svg><div><b>2. Hang</b><span>Lower the rear hook onto the bracket.</span></div></li>
+                        <li><svg viewBox="0 0 28 28" aria-hidden="true"><path d="M10 4v7M18 4v7M8 11h12v3a6 6 0 0 1-6 6v4M11 24h6"/></svg><div><b>3. Plug in</b><span>Connect the supplied power adapter.</span></div></li>
+                      </ol>
+                    {% when 'remote' %}
+                      <div class="casa-faq-visual casa-faq-controls" aria-label="Compare remote and app controls">
+                        <div><svg viewBox="0 0 40 48" aria-hidden="true"><rect x="10" y="2" width="20" height="44" rx="7"/><circle cx="20" cy="12" r="3"/><circle cx="20" cy="27" r="7"/><path d="M16 39h8"/></svg><b>Remote included</b><span>Power, color, brightness &amp; effects.</span><small>No Wi-Fi needed</small></div>
+                        <div><svg viewBox="0 0 40 48" aria-hidden="true"><rect x="8" y="2" width="24" height="44" rx="5"/><path d="M16 7h8M16 41h8M13 23q7-8 14 0M16 27q4-5 8 0"/><circle cx="20" cy="31" r="1"/></svg><b>App optional</b><span>Custom scenes, timers &amp; voice setup.</span><small>Tuya Smart · 2.4 GHz Wi-Fi</small></div>
+                      </div>
+                    {% when 'wifi' %}
+                      <div class="casa-faq-visual casa-faq-pairing" aria-label="App pairing checklist"><span><b>1</b>2.4 GHz Wi-Fi</span><span><b>2</b>Red blinking light</span><span><b>3</b>Tuya Smart app</span></div>
+                  {% endcase %}
+                  {% if block.settings.lead != blank %}<p class="casa-v6-answer__lead">{{ block.settings.lead }}</p>{% endif %}
+                  {% if block.settings.answer != blank %}<div class="casa-v6-answer__rte rte">{{ block.settings.answer }}</div>{% endif %}
+                  {% if answer_url != blank and block.settings.link_label != blank %}<a class="casa-v6-answer__link" href="{{ answer_url }}">{{ block.settings.link_label }} <span aria-hidden="true">&rarr;</span></a>{% endif %}
+                </div>
+              </details>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </section>
+    {% endfor %}
+      </div>
+      <p class="casa-v6-answers__empty" data-answer-empty hidden>{{ section.settings.empty_text }} <a href="{{ support_url }}">{{ section.settings.contact_label }}</a></p>
+    </div>
+  </div>
+</section>
+</casa-answers-v6>
+
+{% stylesheet %}
+  casa-answers-v6 { display: block; }
+  .casa-v6-answers { --faq-ink: #201c26; --faq-muted: #625b6c; --faq-accent: #7435a1; background: #fff; color: var(--faq-ink); scroll-margin-top: 115px; border-top: 1px solid #eeeaf1; }
+  .casa-v6-answers [hidden] { display: none !important; }
+  .casa-v6-answers__inner { display: grid; grid-template-columns: minmax(250px, 320px) minmax(0, 720px); justify-content: space-between; gap: 72px; width: min(1240px, calc(100% - 96px)); margin-inline: auto; padding: 88px 0 96px; }
+  .casa-v6-answers__aside { min-width: 0; }
+  .casa-v6-answers__eyebrow { margin: 0 0 20px; font-size: 11px; font-weight: 600; letter-spacing: .14em; color: var(--faq-muted); text-transform: uppercase; }
+  .casa-v6-answers__header h2 { margin: 0; color: var(--faq-ink); font-size: clamp(40px, 4vw, 56px); font-weight: 600; letter-spacing: -.055em; line-height: 1.06; }
+  .casa-v6-answers__header h2 em { display: block; font-style: italic; background: linear-gradient(105deg, #7337b4 0%, #a92e88 52%, #13738c 100%); background-clip: text; -webkit-background-clip: text; color: transparent; }
+  .casa-v6-answers__intro { margin: 22px 0 0; max-width: 30ch; color: var(--faq-muted); font-size: 16px; line-height: 1.6; }
+  .casa-v6-answers__nav { display: grid; gap: 4px; margin-top: 30px; }
+  .casa-v6-answers__nav button { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-height: 50px; padding: 12px 16px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #514a5b; font: inherit; font-size: 15px; line-height: 1.4; text-align: left; cursor: pointer; }
+  .casa-v6-answers__nav button[aria-pressed="true"] { border-color: #e9dff1; background: #f5f0f9; color: #652e89; font-weight: 600; }
+  .casa-v6-answers__nav button > span:last-child { font-size: 12px; color: #746b7e; font-variant-numeric: tabular-nums; }
+  .casa-v6-answers__topic-label { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+  .casa-v6-answers__topic-label > .casa-octa-faq-icon { display: block; width: 22px; height: 22px; flex: 0 0 22px; }
+  .casa-v6-answers__nav button:hover { background: #f8f6fa; }
+  .casa-v6-answers__contact { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e9e5ed; }
+  .casa-v6-answers__contact p { margin: 0 0 6px; color: var(--faq-muted); font-size: 14px; line-height: 1.5; }
+  .casa-v6-answers__contact a { display: inline-flex; align-items: center; gap: 14px; min-height: 44px; font-size: 14px; font-weight: 600; color: var(--faq-ink); text-decoration: underline; text-underline-offset: 5px; }
+  .casa-v6-answers__content { min-width: 0; }
+  .casa-v6-answers[data-enhanced] .casa-v6-answers__content { min-height: 600px; }
+  .casa-v6-answers__search { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 18px; border: 1px solid #ddd7e3; border-radius: 10px; background: #faf9fb; }
+  .casa-v6-answers__search svg { width: 20px; height: 20px; flex: 0 0 20px; color: #766b80; }
+  .casa-v6-answers__search:focus-within { border-color: var(--faq-accent); outline: 2px solid #e9dcf2; outline-offset: 2px; }
+  .casa-v6-answers__search input { width: 100%; min-width: 0; min-height: 54px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--faq-ink); font: inherit; font-size: 16px; outline: none; box-shadow: none; }
+  .casa-v6-answers__search input::placeholder { color: #746b7e; opacity: 1; }
+  .casa-v6-answers__search input::-webkit-search-cancel-button { display: none; }
+  .casa-v6-answers__search button { flex: 0 0 44px; min-height: 44px; border: 0; background: transparent; color: #514a5b; cursor: pointer; font-size: 24px; }
+  .casa-v6-answers__result { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 30px 0 14px; }
+  .casa-v6-answers__result h3 { margin: 0; color: #514a5b; font-size: 13px; font-weight: 600; line-height: 1.4; }
+  .casa-v6-answers__result > span { font-size: 12px; color: #746b7e; }
+  .casa-v6-answers__chapter { margin-bottom: 28px; scroll-margin-top: 120px; }
+  .casa-v6-answers__chapter h3 { font-size: 16px; color: var(--faq-muted); }
+  .casa-v6-answers[data-enhanced] .casa-v6-answers__chapter { display: contents; }
+  .casa-v6-answers[data-enhanced] .casa-v6-answers__chapter > h3 { display: none; }
+  .casa-v6-answers__groups { border-top: 1px solid #e5e0e9; }
+  .casa-v6-answer { border-bottom: 1px solid #e5e0e9; transition: background-color .16s ease; }
+  .casa-v6-answer summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 78px; padding: 20px 16px; cursor: pointer; list-style: none; }
+  .casa-v6-answer summary::-webkit-details-marker { display: none; }
+  .casa-v6-answer summary strong { color: var(--faq-ink); font-size: 18px; font-weight: 500; line-height: 1.4; }
+  .casa-v6-answer__plus { position: relative; width: 28px; height: 28px; flex: 0 0 28px; border: 1px solid #dfd7e7; border-radius: 50%; color: #7435a1; }
+  .casa-v6-answer__plus::before, .casa-v6-answer__plus::after { content: ''; position: absolute; top: 12px; left: 7px; width: 12px; height: 1px; background: currentColor; }
+  .casa-v6-answer__plus::after { transform: rotate(90deg); }
+  .casa-v6-answer[open] { background: #f8f5fb; }
+  .casa-v6-answer[open] summary strong { font-weight: 600; }
+  .casa-v6-answer[open] .casa-v6-answer__plus { background: #7435a1; border-color: #7435a1; color: #fff; }
+  .casa-v6-answer[open] .casa-v6-answer__plus::after { display: none; }
+  .casa-v6-answer__body { max-width: 68ch; padding: 0 62px 24px 16px; color: #57505f; font-size: 16px; line-height: 1.65; }
+  .casa-v6-answer__lead { margin: 0 0 12px; color: #342b3e; font-size: 16px; line-height: 1.65; font-weight: 500; }
+  .casa-v6-answer__rte { color: #57505f; font-size: 16px; line-height: 1.65; }
+  .casa-v6-answer__rte > :first-child { margin-top: 0; }
+  .casa-v6-answer__rte > :last-child { margin-bottom: 0; }
+  .casa-v6-answer__rte em { font-style: normal; }
+  .casa-v6-answer__rte li + li { margin-top: 8px; }
+  .casa-v6-answer__link { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; margin-top: 12px; color: #652e89; font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
+  .casa-v6-answers__empty { padding: 24px 16px; color: var(--faq-muted); font-size: 16px; line-height: 1.65; }
+  .casa-v6-answers__empty a { color: #652e89; text-decoration: underline; }
+  .casa-v6-answers a:focus-visible, .casa-v6-answers button:focus-visible, .casa-v6-answer summary:focus-visible { outline: 2px solid #7435a1; outline-offset: 3px; }
+  .casa-v6-answers__sr { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  @media (max-width: 989px) {
+    .casa-v6-answers__inner { grid-template-columns: 240px minmax(0, 1fr); gap: 36px; width: calc(100% - 64px); padding-block: 64px; }
+    .casa-v6-answers__header h2 { font-size: 40px; }
+  }
+  @media (max-width: 699px) {
+    .casa-v6-answers__inner { display: flex; flex-direction: column; gap: 24px; width: calc(100% - 40px); padding-block: 44px 56px; }
+    .casa-v6-answers__aside { display: contents; }
+    .casa-v6-answers__header { order: 0; }
+    .casa-v6-answers__eyebrow { margin-bottom: 12px; font-size: 10px; }
+    .casa-v6-answers__header h2 { font-size: 38px; }
+    .casa-v6-answers__intro { display: none; }
+    .casa-v6-answers__nav { order: 1; grid-template-columns: 1fr 1fr; gap: 6px; margin: 0; }
+    .casa-v6-answers__nav button { min-height: 44px; padding: 10px 12px; font-size: 13px; border-color: #e9e5ed; }
+    .casa-v6-answers__nav button > span:last-child { font-size: 11px; }
+    .casa-v6-answers__nav button { gap: 6px; padding-inline: 8px; }
+    .casa-v6-answers__topic-label { gap: 6px; }
+    .casa-v6-answers__topic-label > .casa-octa-faq-icon { width: 20px; height: 20px; flex-basis: 20px; }
+    .casa-v6-answers__content { order: 2; }
+    .casa-v6-answers[data-enhanced] .casa-v6-answers__content { min-height: 0; }
+    .casa-v6-answers__contact { order: 3; margin: 0; padding-top: 20px; }
+    .casa-v6-answers__search { min-height: 50px; padding-inline: 14px; }
+    .casa-v6-answers__search input { min-height: 48px; }
+    .casa-v6-answers__result { margin-top: 22px; }
+    .casa-v6-answer summary { min-height: 76px; padding: 18px 4px; gap: 16px; }
+    .casa-v6-answer summary strong { font-size: 16px; }
+    .casa-v6-answer__plus { width: 26px; height: 26px; flex-basis: 26px; }
+    .casa-v6-answer__plus::before, .casa-v6-answer__plus::after { top: 11px; left: 6px; }
+    .casa-v6-answer__body { padding: 0 12px 22px; }
+    .casa-v6-answer[open] summary { padding-inline: 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .casa-v6-answer { transition: none; } }
+  @media (forced-colors: active) { .casa-v6-answers__header h2 em { background: none; color: CanvasText; } }
+  .casa-faq-visual { margin: 0 0 22px; padding: 20px; border: 1px solid #e8dfef; border-radius: 12px; background: #fff; }
+  .casa-faq-visual svg { fill: none; stroke: #7435a1; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .casa-faq-sizes__row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; align-items: end; }
+  .casa-faq-sizes__row > div { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 120px; justify-self: center; }
+  .casa-faq-sizes svg { display: block; height: auto; aspect-ratio: 1; margin-bottom: 14px; }
+  .casa-faq-sizes svg polygon { fill: #f6f1fa; stroke-width: 2; }
+  .casa-faq-sizes strong { color: #342b3e; font-size: 18px; line-height: 1.4; }
+  .casa-faq-sizes span { font-size: 14px; }
+  .casa-faq-sizes figcaption { margin-top: 18px; font-size: 14px; line-height: 1.5; color: #625b6c; }
+  .casa-faq-steps { display: grid; gap: 18px; list-style: none; }
+  .casa-faq-steps li { display: flex; align-items: center; gap: 16px; }
+  .casa-faq-steps svg { width: 34px; height: 34px; flex: 0 0 34px; }
+  .casa-faq-steps b, .casa-faq-controls b { display: block; font-size: 16px; color: #342b3e; font-weight: 600; }
+  .casa-faq-steps span, .casa-faq-controls span { display: block; font-size: 14px; line-height: 1.5; }
+  .casa-faq-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .casa-faq-controls > div + div { border-left: 1px solid #e8dfef; padding-left: 20px; }
+  .casa-faq-controls svg { width: 34px; height: 40px; margin-bottom: 10px; }
+  .casa-faq-controls small { display: block; margin-top: 12px; color: #652e89; font-size: 13px; font-weight: 500; line-height: 1.5; }
+  .casa-faq-pairing { display: grid; gap: 14px; font-size: 15px; }
+  .casa-faq-pairing span { display: flex; align-items: center; gap: 12px; }
+  .casa-faq-pairing b { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #f5edf9; color: #652e89; font-size: 13px; }
+  @media (max-width: 699px) { .casa-faq-visual { padding: 16px; } .casa-faq-sizes__row { gap: 14px; } .casa-faq-controls { gap: 14px; } .casa-faq-controls > div + div { padding-left: 14px; } }
+  @media (max-width: 359px) { .casa-faq-controls { grid-template-columns: 1fr; } .casa-faq-controls > div + div { border-left: 0; border-top: 1px solid #e8dfef; padding: 16px 0 0; } }
+{% endstylesheet %}
+
+{% javascript %}
+  if (!customElements.get('casa-answers-v6')) {
+    customElements.define('casa-answers-v6', class extends HTMLElement {
+      connectedCallback() {
+        if (this.controller) return;
+        this.controller = new AbortController();
+        const signal = this.controller.signal;
+        const root = this.querySelector('.casa-v6-answers');
+        const input = this.querySelector('[data-answer-search]');
+        const items = [...this.querySelectorAll('[data-casa-v6-faq]')];
+        const topics = [...this.querySelectorAll('[data-topic]')];
+        const fold = value => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[-–—]/g, '');
+        const text = new Map(items.map(item => [item, fold(item.textContent)]));
+        const title = this.querySelector('[data-results-title]');
+        const status = this.querySelector('[data-answer-status]');
+        const clear = this.querySelector('[data-clear-search]');
+        let selected = 'popular';
+        let timer;
+        topics.forEach(button => {
+          const key = button.dataset.topic;
+          button.querySelector('[data-topic-count]').textContent = items.filter(item => key === 'popular' ? item.dataset.startHere === 'true' : item.dataset.group === key).length;
+          button.addEventListener('click', () => { selected = key; input.value = ''; update(); }, { signal });
+        });
+        const update = () => {
+          const query = fold(input.value.trim());
+          const terms = query.split(/\s+/).filter(Boolean);
+          let count = 0;
+          items.forEach(item => {
+            const show = query ? terms.every(term => text.get(item).includes(term)) : selected === 'popular' ? item.dataset.startHere === 'true' : item.dataset.group === selected;
+            item.hidden = !show;
+            if (show) count++;
+          });
+          topics.forEach(button => button.setAttribute('aria-pressed', String(!query && button.dataset.topic === selected)));
+          title.textContent = query ? input.getAttribute('placeholder') : topics.find(button => button.dataset.topic === selected).firstElementChild.textContent;
+          status.textContent = `${count} / ${items.length}`;
+          clear.hidden = !query;
+          this.querySelector('[data-answer-empty]').hidden = count !== 0;
+        };
+        input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(update, 100); }, { signal });
+        input.addEventListener('keydown', event => { if (event.key === 'Escape') { input.value = ''; update(); } }, { signal });
+        clear.addEventListener('click', () => { input.value = ''; update(); input.focus(); }, { signal });
+        root.dataset.enhanced = '';
+        this.querySelector('.casa-v6-answers__nav').hidden = false;
+        this.querySelector('.casa-v6-answers__search').hidden = false;
+        this.querySelector('.casa-v6-answers__result').hidden = false;
+        update();
+        signal.addEventListener('abort', () => clearTimeout(timer), { once: true });
+      }
+      disconnectedCallback() { this.controller?.abort(); this.controller = null; }
+    });
+  }
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "Octa answers V6",
+  "tag": "section",
+  "class": "section-casa-octa-answers-v6",
+  "settings": [
+    { "type": "text", "id": "popular_title", "label": "Popular questions label", "default": "Start here" },
+    { "type": "text", "id": "search_label", "label": "Search label", "default": "Search all questions" },
+    { "type": "text", "id": "clear_label", "label": "Clear search label", "default": "Clear search" },
+    { "type": "text", "id": "empty_text", "label": "No results message", "default": "No matching answers. Try size, delivery or Wi-Fi, or ask our team." },
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "THE DETAILS" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "Everything to know, <em>before it arrives.</em>" },
+    { "type": "textarea", "id": "lede", "label": "Introduction", "default": "Sizing, setup, controls, delivery and ownership—answered clearly in one place." },
+    { "type": "text", "id": "promise_label", "label": "Promise row label", "default": "Three important answers" },
+    { "type": "text", "id": "promise_1_title", "label": "Promise one title", "default": "A real mirror when off" },
+    { "type": "text", "id": "promise_1_text", "label": "Promise one text", "default": "Not a dark screen on your wall." },
+    { "type": "text", "id": "promise_2_title", "label": "Promise two title", "default": "Remote works immediately" },
+    { "type": "text", "id": "promise_2_text", "label": "Promise two text", "default": "The app and Wi-Fi are optional." },
+    { "type": "text", "id": "promise_3_title", "label": "Promise three title", "default": "Protected after purchase" },
+    { "type": "text", "id": "promise_3_text", "label": "Promise three text", "default": "Two-year Casa Guarantee and human help." },
+    { "type": "text", "id": "nav_label", "label": "Chapter navigation label", "default": "Jump to an answer group" },
+    { "type": "text", "id": "mirror_title", "label": "Mirror chapter title", "default": "The mirror" },
+    { "type": "textarea", "id": "mirror_intro", "label": "Mirror chapter introduction", "default": "What you will see, how the effect works, and what each size physically asks of your wall." },
+    { "type": "text", "id": "setup_title", "label": "Setup chapter title", "default": "Setup & control" },
+    { "type": "textarea", "id": "setup_intro", "label": "Setup chapter introduction", "default": "What arrives in the crate and every way to hang, power and control it." },
+    { "type": "text", "id": "ownership_title", "label": "Ownership chapter title", "default": "Delivery & ownership" },
+    { "type": "textarea", "id": "ownership_intro", "label": "Ownership chapter introduction", "default": "How it travels, what happens after delivery, and who answers when you need help." },
+    { "type": "text", "id": "at_a_glance_label", "label": "Proof chip label", "default": "At a glance" },
+    { "type": "text", "id": "contact_eyebrow", "label": "Contact eyebrow", "default": "A REAL PERSON, WHEN YOU NEED ONE" },
+    { "type": "text", "id": "contact_title", "label": "Contact title", "default": "Still deciding? Ask us about your wall." },
+    { "type": "textarea", "id": "contact_text", "label": "Contact text", "default": "Send a room photo or your installation question. The Seoul Glow Lab team will help you choose and set it up." },
+    { "type": "text", "id": "contact_label", "label": "Contact button label", "default": "Talk to Casa support" }
+  ],
+  "blocks": [
+    {
+      "type": "answer",
+      "name": "Answer",
+      "settings": [
+        { "type": "select", "id": "group", "label": "Chapter", "options": [
+          { "value": "mirror", "label": "The mirror" },
+          { "value": "setup", "label": "Setup & control" },
+          { "value": "ownership", "label": "Delivery & ownership" }
+        ], "default": "mirror" },
+        { "type": "select", "id": "icon", "label": "Icon", "options": [
+          { "value": "mirror", "label": "Mirror" },
+          { "value": "layers", "label": "Layers" },
+          { "value": "size", "label": "Size" },
+          { "value": "weight", "label": "Weight" },
+          { "value": "care", "label": "Care" },
+          { "value": "box", "label": "Box" },
+          { "value": "install", "label": "Installation" },
+          { "value": "remote", "label": "Remote" },
+          { "value": "wifi", "label": "Wi-Fi" },
+          { "value": "music", "label": "Music" },
+          { "value": "power", "label": "Power" },
+          { "value": "shipping", "label": "Shipping" },
+          { "value": "shield", "label": "Guarantee" },
+          { "value": "return", "label": "Returns" },
+          { "value": "support", "label": "Support" },
+          { "value": "clock", "label": "Lifespan" }
+        ], "default": "mirror" },
+        { "type": "text", "id": "question", "label": "Question", "default": "What should I know?" },
+        { "type": "text", "id": "summary", "label": "Closed-row summary", "default": "The short answer, before opening." },
+        { "type": "text", "id": "quick_fact", "label": "Quick fact", "default": "ANSWER AT A GLANCE" },
+        { "type": "textarea", "id": "lead", "label": "Answer lead", "default": "Lead with the direct answer." },
+        { "type": "richtext", "id": "answer", "label": "Answer detail", "default": "<p>Add only the detail a customer needs to decide.</p>" },
+        { "type": "text", "id": "proof_1", "label": "Proof chip one" },
+        { "type": "text", "id": "proof_2", "label": "Proof chip two" },
+        { "type": "text", "id": "proof_3", "label": "Proof chip three" },
+        { "type": "select", "id": "link_target", "label": "Link target", "options": [
+          { "value": "none", "label": "None" },
+          { "value": "size", "label": "Size guide" },
+          { "value": "reviews", "label": "Reviews" },
+          { "value": "guarantee", "label": "Guarantee page" },
+          { "value": "shipping", "label": "Shipping policy" },
+          { "value": "returns", "label": "Return policy" },
+          { "value": "support", "label": "Contact support" }
+        ], "default": "none" },
+        { "type": "text", "id": "link_label", "label": "Link label" },
+        { "type": "checkbox", "id": "start_here", "label": "Show in Start here", "default": false },
+        { "type": "checkbox", "id": "open_by_default", "label": "Open by default", "default": false }
+      ]
+    }
+  ],
+  "presets": [{ "name": "Octa answers V6" }]
+}
+{% endschema %}

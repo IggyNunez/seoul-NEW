@@ -1,0 +1,482 @@
+{%- comment -%}
+  casa-aurasphere-family.liquid
+  Used by: product.aurasphere-smart-wall-lamp.json
+  Form-factor switcher — horizontal rail of 5 sibling products
+  (AuraSphere / AuraPanel / AuraFrame / AuraRing / Nexus Floor).
+  Current product card is highlighted with a "Viewing now" badge.
+  Mobile: scroll-snap rail, cards ~140px so 2.5 fit on a 375px screen.
+  Blocks: product (shape, name, descriptor, price, url, current toggle)
+{%- endcomment -%}
+
+{%- liquid
+  assign cap = section.settings.container_max | default: 1440
+  assign py = section.settings.padding_y | default: 80
+  assign py_m = section.settings.padding_y_mobile | default: 48
+-%}
+
+<section
+  id="aurasphere-family-{{ section.id }}"
+  class="cdl-aurasphere-family"
+  data-section-id="{{ section.id }}"
+  style="
+    --cdl-cap: {{ cap }}px;
+    --cdl-py: {{ py }}px;
+    --cdl-py-m: {{ py_m }}px;
+  "
+>
+  <div class="cdl-as-family__cap">
+    <div class="cdl-as-family__head">
+      <div class="cdl-mono">{{ section.settings.kicker | default: '04 · THE FAMILY' }}</div>
+      <h2 class="cdl-h2">{{ section.settings.heading | default: 'Five shapes. <em>One app.</em>' }}</h2>
+      {%- if section.settings.lede != blank -%}
+        <p class="cdl-lede">{{ section.settings.lede }}</p>
+      {%- endif -%}
+    </div>
+
+    <div class="cdl-as-family__rail" role="list">
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'product' -%}
+          {%- assign shape = block.settings.shape | default: 'circle' -%}
+          {%- assign is_current = block.settings.is_current -%}
+          {%- if is_current -%}
+            <div class="cdl-as-family__card cdl-as-family__card--current" role="listitem" {{ block.shopify_attributes }}>
+          {%- else -%}
+            <a class="cdl-as-family__card" href="{{ block.settings.url | default: '#' }}" role="listitem" {{ block.shopify_attributes }}>
+          {%- endif -%}
+
+            {%- if is_current -%}
+              <span class="cdl-as-family__badge">Viewing now</span>
+            {%- endif -%}
+
+            <span class="cdl-as-family__media{% if block.settings.image != blank or block.settings.image_url != blank %} cdl-as-family__media--photo{% endif %}" aria-hidden="true">
+              {%- if block.settings.image != blank -%}
+                <img
+                  src="{{ block.settings.image | image_url: width: 720 }}"
+                  srcset="{{ block.settings.image | image_url: width: 480 }} 480w, {{ block.settings.image | image_url: width: 720 }} 720w, {{ block.settings.image | image_url: width: 960 }} 960w"
+                  sizes="(min-width: 1100px) 25vw, (min-width: 700px) 45vw, 80vw"
+                  alt="{{ block.settings.name | escape }}"
+                  width="{{ block.settings.image.width }}"
+                  height="{{ block.settings.image.height }}"
+                  loading="lazy"
+                  decoding="async"
+                >
+              {%- elsif block.settings.image_url != blank -%}
+                <img
+                  src="{{ block.settings.image_url }}"
+                  alt="{{ block.settings.name | escape }}"
+                  width="720"
+                  height="720"
+                  loading="lazy"
+                  decoding="async"
+                >
+              {%- else -%}
+                <span class="cdl-as-family__silhouette">
+                  {%- case shape -%}
+                    {%- when 'circle' -%}
+                      <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="4"/><circle cx="32" cy="32" r="10" fill="currentColor" opacity=".18"/></svg>
+                    {%- when 'square' -%}
+                      <svg viewBox="0 0 64 64"><rect x="8" y="8" width="48" height="48" rx="5" fill="none" stroke="currentColor" stroke-width="4"/></svg>
+                    {%- when 'frame' -%}
+                      <svg viewBox="0 0 64 64"><rect x="6" y="11" width="52" height="42" rx="6" fill="none" stroke="currentColor" stroke-width="4"/></svg>
+                    {%- when 'ring' -%}
+                      <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="none" stroke="currentColor" stroke-width="8"/></svg>
+                    {%- when 'edge' -%}
+                      <svg viewBox="0 0 64 64"><rect x="4" y="28" width="56" height="8" rx="3" fill="none" stroke="currentColor" stroke-width="4"/></svg>
+                    {%- else -%}
+                      <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="4"/></svg>
+                  {%- endcase -%}
+                </span>
+              {%- endif -%}
+              {%- comment -%}Shape-tag chip overlaid in bottom-left of the photo well{%- endcomment -%}
+              {%- assign shape_label = block.settings.shape_label -%}
+              {%- if shape_label == blank -%}
+                {%- case shape -%}
+                  {%- when 'circle'   -%}{%- assign shape_label = 'Circle'   -%}
+                  {%- when 'square'   -%}{%- assign shape_label = 'Square'   -%}
+                  {%- when 'frame'    -%}{%- assign shape_label = 'Frame'    -%}
+                  {%- when 'ring'     -%}{%- assign shape_label = 'Ring'     -%}
+                  {%- when 'edge'     -%}{%- assign shape_label = 'Edge'     -%}
+                  {%- when 'vertical' -%}{%- assign shape_label = 'Vertical' -%}
+                  {%- when 'arch'     -%}{%- assign shape_label = 'Arch'     -%}
+                  {%- else            -%}{%- assign shape_label = 'Shape'    -%}
+                {%- endcase -%}
+              {%- endif -%}
+              <span class="cdl-as-family__shape-tag">{{ shape_label }}</span>
+            </span>
+
+            <div class="cdl-as-family__meta">
+              <p class="cdl-as-family__name">{{ block.settings.name | default: 'Product' }}</p>
+              {%- if block.settings.descriptor != blank -%}
+                <p class="cdl-as-family__form">{{ block.settings.descriptor }}</p>
+              {%- endif -%}
+              {%- if block.settings.tagline != blank -%}
+                <p class="cdl-as-family__tagline">{{ block.settings.tagline }}</p>
+              {%- endif -%}
+              <div class="cdl-as-family__foot">
+                {%- comment -%}
+                  Price source priority:
+                  1. Live: resolve product from block.settings.url, render
+                     price_min via money_with_currency — adapts to visitor
+                     market + always shows ISO code.
+                  2. Fallback: block.settings.price text (legacy / merchant
+                     override). Never hardcode currency here.
+                {%- endcomment -%}
+                {%- assign _aura_handle = block.settings.url | default: '' | split: '/products/' | last | split: '?' | first -%}
+                {%- assign _aura_product = all_products[_aura_handle] -%}
+                {%- if _aura_product.price_min > 0 -%}
+                  <span class="cdl-as-family__price">{{ _aura_product.price_min | money_with_currency }}</span>
+                {%- elsif block.settings.price != blank -%}
+                  <span class="cdl-as-family__price">{{ block.settings.price }}</span>
+                {%- endif -%}
+                {%- if is_current -%}
+                  <span class="cdl-as-family__link cdl-as-family__link--current">Viewing</span>
+                {%- else -%}
+                  <span class="cdl-as-family__link">View →</span>
+                {%- endif -%}
+              </div>
+            </div>
+
+          {%- if is_current -%}
+            </div>
+          {%- else -%}
+            </a>
+          {%- endif -%}
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+{% stylesheet %}
+.cdl-aurasphere-family {
+  background: var(--casa-paper, #FAFAF7);
+  color: #0a0a0e;
+  padding: 36px 0;
+  font-family: var(--font-body--family);
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid rgba(10,10,15,0.06);
+}
+.cdl-as-family__cap {
+  max-width: var(--cdl-cap, 1440px);
+  margin: 0 auto;
+}
+.cdl-as-family__head {
+  padding: 0 24px;
+  margin-bottom: 28px;
+  max-width: 640px;
+}
+.cdl-as-family__head .cdl-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(10,10,15,0.4);
+  margin-bottom: 12px;
+}
+.cdl-as-family__head .cdl-h2 {
+  font-family: var(--font-body--family);
+  font-weight: 500;
+  font-size: clamp(26px, 4vw, 40px);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+  color: #0a0a0e;
+  text-wrap: balance;
+}
+.cdl-as-family__head .cdl-h2 em {
+  font-style: italic;
+  font-weight: 800;
+  background: linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.cdl-as-family__head .cdl-lede {
+  font-size: 14px;
+  font-weight: 300;
+  line-height: 1.55;
+  color: rgba(10,10,15,0.6);
+  margin: 12px 0 0;
+  max-width: 52ch;
+}
+
+.cdl-as-family__rail {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 4px 24px 8px;
+}
+.cdl-as-family__rail::-webkit-scrollbar { display: none; }
+
+.cdl-as-family__card {
+  flex: 0 0 72%;
+  scroll-snap-align: start;
+  background: #ffffff;
+  border: 1px solid rgba(10,10,15,0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: border-color .25s, transform .25s, box-shadow .25s;
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  isolation: isolate;
+}
+.cdl-as-family__card:hover,
+.cdl-as-family__card:focus-visible {
+  border-color: rgba(10,10,15,0.18);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(10,10,15,0.10);
+  outline: none;
+}
+.cdl-as-family__card:hover .cdl-as-family__media img {
+  transform: scale(1.04);
+}
+.cdl-as-family__card--current {
+  border-color: rgba(176, 195, 250,0.55);
+  cursor: default;
+  box-shadow: 0 0 0 1px rgba(176, 195, 250,0.25), 0 10px 28px rgba(176, 195, 250,0.08);
+}
+.cdl-as-family__card--current:hover {
+  transform: none;
+  box-shadow: 0 0 0 1px rgba(176, 195, 250,0.25), 0 10px 28px rgba(176, 195, 250,0.08);
+}
+.cdl-as-family__card--current:hover .cdl-as-family__media img { transform: none; }
+.cdl-as-family__badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  background: rgba(176, 195, 250,0.95);
+  color: #ffffff;
+  padding: 5px 10px;
+  border-radius: 999px;
+  z-index: 3;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, matches 2026-05-17 flicker-fix sweep) */
+}
+
+/* Photo well — dominant element of the card */
+.cdl-as-family__media {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a0e;
+  overflow: hidden;
+  position: relative;
+}
+.cdl-as-family__media--photo {
+  background: radial-gradient(circle at 50% 55%, #1a1a22 0%, #0a0a0e 80%);
+}
+.cdl-as-family__card--current .cdl-as-family__media--photo {
+  background: radial-gradient(circle at 50% 55%, rgba(176, 195, 250,0.22), #0a0a0e 80%);
+}
+.cdl-as-family__media img {
+  /* height: auto + aspect-ratio instead of height: 100% — the parent's
+     height comes from its own aspect-ratio, and Safari 26 can fail to
+     resolve a %-height against that (the /cart flat-thumbnail class;
+     immune pattern from .cart-items__media-image in snippets/cart-products.liquid). */
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform .35s ease;
+}
+.cdl-as-family__silhouette {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36%;
+  color: rgba(255,255,255,0.55);
+}
+.cdl-as-family__silhouette svg { width: 100%; height: auto; display: block; }
+
+/* Shape-tag chip overlaid on photo, bottom-left */
+.cdl-as-family__shape-tag {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 2;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.85);
+  background: rgba(10,10,15,0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, matches 2026-05-17 flicker-fix sweep) */
+  padding: 5px 9px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Meta block below the photo */
+.cdl-as-family__meta {
+  padding: 16px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+.cdl-as-family__name {
+  font-size: clamp(16px, 1.6vw, 20px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: #0a0a0e;
+  margin: 0;
+  line-height: 1.2;
+}
+.cdl-as-family__form {
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(10,10,15,0.5);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  margin: 2px 0 0;
+}
+.cdl-as-family__tagline {
+  font-size: 13px;
+  font-weight: 300;
+  line-height: 1.5;
+  color: rgba(10,10,15,0.65);
+  margin: 6px 0 0;
+}
+.cdl-as-family__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: auto;
+  padding-top: 12px;
+}
+.cdl-as-family__price {
+  font-size: 15px;
+  font-weight: 500;
+  color: #0a0a0e;
+}
+.cdl-as-family__link {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: #6d28d9;
+}
+.cdl-as-family__link--current { color: rgba(10,10,15,0.4); }
+
+/* Small mobile: ~1.4 cards visible (peek) */
+@media (max-width: 480px) {
+  .cdl-as-family__card { flex: 0 0 76%; }
+}
+
+/* Tablet + small laptop: stay on horizontal scroll-snap so the 5-card
+   set doesn't drop a 3+2 uneven row. Cards stay generous (~320px) so
+   2 fit on screen at tablet, 3 fit at small-laptop, and the rest scroll. */
+@media (min-width: 700px) {
+  .cdl-aurasphere-family { padding: var(--cdl-py, 80px) 0; }
+  .cdl-as-family__head { padding: 0 32px; margin-bottom: 40px; }
+  .cdl-as-family__head .cdl-lede { font-size: 15px; margin-top: 14px; }
+  .cdl-as-family__rail {
+    gap: 16px;
+    padding: 4px 32px 12px;
+  }
+  .cdl-as-family__card { flex: 0 0 320px; }
+  .cdl-as-family__meta { padding: 20px 22px 24px; }
+  .cdl-as-family__shape-tag { font-size: 10px; left: 16px; bottom: 16px; }
+}
+
+/* Desktop ≥1100px: switch to a real 5-up grid (5 cards fit cleanly) */
+@media (min-width: 1100px) {
+  .cdl-as-family__rail {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 20px;
+    padding: 0 clamp(32px, 5vw, 80px);
+    overflow-x: visible;
+  }
+  .cdl-as-family__card { flex: initial; }
+  .cdl-as-family__meta { padding: 22px 22px 26px; }
+  .cdl-as-family__name { font-size: clamp(15px, 1.3vw, 18px); }
+  .cdl-as-family__tagline { font-size: 12.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cdl-as-family__card,
+  .cdl-as-family__media img { transition: none; }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "AuraSphere · Family",
+  "tag": "section",
+  "class": "casa-aurasphere-family-wrapper",
+  "settings": [
+    { "type": "header", "content": "Header" },
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "04 · THE FAMILY" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "Five shapes. <em>One app.</em>" },
+    { "type": "textarea", "id": "lede", "label": "Lede", "info": "Locked decision: Casa has no proprietary app. Use 'companion smart app' (brand voice) or 'Tuya Smart' (technical). The pre-2026-05-17 default ('the same Casa app') was factually wrong." },
+    { "type": "header", "content": "Layout" },
+    { "type": "range", "id": "container_max", "label": "Container max width", "min": 1100, "max": 1600, "step": 20, "default": 1440, "unit": "px" },
+    { "type": "range", "id": "padding_y", "label": "Vertical padding (desktop)", "min": 32, "max": 160, "step": 8, "default": 80, "unit": "px" },
+    { "type": "range", "id": "padding_y_mobile", "label": "Vertical padding (mobile)", "min": 24, "max": 96, "step": 4, "default": 48, "unit": "px" }
+  ],
+  "blocks": [
+    {
+      "type": "product",
+      "name": "Product",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Product photo", "info": "Recommended: square, dark background, product centered" },
+        { "type": "text", "id": "image_url", "label": "Image URL fallback", "info": "Used if no Shopify image selected" },
+        {
+          "type": "select",
+          "id": "shape",
+          "label": "Shape (drives silhouette + shape-tag chip)",
+          "default": "circle",
+          "options": [
+            { "value": "circle",   "label": "Circle (sphere)" },
+            { "value": "square",   "label": "Square (panel)" },
+            { "value": "frame",    "label": "Frame (rectangle)" },
+            { "value": "ring",     "label": "Ring (donut)" },
+            { "value": "edge",     "label": "Edge (linear / corner bar)" },
+            { "value": "vertical", "label": "Vertical (floor)" },
+            { "value": "arch",     "label": "Arch (table)" }
+          ]
+        },
+        { "type": "text", "id": "shape_label", "label": "Shape-tag override", "info": "Optional. Defaults to the Shape value above (Circle / Square / etc.)" },
+        { "type": "text", "id": "name", "label": "Product name", "default": "AuraPanel" },
+        { "type": "text", "id": "descriptor", "label": "Form descriptor (mono)", "default": "Wall · 18×18in" },
+        { "type": "textarea", "id": "tagline", "label": "Tagline (1 short line)", "info": "Quick read on what this shape does well. Optional.", "default": "Block of color, gallery-grid feel." },
+        { "type": "text", "id": "price", "label": "Price", "info": "Leave blank to pull from the linked product live (money_with_currency). Static text here freezes the currency to USD across every market." },
+        { "type": "url",  "id": "url", "label": "Link to PDP" },
+        { "type": "checkbox", "id": "is_current", "label": "Current product (highlighted)", "default": false }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "AuraSphere · Family",
+      "blocks": [
+        { "type": "product", "settings": { "shape": "circle",   "name": "AuraSphere",  "descriptor": "Wall · Circle · 20in",       "image_url": "https://cdn.shopify.com/s/files/1/0442/0691/5738/files/Hero-Full_Circular_Wall_Lamp_Scene_03_cyan_copy.webp?v=1762458609&width=480", "url": "/products/aurasphere-smart-wall-lamp", "is_current": true } },
+        { "type": "product", "settings": { "shape": "square",   "name": "AuraPanel",   "descriptor": "Wall · Square · 18×18in",    "image_url": "https://cdn.shopify.com/s/files/1/0442/0691/5738/files/Full_Square_Wall_Lamp_Scene_04_multicolor_4copy-2copy.webp?v=1762458609&width=480", "url": "/products/aurapanel-smart-wall-lamp" } },
+        { "type": "product", "settings": { "shape": "frame",    "name": "AuraFrame",   "descriptor": "Wall · Frame · 24×16in",     "image_url": "https://cdn.shopify.com/s/files/1/0442/0691/5738/files/Hero-Square_Wall_Lamp_Scene_06_multicolor_1copy.webp?v=1762458051&width=480", "url": "/products/auraframe-smart-wall-lamp" } },
+        { "type": "product", "settings": { "shape": "ring",     "name": "AuraRing",    "descriptor": "Wall · Ring · 22in",         "image_url": "https://cdn.shopify.com/s/files/1/0442/0691/5738/files/Cicular_Wall_Lamp_Scene_06_yellowcopy.webp?v=1762458609&width=480", "url": "/products/auraring-smart-wall-lamp" } },
+        { "type": "product", "settings": { "shape": "vertical", "name": "Nexus Floor", "descriptor": "Floor · Vertical · 58in",    "image_url": "https://cdn.shopify.com/s/files/1/0442/0691/5738/files/Nexus_Floor_Lamp_Scene_00_red-orange-yellow.webp?v=1762458669&width=480", "url": "/products/nexus-floor-lamp" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

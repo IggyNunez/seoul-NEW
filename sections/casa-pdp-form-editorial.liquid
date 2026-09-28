@@ -1,0 +1,978 @@
+{%- comment -%}
+  Seoul Glow Lab — Phoenix Form & Scale (§06 of Phoenix PDP)
+  Editorial form study. 2-col on desktop (figure left, copy right) →
+  1-col stacked on mobile. The figure stage holds either:
+    (a) an inline-Liquid SVG of the lamp profile with dimension labels
+        and 5 fan-out arm tips colored by --film-* tokens, OR
+    (b) a merchant-uploaded image (use_svg=false fallback).
+
+  Right column = H3 + 2 body paragraphs + hairline + 4-cell metric grid.
+
+  Surface: Paper. Brand-book v1 — H2 italic-gradient `<em>` accent.
+  No JS.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign film_gold   = s.film_gold   | default: '#E95F77'
+  assign film_amber  = s.film_amber  | default: '#2FA66F'
+  assign film_blush  = s.film_blush  | default: '#315BCF'
+  assign film_red    = s.film_red    | default: '#28BFC7'
+  assign film_violet = s.film_violet | default: '#7A4DCE'
+  assign films_str   = film_gold | append: ',' | append: film_amber | append: ',' | append: film_blush | append: ',' | append: film_red | append: ',' | append: film_violet
+  assign films       = films_str | split: ','
+-%}
+
+<section
+  id="casa-form-{{ section.id }}"
+  class="casa-form"
+  style="
+    --pt: {{ s.padding_top    | default: 96 }}px;
+    --pb: {{ s.padding_bottom | default: 96 }}px;
+    --paper: {{ s.color_paper | default: '#FAFAF7' }};
+    --ink:   {{ s.color_ink   | default: '#0A0A0F' }};
+    --film-gold:   {{ s.film_gold   | default: '#E95F77' }};
+    --film-amber:  {{ s.film_amber  | default: '#2FA66F' }};
+    --film-blush:  {{ s.film_blush  | default: '#315BCF' }};
+    --film-red:    {{ s.film_red    | default: '#28BFC7' }};
+    --film-violet: {{ s.film_violet | default: '#7A4DCE' }};
+  "
+>
+  <header class="casa-form__head">
+    {%- if s.kicker != blank -%}
+      <p class="casa-form__mono">{{ s.kicker }}</p>
+    {%- endif -%}
+    {%- if s.heading != blank -%}
+      <h2 class="casa-form__h2">{{ s.heading }}</h2>
+    {%- endif -%}
+    {%- if s.lede != blank -%}
+      <p class="casa-form__lede">{{ s.lede }}</p>
+    {%- endif -%}
+  </header>
+
+  <div class="casa-form__stage">
+    <div class="casa-form__figure">
+      {%- if s.use_svg -%}
+        <svg
+          viewBox="0 0 1200 1200"
+          class="casa-form__svg"
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label="Phoenix Floor Lamp — chrome pole with five articulating arms and circular sunset-film light heads on a 7.9 × 3 in square base, total height 70.9 in / 180 cm"
+        >
+          <defs>
+            {%- comment -%} Chrome cylinder gradient — used by pole + arm tubes + base {%- endcomment -%}
+            <linearGradient id="casa-form-chrome-{{ section.id }}" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stop-color="#4a4a54"></stop>
+              <stop offset="35%"  stop-color="#b8b8c4"></stop>
+              <stop offset="50%"  stop-color="#e8e8f0"></stop>
+              <stop offset="65%"  stop-color="#b8b8c4"></stop>
+              <stop offset="100%" stop-color="#4a4a54"></stop>
+            </linearGradient>
+            {%- comment -%}
+              Wall vignette + floor shadow gradients deleted per merchant
+              2026-05-18 15th pass: "The image itself should blend into
+              the background. There shouldn't be a box that captures the
+              Phoenix lamp... should just sit on the background and emit
+              the light." All ambient wash now lives at the SECTION level
+              (see .casa-form background in the stylesheet block); the
+              SVG is transparent except where the lamp + per-disc glows
+              + dimension callouts paint. With no figure box and no SVG
+              backdrop, the section's sunset gradient flows behind the
+              lamp continuously, with the disc glows adding local hot-
+              spots that radiate into the section wash. The floor shadow
+              also went away — there is no floor anymore, just sunset.
+            {%- endcomment -%}
+            {%- comment -%} Gaussian blur for the soft disc halos {%- endcomment -%}
+            <filter id="casa-form-disc-glow-{{ section.id }}" x="-100%" y="-100%" width="300%" height="300%">
+              <feGaussianBlur stdDeviation="8"></feGaussianBlur>
+            </filter>
+            {%- comment -%}
+              Per-arm wall-light radial gradients (one per film color).
+              Stops shaped so each disc's light falls off naturally over a
+              very long range — hot at the source, soft mid-field, faint
+              tail that reaches the far corners (merchant 2026-05-18 14th
+              pass: "light gradient... should extend throughout the whole
+              image... strong at source and decreases as you move further
+              away, but it should move infinitely further away throughout
+              the whole image. Sunset vibes, strong, elegant, Apple look").
+              The circle these gradients paint into was bumped from r=260
+              to r=1000 below so the visible light actually reaches the
+              edges. At r=1000 the stops translate to: 5% = 50px (hot
+              core just past the 13px disc rim), 16% = 160px (strong
+              halo), 38% = 380px (mid-field), 100% = 1000px (long faint
+              tail). Screen blend below combines all 5 plus the ambient
+              wall wash into one unified sunset gradient.
+            {%- endcomment -%}
+            {%- for i in (0..4) -%}
+              <radialGradient id="casa-form-glow-{{ section.id }}-{{ i }}" cx="50%" cy="50%" r="50%">
+                <stop offset="0%"   stop-color="{{ films[i] }}" stop-opacity="0.88"></stop>
+                <stop offset="5%"   stop-color="{{ films[i] }}" stop-opacity="0.58"></stop>
+                <stop offset="16%"  stop-color="{{ films[i] }}" stop-opacity="0.30"></stop>
+                <stop offset="38%"  stop-color="{{ films[i] }}" stop-opacity="0.10"></stop>
+                <stop offset="70%"  stop-color="{{ films[i] }}" stop-opacity="0.025"></stop>
+                <stop offset="100%" stop-color="{{ films[i] }}" stop-opacity="0"></stop>
+              </radialGradient>
+            {%- endfor -%}
+
+            {%- comment -%}
+              Per-disc film gradients — replace the previous flat film
+              fill (single hex at opacity 0.92) which read as cartoonish
+              colored dots. A real lit gel filter has a hot near-white
+              center where the LED emitter is brightest, fading through
+              the saturated film color toward a slightly darker rim where
+              the housing shadows the edge of the acrylic. Three-stop
+              radial gradient at 50%, 50% reproduces that.
+              cx=42% cy=38% offsets the highlight up-and-left a touch so
+              the disc reads as a 3D dome catching ambient light rather
+              than a flat 2D coin. Stop 0 is warm-white (255,250,235)
+              instead of pure white — matches the actual color
+              temperature of the films when lit.
+            {%- endcomment -%}
+            {%- for i in (0..4) -%}
+              <radialGradient id="casa-form-film-{{ section.id }}-{{ i }}" cx="42%" cy="38%" r="62%">
+                <stop offset="0%"   stop-color="rgba(255,250,235,0.95)"></stop>
+                <stop offset="22%"  stop-color="{{ films[i] }}" stop-opacity="0.95"></stop>
+                <stop offset="78%"  stop-color="{{ films[i] }}" stop-opacity="0.92"></stop>
+                <stop offset="100%" stop-color="{{ films[i] }}" stop-opacity="0.70"></stop>
+              </radialGradient>
+            {%- endfor -%}
+          </defs>
+
+          {%- comment -%}
+            Dark wall + ambient wall vignette rects deleted per merchant
+            2026-05-18 15th pass ("there shouldn't be a box that captures
+            the Phoenix lamp"). The SVG canvas is now fully transparent
+            in this band — the section's sunset gradient background
+            shows through everywhere outside the lamp shapes + glows.
+          {%- endcomment -%}
+
+          {%- comment -%}
+            Five per-disc glows. Now alpha-composite over a TRANSPARENT
+            SVG backdrop (no more dark wall rect) — they paint the
+            section's sunset background with their film colors at the
+            disc positions, producing the "light emitting FROM the lamp"
+            effect the merchant asked for. Each glow uses r=700 — large
+            enough to bleed into the section's ambient wash, small
+            enough that the lamp reads as the emission source (not a
+            generic full-frame wash). The mix-blend-mode: screen still
+            applies between overlapping glow circles inside the SVG,
+            keeping the multi-color blend natural where two discs
+            overlap. The compound SVG-to-section composite then
+            alpha-blends onto the section's sunset gradient.
+          {%- endcomment -%}
+          <g style="mix-blend-mode: screen;" aria-hidden="true">
+            <circle cx="672" cy="334" r="700" fill="url(#casa-form-glow-{{ section.id }}-0)"></circle>
+            <circle cx="528" cy="409" r="700" fill="url(#casa-form-glow-{{ section.id }}-1)"></circle>
+            <circle cx="672" cy="484" r="700" fill="url(#casa-form-glow-{{ section.id }}-2)"></circle>
+            <circle cx="528" cy="559" r="700" fill="url(#casa-form-glow-{{ section.id }}-3)"></circle>
+            <circle cx="672" cy="634" r="700" fill="url(#casa-form-glow-{{ section.id }}-4)"></circle>
+          </g>
+
+          {%- comment -%}
+            Floor-contact shadow deleted (merchant 2026-05-18 15th pass).
+            There is no floor anymore — the lamp sits in a sunset, not
+            on a surface. Adding a contact shadow would re-imply the
+            "box" we just deleted.
+          {%- endcomment -%}
+
+{%- comment -%} Chrome pole — 8px wide (matches §04 showcase lamp), full height y=320 to y=986 (top of base) {%- endcomment -%}
+          <rect x="596" y="320" width="8" height="666" fill="url(#casa-form-chrome-{{ section.id }})" aria-hidden="true"></rect>
+          <rect x="599.4" y="320" width="1" height="666" fill="rgba(255,255,255,0.6)" aria-hidden="true"></rect>
+
+          {%- comment -%} Square chrome plinth base — 44 × 14 (matches the 7.9 × 3 in proportion) {%- endcomment -%}
+          <rect x="578" y="986" width="44" height="14" fill="url(#casa-form-chrome-{{ section.id }})" aria-hidden="true"></rect>
+          <rect x="578" y="986" width="44" height="1.5" fill="rgba(255,255,255,0.7)" aria-hidden="true"></rect>
+          <rect x="578" y="998.5" width="44" height="1.5" fill="rgba(0,0,0,0.55)" aria-hidden="true"></rect>
+
+          {%- comment -%}
+            Five arm assemblies — anchors clustered y=390..690 at 75px spacing (top of cluster
+            just below pole top, bottom of cluster ~mid-pole). i=0,2,4 right side; i=1,3 left.
+            Each arm: bracket clamp + chrome arm tube (vertical rise → quarter-arc → horizontal)
+            + diffuser disc (soft halo + housing + film face + LED hot-spot) + power cord.
+            All elements per arm use the film color at index `i` from the films array.
+          {%- endcomment -%}
+          {%- assign anchors = '390,465,540,615,690' | split: ',' -%}
+          {%- for i in (0..4) -%}
+            {%- assign anchor_y = anchors[i] | times: 1 -%}
+            {%- assign side_modulo = i | modulo: 2 -%}
+            {%- if side_modulo == 0 -%}
+              {%- assign br_x = 600 -%}
+              {%- assign tube_in_x = 607 -%}
+              {%- assign tube_out_x = 632 -%}
+              {%- assign disc_cx = 672 -%}
+              {%- assign cord_ctrl_x = 614 -%}
+              {%- assign cord_clip_x = 600 -%}
+            {%- else -%}
+              {%- assign br_x = 586 -%}
+              {%- assign tube_in_x = 593 -%}
+              {%- assign tube_out_x = 568 -%}
+              {%- assign disc_cx = 528 -%}
+              {%- assign cord_ctrl_x = 586 -%}
+              {%- assign cord_clip_x = 596 -%}
+            {%- endif -%}
+            {%- assign curve_y = anchor_y | minus: 30 -%}
+            {%- assign tube_top_y = anchor_y | minus: 56 -%}
+            {%- assign br_y = anchor_y | minus: 5 -%}
+            {%- assign cord_y_start = anchor_y | plus: 5 -%}
+            {%- assign cord_y_ctrl = anchor_y | plus: 24 -%}
+            {%- assign cord_y_end = anchor_y | plus: 28 -%}
+            {%- assign cord_clip_y = anchor_y | plus: 25 -%}
+            {%- assign disc_rim_left = disc_cx | minus: 12 -%}
+
+            <g class="casa-form__arm" data-film-index="{{ i }}" aria-hidden="true">
+              {%- comment -%} Bracket clamp where arm meets pole {%- endcomment -%}
+              <rect x="{{ br_x }}" y="{{ br_y }}" width="14" height="10" fill="#1a1620" stroke="rgba(255,255,255,0.18)" stroke-width="0.5"></rect>
+              <rect x="{{ br_x }}" y="{{ br_y }}" width="14" height="1.2" fill="rgba(255,255,255,0.25)"></rect>
+
+              {%- comment -%} Chrome arm tube — rise + quarter-arc + horizontal to disc {%- endcomment -%}
+              <path d="M {{ tube_in_x }} {{ br_y }} L {{ tube_in_x }} {{ curve_y }} Q {{ tube_in_x }} {{ tube_top_y }}, {{ tube_out_x }} {{ tube_top_y }} L {{ disc_rim_left }} {{ tube_top_y }}"
+                    stroke="url(#casa-form-chrome-{{ section.id }})" stroke-width="4.4" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+              <path d="M {{ tube_in_x }} {{ br_y }} L {{ tube_in_x }} {{ curve_y }} Q {{ tube_in_x }} {{ tube_top_y }}, {{ tube_out_x }} {{ tube_top_y }} L {{ disc_rim_left }} {{ tube_top_y }}"
+                    stroke="rgba(255,255,255,0.55)" stroke-width="0.9" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+
+              {%- comment -%}
+                Disc head — minimalistic real-product look (merchant 17th
+                pass: "the head of each lamp looks fake and not realistic,
+                too cartoonish. Its supposed to have a minimalistic sleek
+                look and look exactly like what the head of the lamp looks
+                like in real life"). Stripped the previous "lit gel face"
+                stack (warm-white center gradient, top-arc highlight, inner
+                rim) which read as a cartoon illustration of an emitting
+                lens. Real Phoenix discs viewed from the side are simply
+                a dark housing with a thin chrome rim — the light is
+                visible only as the wall bloom behind them. So that's
+                what we draw now:
+                  1. r=22 soft per-film wall halo (smaller than before,
+                     so it doesn't bleed past the disc edge and look
+                     like a glowing aura around the housing itself)
+                  2. r=8.5 dark housing fill (#08070c, slightly cooler
+                     than the previous #0e0c12 so it reads neutrally
+                     against any film color behind it)
+                  3. r=8.5 thin chrome rim (rgba 220,222,228 at 0.58
+                     alpha, 0.7px stroke) — the only "metal" on the
+                     disc, exactly what you see on the product photos
+              {%- endcomment -%}
+              {%- comment -%}
+                Diffuser head — ported from the §04 arms-showcase lamp so the
+                dimension diagram is a visual REPLICA of the showcase lamp
+                (merchant 2026-07-16). Instead of the old flat dark disc, the
+                head is a sleek chrome SAUCER BEZEL holding a LIT GLASS FILM
+                FACE (bright warm-white centre → saturated film colour), with
+                a tiny LED hot-spot and a top specular highlight — the
+                dimensional, "lit from within" look the showcase heads have.
+                  1. soft per-film bloom (r=32) behind the head
+                  2. chrome bezel ellipse rx18 ry14 + hairline shadow
+                  3. glass film face ellipse rx14 ry10.5 (lit radial gradient)
+                     + edge shadow ring
+                  4. LED hot-spot r=2
+                  5. top specular ellipse — sells the polished glass dome
+              {%- endcomment -%}
+              <circle cx="{{ disc_cx }}" cy="{{ tube_top_y }}" r="32" fill="{{ films[i] }}" opacity="0.5" filter="url(#casa-form-disc-glow-{{ section.id }})"></circle>
+              <ellipse cx="{{ disc_cx }}" cy="{{ tube_top_y }}" rx="18" ry="14" fill="url(#casa-form-chrome-{{ section.id }})"></ellipse>
+              <ellipse cx="{{ disc_cx }}" cy="{{ tube_top_y }}" rx="18" ry="14" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="0.6"></ellipse>
+              <ellipse cx="{{ disc_cx }}" cy="{{ tube_top_y }}" rx="14" ry="10.5" fill="url(#casa-form-film-{{ section.id }}-{{ i }})"></ellipse>
+              <ellipse cx="{{ disc_cx }}" cy="{{ tube_top_y }}" rx="14" ry="10.5" fill="none" stroke="rgba(0,0,0,0.32)" stroke-width="0.5"></ellipse>
+              <circle cx="{{ disc_cx }}" cy="{{ tube_top_y | minus: 1 }}" r="2" fill="rgba(255,250,240,0.9)"></circle>
+              <ellipse cx="{{ disc_cx }}" cy="{{ tube_top_y | minus: 11 }}" rx="7" ry="1.4" fill="rgba(255,255,255,0.55)"></ellipse>
+
+              {%- comment -%} Power cord — thin black J-curve drooping from bracket back to pole tab {%- endcomment -%}
+              <path d="M {{ tube_in_x }} {{ cord_y_start }} Q {{ cord_ctrl_x }} {{ cord_y_ctrl }}, {{ cord_clip_x }} {{ cord_y_end }}"
+                    stroke="#0a080d" stroke-width="1.5" fill="none" stroke-linecap="round"></path>
+              <rect x="{{ cord_clip_x }}" y="{{ cord_clip_y }}" width="4" height="6" fill="#1a1620"></rect>
+            </g>
+          {%- endfor -%}
+
+          {%- comment -%}
+            Engineering dimensions — overlaid in white/light gray on the dark backdrop.
+            70.9 in vertical bracket on the right (spans pole top → base bottom).
+            7.9 in horizontal bracket below the base plinth.
+            3 in vertical bracket beside the base, measuring its 14-unit thickness.
+          {%- endcomment -%}
+
+          {%- comment -%}
+            Engineering dimensions — cleaned up per merchant 2026-05-18
+            11th pass ("some lines don't make sense. The horizontal line
+            that extends from the base towards the height of the base
+            and at the top doesn't make sense"). All three dimensions
+            now use clean callout style — a single measurement line +
+            endpoint dots + label, with NO leader lines extending from
+            the object out to the dimension line. The bracket sits just
+            beside the lamp so the connection is visually implied.
+          {%- endcomment -%}
+
+          {%- comment -%}
+            70.9 in / 180 cm — single vertical line at x=960 (close to the
+            glow's rightmost extent x=932 but inside the viewBox). Was
+            x=1080 with two long horizontal leaders that stretched 460+
+            units from the lamp. Now just the vertical + end dots.
+          {%- endcomment -%}
+          {%- comment -%}
+            Ruler pulled in x=960 → 810 (2026-07-04 v2 pass): at 960 the
+            line floated ~290 units from the pole and read as disconnected
+            chrome in the negative space. 810 keeps ~115 units of clear
+            gap from the disc rim (672+22) while visually belonging to
+            the lamp.
+          {%- endcomment -%}
+          <line class="casa-form__dim-line" x1="810" y1="320" x2="810" y2="1000" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" aria-hidden="true"></line>
+          <circle class="casa-form__dim-dot" cx="810" cy="320"  r="6" fill="rgba(255,255,255,0.95)" aria-hidden="true"></circle>
+          <circle class="casa-form__dim-dot" cx="810" cy="1000" r="6" fill="rgba(255,255,255,0.95)" aria-hidden="true"></circle>
+          {%- comment -%}
+            Label sizes are in viewBox units, so they shrink with the diagram.
+            At the old 32/16 the height pair rendered 16px / 8px on a 1920x870
+            desktop — the metric line was effectively unreadable (merchant
+            2026-07-21: "the lamps are incredibly small, especially the
+            measurements"). Roughly doubled so they render ~29px / ~16px.
+            The height pair sits to the RIGHT of the lamp, so growing it costs
+            no vertical space; the base pairs below are grown less because they
+            push toward the spec copy (measured 11px clearance).
+          {%- endcomment -%}
+          <text class="casa-form__dim-major" x="836" y="648" text-anchor="start" font-size="52" font-family="'Inter Casa', 'Inter Fallback', sans-serif" font-weight="800" fill="rgba(255,255,255,0.98)" letter-spacing="-0.015em">70.9 in.</text>
+          <text class="casa-form__dim-sub" x="837" y="694" text-anchor="start" font-size="28" font-family="'Inter Casa', 'Inter Fallback', sans-serif" font-weight="400" fill="rgba(255,255,255,0.75)">180 cm</text>
+
+          {%- comment -%}
+            7.9 in / 20 cm — single horizontal line directly below the
+            plinth. Brought 20 units closer (y=1040 → y=1020) so the
+            bracket sits right under the base, no longer floating low.
+          {%- endcomment -%}
+          <line class="casa-form__dim-line" x1="578" y1="1020" x2="622" y2="1020" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" aria-hidden="true"></line>
+          <circle class="casa-form__dim-dot" cx="578" cy="1020" r="5" fill="rgba(255,255,255,0.95)" aria-hidden="true"></circle>
+          <circle class="casa-form__dim-dot" cx="622" cy="1020" r="5" fill="rgba(255,255,255,0.95)" aria-hidden="true"></circle>
+          <text class="casa-form__dim-major" x="600" y="1066" text-anchor="middle" font-size="34" font-family="'Inter Casa', 'Inter Fallback', sans-serif" font-weight="800" fill="rgba(255,255,255,0.98)" letter-spacing="-0.015em">7.9 in.</text>
+          <text class="casa-form__dim-sub" x="600" y="1100" text-anchor="middle" font-size="21" font-family="'Inter Casa', 'Inter Fallback', sans-serif" font-weight="400" fill="rgba(255,255,255,0.75)">20 cm</text>
+
+          {%- comment -%}
+            3 in / 7.6 cm — JUST a vertical line showing the plinth's
+            thickness (merchant: "the 3 in is just supposed to be a
+            vertical line showing the thickness of the base"). Previous
+            bracket had two 38-unit horizontal terminators extending
+            from the plinth edge — dropped. Vertical now at x=640
+            (18 units right of the plinth's right edge), spans the
+            plinth's exact y range (986 → 1000), label beside.
+          {%- endcomment -%}
+          <line class="casa-form__dim-line" x1="640" y1="986" x2="640" y2="1000" stroke="rgba(255,255,255,0.85)" stroke-width="1.5" aria-hidden="true"></line>
+          <circle class="casa-form__dim-dot" cx="640" cy="986"  r="4" fill="rgba(255,255,255,0.95)" aria-hidden="true"></circle>
+          <circle class="casa-form__dim-dot" cx="640" cy="1000" r="4" fill="rgba(255,255,255,0.95)" aria-hidden="true"></circle>
+          <text class="casa-form__dim-major" x="666" y="991"  text-anchor="start" font-size="30" font-family="'Inter Casa', 'Inter Fallback', sans-serif" font-weight="800" fill="rgba(255,255,255,0.98)" letter-spacing="-0.015em">3 in.</text>
+          <text class="casa-form__dim-sub" x="666" y="1022" text-anchor="start" font-size="19" font-family="'Inter Casa', 'Inter Fallback', sans-serif" font-weight="400" fill="rgba(255,255,255,0.75)">7.6 cm</text>
+        </svg>
+      {%- elsif s.figure_image != blank -%}
+        {%- comment -%}
+          Image mode with dimension callouts overlaid (merchant 2026-05-18
+          19th pass — "Replace that Phoenix lamp with this one in the
+          screenshot and add all the measurements and heights and
+          specifications exactly").
+
+          The wrapper `casa-form__photo-stack` is position:relative so
+          the dimension callout divs can absolute-position over the
+          image with percent coords (works for any portrait lamp shot).
+          mix-blend-mode: lighten on the image lets the section's sunset
+          gradient show through dark areas — minimizes the "boxed lamp"
+          effect if the uploaded image has its own gradient backdrop.
+          For the cleanest result, upload a TRANSPARENT-background PNG
+          (lamp only, no backdrop) so the section gradient flows behind
+          the lamp seamlessly.
+
+          Dimension positions are tuned for a portrait lamp shot with
+          the lamp centered, pole spanning ~5%-88% of image height, and
+          a base disc at the bottom ~88-95%. Each label sits OUTSIDE
+          the lamp silhouette so it doesn't cover the product:
+            70.9 in / 180 cm — vertical bracket on RIGHT, full pole height
+            7.9 in  / 20 cm  — horizontal bracket BELOW the base
+            3 in    / 7.6 cm — vertical bracket BESIDE the base
+        {%- endcomment -%}
+        {%- assign img_400  = s.figure_image | image_url: width: 400 -%}
+        {%- assign img_800  = s.figure_image | image_url: width: 800 -%}
+        {%- assign img_1200 = s.figure_image | image_url: width: 1200 -%}
+        {%- assign img_1600 = s.figure_image | image_url: width: 1600 -%}
+        <div class="casa-form__photo-stack">
+          <picture class="casa-form__pic">
+            <img
+              srcset="{{ img_400 }} 400w, {{ img_800 }} 800w, {{ img_1200 }} 1200w, {{ img_1600 }} 1600w"
+              sizes="(min-width: 1100px) 720px, 100vw"
+              src="{{ img_1200 }}"
+              alt="{{ s.figure_alt | default: 'Phoenix Floor Lamp — chrome pole with five articulating arms and circular sunset-film light heads on a 7.9 in base, 70.9 in / 180 cm total height' | escape }}"
+              loading="lazy"
+              decoding="async"
+              width="{{ s.figure_image.width }}"
+              height="{{ s.figure_image.height }}"
+            >
+          </picture>
+
+          {%- comment -%} 70.9 in / 180 cm — vertical bracket on the right side {%- endcomment -%}
+          <div class="casa-form__dim casa-form__dim--height" aria-label="Total height 70.9 inches / 180 centimeters">
+            <span class="casa-form__dim-bar"></span>
+            <span class="casa-form__dim-label">
+              <span class="casa-form__dim-major">70.9 in.</span>
+              <span class="casa-form__dim-sub">180 cm</span>
+            </span>
+          </div>
+
+          {%- comment -%} 7.9 in / 20 cm — horizontal bracket below the base {%- endcomment -%}
+          <div class="casa-form__dim casa-form__dim--width" aria-label="Base width 7.9 inches / 20 centimeters">
+            <span class="casa-form__dim-bar"></span>
+            <span class="casa-form__dim-label">
+              <span class="casa-form__dim-major">7.9 in.</span>
+              <span class="casa-form__dim-sub">20 cm</span>
+            </span>
+          </div>
+
+          {%- comment -%} 3 in / 7.6 cm — small vertical bracket beside the base {%- endcomment -%}
+          <div class="casa-form__dim casa-form__dim--depth" aria-label="Base depth 3 inches / 7.6 centimeters">
+            <span class="casa-form__dim-bar"></span>
+            <span class="casa-form__dim-label">
+              <span class="casa-form__dim-major">3 in.</span>
+              <span class="casa-form__dim-sub">7.6 cm</span>
+            </span>
+          </div>
+        </div>
+      {%- else -%}
+        {%- comment -%}
+          Default fallback — Phoenix dimensional drawing from the product's media gallery
+          (file `3_in._copy.webp` in Shopify Files). Used when use_svg is off AND no
+          merchant-uploaded figure_image is set. Hardcoded so the section "just works"
+          for Phoenix without the merchant having to re-pick the image.
+        {%- endcomment -%}
+        {%- assign dim_base = 'https://cdn.shopify.com/s/files/1/0442/0691/5738/files/3_in._copy.webp' -%}
+        <picture class="casa-form__pic">
+          <img
+            srcset="{{ dim_base }}?width=400 400w, {{ dim_base }}?width=800 800w, {{ dim_base }}?width=1200 1200w, {{ dim_base }}?width=1600 1600w"
+            sizes="(min-width: 1100px) 480px, 100vw"
+            src="{{ dim_base }}?width=800"
+            alt="Phoenix Floor Lamp dimensional drawing — 70.9 in / 180 cm total height, 7.9 in / 20 cm base width, 3 in / 7.6 cm base depth"
+            loading="lazy"
+            decoding="async"
+            width="2000"
+            height="2000"
+          >
+        </picture>
+      {%- endif -%}
+    </div>
+
+    <div class="casa-form__copy">
+      {%- if s.h3 != blank -%}
+        <h3 class="casa-form__h3">{{ s.h3 }}</h3>
+      {%- endif -%}
+      {%- if s.body_1 != blank -%}
+        <div class="casa-form__body">{{ s.body_1 }}</div>
+      {%- endif -%}
+      {%- if s.body_2 != blank -%}
+        <div class="casa-form__body">{{ s.body_2 }}</div>
+      {%- endif -%}
+
+      <div class="casa-form__meta">
+        {%- assign metric_ids = '1,2,3,4' | split: ',' -%}
+        {%- for n in metric_ids -%}
+          {%- assign val_key = 'metric_' | append: n | append: '_value' -%}
+          {%- assign lbl_key = 'metric_' | append: n | append: '_label' -%}
+          {%- assign val = s[val_key] -%}
+          {%- assign lbl = s[lbl_key] -%}
+          {%- if val != blank or lbl != blank -%}
+            <div class="casa-form__metric">
+              {%- if val != blank -%}<strong>{{ val }}</strong>{%- endif -%}
+              {%- if lbl != blank -%}<em>{{ lbl }}</em>{%- endif -%}
+            </div>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% stylesheet %}
+  .casa-form {
+    /* Section is one big sunset gradient (merchant 16th pass: "the
+       gradient should flow throughout the whole of this section and
+       into the section above it and below it. It shouldn't look like
+       anything's being cut off").
+
+       Strategy: drop the previous top/bottom linear-feather-to-ink
+       (which was creating a visible dark band at the section seams).
+       Instead, anchor the radial sunset wash at 50% center with a low-
+       opacity tail that reaches the corners, and use #0A0A0F as the
+       base color — same ink as §05 above and the FAQ below. With both
+       sections terminating in #0A0A0F and the sunset wash fading to
+       transparent at the edges, the seam is invisible and the wash
+       reads as continuous between sections.
+
+       Radial wash extended both horizontally (78% → 95%) and vertically
+       (62% → 92%) so even the section corners pick up faint sunset
+       color before falling to the base ink. */
+    background:
+      /* Top + bottom feather to PURE INK with a 3-stop ease curve so
+         the dark→sunset transition reads as a smooth gradient, not a
+         visible band. Matches the recipe on §04 + §05 (Phoenix mood)
+         so every section edge meets at identical #0A0A0F across the
+         whole §02→§06 stack (merchant 2026-05-18 17th pass: "doesn't
+         flow seamlessly into each other... no break-offs or cut-offs").
+         Combined with the wider radial wash below (95%×92% per the
+         upstream merchant work that ran in parallel), the result is:
+         (a) corners + edges of section are pure #0A0A0F via feather,
+         (b) inner ~56% of section height shows the rich sunset wash,
+         (c) section boundaries at top/bottom meet adjacent §05/§07
+             at identical pixel values — seams invisible. */
+      linear-gradient(180deg,
+        #0A0A0F 0%,
+        rgba(10, 10, 15, 0.86) 6%,
+        rgba(10, 10, 15, 0.40) 14%,
+        rgba(10, 10, 15, 0) 22%,
+        rgba(10, 10, 15, 0) 78%,
+        rgba(10, 10, 15, 0.40) 86%,
+        rgba(10, 10, 15, 0.86) 94%,
+        #0A0A0F 100%
+      ),
+      radial-gradient(ellipse 95% 92% at 50% 50%,
+        rgba(245, 158, 11, 0.36) 0%,
+        rgba(220, 38, 38, 0.24) 28%,
+        rgba(167, 139, 250, 0.16) 58%,
+        rgba(30, 16, 40, 0.06) 85%,
+        rgba(10, 10, 15, 0) 100%
+      ),
+      #0A0A0F;
+    color: #FAFAF7;
+    /* Horizontal padding tightened clamp(20,5vw,64) → clamp(16,2.5vw,32)
+       so the stage can fill more of the viewport at 1440. */
+    padding: var(--pt, 96px) clamp(16px, 2.5vw, 32px) var(--pb, 96px);
+    font-family: var(--font-body--family, "Inter", system-ui, sans-serif);
+  }
+  .casa-form__head {
+    max-width: 720px;
+    margin: 0 auto clamp(28px, 4vw, 48px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    /* Kicker + H2 + lede center-aligned per merchant 2026-05-18 12th
+       pass ("the text and the images must be center aligned as well as
+       the title"). Was left-aligned text inside a centered block. */
+    text-align: center;
+  }
+  .casa-form__lede {
+    /* Center the lede block + cap its width — was inheriting head's
+       flex-start alignment which left it pinned to one side. */
+    margin: 0 auto;
+  }
+  .casa-form__mono {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(250, 250, 247, 0.62);
+    margin: 0;
+  }
+  .casa-form__h2 {
+    font-family: var(--font-heading--family, "Inter", system-ui, sans-serif);
+    font-size: clamp(28px, 4vw, 40px);
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .casa-form__h2 em {
+    font-style: italic;
+    font-weight: 600;
+  }
+  .casa-form__lede {
+    font-size: 15px;
+    line-height: 1.55;
+    color: rgba(250, 250, 247, 0.82);
+    margin: 0;
+    max-width: 60ch;
+  }
+
+  .casa-form__stage {
+    /* Single-centerline stack (merchant 2026-05-18 12th pass: "the text
+       and the images must be center aligned as well as the title").
+       Was a 2-col grid (figure | copy) — now a single column with the
+       figure centered above the copy. Same pattern as §02 carousel.
+       Title is already centered above the stage. */
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(28px, 4vw, 56px);
+  }
+
+  .casa-form__figure {
+    /* Centerpiece. Background NUKED per merchant 2026-05-18 15th pass
+       ("the image itself should blend into the background. There
+       shouldn't be a box that captures the Phoenix lamp"). The figure
+       is now a transparent slot — the section's sunset gradient flows
+       continuously behind the lamp. Overflow stays visible so the disc
+       glows (r=700 inside the SVG) can bleed past the figure rectangle
+       into the surrounding section if needed; the SVG itself still
+       paints inside its own viewBox, so this is harmless either way.
+       aspect-ratio 1/1 preserved so the layout doesn't shift. */
+    width: 100%;
+    max-width: clamp(640px, 70vw, 920px);
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    aspect-ratio: 1 / 1;
+    overflow: visible;
+  }
+  .casa-form__svg,
+  .casa-form__pic img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+  }
+
+  /* ── Image-with-dimensions overlay (when figure_image is set) ─────
+     The photo-stack wraps the picture + 3 dimension callouts so the
+     callouts position absolutely over the lamp image. Percent coords
+     tuned for a portrait lamp shot — pole spans ~5%-88%, base disc
+     sits at bottom ~88-93%. Dimension labels sit OUTSIDE the lamp
+     silhouette so they don't cover the product (merchant Rule 1).
+     mix-blend-mode: lighten on the image lets the section's sunset
+     gradient bleed through dark pixels — softens the box-effect if
+     the uploaded image has its own backdrop. For seamless flow,
+     upload a transparent-background PNG.                              */
+  .casa-form__photo-stack {
+    /* height: auto + aspect-ratio: inherit down the whole stack→pic→img
+       chain instead of height: 100% — the figure's height comes from its
+       own aspect-ratio (1/1), and Safari 26 can fail to resolve a %-height
+       against that (the /cart flat-thumbnail class; immune pattern from
+       .cart-items__media-image in snippets/cart-products.liquid). The
+       stack's width equals the figure's width, so the inherited ratio
+       resolves each box to the same square; the %-coord dimension
+       callouts keep the same reference box. */
+    position: relative;
+    width: 100%;
+    height: auto;
+    aspect-ratio: inherit;
+  }
+  .casa-form__photo-stack .casa-form__pic {
+    width: 100%;
+    height: auto;
+    aspect-ratio: inherit;
+    display: block;
+  }
+  .casa-form__photo-stack .casa-form__pic img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: inherit;
+    object-fit: contain;
+    display: block;
+    mix-blend-mode: lighten;
+  }
+
+  .casa-form__dim {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .casa-form__dim-bar {
+    background: rgba(255, 255, 255, 0.85);
+    display: block;
+    position: relative;
+  }
+  /* Endpoint dots on the bracket. Pseudo-elements so we don't add DOM. */
+  .casa-form__dim-bar::before,
+  .casa-form__dim-bar::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.95);
+  }
+  .casa-form__dim-label {
+    display: inline-flex;
+    flex-direction: column;
+    line-height: 1.15;
+  }
+  .casa-form__dim-label .casa-form__dim-major {
+    font-family: var(--font-body--family);
+    font-size: clamp(14px, 1.2vw, 18px);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: rgba(255, 255, 255, 0.95);
+  }
+  .casa-form__dim-label .casa-form__dim-sub {
+    font-family: var(--font-body--family);
+    font-size: clamp(11px, 0.85vw, 13px);
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  /* 70.9 in / 180 cm — vertical bracket on right side, full lamp height. */
+  .casa-form__dim--height {
+    top: 5%;
+    bottom: 8%;
+    right: 6%;
+    flex-direction: row;
+  }
+  .casa-form__dim--height .casa-form__dim-bar {
+    width: 2px;
+    height: 100%;
+  }
+  .casa-form__dim--height .casa-form__dim-bar::before { top: -5px; left: -4px; }
+  .casa-form__dim--height .casa-form__dim-bar::after  { bottom: -5px; left: -4px; }
+  .casa-form__dim--height .casa-form__dim-label {
+    align-self: center;
+    margin-left: 12px;
+  }
+
+  /* 7.9 in / 20 cm — horizontal bracket below the base, centered. */
+  .casa-form__dim--width {
+    left: 42%;
+    right: 42%;
+    bottom: 3%;
+    flex-direction: column;
+    align-items: center;
+  }
+  .casa-form__dim--width .casa-form__dim-bar {
+    height: 2px;
+    width: 100%;
+  }
+  .casa-form__dim--width .casa-form__dim-bar::before { left: -5px; top: -4px; }
+  .casa-form__dim--width .casa-form__dim-bar::after  { right: -5px; top: -4px; }
+  .casa-form__dim--width .casa-form__dim-label {
+    margin-top: 8px;
+    align-items: center;
+    text-align: center;
+  }
+
+  /* 3 in / 7.6 cm — vertical bracket beside base, just outside its right edge. */
+  .casa-form__dim--depth {
+    right: 32%;
+    bottom: 8%;
+    height: 6%;
+    flex-direction: row;
+    align-items: center;
+  }
+  .casa-form__dim--depth .casa-form__dim-bar {
+    width: 2px;
+    height: 100%;
+  }
+  .casa-form__dim--depth .casa-form__dim-bar::before { top: -4px; left: -3px; width: 8px; height: 8px; }
+  .casa-form__dim--depth .casa-form__dim-bar::after  { bottom: -4px; left: -3px; width: 8px; height: 8px; }
+  .casa-form__dim--depth .casa-form__dim-label {
+    margin-left: 10px;
+  }
+
+  .casa-form__copy {
+    /* Copy block — centered below the figure (merchant 2026-05-18 12th
+       pass). max-width 640px keeps the editorial column readable; text
+       inside stays left-aligned (paragraphs read better that way), the
+       BLOCK is what's centered horizontally. */
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .casa-form__h3 {
+    font-family: var(--font-heading--family, "Inter", system-ui, sans-serif);
+    /* H3 bumped 22 → clamp(22, 1.8vw, 26) — fluid at desktop, mobile
+       still gets its 19px override in the @max-width:749 block below. */
+    font-size: clamp(22px, 1.8vw, 26px);
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin: 0;
+    max-width: 32ch;
+  }
+  .casa-form__body {
+    /* Body bumped 14 → clamp(15, 1.05vw, 16). Color flipped to light-on-
+       sunset per 2026-05-18 15th pass (section is no longer paper). */
+    font-size: clamp(15px, 1.05vw, 16px);
+    line-height: 1.65;
+    color: rgba(250, 250, 247, 0.82);
+  }
+  .casa-form__body p { margin: 0 0 0.75em; }
+  .casa-form__body p:last-child { margin-bottom: 0; }
+
+  .casa-form__meta {
+    /* Border colors flipped to light-on-dark per 2026-05-18 15th pass. */
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    margin-top: 8px;
+    border-top: 1px solid rgba(250, 250, 247, 0.12);
+  }
+  .casa-form__metric {
+    /* Padding bumped 16 → 18 to give the larger stat values room. */
+    padding: 18px 0;
+    border-bottom: 1px solid rgba(250, 250, 247, 0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .casa-form__metric:nth-child(odd) { padding-right: 16px; border-right: 1px solid rgba(250, 250, 247, 0.12); }
+  .casa-form__metric:nth-child(even) { padding-left: 16px; }
+  .casa-form__metric strong {
+    /* Stat values bumped clamp(20,2vw,26) → clamp(26,2.4vw,32). */
+    font-size: clamp(26px, 2.4vw, 32px);
+    font-weight: 400;
+    letter-spacing: -0.025em;
+    line-height: 1;
+    background: linear-gradient(120deg,
+      var(--film-gold, #E95F77) 0%,
+      var(--film-amber, #2FA66F) 25%,
+      var(--film-blush, #315BCF) 50%,
+      var(--film-red, #28BFC7) 75%,
+      var(--film-violet, #7A4DCE) 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+            color: transparent;
+  }
+  .casa-form__metric em {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    /* Stat labels bumped 10 → 11. Color flipped to light-on-dark. */
+    font-size: 11px;
+    font-style: normal;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(250, 250, 247, 0.62);
+  }
+
+  /* Phoenix §05↔§06 seam continuity is now handled by the seam-matched
+     master gradient in assets/casa-phoenix.css — §05's bottom and §06's
+     top share --phx-seam-4 (burnt orange), so the boundary pixel is
+     identical on both sides. The old `:root.is-phoenix .casa-form::before`
+     that painted a sunset radial 340px UP past §06's top was a
+     compensation for ink-feathered neighbours and introduced its own
+     visible edge — removed. Apollo and every other PDP using this
+     section keep their original bg unaffected. */
+
+  @media (max-width: 749px) {
+    .casa-form { padding: 64px clamp(20px, 5vw, 32px); }
+    .casa-form__h3 { font-size: 19px; }
+
+    /* Dimension labels — mobile size dialed back per merchant 2026-05-18
+       16th pass ("features are too big now, they overlap with the cm
+       and cover part of the images"). Was 70/44 SVG units at scale 1.42
+       → ~22/14px screen, which felt aggressive next to the lamp. Now
+       38/24 → ~12/7.5px at base figure size, ~16/10px at the Phoenix
+       scale of 1.42. Lamp dominates, labels read as supporting chrome.
+       Dot + line widths trimmed to match. Desktop uses the inline SVG
+       font-size attributes (22/18/15 majors, 13/11/10 subs). */
+    .casa-form__svg .casa-form__dim-major { font-size: 38px; }
+    .casa-form__svg .casa-form__dim-sub   { font-size: 24px; }
+    .casa-form__svg .casa-form__dim-line  { stroke-width: 2.6; }
+    .casa-form__svg .casa-form__dim-dot   { r: 6; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Form Editorial",
+  "tag": "section",
+  "class": "shopify-section-casa-form-editorial",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Headline"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker (mono)"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading",
+      "info": "Product-specific — enter per template. Pre-2026-05-17 defaulted to Phoenix copy which bled onto other floor lamps."
+    },
+    {
+      "type": "richtext",
+      "id": "lede",
+      "label": "Lede"
+    },
+    {
+      "type": "header",
+      "content": "Figure"
+    },
+    {
+      "type": "checkbox",
+      "id": "use_svg",
+      "label": "Use inline SVG diagram",
+      "info": "When on, renders a Liquid-drawn product profile with dimension callouts. When off, uses the image picker below.",
+      "default": true
+    },
+    {
+      "type": "image_picker",
+      "id": "figure_image",
+      "label": "Figure image (fallback)",
+      "visible_if": "{{ section.settings.use_svg == false }}"
+    },
+    {
+      "type": "text",
+      "id": "figure_alt",
+      "label": "Figure alt text",
+      "visible_if": "{{ section.settings.use_svg == false }}"
+    },
+    {
+      "type": "header",
+      "content": "Copy"
+    },
+    {
+      "type": "text",
+      "id": "h3",
+      "label": "H3"
+    },
+    {
+      "type": "richtext",
+      "id": "body_1",
+      "label": "Body 1"
+    },
+    {
+      "type": "richtext",
+      "id": "body_2",
+      "label": "Body 2"
+    },
+    {
+      "type": "header",
+      "content": "Metrics (4)"
+    },
+    { "type": "text", "id": "metric_1_value", "label": "Metric 1 value", "info": "Product-specific — enter per template (Phoenix/Solara/etc. each have different dims)." },
+    { "type": "text", "id": "metric_1_label", "label": "Metric 1 label" },
+    { "type": "text", "id": "metric_2_value", "label": "Metric 2 value" },
+    { "type": "text", "id": "metric_2_label", "label": "Metric 2 label" },
+    { "type": "text", "id": "metric_3_value", "label": "Metric 3 value" },
+    { "type": "text", "id": "metric_3_label", "label": "Metric 3 label" },
+    { "type": "text", "id": "metric_4_value", "label": "Metric 4 value" },
+    { "type": "text", "id": "metric_4_label", "label": "Metric 4 label" },
+    {
+      "type": "header",
+      "content": "Film colors (5)"
+    },
+    { "type": "color", "id": "film_gold",   "label": "Rose Ember (pink-red)",             "default": "#E95F77" },
+    { "type": "color", "id": "film_amber",  "label": "Emerald Glow (green)",              "default": "#2FA66F" },
+    { "type": "color", "id": "film_blush",  "label": "Cobalt Dusk (deep blue)",           "default": "#315BCF" },
+    { "type": "color", "id": "film_red",    "label": "Turquoise Horizon (turquoise blue)", "default": "#28BFC7" },
+    { "type": "color", "id": "film_violet", "label": "Aurora Fusion (red-blue gradient)",  "default": "#7A4DCE" },
+    {
+      "type": "header",
+      "content": "Surface"
+    },
+    { "type": "color", "id": "color_paper", "label": "Background", "default": "#FAFAF7" },
+    { "type": "color", "id": "color_ink",   "label": "Ink (text)", "default": "#0A0A0F" },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    { "type": "range", "id": "padding_top",    "label": "Top",    "min": 0, "max": 200, "step": 4, "unit": "px", "default": 96 },
+    { "type": "range", "id": "padding_bottom", "label": "Bottom", "min": 0, "max": 200, "step": 4, "unit": "px", "default": 96 }
+  ],
+  "presets": [
+    { "name": "Casa Form Editorial" }
+  ],
+  "enabled_on": {
+    "templates": ["product"]
+  }
+}
+{% endschema %}

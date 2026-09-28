@@ -43,7 +43,19 @@ class SectionRenderer {
     const abortController = new AbortController();
     this.#abortControllersBySectionId.set(sectionId, abortController);
 
-    const sectionHTML = await this.getSectionHTML(sectionId, cache, url);
+    let sectionHTML;
+    try {
+      sectionHTML = await this.getSectionHTML(sectionId, cache, url);
+    } catch (error) {
+      // Casa deviation from stock Horizon: a failed/challenged section render now
+      // rejects (see getSectionHTML) instead of caching a garbage body. Degrade
+      // gracefully here — skip the morph and clean up — so no caller (cart, facets,
+      // quick-order, hydration) sees an unhandled rejection and no interstitial HTML
+      // is ever morphed into the page.
+      console.error(error);
+      this.#abortControllersBySectionId.delete(sectionId);
+      return '';
+    }
 
     if (!abortController.signal.aborted) {
       this.#abortControllersBySectionId.delete(sectionId);
@@ -84,14 +96,25 @@ class SectionRenderer {
       if (cachedHTML) return cachedHTML;
     }
 
-    pendingPromise = fetch(sectionUrl).then((response) => {
-      return response.text();
-    });
+    // Casa deviation from stock Horizon (backported from Horizon 4.1.1): guard the
+    // response and always clear the pending entry, even on rejection. Stock 3.3.0
+    // deletes the entry on the line AFTER `await pendingPromise`, so a rejected fetch
+    // (network drop / abort) skips the delete and leaves a permanently-rejected
+    // promise in #pendingPromises — every later render of this section then returns
+    // that same rejection for the life of the page. Also refuse to cache a non-OK
+    // body (a Cloudflare interstitial would otherwise be morphed into the cart).
+    pendingPromise = fetch(sectionUrl)
+      .then((response) => {
+        if (!response.ok) throw new Error(`Section render failed: HTTP ${response.status}`);
+        return response.text();
+      })
+      .finally(() => {
+        this.#pendingPromises.delete(sectionUrl);
+      });
 
     this.#pendingPromises.set(sectionUrl, pendingPromise);
 
     const sectionHTML = await pendingPromise;
-    this.#pendingPromises.delete(sectionUrl);
 
     this.#cache.set(sectionUrl, sectionHTML);
     return sectionHTML;

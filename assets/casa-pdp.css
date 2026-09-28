@@ -1,26 +1,67 @@
 /* ==========================================================================
-   Casa di Lumo — PDP Redesign Styles
+   Seoul Glow Lab — PDP Redesign Styles
    Product Detail Page blocks, overrides & enhancements
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
    1. BREADCRUMBS BLOCK
+   ─────────────────────────────────────────────────────────────────────────
+   Single-line contract: long product titles (e.g. "Please Don't Do Coke In
+   The Bathroom LED Neon Sign", 47 chars) must NEVER wrap to a second line
+   at any viewport. Parent links + separators stay full-width; the current-
+   page segment shrinks and ellipsizes on overflow. Locked 2026-05-19.
    -------------------------------------------------------------------------- */
+.casa-breadcrumbs {
+  /* The <nav> is a flex child of the buy-box .group-block-content (per
+     the PDP layout). Flex items default to min-width: auto = content
+     size, which let the nav grow to its OL's intrinsic 476px width
+     (3 items at flex-wrap: nowrap, gaps included) even when the parent
+     was only 353px wide. Result: the nav extended past the right edge
+     of the buy-box and off the viewport. Forcing min-width: 0 +
+     max-width: 100% lets the nav collapse to its parent's width; the
+     OL's own overflow-x: auto + the .casa-breadcrumbs__current
+     text-overflow: ellipsis handle the inner content clipping. */
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  /* clip overflow at the nav level so the scrolling list doesn't push
+     out into adjacent layout if a deeper rule overrides the above */
+  overflow: hidden;
+}
 .casa-breadcrumbs__list {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   list-style: none;
   padding: 0;
   margin: 0;
   gap: var(--casa-space-1, 4px);
+  /* fallback horizontal scroll if even the truncated current segment
+     can't fit (shouldn't happen at 320px+ but defensive) */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  min-width: 0;
 }
+.casa-breadcrumbs__list::-webkit-scrollbar { display: none; }
 
 .casa-breadcrumbs__item {
   display: inline-flex;
   align-items: center;
   font-size: var(--casa-text-xs, 12px);
   color: var(--casa-text-dark-secondary, #6b7280);
+  /* parent links + separators keep their natural width; only the current
+     segment is allowed to shrink */
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.casa-breadcrumbs__item--current {
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .casa-breadcrumbs__link {
@@ -37,11 +78,20 @@
   margin: 0 var(--casa-space-1, 4px);
   color: var(--casa-text-dark-secondary, #6b7280);
   opacity: 0.5;
+  flex-shrink: 0;
 }
 
 .casa-breadcrumbs__current {
-  color: var(--casa-text-dark, #0a0a0a);
+  color: var(--casa-text-dark, var(--casa-ink));
   font-weight: var(--casa-font-medium, 500);
+  /* truncate with ellipsis when the current-page segment can't fit
+     alongside the parent breadcrumb links */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  max-width: 100%;
+  min-width: 0;
 }
 
 /* --------------------------------------------------------------------------
@@ -86,7 +136,7 @@
    -------------------------------------------------------------------------- */
 .casa-stats-bar__grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   border: 1px solid var(--color-border, #e5e7eb);
   border-radius: var(--casa-radius-lg, 12px);
   overflow: hidden;
@@ -173,8 +223,15 @@
   height: 8px;
   border-radius: 50%;
   background: var(--casa-red, #ef4444);
+  /* perf-justified: 8px opacity-only pulse on an above-the-fold buy-box
+     element. Opacity animates on the compositor, so it costs no layout or
+     paint, and the element is on screen whenever the PDP is — there is no
+     off-screen window for an IntersectionObserver gate to save. */
   animation: casa-pulse 2s ease-in-out infinite;
   flex-shrink: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .casa-urgency__dot { animation: none; }
 }
 
 @keyframes casa-pulse {
@@ -205,7 +262,7 @@
    -------------------------------------------------------------------------- */
 .casa-trust-badges__grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--casa-space-3, 12px);
 }
 
@@ -232,7 +289,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--casa-gradient-primary, linear-gradient(135deg, #B0C3FA, #5E0A02));
+  background: var(--casa-gradient-primary, var(--grad-primary, linear-gradient(135deg, #B0C3FA, #5E0A02)));
   color: #fff;
 }
 
@@ -244,73 +301,22 @@
 .casa-trust-badges__text {
   font-size: var(--casa-text-xs, 12px);
   font-weight: var(--casa-font-medium, 500);
-  color: var(--casa-text-dark, #0a0a0a);
+  color: var(--casa-text-dark, var(--casa-ink));
   line-height: 1.3;
 }
 
 @media screen and (max-width: 749px) {
   .casa-trust-badges__grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 /* --------------------------------------------------------------------------
-   7. FEATURES LIST BLOCK — Horizontal Pill Style (Figma match)
+   7. FEATURES LIST BLOCK — removed. casa-features-list.css is the single
+   owner of .casa-features-list__* pill styling; a duplicate set here at
+   equal specificity made the async loader's arrival order decide the
+   pills' surface, flipping styles after paint. Do not re-add.
    -------------------------------------------------------------------------- */
-.casa-features-list__pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.casa-features-list__pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: 100px;
-  background: var(--color-background, #fff);
-  transition: all 0.2s ease;
-}
-
-.casa-features-list__pill:hover {
-  border-color: var(--casa-purple, #B0C3FA);
-  background: rgba(147, 51, 234, 0.04);
-}
-
-.casa-features-list__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--casa-purple, #B0C3FA);
-  flex-shrink: 0;
-}
-
-.casa-features-list__icon svg {
-  width: 14px;
-  height: 14px;
-}
-
-.casa-features-list__text {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--casa-text-dark, #0a0a0a);
-}
-
-@media screen and (max-width: 480px) {
-  .casa-features-list__pills {
-    gap: 6px;
-  }
-
-  .casa-features-list__pill {
-    padding: 6px 10px;
-  }
-
-  .casa-features-list__text {
-    font-size: 12px;
-  }
-}
 
 /* --------------------------------------------------------------------------
    8. MINI REVIEWS BLOCK
@@ -319,7 +325,7 @@
   font-size: var(--casa-text-body, 16px);
   font-weight: var(--casa-font-semibold, 600);
   margin: 0 0 var(--casa-space-4, 16px) 0;
-  color: var(--casa-text-dark, #0a0a0a);
+  color: var(--casa-text-dark, var(--casa-ink));
 }
 
 .casa-mini-reviews__cards {
@@ -351,10 +357,17 @@
 
 .casa-mini-reviews__text {
   font-size: var(--casa-text-small, 14px);
-  color: var(--casa-text-dark, #0a0a0a);
+  color: var(--casa-text-dark, var(--casa-ink));
   line-height: 1.5;
   margin: 0 0 var(--casa-space-2, 8px) 0;
   font-style: italic;
+  /* Cap at 2 lines (matches the casa-pdp-reviews snippet). Long reviews
+     otherwise wrap to 3-5 lines on phones, which reads as wasted space
+     and makes the cards uneven. Truncates with an ellipsis. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .casa-mini-reviews__author {
@@ -366,7 +379,7 @@
 .casa-mini-reviews__name {
   font-size: var(--casa-text-xs, 12px);
   font-weight: var(--casa-font-semibold, 600);
-  color: var(--casa-text-dark, #0a0a0a);
+  color: var(--casa-text-dark, var(--casa-ink));
 }
 
 .casa-mini-reviews__verified {
@@ -375,42 +388,55 @@
   gap: 3px;
   font-size: var(--casa-text-xxs, 10px);
   font-weight: var(--casa-font-medium, 500);
-  color: var(--casa-green, #22c55e);
+  color: #17843f;
 }
 
 /* --------------------------------------------------------------------------
    9. PRICE SAVE BADGE (price.liquid enhancement)
    -------------------------------------------------------------------------- */
 .price-save-badge {
-  display: inline;
-  color: #16a34a;
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(176, 195, 250, 0.25);
+  color: #5E0A02;
+  font-size: 12px;
   font-weight: 600;
-  vertical-align: baseline;
+  padding: 3px 10px;
+  border-radius: 100px;
+  border: 1px solid rgba(176, 195, 250, 0.6);
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 /* --------------------------------------------------------------------------
    10. VARIANT PICKER CARD ENHANCEMENTS
    -------------------------------------------------------------------------- */
 
-/* Badge tag above variant option (Most Popular, Free Gift) */
+/* Badge tag (Most Popular, Free Gift) — top-right CORNER INSIDE the card.
+   Used to pop OUT of the card (top: -10px) but on small swatch cards
+   it overlapped the legend above ("Body Color — Onyx" on Apollo).
+   Now stays inside the card boundary so it can never collide with
+   anything outside. */
 .variant-option__badge-tag {
   position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 6px;
+  right: 6px;
+  left: auto;
+  transform: none;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 12px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #B0C3FA, #5E0A02);
+  padding: 3px 8px;
+  border-radius: 10px;
+  background: var(--grad-primary, linear-gradient(135deg, #B0C3FA, #5E0A02));
   color: #fff;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
+  letter-spacing: 0.3px;
   white-space: nowrap;
   z-index: 1;
-  line-height: 1.5;
+  line-height: 1.4;
+  pointer-events: none;
 }
 
 /* Variant dimensions text */
@@ -427,11 +453,16 @@
   display: block;
   font-size: 15px;
   font-weight: 600;
-  color: #0a0a0a;
+  color: var(--casa-ink);
   margin-top: 2px;
 }
 
-/* Card-style variant buttons when enhanced content is present */
+/* Card-style variant buttons when enhanced content is present.
+   Note: border-color + background are intentionally NOT in the transition
+   list — when the user clicks another card, both cards would crossfade
+   for 200ms and read as 'both selected'. Selection feedback must flip
+   in one frame. Only box-shadow keeps its 0.2s transition for the
+   subtle hover lift polish. */
 .variant-option--buttons .variant-option__button-label:has(.variant-option__price) {
   position: relative;
   flex-direction: column;
@@ -441,14 +472,13 @@
   min-width: 100px;
   border-radius: 12px;
   border: 2px solid #e5e5e5;
-  background: #fff;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  background: var(--casa-paper);
+  transition: box-shadow 0.2s ease;
   margin-top: 10px;
 }
 
 .variant-option--buttons .variant-option__button-label:has(.variant-option__price):hover {
   border-color: var(--casa-purple, #B0C3FA);
-  box-shadow: 0 0 0 1px var(--casa-purple, #B0C3FA);
 }
 
 .variant-option--buttons .variant-option__button-label:has(.variant-option__price) input:checked ~ .variant-option__button-label__text,
@@ -460,11 +490,10 @@
   /* Reset indicator styles for card mode */
 }
 
-/* Active card state */
+/* Active card state — solid border + subtle wash, no glow ring */
 .variant-option--buttons .variant-option__button-label:has(input:checked):has(.variant-option__price) {
   border-color: var(--casa-purple, #B0C3FA);
-  box-shadow: 0 0 0 1px var(--casa-purple, #B0C3FA);
-  background: rgba(147, 51, 234, 0.04);
+  background: rgba(176, 195, 250, 0.04);
 }
 
 /* --------------------------------------------------------------------------
@@ -473,12 +502,16 @@
 
 /* Full-width black ATC button */
 .product-form-buttons .add-to-cart-button {
-  background: #000;
+  background: var(--casa-ink);
   color: #fff;
   border: none;
   border-radius: var(--casa-radius-lg, 12px);
   font-weight: var(--casa-font-semibold, 600);
-  text-transform: none;
+  /* Defers to Horizon's primary button-text-case theme setting
+     (was hardcoded `none`, breaking the merchant's Theme Settings →
+     Buttons → Text case = Uppercase choice). Brand-book uppercase
+     is the fallback. */
+  text-transform: var(--button-text-case-primary, uppercase);
   transition: all var(--casa-transition-fast, 0.2s ease);
 }
 
@@ -531,9 +564,16 @@ product-price .compare-at-price {
   }
 
   .casa-mini-reviews__card {
-    min-width: 260px;
+    /* One card per page (fills the carousel width) so the prev/next arrows
+       sit over the card's own left/right padding gutter, never the quote
+       text. min-width:0 lets a long word wrap instead of forcing the card
+       wider than the column. */
+    flex: 0 0 100%;
+    min-width: 0;
+    max-width: 100%;
     scroll-snap-align: start;
-    flex-shrink: 0;
+    /* Inline padding widened 16px -> 40px to clear the 28px arrows. */
+    padding-inline: 40px;
   }
 
   .casa-features-list__items {
@@ -548,6 +588,51 @@ media-gallery {
   position: relative;
 }
 
+/* --------------------------------------------------------------------------
+   Sticky media gallery — clear the always-pinned casa-header.
+   On most Casa PDPs the buy-box grid makes the media column the SHORT column
+   (gallery ≈ 648px vs the taller details column), so the GALLERY is the element
+   that pins while the details column scrolls. Stock Horizon only offsets the
+   *details* column under the header via `#header-component[data-sticky-state]`,
+   a hook that does not exist on our custom `.casa-header` — so the gallery
+   pinned at top:0 and the always-sticky header (announcement + nav ≈
+   --header-group-height) clipped its top ("eaten by header"). Offset both
+   sticky columns below the pinned header. Gated on `.casa-header--sticky` so a
+   non-sticky header adds no gap. Pairs with the Klaviyo scroll-lock un-trap in
+   casa-base.css (without that, sticky never engages here). Scoped to ≥750px to
+   match base.css's own `.sticky-content--desktop` gating — on mobile the media
+   column collapses to the gallery's own height, so the gallery has no sticky
+   travel and never pins (verified), making the offset a no-op there anyway.
+   Supersedes the stock data-sticky-state offset in
+   snippets/product-information-content.liquid:337 (which sets the same var on
+   the details column but never fires here — the custom casa-header emits no
+   #header-component[data-sticky-state]). Keep both values in sync if that ever
+   changes. The offset is EXACTLY the pinned header height — no extra clearance.
+   The header is always-sticky and constant-height, so the columns' natural
+   at-rest top already equals --header-group-height. Any added breathing (we
+   shipped +1.5rem on 2026-06-28 "to match base.css:46's scroll-padding") makes
+   the sticky `top` larger than that natural position, and `position: sticky`
+   then clamps the columns DOWN by the excess at scroll-0 — a permanent ~24px
+   header→gallery gap on every PDP, at every viewport. Match the header height,
+   nothing more. Added 2026-06-28; +1.5rem clamp-gap removed 2026-06-30.
+   -------------------------------------------------------------------------- */
+@media screen and (min-width: 750px) {
+  body:has(.casa-header--sticky) media-gallery.sticky-content,
+  body:has(.casa-header--sticky) .product-details.sticky-content--desktop {
+    /* Pin against the chrome that is ACTUALLY on screen. --casa-chrome-top
+       is maintained by casa-header.liquid's nav auto-hide: the full group
+       height normally, the promo strip alone once the nav slides away.
+       Without it these columns stayed pinned at the full 100px and left a
+       72px band of empty background under the strip while scrolling
+       (merchant 2026-08-13). Falls back to the old constant when the
+       auto-hide is inactive (no header group, or JS not yet run).
+       NOTE: --casa-vh-fit deliberately keeps using --header-group-height,
+       which never changes — only this pin offset moves, so section heights
+       never re-flow mid-scroll. */
+    --sticky-header-offset: var(--casa-chrome-top, var(--header-group-height, var(--header-height, 80px)));
+  }
+}
+
 .casa-gallery-badges {
   position: absolute;
   top: var(--casa-space-4, 16px);
@@ -556,6 +641,26 @@ media-gallery {
   display: flex;
   gap: var(--casa-space-2, 8px);
   pointer-events: none;
+}
+
+/* Keep the badges ON THE PRODUCT IMAGE, never over the thumbnail rail.
+   The badge overlay is a child of <media-gallery>, but the media itself
+   lives one level down in <slideshow-container>, which since the rail
+   moved to the left (d3708690) starts a rail-column in from the gallery's
+   left edge — so `left: 16px` landed the BESTSELLER pill on top of the
+   thumbnails (merchant, 2026-08-13; measured: badge at 16–117px, rail at
+   0–71px). Push the badges in by that column so they sit 16px inside the
+   image, sourced from the same `--thumbnail-width` the rail is sized by
+   (set inline on media-gallery by product-media-gallery-content.liquid),
+   plus the 14px the controls column adds around it. Only applies where a
+   LEFT rail actually exists — bottom/mobile rails keep the plain inset.
+   Right-anchored name-art badges need nothing: the media's right edge is
+   the gallery's right edge. */
+@media screen and (min-width: 750px) {
+  media-gallery:has(slideshow-controls[pagination-position='left'] .slideshow-controls__thumbnails-container)
+    .casa-gallery-badges:not(.casa-gallery-badges--name-art) {
+    left: calc(var(--thumbnail-width, 57px) + 14px + var(--casa-space-4, 16px));
+  }
 }
 
 .casa-gallery-badge {
@@ -571,12 +676,12 @@ media-gallery {
 }
 
 .casa-gallery-badge--bestseller {
-  background: #0a0a0a;
+  background: var(--casa-ink);
   color: #fff;
 }
 
 .casa-gallery-badge--discount {
-  background: var(--casa-gradient-primary, linear-gradient(135deg, #B0C3FA, #5E0A02));
+  background: var(--casa-gradient-primary, var(--grad-primary, linear-gradient(135deg, #B0C3FA, #5E0A02)));
   color: #fff;
 }
 
@@ -585,10 +690,26 @@ media-gallery {
   color: #fff;
 }
 
+/* "Name-art" products (Bubble Girls — classic, Parisian, Soulful) have the
+   character's name printed into the TOP-LEFT of every photo. Pin their badges
+   to the top-right so the BESTSELLER / GIFT FAVORITE / discount pills never
+   cover the printed name. Content-width box anchored at the right edge, so it
+   can't overflow the viewport. */
+.casa-gallery-badges--name-art {
+  left: auto;
+  right: var(--casa-space-4, 16px);
+  justify-content: flex-end;
+}
+
 @media screen and (max-width: 749px) {
   .casa-gallery-badges {
     top: var(--casa-space-3, 12px);
     left: var(--casa-space-3, 12px);
+  }
+
+  .casa-gallery-badges--name-art {
+    left: auto;
+    right: var(--casa-space-3, 12px);
   }
 
   .casa-gallery-badge {
@@ -629,7 +750,7 @@ media-gallery {
 .variant-option--buttons .variant-option__button-label:has(.variant-option__price) .variant-option__button-label__text {
   font-weight: 600;
   font-size: 16px;
-  color: #0a0a0a;
+  color: var(--casa-ink);
 }
 
 /* Hide default pill indicator in card mode */
@@ -693,6 +814,40 @@ media-gallery {
   white-space: nowrap;
 }
 
+/* Narrow viewports (≤360px ≈ Galaxy Fold inner, iPhone 5/SE 1st gen): the
+   ATC button shares the buy-box row with the quantity selector (~100px),
+   leaving ~140-150px for "ADD TO CART · $NNN.NN" — the trailing price
+   suffix clips off the right edge of the button.
+   The price is shown big and clear directly above the button (cpm__price-
+   current at H3 scale), so duplicating it inside the button label adds
+   nothing at narrow widths. Hide the · separator + price below 360px;
+   keep the icon + "ADD TO CART" label fully visible.
+   Also constrain `.add-to-cart-text` to its parent button — Horizon's
+   stock layout gives the text span `white-space: nowrap` + `display: flex`
+   with no max-width, so the inner content can extend past the button's
+   right padding even when the button itself fits the row. Forcing
+   `max-width: 100%` + `overflow: hidden` + `text-overflow: ellipsis`
+   keeps the label inside the button's box — at 280px the label still
+   shows "ADD TO CART" in full (well within 140-ish-px content area)
+   but if a future setting cranks the label longer, it'll truncate with
+   "…" instead of overflowing. */
+@media (max-width: 360px) {
+  .add-to-cart-price {
+    display: none;
+  }
+  .add-to-cart-text {
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .add-to-cart-text__content {
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 /* --------------------------------------------------------------------------
    16b. PRICE INSTALLMENTS (Klarna, Afterpay)
    -------------------------------------------------------------------------- */
@@ -742,7 +897,7 @@ media-gallery {
   height: 36px;
   border-radius: 0;
   background: transparent;
-  color: var(--casa-text-dark, #0a0a0a);
+  color: var(--casa-text-dark, var(--casa-ink));
 }
 
 .casa-trust-badges__icon svg {
@@ -753,7 +908,7 @@ media-gallery {
 
 @media screen and (max-width: 749px) {
   .casa-trust-badges__grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: var(--casa-space-1, 4px);
   }
 
@@ -765,3 +920,341 @@ media-gallery {
     font-size: var(--casa-text-xxs, 10px);
   }
 }
+
+/* --------------------------------------------------------------------------
+   PRODUCT TITLE — fluid sizing, works at 375px and up
+   Overrides h3 preset that caps mobile size at max(1rem, h3-size).
+
+   The max ceiling consumes --cpm-title-size from blocks/casa-title.liquid
+   so the merchant's per-block "Title size" slider actually drives the
+   ceiling. Without consuming the variable, the hard 1.75rem (28px)
+   cap silently overrode every block setting above 28px — bug reported
+   by Elie 2026-05-14. Default 1.75rem keeps prior behavior when the
+   block (or its variable) is absent.
+   -------------------------------------------------------------------------- */
+[data-testid="product-information"] h1 {
+  font-size: clamp(1.25rem, calc(0.75rem + 2.5vw), var(--cpm-title-size, 1.75rem)) !important;
+  line-height: 1.2 !important;
+  word-break: break-word;
+  white-space: normal !important;
+  /* Merchant rule 2026-07-18: titles never exceed 2 lines — ellipsize. */
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  overflow: hidden !important;
+}
+
+/* --------------------------------------------------------------------------
+   ACCORDION TEXT-BLOCK MEASURE OVERRIDE
+   --------------------------------------------------------------------------
+   Horizon text blocks inline `--max-width: var(--max-width--body-normal)`
+   (≈ 455px / 28em) on their <rte-formatter> wrapper as a typographic
+   reading-measure cap — fine in a wide one-column layout, but reads as
+   "half-width / cramped" when the block lives inside an accordion panel
+   that's already narrowed to the product-info column. Lift the cap to
+   100% of the panel only inside accordions; prose elsewhere on the site
+   keeps the readable measure.
+   2026-08-25 partial walk-back: bare p/li re-cap at 72ch via
+   blocks/_accordion-row.liquid — its (0,2,2) selector beats the
+   strongest lift selector here ((0,2,1), the div.accordion wrapper
+   makes ".accordion details ..." apply) and it sets max-inline-size
+   as well as max-width so it wins inside this property. Panels ran
+   to 93ch at >=1920 per the widescreen sweep. Headings, tables and
+   blockquotes keep the 100% lift.
+   -------------------------------------------------------------------------- */
+/* The per-block cap is applied by snippets/text.liquid via the rule
+   `.text-block > * { max-inline-size: min(100%, var(--max-width, 100%)) }`
+   on the children of <rte-formatter>. Horizon writes the inline style
+   `--max-width: var(--max-width--body-normal)` on <rte-formatter>
+   itself from the block's saved `max_width` setting, which children
+   inherit. Targeting the children directly with `max-inline-size:
+   100%` beats the inherited cap without needing !important — we're
+   not competing with the inline style on the parent at all. */
+accordion-custom rte-formatter > *,
+accordion-custom .text-block > *,
+.accordion details rte-formatter > *,
+.accordion details .text-block > * {
+  max-inline-size: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   PDP buy-box column — tighten vertical rhythm
+   --------------------------------------------------------------------------
+   Horizon's theme-editor "Gap" slider on the buy-box group writes
+   `--gap: 19px` inline on the .group-block-content that holds
+   variant-picker → divider → qty + ATC + Buy with Shop. With a 1px
+   divider in the middle, the 19px gap fires above AND below, so the
+   visible empty space between the last variant chip and the ADD TO
+   CART button is 39px on desktop / 61px on mobile (mobile also
+   carried the variant-picker's 22px trailing-margin bug — fixed in
+   snippets/variant-main-picker.liquid).
+
+   Scoped via `:has(button[name="add"])` so only the buy-box
+   group-block-content is affected — other group-block-contents in
+   .product-details (title/price stacks above) keep their inline
+   value. Mobile gets a slightly tighter 8px since the thumb-reachable
+   buy zone benefits from less dead space above the qty/ATC row. */
+@media (min-width: 750px) {
+  .product-details .group-block-content:has(button[name="add"]) {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 749px) {
+  .product-details .group-block-content:has(button[name="add"]) {
+    gap: 8px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   PDP detail accordion — mobile gutter
+   --------------------------------------------------------------------------
+   The Description / Product Details / Sizing / Specifications accordion is
+   wrapped in a stock Horizon group-block whose theme-editor padding control
+   writes `--padding-inline-start: 12px; --padding-inline-end: 10px` inline.
+   On a phone that leaves the tab labels and body copy hugging the bezel
+   (~10-12px from the edge, below the comfortable ~15px gutter). Nudge to a
+   balanced 14px so the text clears the edge without eating line length in
+   the widest currencies (EUR).
+
+   Scoped via `:has(accordion-custom)` so ONLY the accordion group-block is
+   touched — the title / price / variant group-blocks above keep their own
+   inline padding and stay aligned.
+
+   Mechanism: Horizon writes the editor padding as inline CUSTOM PROPERTIES
+   (`--padding-inline-start/end`) which the stock `.spacing-style` class then
+   consumes: `padding-inline: var(--padding-inline-start) var(--padding-inline-end)`.
+   We set the `padding-inline` longhand DIRECTLY here — our selector
+   (.product-details .group-block + :has) outweighs `.spacing-style`, so the
+   stock rule stops winning and the inline custom props go unread. No
+   !important. (Do NOT "simplify" this to overriding the custom properties —
+   inline-style specificity would beat a selector rule and the override would
+   silently fail.) Verified live on dev theme 152924782746 at 375 & 320px:
+   14px/14px both sides, zero horizontal overflow. */
+@media (max-width: 749px) {
+  .product-details .group-block:has(accordion-custom) {
+    padding-inline: 14px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   PDP ACCORDION RICH-TEXT NORMALIZATION  —  AuraFlow PREVIEW ONLY
+   --------------------------------------------------------------------------
+   Product descriptions and the specs metafield are pasted raw HTML (often
+   straight from an LLM): chrome-sized <h3><strong> headings, <strong>
+   scattered through every line, inconsistent rhythm, occasional emoji. The
+   theme rendered them verbatim, so the accordion read heavy and off-brand,
+   and varied product to product. This layer maps whatever HTML the content
+   contains onto quiet brand typography — same approach as the policy-page
+   `.rte` layer in casa-base.css, tuned denser for the accordion panel.
+
+   Both the Description (text-block) and the Specs (metafield) render inside
+   <rte-formatter>, so one scope covers both. Selector list mirrors the
+   accordion measure-override above.
+
+   SCOPED to AuraFlow only via `body.product-auraflow-smart-led-rope-light`
+   (the per-product handle class added in layout/theme.liquid) so the
+   merchant can preview before any sitewide rollout.
+   ► TO PROMOTE SITEWIDE: delete the leading
+     `.product-auraflow-smart-led-rope-light ` from every selector below.
+
+   What CSS can't do (left for a content pass): strip emoji glyphs and
+   delete redundant in-content headings. Redundant headings are fixed in the
+   DATA, not here — e.g. the Specs metafield's duplicate "Technical
+   Specifications" heading was removed from
+   custom.product_page_specifications via Admin API (2026-07-03). Don't
+   re-add a CSS display:none for content problems; edit the metafield.
+   -------------------------------------------------------------------------- */
+/* Scale: body 14px at ALL widths (matches the theme's original panel
+   body — merchant-confirmed 2026-07-03; 15px read too large), headings
+   16px/600 — heading must stay ABOVE body. First cut pinned headings at
+   15px while bumping body to 16px on desktop à la the policy pages —
+   inverted hierarchy; the policy reading scale doesn't belong in a
+   dense accordion panel. */
+.product-auraflow-smart-led-rope-light :is(accordion-custom, .accordion details) rte-formatter {
+  font-size: 14px;
+  line-height: 1.65;
+  color: #3a3a3a;
+}
+/* vertical rhythm — reset stock margins, then one consistent block gap */
+.product-auraflow-smart-led-rope-light :is(accordion-custom, .accordion details) rte-formatter > *,
+.product-auraflow-smart-led-rope-light :is(accordion-custom, .accordion details) rte-formatter .metafield-rich_text_field > * {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.product-auraflow-smart-led-rope-light :is(accordion-custom, .accordion details) rte-formatter > * + *,
+.product-auraflow-smart-led-rope-light :is(accordion-custom, .accordion details) rte-formatter .metafield-rich_text_field > * + * {
+  margin-top: 0.9rem;
+}
+/* headings h1–h6 → quiet Inter 600 section markers (NOT chrome H3, no gradient
+   <em> — that accent is reserved for hero / section H2) */
+.product-auraflow-smart-led-rope-light :is(accordion-custom, .accordion details) rte-formatter :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-body--family, 'Inter', sans-serif);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--casa-ink, #0a0a0f);
+  margin: 1.5rem 0 0.4rem;
+}
+/* first block flush to the panel top */
+.product-auraflow-smart-led-rope-light :is(accordion-custom, .accordion details) rte-formatter > *:first-child,
+.product-auraflow-smart-led-rope-light :is(accordion-custom, .accordion details) rte-formatter .metafield-rich_text_field > *:first-child,
+.product-auraflow-smart-led-rope-light :is(accordion-custom, .accordion details) rte-formatter :is(h1, h2, h3, h4, h5, h6):first-child {
+  margin-top: 0;
+}
+/* restrain bold — semantic weight, not shouting */
+.product-auraflow-smart-led-rope-light :is(accordion-custom, .accordion details) rte-formatter :is(strong, b) {
+  font-weight: 600;
+  color: var(--casa-ink, #0a0a0f);
+}
+.product-auraflow-smart-led-rope-light :is(accordion-custom, .accordion details) rte-formatter p {
+  color: #3a3a3a;
+}
+/* lists — consistent indent + brand bullet, good for the specs list */
+.product-auraflow-smart-led-rope-light :is(accordion-custom, .accordion details) rte-formatter :is(ul, ol) {
+  padding-left: 1.25rem;
+  margin-top: 0.6rem;
+}
+.product-auraflow-smart-led-rope-light :is(accordion-custom, .accordion details) rte-formatter li {
+  margin-bottom: 0.3rem;
+}
+.product-auraflow-smart-led-rope-light :is(accordion-custom, .accordion details) rte-formatter li::marker {
+  color: var(--casa-purple, #B0C3FA);
+}
+.product-auraflow-smart-led-rope-light :is(accordion-custom, .accordion details) rte-formatter a {
+  color: var(--casa-purple, #B0C3FA);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+/* em stays plain italic here, never the hero/section gradient accent */
+.product-auraflow-smart-led-rope-light :is(accordion-custom, .accordion details) rte-formatter :is(em, i) {
+  font-style: italic;
+}
+
+
+/* --------------------------------------------------------------------------
+   DELIVERY ESTIMATE WIDGET — horizontal timeline
+   ─────────────────────────────────────────────────────────────────────────
+   Third-party app markup, mounted into the buy box by the empty
+   `<div class="delivery-widget__manual">` that each product template emits
+   from a custom-liquid block. We do not own these class names — they can
+   change on an app update, in which case the widget simply reverts to its
+   own stacked layout rather than breaking. Everything is scoped under the
+   mount so no other app widget is touched.
+
+   Default app layout is `inline-flex; column`, which renders the three
+   steps stacked at 317px tall in a ~338px-wide buy-box column. Laid out as
+   a row it is ~70px — the same information in a fifth of the height.
+
+   !important is load-bearing on the font-size rules ONLY: the app writes
+   `style="font-size: 14px"` inline on the step title, the date and the SVG,
+   and an inline declaration outranks any selector we can write. It is not
+   used anywhere the cascade alone would win.
+   -------------------------------------------------------------------------- */
+/* Grid, not flex, and deliberately so. As a flex row the cells computed
+   `flex: 1 0 auto` — the app redeclares the flex longhands after our
+   shorthand, so flex-shrink stayed 0, the cells refused to shrink and the
+   row rendered ~7px past its container. Grid tracks are sized by the
+   container, so the app's flex-item declarations simply stop applying and
+   no !important is needed to win. auto-flow column also means this holds
+   for any number of steps, not just three. */
+.delivery-widget__manual .basic__step-container {
+  display: grid;
+  grid-auto-flow: column;
+  /* minmax(0, …) not 1fr: a bare 1fr floors at min-content, so the longest
+     label ("Aug 03 - Aug 06") would widen its own track and push the row
+     off-screen — the exact overflow this project treats as a ship-blocker. */
+  grid-auto-columns: minmax(0, 1fr);
+  width: 100%;
+  gap: 4px;
+}
+/* The `.basic__step-container` in this selector is doing real work, not
+   decoration. The app ships `.basic__step-container .step-box__basic
+   { width: 33.333% }` in an INLINE <style>, which has the same specificity
+   as a two-class selector of ours but lands later in source order, so it
+   wins. Matching its selector shape takes us to three classes and settles
+   it on specificity rather than !important.
+
+   That 33.333% is also why the cells looked wrong rather than merely
+   narrow: it was authored for a flex row where the containing block is the
+   whole widget, but a grid item resolves percentages against its own
+   track — so it became a third of a third. */
+.delivery-widget__manual .basic__step-container .step-box__basic {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 4px;
+  text-align: center;
+  align-items: center;
+  justify-content: flex-start;
+}
+.delivery-widget__manual .icon__step-box {
+  display: flex;
+  justify-content: center;
+  line-height: 1;
+}
+.delivery-widget__manual .icon__step-box svg {
+  font-size: 17px !important;
+  width: 1em;
+  height: 1em;
+}
+.delivery-widget__manual .content__step-box {
+  margin-top: 5px;
+  min-width: 0;
+}
+.delivery-widget__manual .title__content {
+  font-size: 11.5px !important;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.delivery-widget__manual .description__content {
+  margin-top: 1px;
+  font-size: 11px !important;
+  line-height: 1.25;
+  /* The delivery cell carries a date RANGE; balance keeps it as two even
+     lines rather than one long line and one orphan word. */
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.delivery-widget__manual .msg__container {
+  padding: 7px 10px;
+}
+
+/* Galaxy Fold / iPhone SE 1st gen: the buy-box column drops to ~240px, so
+   each cell is ~78px. Step down rather than let a cell clip mid-character. */
+@media (max-width: 360px) {
+  .delivery-widget__manual .step-box__basic { padding: 8px 2px; }
+  .delivery-widget__manual .icon__step-box svg { font-size: 15px !important; }
+  .delivery-widget__manual .title__content { font-size: 10.5px !important; }
+  .delivery-widget__manual .description__content { font-size: 10px !important; }
+}
+
+/* The badge rail-offset above (~line 659) is intentionally left in place.
+   It is guarded by :has(slideshow-controls[pagination-position='left']),
+   and every template now ships thumbnail_position "bottom" (which renders
+   as "center"), so it matches nothing today — but it stays correct if a
+   left rail is ever chosen again. Dead-but-guarded, not dead-and-wrong.
+   2026-08-25. */
+
+/* ── Media column: DO NOT make it sticky here ────────────────────────
+   The gallery is ALREADY sticky — see the `media-gallery.sticky-content`
+   rule ~line 620, which offsets it by exactly --header-group-height. That
+   works because this column stays STRETCHED (full grid-row height), which
+   is what gives the inner <media-gallery> its sticky travel.
+
+   A `position: sticky` + `align-self: start` block was added here on
+   2026-08-12 to fix "empty space below the gallery" and reverted the same
+   day: it was redundant (the gallery already pinned) and it re-broke the
+   exact bug the ~line 620 comment warns about — a sticky `top` LARGER than
+   the column's natural at-rest top (header height) makes sticky clamp the
+   column DOWN by the excess at scroll-0, i.e. a permanent header→gallery
+   gap on every PDP ("white empty space above the gallery… not sitting
+   flush with the header"). Same failure as the +1.5rem shipped 2026-06-28
+   and removed 06-30; this one was +16px.
+
+   If the media column ever needs its own sticky again: the offset must be
+   EXACTLY --header-group-height, and un-stretching it (align-self: start)
+   removes the inner gallery's travel, so both mechanisms must be changed
+   together. Verified 2026-08-12: with this block absent, header→image gap
+   is 0 and the gallery still pins at 100px through a 900px scroll. */

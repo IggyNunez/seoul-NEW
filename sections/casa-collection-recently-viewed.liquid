@@ -60,15 +60,6 @@
           {%- render 'casa-product-card',
             product: product,
             variant: 'collection',
-            show_quick_add: false,
-            show_variant_swatches: false,
-            show_wishlist: false,
-            show_rating: false,
-            show_quick_view: false,
-            show_stock_urgency: false,
-            show_installment: false,
-            show_savings_highlight: false,
-            show_social_proof: false,
             lazy: true
           -%}
         </div>
@@ -205,7 +196,7 @@
       "default": "scheme-1"
     },
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "title",
       "label": "Title",
       "default": "Recently Viewed"
@@ -254,7 +245,7 @@
    RECENTLY VIEWED — Section
    ═══════════════════════════════════════════ */
 .casa-col-rv {
-  background: #0a0a0f;
+  background: var(--casa-ink);
   padding: var(--ccrv-pt) 60px var(--ccrv-pb);
   overflow: hidden;
 }
@@ -273,7 +264,7 @@
 }
 
 .casa-col-rv__title {
-  font-size: 28px;
+  font-size: var(--font-h3--size, 28px);
   font-weight: 300;
   color: #ffffff;
   margin: 0;
@@ -322,13 +313,28 @@
 
 .casa-col-rv__skeleton-image {
   aspect-ratio: 3 / 4;
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+}
+/* Sweep is a compositor-only transform on an oversized pseudo —
+   background-position here repainted the tile every frame while the
+   skeletons were on screen. Band matches the old gradient: 0.04 base
+   + 0.045 highlight ≈ the old 0.08 peak. */
+.casa-col-rv__skeleton-image::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 200%;
   background: linear-gradient(
     110deg,
-    rgba(255, 255, 255, 0.04) 0%,
-    rgba(255, 255, 255, 0.08) 40%,
-    rgba(255, 255, 255, 0.04) 60%
+    transparent 35%,
+    rgba(255, 255, 255, 0.045) 50%,
+    transparent 65%
   );
-  background-size: 200% 100%;
+  will-change: transform;
   animation: casaRvShimmer 1.5s ease-in-out infinite;
 }
 
@@ -358,8 +364,8 @@
 }
 
 @keyframes casaRvShimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 /* ─── Responsive ─── */
@@ -377,7 +383,7 @@
   }
 
   .casa-col-rv__title {
-    font-size: 24px;
+    font-size: var(--font-h3--size, 24px);
   }
 
   /* Switch to horizontal scroll on mobile */
@@ -411,7 +417,7 @@
   }
 
   .casa-col-rv__title {
-    font-size: 22px;
+    font-size: var(--font-h4--size, 22px);
   }
 
   .casa-col-rv__header {

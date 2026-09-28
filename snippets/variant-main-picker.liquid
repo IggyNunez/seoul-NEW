@@ -2,45 +2,175 @@
   Renders a default variant picker, used to display the variant picker in the variants block.
 
   @param {object} product_resource - The product object.
-  @param {object} [block] - The block object
+  @param {object} [block] - The block object.
+  @param {object} [section] - The containing section.
+  @param {number} [card_font_size] - Variant title size.
+  @param {number} [card_price_font_size] - Variant price size.
+  @param {number} [card_font_size_mobile] - Mobile variant title size.
+  @param {number} [card_price_font_size_mobile] - Mobile variant price size.
+  @param {string} [info_layout] - Card information placement.
+  @param {number} [cards_per_row] - Desktop columns.
+  @param {number} [cards_per_row_4k] - Large desktop columns.
+  @param {number} [cards_per_row_laptop] - Laptop columns.
+  @param {number} [cards_per_row_tablet] - Tablet columns.
+  @param {number} [image_width] - Desktop image width percentage.
+  @param {number} [image_height] - Desktop image height.
+  @param {string} [image_ratio] - Desktop image ratio.
+  @param {number} [card_min_height] - Desktop card minimum height.
+  @param {number} [cards_per_row_mobile] - Mobile columns.
+  @param {number} [cards_per_row_mobile_md] - Medium mobile columns.
+  @param {number} [cards_per_row_mobile_sm] - Small mobile columns.
+  @param {number} [image_width_mobile] - Mobile image width percentage.
+  @param {string} [image_ratio_mobile] - Mobile image ratio.
+  @param {number} [card_min_height_mobile] - Mobile card minimum height.
+  @param {boolean} [hide_text_mobile] - Hides variant text on mobile.
+  @param {boolean} [hide_price_mobile] - Hides variant price on mobile.
+  @param {boolean} [hide_text] - Hides variant text on desktop.
+  @param {boolean} [hide_price] - Hides variant price on desktop.
+  @param {boolean} [hide_compare_price] - Hides compare-at price.
+  @param {number} [card_padding] - Desktop card padding.
+  @param {number} [card_padding_mobile] - Mobile card padding.
+  @param {number} [cards_gap] - Desktop card gap.
+  @param {number} [cards_gap_mobile] - Mobile card gap.
+  @param {number} [title_gap] - Desktop title gap.
+  @param {number} [title_gap_mobile] - Mobile title gap.
+  @param {boolean} [full_width] - Stretches cards to the container.
+  @param {boolean} [show_divider] - Shows the price divider.
+  @param {string} [divider_color] - Price divider color.
 {%- enddoc -%}
 
 {% assign block_settings = block.settings %}
 {%- liquid
   assign cdl_font_size            = card_font_size        | default: 12
-  assign cdl_price_size           = card_price_font_size  | default: 11
-  assign cdl_border_animation     = border_animation      | default: 'gradient'
+  assign cdl_price_size           = card_price_font_size  | default: 13
+  assign cdl_font_size_mobile     = card_font_size_mobile | default: cdl_font_size
+  assign cdl_price_size_mobile    = card_price_font_size_mobile | default: cdl_price_size
   assign cdl_info_layout          = info_layout           | default: 'outside'
   assign cdl_dim_size             = cdl_font_size | minus: 3
+  assign cdl_dim_size_mobile      = cdl_font_size_mobile | minus: 3
   assign cdl_cards_per_row        = cards_per_row         | default: 3
+  # Granular per-breakpoint columns. Default each tier to the
+  # closest existing setting so older sections keep their look.
+  assign cdl_cards_per_row_4k        = cards_per_row_4k        | default: cdl_cards_per_row
+  assign cdl_cards_per_row_laptop    = cards_per_row_laptop    | default: cdl_cards_per_row
+  assign cdl_cards_per_row_tablet    = cards_per_row_tablet    | default: cdl_cards_per_row
   assign cdl_image_width          = image_width           | default: 100
   assign cdl_image_height         = image_height          | default: 80
   assign cdl_image_ratio          = image_ratio           | default: 'fixed'
+  # cdl_image_size feeds the <img> width/height attrs at line ~1354 so the
+  # browser reserves an aspect-ratio box at first paint. Without this the
+  # attrs rendered as width="" height="" and the swatch grew ~28px in both
+  # dimensions when the image finally loaded (CLS 0.011 in the buy box).
+  assign cdl_image_size           = cdl_image_height
   assign cdl_card_min_height      = card_min_height       | default: 0
   assign cdl_cards_per_row_mobile = cards_per_row_mobile  | default: 2
+  assign cdl_cards_per_row_mobile_md = cards_per_row_mobile_md | default: cdl_cards_per_row_mobile
+  assign cdl_cards_per_row_mobile_sm = cards_per_row_mobile_sm | default: cdl_cards_per_row_mobile_md
   assign cdl_image_width_mobile   = image_width_mobile    | default: cdl_image_width
-  assign cdl_image_height_mobile  = image_height_mobile   | default: cdl_image_height
   assign cdl_image_ratio_mobile   = image_ratio_mobile    | default: cdl_image_ratio
   assign cdl_card_min_height_mobile = card_min_height_mobile | default: cdl_card_min_height
   assign cdl_hide_text_mobile     = hide_text_mobile      | default: false
   assign cdl_hide_price_mobile    = hide_price_mobile     | default: false
   assign cdl_hide_text            = hide_text             | default: false
   assign cdl_hide_price           = hide_price            | default: false
+  assign cdl_hide_compare_price   = hide_compare_price    | default: false
   assign cdl_card_padding         = card_padding          | default: 9
   assign cdl_card_padding_mobile  = card_padding_mobile   | default: 4
+  assign cdl_cards_gap            = cards_gap             | default: 6
+  assign cdl_cards_gap_mobile     = cards_gap_mobile      | default: 4
+  assign cdl_title_gap            = title_gap             | default: 14
+  assign cdl_title_gap_mobile     = title_gap_mobile      | default: 10
+  assign cdl_full_width           = full_width            | default: false
+  assign cdl_show_divider         = show_divider
+  if cdl_show_divider == nil
+    assign cdl_show_divider = true
+  endif
+  assign cdl_divider_color        = divider_color         | default: ''
 -%}
 
 {%- comment -%} Scoped per-instance styles — grid + image size + info layout + border animation {%- endcomment -%}
 <style>
   .cdl-vp-{{ block.id }} .variant-option__button-label__text { font-size: {{ cdl_font_size }}px !important; }
   .cdl-vp-{{ block.id }} .variant-option__dimensions { font-size: {{ cdl_dim_size }}px !important; }
+  .cdl-vp-{{ block.id }} .variant-option__price { font-size: {{ cdl_price_size }}px !important; }
+  /* title_gap applies to BOTH fieldset legends (buttons / swatches / pills)
+     AND dropdown labels (.variant-option--dropdowns wraps the picker in a
+     label element instead of a fieldset legend). Without the second selector
+     the dropdown variant kept the base 4px from line ~3143 and felt
+     cramped even when merchants pushed the slider up. */
+  .cdl-vp-{{ block.id }} .variant-option > legend,
+  .cdl-vp-{{ block.id }} .variant-option--dropdowns > label { margin-bottom: {{ cdl_title_gap }}px !important; }
+  /* Breathing room between consecutive variant-option blocks so the
+     next group's legend ("Size", "Power Supply", etc.) doesn't sit
+     flush against the previous group's last row (card / dropdown trigger
+     / pill). Use sibling-based margin-top — NOT margin-bottom + last-of-type
+     reset. The form mixes div.variant-option--dropdowns
+     and fieldset.variant-option--icon|--buttons|--pill
+     siblings; :last-of-type then matches BOTH (one per tag) and the reset
+     hits non-last elements, collapsing the gap to 0. The sibling selector
+     adds margin only between consecutive .variant-option siblings — no
+     trailing margin to reset, works regardless of tag mix.
+     30px gives the dropdown trigger card (.casa-vdd, ~64px tall with image)
+     enough room before the next legend. */
+  .cdl-vp-{{ block.id }} .variant-option + .variant-option { margin-top: 30px !important; }
+
+  {%- if cdl_full_width -%}
+  /* Full width — cards stretch edge-to-edge across their container.
+     EXCEPT image-card labels (--has-img), which are handled by the
+     compact-pill override at the bottom of this stylesheet. Stretching
+     image cards to 100% width breaks the compact horizontal pill
+     layout (cards each wrap to their own row at 100% wide). The :not()
+     guard keeps the stretch behavior for plain text/swatch cards. */
+  .cdl-vp-{{ block.id }} .variant-option--buttons {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label:not(.variant-option__button-label--has-img) {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    flex: 1 1 0 !important;
+  }
+  /* Neutralize theme's auto-fit min-width constraint so cards always equally fill */
+  .cdl-vp-{{ block.id }} .variant-option--equal-width-buttons {
+    --variant-min-width: 0 !important;
+  }
+  {%- endif -%}
+
+  {%- if cdl_show_divider -%}
+  /* Frosted glassmorphic divider between option name and price */
+  .cdl-vp-{{ block.id }} .variant-option__price {
+    position: relative;
+    padding-top: 6px !important;
+    margin-top: 4px !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option__price::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40%;
+    height: 1px;
+    background: {% if cdl_divider_color != blank %}linear-gradient(90deg, transparent 0%, {{ cdl_divider_color }} 50%, transparent 100%){% else %}linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.08) 20%, rgba(0,0,0,0.14) 50%, rgba(0,0,0,0.08) 80%, transparent 100%){% endif %};
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    pointer-events: none;
+  }
+  {%- endif -%}
 
   /* ── Mobile layout (≤749px) ── */
   @media (max-width: 749px) {
+    .cdl-vp-{{ block.id }} .variant-option__button-label__text { font-size: {{ cdl_font_size_mobile }}px !important; }
+    .cdl-vp-{{ block.id }} .variant-option__dimensions { font-size: {{ cdl_dim_size_mobile }}px !important; }
+    .cdl-vp-{{ block.id }} .variant-option__price { font-size: {{ cdl_price_size_mobile }}px !important; }
+    .cdl-vp-{{ block.id }} .variant-option > legend,
+    .cdl-vp-{{ block.id }} .variant-option--dropdowns > label { margin-bottom: {{ cdl_title_gap_mobile }}px !important; }
     .cdl-vp-{{ block.id }} .variant-option--buttons {
       display: grid !important;
       grid-template-columns: repeat({{ cdl_cards_per_row_mobile }}, 1fr) !important;
-      gap: 4px !important;
+      gap: {{ cdl_cards_gap_mobile }}px !important;
     }
     .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label {
       padding: {{ cdl_card_padding_mobile }}px !important;
@@ -50,18 +180,26 @@
     }
     .cdl-vp-{{ block.id }} .variant-option__card-img-wrap {
       width: {{ cdl_image_width_mobile }}% !important;
-      {%- if cdl_image_ratio_mobile == 'fixed' %}
-      height: {{ cdl_image_height_mobile }}px !important;
-      aspect-ratio: unset !important;
-      {%- else %}
-      height: unset !important;
-      aspect-ratio: {{ cdl_image_ratio_mobile | replace: ':', ' /' }} !important;
-      {%- endif %}
+      {%- comment -%}
+        Mobile mirrors desktop: square wrap + object-fit: contain on the
+        image. Casa product photos are 1:1, so a landscape "fixed-height"
+        wrap with object-fit: cover would slice the top + bottom of the
+        lamp/figure off (caught 2026-05-20 on Halo Floor Lamp mobile —
+        only the halo or only the tripod visible per variant card).
+        Treat the merchant's `image_height` setting as the desktop
+        intent; mobile always uses the natural product aspect.
+      {%- endcomment -%}
+      height: auto !important;
+      aspect-ratio: {% if cdl_image_ratio_mobile == 'fixed' %}1 / 1{% else %}{{ cdl_image_ratio_mobile | replace: ':', ' /' }}{% endif %} !important;
       {%- if cdl_image_width_mobile < 100 %}
       margin-left: auto !important;
       margin-right: auto !important;
       border-radius: 6px !important;
       {%- endif %}
+    }
+    .cdl-vp-{{ block.id }} .variant-option__card-img-wrap img {
+      object-fit: contain !important;
+      object-position: center !important;
     }
     {%- if cdl_card_min_height_mobile > 0 %}
     .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label {
@@ -79,6 +217,17 @@
     .cdl-vp-{{ block.id }} .variant-option__card-info { display: none !important; }
     .cdl-vp-{{ block.id }} .variant-option__card-img-wrap { margin-bottom: 0 !important; }
     {%- endif %}
+
+    /* 3-variant options switch from 2-col to 3-up on mobile so the grid
+       doesn't leave an empty second-row cell. Pills shrink to ~115px;
+       per-variant images keep their aspect ratio via object-fit: cover.
+       align-items: stretch keeps all 3 pills equal height when one
+       label wraps (Calini "Full Set (Small + Large)"). Scoped via
+       :nth-of-type because the grid has legend + style siblings. */
+    .cdl-vp-{{ block.id }} .variant-option--buttons:has(> label:nth-of-type(3)):not(:has(> label:nth-of-type(4))) {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      align-items: stretch !important;
+    }
   }
 
   /* ── Desktop layout (≥750px) ── */
@@ -86,7 +235,7 @@
     .cdl-vp-{{ block.id }} .variant-option--buttons {
       display: grid !important;
       grid-template-columns: repeat({{ cdl_cards_per_row }}, 1fr) !important;
-      gap: 6px !important;
+      gap: {{ cdl_cards_gap }}px !important;
     }
     .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label {
       padding: {{ cdl_card_padding }}px !important;
@@ -95,19 +244,68 @@
       padding: {{ cdl_card_padding }}px {{ cdl_card_padding }}px {{ cdl_card_padding | plus: 2 }}px !important;
     }
     .cdl-vp-{{ block.id }} .variant-option__card-img-wrap {
-      width: {{ cdl_image_width }}% !important;
-      {%- if cdl_image_ratio == 'fixed' %}
-      height: {{ cdl_image_height }}px !important;
-      aspect-ratio: unset !important;
-      {%- else %}
-      height: unset !important;
-      aspect-ratio: {{ cdl_image_ratio | replace: ':', ' /' }} !important;
-      {%- endif %}
-      {%- if cdl_image_width < 100 %}
+      /* All Casa product photos are 1:1 (square). To always show the
+         entire image without crop or stretch, the WRAP must also be
+         a square. We cap BOTH width and height to the same viewport-
+         relative clamp value, then center the wrap in its grid cell
+         via margin auto. Result: square image fills square wrap edge-
+         to-edge, with empty space (if any) on the left/right of the
+         wrap INSIDE the cell — not inside the image area.
+
+         Behavior across viewports (wrap size = N × N square):
+           1000vh+ → 220 × 220 (clamp ceiling)
+           900vh   → 173 × 173
+           820vh   → 155 × 155
+           750vh   → 140 × 140
+           600vh   → 120 × 120 (clamp floor)
+
+         The fold-rule guarantee depends on the max-height clamp —
+         tuned for Calini's tallest buy-box across all viewports. */
+      width: clamp(120px, calc(22vh - 25px), 220px) !important;
+      height: clamp(120px, calc(22vh - 25px), 220px) !important;
+      max-width: clamp(120px, calc(22vh - 25px), 220px) !important;
+      max-height: clamp(120px, calc(22vh - 25px), 220px) !important;
+      aspect-ratio: 1 / 1 !important;
       margin-left: auto !important;
       margin-right: auto !important;
       border-radius: 6px !important;
-      {%- endif %}
+      overflow: hidden !important;
+      /* Neutral background so the letterbox area (when image aspect
+         doesn't match the square wrap) blends with the card. */
+      background: #fafaf7 !important;
+    }
+    .cdl-vp-{{ block.id }} .variant-option__card-img-wrap img {
+      /* CONTAIN — Casa product photos are NOT all 1:1 (Calini Small is
+         portrait, Calini Full Set is panoramic). With `cover` and a
+         square wrap, portrait images get vertically cropped and
+         landscape images get horizontally cropped. With `contain`,
+         the entire product is always visible — letterboxed on the
+         shorter axis with the neutral wrap background showing through.
+         This is the universal answer regardless of source aspect. */
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain !important;
+      object-position: center !important;
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     FOLD RULE — TIGHT VIEWPORTS (≤ 840px tall, desktop only)
+     The image clamp alone isn't enough on 13" MacBooks / smaller laptops
+     when the buy box has a lot of other rows (Calini, e.g.). On any
+     viewport ≤840px tall on desktop, also hide the duplicate price +
+     compare-at inside each card — the main buy-box already displays
+     the current variant's price right above, so mirroring it in the
+     card just steals ~75px per card row. Saves ADC ~75px on Calini at
+     820vh, bringing it back above the fold.
+     ═══════════════════════════════════════════════════════════════════ */
+  @media (min-width: 750px) and (max-height: 840px) {
+    .cdl-vp-{{ block.id }} .variant-option__button-label--has-img .variant-option__price,
+    .cdl-vp-{{ block.id }} .variant-option__button-label--has-img .variant-option__compare-price,
+    .cdl-vp-{{ block.id }} .variant-option__button-label--has-img [class*="compare"],
+    .cdl-vp-{{ block.id }} .variant-option__button-label--has-img s,
+    .cdl-vp-{{ block.id }} .variant-option__button-label--has-img del {
+      display: none !important;
     }
     {%- if cdl_card_min_height > 0 %}
     .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label {
@@ -165,13 +363,8 @@
     .cdl-vp-{{ block.id }} .variant-option__button-label--has-img .variant-option__card-img-wrap {
       position: relative;
       width: 100% !important;
-      {%- if cdl_image_ratio_mobile == 'fixed' %}
-      height: {{ cdl_image_height_mobile }}px !important;
-      aspect-ratio: unset !important;
-      {%- else %}
-      height: unset !important;
-      aspect-ratio: {{ cdl_image_ratio_mobile | replace: ':', ' /' }} !important;
-      {%- endif %}
+      height: auto !important;
+      aspect-ratio: {% if cdl_image_ratio_mobile == 'fixed' %}1 / 1{% else %}{{ cdl_image_ratio_mobile | replace: ':', ' /' }}{% endif %} !important;
       margin-bottom: 0 !important;
       border-radius: 7px !important;
     }
@@ -180,53 +373,777 @@
     .cdl-vp-{{ block.id }} .variant-option__button-label--has-img .variant-option__card-img-wrap {
       position: relative;
       width: 100% !important;
-      {%- if cdl_image_ratio == 'fixed' %}
-      height: {{ cdl_image_height }}px !important;
-      aspect-ratio: unset !important;
-      {%- else %}
-      height: unset !important;
-      aspect-ratio: {{ cdl_image_ratio | replace: ':', ' /' }} !important;
-      {%- endif %}
+      height: auto !important;
+      aspect-ratio: {% if cdl_image_ratio == 'fixed' %}1 / 1{% else %}{{ cdl_image_ratio | replace: ':', ' /' }}{% endif %} !important;
       margin-bottom: 0 !important;
       border-radius: 7px !important;
     }
   }
   {%- endif -%}
 
-  {%- if cdl_border_animation == 'gradient' -%}
-  /* ── Animated gradient border ──
-     Technique: hue-rotate on a solid purple/pink box-shadow ring.
-     No pseudo-elements, no z-index, works everywhere.
-  ── */
-  @keyframes cdl-hue-{{ block.id }} {
-    0%   { box-shadow: 0 0 0 2px #9333ea, 0 0 8px rgba(147,51,234,0.3); filter: hue-rotate(0deg); }
-    50%  { box-shadow: 0 0 0 2px #ec4899, 0 0 8px rgba(236,72,153,0.3); filter: hue-rotate(40deg); }
-    100% { box-shadow: 0 0 0 2px #9333ea, 0 0 8px rgba(147,51,234,0.3); filter: hue-rotate(0deg); }
-  }
-
+  /* Selected variant card — solid purple border, no glow ring or
+     animation regardless of which border_animation option the
+     merchant picked. The legacy 'gradient' and 'pulse' options
+     animated a box-shadow that pulled focus from the product
+     imagery; the user requested they be disabled across the board.
+     The schema setting itself stays so any per-PDP override the
+     merchant has saved is preserved — it just resolves to the
+     same flat treatment now. */
   .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label:has(input:checked) {
-    border-color: #9333ea !important;
-    animation: cdl-hue-{{ block.id }} 2s ease-in-out infinite !important;
+    border-color: #B0C3FA !important;
   }
 
-  {%- elsif cdl_border_animation == 'pulse' -%}
-  /* ── Pulse glow on selected card ── */
-  @keyframes cdl-pulse-{{ block.id }} {
-    0%, 100% { box-shadow: 0 0 0 2px #9333ea; }
-    50%       { box-shadow: 0 0 0 4px rgba(147, 51, 234, 0.35), 0 0 12px rgba(147, 51, 234, 0.25); }
+  /* ── Per-breakpoint column count overrides ──────────────────────────
+     The base 749px / 750px+ media queries above already set columns
+     using cdl_cards_per_row_mobile and cdl_cards_per_row. These
+     queries fan out to 7 ranges so merchants can target each
+     device class independently. Card padding / image / hide rules
+     stay on the original two breakpoints to avoid regressions. */
+
+  /* 4K (≥ 1921px) */
+  @media (min-width: 1921px) {
+    .cdl-vp-{{ block.id }} .variant-option--buttons {
+      grid-template-columns: repeat({{ cdl_cards_per_row_4k }}, 1fr) !important;
+    }
+  }
+  /* Desktop (1441–1920px) */
+  @media (min-width: 1441px) and (max-width: 1920px) {
+    .cdl-vp-{{ block.id }} .variant-option--buttons {
+      grid-template-columns: repeat({{ cdl_cards_per_row }}, 1fr) !important;
+    }
+  }
+  /* Laptop (1201–1440px) */
+  @media (min-width: 1201px) and (max-width: 1440px) {
+    .cdl-vp-{{ block.id }} .variant-option--buttons {
+      grid-template-columns: repeat({{ cdl_cards_per_row_laptop }}, 1fr) !important;
+    }
+  }
+  /* Tablet (769–1200px) */
+  @media (min-width: 769px) and (max-width: 1200px) {
+    .cdl-vp-{{ block.id }} .variant-option--buttons {
+      grid-template-columns: repeat({{ cdl_cards_per_row_tablet }}, 1fr) !important;
+    }
+  }
+  /* Mobile large (422–768px) — uses existing cdl_cards_per_row_mobile */
+  @media (min-width: 422px) and (max-width: 768px) {
+    .cdl-vp-{{ block.id }} .variant-option--buttons {
+      grid-template-columns: repeat({{ cdl_cards_per_row_mobile }}, 1fr) !important;
+    }
+  }
+  /* Mobile medium (376–421px) */
+  @media (min-width: 376px) and (max-width: 421px) {
+    .cdl-vp-{{ block.id }} .variant-option--buttons {
+      grid-template-columns: repeat({{ cdl_cards_per_row_mobile_md }}, 1fr) !important;
+    }
+  }
+  /* Mobile small (≤ 375px) */
+  @media (max-width: 375px) {
+    .cdl-vp-{{ block.id }} .variant-option--buttons {
+      grid-template-columns: repeat({{ cdl_cards_per_row_mobile_sm }}, 1fr) !important;
+    }
+    /* Mobile S (≤ 360px): long size labels like "Small (4.9"/12.5cm)"
+       need ~80px but the pill renders ~77px at default padding +
+       font-size. Drop padding-inline + font slightly so they fit
+       without truncation. Audit-locked rule: never chop text. */
+    .cdl-vp-{{ block.id }} .variant-option__button-label__text {
+      font-size: 11.5px !important;
+      letter-spacing: -0.01em !important;
+    }
+    .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill {
+      padding: 8px 10px !important;
+    }
   }
 
-  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label:has(input:checked) {
-    border-color: #9333ea !important;
-    animation: cdl-pulse-{{ block.id }} 2s ease-in-out infinite !important;
-    box-shadow: none;
+  /* ═══════════════════════════════════════════════════════════════════
+     PILL REDESIGN — overrides the card-based grid above when
+     .variant-option--pill is present (always for "buttons" style).
+     Per locked rule feedback_variant_trigger_price_always_visible —
+     buy-box header holds the authoritative price; pills are pure
+     compact selection controls.
+     ═══════════════════════════════════════════════════════════════════ */
+
+  /* Fieldset becomes a horizontal pill row, not a grid of cards.
+     Use flex (not block + inline-flex labels) so we control the wrap
+     behavior and the cdl_full_width width:100% rule on labels can't
+     stretch each pill across the whole row. */
+  .cdl-vp-{{ block.id }} .variant-option--pill {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    grid-template-columns: none !important;
+    gap: 8px !important;
+    margin: 0 0 14px !important;
+    padding: 0 !important;
+    border: none !important;
+    width: 100% !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--pill > legend {
+    display: block !important;
+    width: 100% !important;
+    flex: 0 0 100% !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #0a0a0f !important;
+    margin: 0 0 8px !important;
+    padding: 0 !important;
+    line-height: 1.3 !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--pill > legend .variant-option__selected-value {
+    font-weight: 400;
+    color: rgba(10, 10, 15, 0.55);
+    margin-left: 6px;
   }
 
-  {%- elsif cdl_border_animation == 'none' -%}
-  /* ── Static border (no animation) ── */
-  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label:has(input:checked) {
-    border-color: #9333ea !important;
-    box-shadow: 0 0 0 1px #9333ea !important;
+  /* Each option_value label becomes a pill button.
+     :has(input:checked) selects the currently-picked pill.
+     Override width:100% + flex:1 from the cdl_full_width rule so pills
+     hug their content instead of stretching. */
+  .cdl-vp-{{ block.id }} .variant-option--pill .variant-option__button-label {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    padding: 10px 16px !important;
+    border: 1px solid rgba(10, 10, 15, 0.10) !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    color: #0a0a0f !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    line-height: 1.2 !important;
+    min-height: 40px !important;
+    cursor: pointer !important;
+    /* No transition on border/bg/color — selection feedback must flip
+       in one frame, otherwise both pills sit in a mid-state during the
+       fade and read as co-selected. Hover purple border also snaps in. */
+    transition: none !important;
+    overflow: visible !important;
+    aspect-ratio: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    flex: 0 0 auto !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--pill .variant-option__button-label:hover {
+    border-color: #B0C3FA !important;
+  }
+  /* Selected pill — brand purple ring + soft tint. Previously ink-fill
+     which competed visually with the ADD TO CART button below the picker.
+     Border-width stays 1px (no layout shift on (de)select); the outer
+     box-shadow at 12% purple creates the soft halo. 2026-05-17. */
+  .cdl-vp-{{ block.id }} .variant-option--pill .variant-option__button-label:has(input:checked) {
+    background: #F5F0FF !important;
+    color: #0a0a0f !important;
+    border-color: #B0C3FA !important;
+    box-shadow: 0 0 0 3px rgba(176, 195, 250, 0.12) !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--pill .variant-option__button-label:has(input:checked) .variant-option__button-label__text {
+    color: #0a0a0f !important;
+  }
+
+  /* Hide any image carryover from the old card style */
+  .cdl-vp-{{ block.id }} .variant-option--pill .variant-option__card-img-wrap,
+  .cdl-vp-{{ block.id }} .variant-option--pill .variant-option__card-info,
+  .cdl-vp-{{ block.id }} .variant-option--pill .variant-option__price,
+  .cdl-vp-{{ block.id }} .variant-option--pill .variant-option__compare-price,
+  .cdl-vp-{{ block.id }} .variant-option--pill .variant-option__dimensions {
+    display: none !important;
+  }
+
+  /* Swatch dot inside pill — only shown when option has Shopify swatch data */
+  .cdl-vp-{{ block.id }} .variant-option__pill-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    flex-shrink: 0;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--pill .variant-option__button-label:has(input:checked) .variant-option__pill-swatch {
+    border-color: rgba(255, 255, 255, 0.20);
+  }
+
+  /* Price-delta tag inside pill (only when the option's variant has a different price than the selected variant) */
+  .cdl-vp-{{ block.id }} .variant-option__pill-delta {
+    font-size: 11.5px;
+    font-weight: 500;
+    opacity: 0.70;
+    margin-left: 4px;
+    font-feature-settings: "tnum" 1;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--pill .variant-option__button-label:has(input:checked) .variant-option__pill-delta {
+    opacity: 0.60;
+  }
+
+  /* Pill label text — strip the old card-info display:none / 100% width / overlay tricks */
+  .cdl-vp-{{ block.id }} .variant-option--pill .variant-option__button-label__text {
+    display: inline-block !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: inherit !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+
+  /* Mobile: same pills, wrap to next line */
+  @media (max-width: 749px) {
+    .cdl-vp-{{ block.id }} .variant-option--pill {
+      display: block !important;
+    }
+    .cdl-vp-{{ block.id }} .variant-option--pill .variant-option__button-label {
+      padding: 10px 14px !important;
+      font-size: 13.5px !important;
+      min-height: 38px !important;
+    }
+  }
+
+  /* ───── Single-value option: collapse to one-line spec ─────
+     For multi-option products where an option has only 1 value
+     ("Lighting Colour: Warm Light" on Valencia). The pill button is
+     fully hidden; the legend + the existing .variant-option__selected-value
+     span carry the entire content as one inline string:
+       "Lighting Colour: Warm Light · only available option"
+     Fieldset/legend semantics stay intact for forms + screen readers;
+     the radio input inside the hidden pill still ships as `checked`. */
+  .cdl-vp-{{ block.id }} .variant-option--single-value {
+    display: block !important;
+    padding: 4px 0 2px !important;
+    margin: 0 0 4px !important;
+    border: none !important;
+    background: transparent !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--single-value > legend {
+    float: none !important;
+    display: block !important;
+    width: 100% !important;
+    font-size: 11.5px !important;
+    font-weight: 500 !important;
+    color: rgba(10, 10, 15, 0.85) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.5 !important;
+    letter-spacing: -0.003em !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--single-value > legend::after {
+    content: " · only available option";
+    color: rgba(10, 10, 15, 0.35);
+    font-weight: 400;
+    font-size: 10.5px;
+    margin-left: 2px;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--single-value > legend .variant-option__selected-value,
+  .cdl-vp-{{ block.id }} .variant-option--single-value > legend .variant-option__swatch-value {
+    display: inline !important;
+    font-weight: 400 !important;
+    color: rgba(10, 10, 15, 0.62) !important;
+    margin-left: 4px !important;
+    font-size: 11.5px !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--single-value > legend .variant-option__selected-value::before,
+  .cdl-vp-{{ block.id }} .variant-option--single-value > legend .variant-option__swatch-value::before {
+    content: ": ";
+    margin-right: -2px;
+    color: rgba(10, 10, 15, 0.55);
+  }
+  /* Hide the pill button entirely — the legend carries everything.
+     Radio input stays inside (hidden) so the form still submits. */
+  .cdl-vp-{{ block.id }} .variant-option--single-value .variant-option__button-label {
+    display: none !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     TYPE A · SOLID COLOR SWATCH CHIP
+     Renders when option name is color/colour/finish AND every option value
+     has a swatch.color from the linked shopify.color-pattern metaobject.
+     Brand-aligned design: 36px circular dot above the label, ink ring on
+     selected. Replaces Shopify's default tiny-square swatch render.
+     ═══════════════════════════════════════════════════════════════════ */
+
+  /* Fieldset row → horizontal flex with wrap (override the buttons grid).
+     margin-top: 0 explicitly removes the 16px default fieldset margin that
+     pushed the Color picker away from the spec strip / preceding element.
+     Tight at top, breathing room below before the next picker. */
+  .cdl-vp-{{ block.id }} .variant-option--swatches {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: flex-start !important;
+    grid-template-columns: none !important;
+    gap: 14px !important;
+    padding: 0 !important;
+    border: none !important;
+    margin-top: 0 !important;
+    margin-bottom: 14px !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--swatches > legend {
+    flex: 0 0 100% !important;
+    display: block !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #0a0a0f !important;
+    margin: 0 0 8px !important;
+    padding: 0 !important;
+    line-height: 1.3 !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--swatches > legend .variant-option__swatch-value {
+    font-weight: 400;
+    color: rgba(10, 10, 15, 0.62);
+    margin-left: 0;
+  }
+  /* Em-dash separator between option name and currently-selected value
+     (e.g., "Color — Onyx"). Matches the editorial register from the mockups. */
+  .cdl-vp-{{ block.id }} .variant-option--swatches > legend .variant-option__swatch-value::before {
+    content: " — ";
+    color: rgba(10, 10, 15, 0.35);
+    font-weight: 400;
+    margin: 0 4px 0 2px;
+  }
+
+  /* Each label = vertical flex column · dot on top, text below */
+  .cdl-vp-{{ block.id }} .variant-option--swatches .variant-option__button-label {
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 6px !important;
+    width: auto !important;
+    min-width: 64px !important;
+    max-width: 96px !important;
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    padding: 4px !important;
+    border: none !important;
+    background: transparent !important;
+    cursor: pointer !important;
+    transition: transform 0.15s ease !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--swatches .variant-option__button-label:hover {
+    transform: translateY(-1px) !important;
+    border-color: transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--swatches .variant-option__button-label:has(input:checked) {
+    transform: none !important;
+    background: transparent !important;
+    border-color: transparent !important;
+  }
+
+  /* The dot — 36px circle with the swatch background */
+  .cdl-vp-{{ block.id }} .variant-option--swatches .swatch {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    background: var(--swatch-background) !important;
+    border: 1.5px solid rgba(0, 0, 0, 0.10) !important;
+    box-shadow: none !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+    flex-shrink: 0 !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--swatches .variant-option__button-label:hover .swatch {
+    transform: scale(1.04) !important;
+  }
+  /* Selected state · ink ring (matches ADD TO CART selection language) */
+  .cdl-vp-{{ block.id }} .variant-option--swatches .variant-option__button-label:has(input:checked) .swatch {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #0a0a0f !important;
+    transform: none !important;
+  }
+
+  /* The label text below the dot */
+  .cdl-vp-{{ block.id }} .variant-option--swatches .variant-option__swatch-label {
+    font-size: 11.5px !important;
+    font-weight: 500 !important;
+    color: rgba(10, 10, 15, 0.72) !important;
+    text-align: center !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.003em !important;
+    white-space: normal !important;
+    max-width: 88px !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--swatches .variant-option__button-label:has(input:checked) .variant-option__swatch-label {
+    color: #0a0a0f !important;
+    font-weight: 600 !important;
+  }
+
+  /* Hide image/card carryover when in swatch mode (any image rendered by Liquid
+     for combined-listing fallback should not show alongside the dot) */
+  .cdl-vp-{{ block.id }} .variant-option--swatches .variant-option__card-img-wrap,
+  .cdl-vp-{{ block.id }} .variant-option--swatches .variant-option__card-info,
+  .cdl-vp-{{ block.id }} .variant-option--swatches .variant-option__price,
+  .cdl-vp-{{ block.id }} .variant-option--swatches .variant-option__compare-price {
+    display: none !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     TYPE E · Icon pill
+     Renders when product.metafields.custom.option_[N]_selector == 'icon'.
+     Horizontal pills with optional SVG glyph + label. Selected = ink fill
+     (matches ADD TO CART). Per-value glyph from option_[N]_icons CSV
+     metafield, rendered via case statement in the Liquid render block.
+     ═══════════════════════════════════════════════════════════════════ */
+  .cdl-vp-{{ block.id }} .variant-option--icon {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    grid-template-columns: none !important;
+    gap: 8px !important;
+    padding: 0 !important;
+    border: none !important;
+    /* margin-bottom (22px) matches the universal .variant-option rule
+       above so consecutive fieldsets have consistent vertical rhythm. */
+    margin: 0 0 22px !important;
+    width: 100% !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--icon > legend {
+    flex: 0 0 100% !important;
+    display: block !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #0a0a0f !important;
+    margin: 0 0 8px !important;
+    padding: 0 !important;
+    line-height: 1.3 !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--icon > legend .variant-option__selected-value {
+    font-weight: 400;
+    color: rgba(10, 10, 15, 0.62);
+    margin-left: 0;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--icon > legend .variant-option__selected-value::before {
+    content: " — ";
+    color: rgba(10, 10, 15, 0.35);
+    font-weight: 400;
+    margin: 0 4px 0 2px;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    padding: 10px 14px !important;
+    border: 1px solid rgba(10, 10, 15, 0.10) !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    color: #0a0a0f !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    line-height: 1.2 !important;
+    min-height: 40px !important;
+    cursor: pointer !important;
+    /* No transition on border/bg/color — selection feedback must flip
+       in one frame, otherwise both pills sit in a mid-state during the
+       fade and read as co-selected. Hover purple border also snaps in. */
+    transition: none !important;
+    margin: 0 !important;
+    /* Pills grow equally to fill the row instead of sizing to content
+       width. Without this, a long-labeled pill ("Maxi (40\"/100cm)")
+       pushes siblings past container width and they wrap to row 2 —
+       breaking the "side-by-side" expectation on mobile. With flex:
+       1 1 0 + min-width:100, pills evenly distribute up to ~3 per
+       row at 320vw, then wrap. */
+    flex: 1 1 0 !important;
+    min-width: 100px !important;
+    position: relative !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill:hover {
+    border-color: #B0C3FA !important;
+  }
+  /* Selected pill — brand purple ring + soft tint, matches the .--pill
+     rule above. Previously ink-fill which competed with ADD TO CART.
+     The class-based --selected modifier was removed earlier (2026-05-17
+     bug fix) because it didn't unselect on click — selection is now
+     driven entirely by the dynamic :has(input:checked). */
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill:has(input:checked) {
+    background: #F5F0FF !important;
+    color: #0a0a0f !important;
+    border-color: #B0C3FA !important;
+    box-shadow: 0 0 0 3px rgba(176, 195, 250, 0.12) !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill input[type="radio"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-glyph {
+    display: inline-flex;
+    align-items: center;
+    color: rgba(10, 10, 15, 0.55);
+    flex-shrink: 0;
+  }
+  /* Size-icon: reserve the MAX rank-scaled glyph height (26px, = _icon_max
+     in the Liquid above) so the icon can still grow small->large by rank
+     WITHOUT changing the pill height — every size card stays the same
+     height. Icons bottom-align on a shared baseline so they still read as
+     "small, bigger, biggest". Keep 26px in sync with _icon_max. */
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-glyph--size-icon {
+    height: 26px;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  /* Selected glyph — brand purple on light bg (was 78% white on ink) */
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill:has(input:checked) .variant-option__icon-glyph {
+    color: #B0C3FA;
+  }
+  /* ─── Any icon-pill that carries a per-variant price stacks its
+     label + price vertically (column flex) so the "$NNN.NN CAD ·
+     was $NNN.NN" string never overflows past the pill's right edge
+     into the adjacent pill on a 2-column grid (Otis Power Supply
+     "Integrated $339.00 CAD $192.00" colliding with the External
+     Wire pill, 2026-05-20).
+     The :has(.variant-option__size-bar) rule below is more specific
+     and adds the size-bar gap; this one catches the plain
+     icon+label+price pills (e.g. Otis Power Supply: Integrated /
+     External Wire with prices, no size-bar). Excludes pills WITHOUT
+     a price (label-only) so they keep the clean horizontal row. */
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill:has(.variant-option__icon-price):not(:has(.variant-option__size-bar)) {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding: 10px 10px !important;
+    text-align: center;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill:has(.variant-option__icon-price):not(:has(.variant-option__size-bar)) .variant-option__icon-price {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2px !important;
+    font-size: 11.5px !important;
+    line-height: 1.25 !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+  /* Wrap long size strings ("Medium (9.8\"/25cm)") onto two lines instead
+     of ellipsis-clipping. Column-flex pill already centers content; break
+     lands at the space so "Medium" / "(9.8\"/25cm)" both read in full.
+     Locked 2026-05-20 — was clipping on Pyramid + Cube. */
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill:has(.variant-option__icon-price):not(:has(.variant-option__size-bar)) .variant-option__icon-label {
+    max-width: 100% !important;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  /* ─── Gradient size bar (selector: "size-bar") ───────────────────
+     Borrowed from the casa-vdd-v2 neon-sign mockup. 32×3px track,
+     gradient fill width = (rank / total) × 100%. Visualizes 'how
+     big is this size relative to the others' without inch math. */
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__size-bar {
+    display: inline-block;
+    width: 32px;
+    height: 3px;
+    background: rgba(10, 10, 15, 0.10);
+    border-radius: 2px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__size-bar-fill {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #B0C3FA 0%, #5E0A02 50%, #F2FFA0 100%);
+    border-radius: 2px;
+  }
+  /* Selected pill has light-purple bg — track stays at the default
+     10% ink so the gradient fill still pops against it. */
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill:has(input:checked) .variant-option__size-bar {
+    background: rgba(10, 10, 15, 0.10);
+  }
+  /* Allow long variant titles to wrap instead of nowrap-clipping. Applies
+     to every icon-picker label regardless of selector mode (size, size-icon,
+     size-bar, icon, pill, mood, count, swatch). overflow-wrap: anywhere is
+     the safety net for unusual non-breaking strings; natural space-breaks
+     handle "Small (7.9\"/20cm)" cleanly. Locked 2026-05-20 — was clipping
+     on every icon-picker pill that didn't carry a per-variant price. */
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-label {
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.2;
+    color: inherit;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  /* ─── Per-variant price tag (size-bar / size-icon / icon pickers) ──
+     Tnum so $69.99 / $79.99 / $89.99 align vertically across pills.
+     Subtler than the label by default, bumps to full ink when the
+     pill is selected. */
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-price {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: rgba(10, 10, 15, 0.70);
+    font-feature-settings: "tnum" 1;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-price-was {
+    color: rgba(10, 10, 15, 0.40);
+    font-weight: 400;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill:has(input:checked) .variant-option__icon-price {
+    color: #0a0a0f;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill:has(input:checked) .variant-option__icon-price-was {
+    color: rgba(10, 10, 15, 0.55);
+  }
+  /* ─── Size-bar pills render as vertical cards (matches the infinity-
+     mirror size picker). Bar on top, label middle, price bottom. 3
+     cards always sit side-by-side at every viewport — never stacked.
+     Scoped via :has(.variant-option__size-bar) so the icon / size-icon
+     pickers (no bar inside) keep their horizontal [glyph] [label]
+     layout. */
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill:has(.variant-option__size-bar) {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    padding: 14px 10px !important;
+    min-height: auto !important;
+    min-width: 0 !important;
+    text-align: center;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill:has(.variant-option__size-bar) .variant-option__size-bar {
+    width: 44px;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill:has(.variant-option__size-bar) .variant-option__icon-price {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2px !important;
+    font-size: 11.5px !important;
+    line-height: 1.25 !important;
+  }
+  @media (max-width: 749px) {
+    .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill {
+      padding: 9px 12px !important;
+      min-height: 38px !important;
+    }
+    /* Mobile size-bar cards stay 3-across; tighten padding / fonts so
+       115-ish-px-wide cards still hold "$1,179.00 CAD" without ellipsis. */
+    .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill:has(.variant-option__size-bar) {
+      padding: 12px 6px !important;
+      gap: 6px !important;
+    }
+    .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill:has(.variant-option__size-bar) .variant-option__icon-label {
+      font-size: 12.5px !important;
+    }
+    .cdl-vp-{{ block.id }} .variant-option--icon .variant-option__icon-pill:has(.variant-option__size-bar) .variant-option__icon-price {
+      font-size: 11px !important;
+    }
+  }
+
+  {%- comment -%}
+    Read the metafield flag UP HERE (before any compact CSS is emitted)
+    so we can guard the entire compact-pill rule block. The flag is the
+    same one read again at the <variant-picker> open tag for the wrapper
+    class — duplicated read here because Liquid scope inside the inline
+    <style> block doesn't inherit from outside it cleanly.
+  {%- endcomment -%}
+  {%- assign _vpc_compact = product_resource.metafields.custom.variant_picker_config.value -%}
+  {%- assign _emit_compact_css = false -%}
+  {%- if _vpc_compact != blank and _vpc_compact.compact_image_pills -%}
+    {%- assign _emit_compact_css = true -%}
+  {%- endif -%}
+  {%- if _emit_compact_css -%}
+  /* ═══════════════════════════════════════════════════════════════════
+     COMPACT IMAGE-PILL OVERRIDE — OPT-IN via product metafield
+
+     Enabled per-product by setting custom.variant_picker_config to
+     `{ ..., "compact_image_pills": true }`. Otis has it on (its 2-row
+     image-card buy box would push ADC below the fold). Calini and
+     other PDPs do NOT have it — their image cards stay big (180×180
+     thumb + price + compare-at) which is the Horizon default.
+
+     Default image cards render at ~276px tall (180×180 image + price
+     block + padding). On products where the buy box has lots of other
+     rows, that's fine. On Otis (multiple variant rows + spec strip),
+     it eats the entire above-the-fold real estate.
+
+     Compact mode: horizontal pill (60×60 thumb + label only, ~76px
+     tall = roughly same height as icon-pill rows beneath). Drops
+     fieldset height ~228px per image-card row.
+     ═══════════════════════════════════════════════════════════════════ */
+  .cdl-vp-{{ block.id }} .variant-option--buttons {
+    display: flex !important;
+    /* casa-pdp.css sets flex-direction: column on the fieldset via
+       :has(.variant-option__price) — that's why cards stacked vertically
+       even when sized to content width. Forcing row here. */
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    grid-template-columns: none !important;
+    gap: 8px !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label--has-img {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 6px 16px 6px 6px !important;
+    min-height: 0 !important;
+    /* Compact pills grow EQUALLY to fill the row (flex: 1 1 0) so
+       long-labeled variants don't push siblings to the next line at
+       narrow viewports. Without this, "Multicolour (RGB)" pushes
+       "Warm Light" past container width on mobile and they stack
+       vertically — exactly the bug the user flagged.
+       min-width: 140px keeps the pill big enough for thumb + label.
+       max-width: none lets pills fill wide containers; the parent
+       fieldset's grid-template-columns from the auto-layout fix is
+       the actual width controller. */
+    width: auto !important;
+    max-width: none !important;
+    min-width: 140px !important;
+    flex: 1 1 0 !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label--has-img .variant-option__card-img-wrap {
+    width: 60px !important;
+    height: 60px !important;
+    aspect-ratio: 1 / 1 !important;
+    flex: 0 0 60px !important;
+    margin: 0 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    position: static !important;
+    background: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label--has-img .variant-option__card-img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label--has-img .variant-option__card-info {
+    flex: 0 1 auto !important;
+    padding: 0 !important;
+    background: none !important;
+    position: static !important;
+    opacity: 1 !important;
+    transform: none !important;
+    border-radius: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0 !important;
+  }
+  /* Hide the redundant price + compare-at inside the card. */
+  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label--has-img .variant-option__price,
+  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label--has-img .variant-option__compare-price,
+  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label--has-img s,
+  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label--has-img del,
+  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label--has-img .price--compare,
+  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label--has-img [class*="compare"] {
+    display: none !important;
+  }
+  .cdl-vp-{{ block.id }} .variant-option--buttons .variant-option__button-label--has-img .variant-option__button-label__text {
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    line-height: 1.2 !important;
+    color: #0a0a0f !important;
   }
   {%- endif -%}
 </style>
@@ -239,9 +1156,19 @@
     else
       assign strikethrough_color_mix = '#fff'
     endif
+
+    # Compact image-pill mode — opt-in via product metafield. Only fires
+    # when custom.variant_picker_config.compact_image_pills == true.
+    # Otis sets this because its buy box overflows; other PDPs (Calini,
+    # etc.) keep the default big image cards.
+    assign _vpc_root = product_resource.metafields.custom.variant_picker_config.value
+    assign _compact_pills = false
+    if _vpc_root != blank and _vpc_root.compact_image_pills
+      assign _compact_pills = true
+    endif
   %}
   <variant-picker
-    class="variant-picker spacing-style variant-picker--{{ block_settings.alignment }} cdl-vp-{{ block.id }}"
+    class="variant-picker spacing-style variant-picker--{{ block_settings.alignment }} cdl-vp-{{ block.id }}{% if _compact_pills %} cdl-vp--compact-pills{% endif %}"
     style="--color-strikethrough-mix: {{ strikethrough_color_mix }}; --cdl-price-size: {{ cdl_price_size }}px; {% render 'spacing-style', settings: block_settings %}"
     data-section-id="{{ section.id }}"
     data-product-id="{{ product_resource.id }}"
@@ -257,10 +1184,82 @@
     {% endif %}
   >
     <form class="variant-picker__form">
+      {%- comment -%}
+        Compute the primary-visual-slot index ONCE before the option loop.
+        The primary slot = the first option with MORE than 1 value (the first
+        option that's actually a meaningful choice). Single-value options
+        (e.g. Valencia's "Lighting Colour: Warm Light only") shouldn't burn
+        the visual cards slot since they're not a real decision.
+      {%- endcomment -%}
+      {%- liquid
+        assign _primary_visual_idx = -1
+        for _opt in product_resource.options_with_values
+          if _opt.values.size > 1 and _primary_visual_idx == -1
+            assign _primary_visual_idx = forloop.index0
+          endif
+        endfor
+      -%}
       {%- for product_option in product_resource.options_with_values -%}
         {%- liquid
           assign swatch_count = product_option.values | map: 'swatch' | compact | size
           assign variant_style = block_settings.variant_style
+
+          # Rule 1 (locked 2026-05-17): "USE IMAGES WHEN 3 VARIANTS OR LESS.
+          # Switch accordingly for >3." Image cards fit one row at 2-3
+          # columns. At 4+ values cards either get crushed narrow OR wrap
+          # to row 2, both of which the merchant explicitly forbade.
+          # Threshold lowered from 5 to 3 (was previously 5 = dropdown at
+          # 6+; now 3 = dropdown at 4+). Products affected: Mini Sunset
+          # Orb, Marigold Vase, Annalyse, Ella End Table, Bubble Girls
+          # collections (Bubble / Parisian / Soulful), Chilling/Thinkers/
+          # Dancers collections — all jump from image cards to dropdown.
+          if variant_style == 'buttons' and product_option.values.size > 3
+            assign variant_style = 'dropdown'
+          endif
+
+          # Multi-option products: keep the FIRST MULTI-VALUE option as visual
+          # button-cards (typically the marquee decision — colour / finish /
+          # style). For every OTHER option:
+          #   - If it has ≤3 values → render as inline pills (icon style,
+          #     no glyph required). 2-3 sizes / wires / styles fit on a
+          #     single line at every viewport — pill is more compact than
+          #     a full-width dropdown for a binary or 3-way choice.
+          #   - If it has 4+ values → fall through to dropdown.
+          # Picks up where line 1049's image-card threshold (>3 → dropdown)
+          # leaves off: small non-primary options become pills instead of
+          # dropdowns. Merchant rule (locked 2026-05-17): "if more than 1
+          # option — switch accordingly so they're not all buttons", AND
+          # "buttons never appear on multiple lines, ever". Pills satisfy
+          # both: visually distinct from the primary image-cards AND
+          # guaranteed single-line at ≤3 values.
+          if variant_style == 'buttons' and product_resource.options_with_values.size > 1 and forloop.index0 != _primary_visual_idx
+            if product_option.values.size <= 3
+              assign variant_style = 'icon'
+            else
+              assign variant_style = 'dropdown'
+            endif
+          endif
+
+          # Single-value options on multi-option products: force back to "buttons"
+          # style so the single-value-collapse rendering (compact "Name: Value
+          # · only available" text line) wins. Without this override, Valencia's
+          # "Lighting Colour: Warm Light" got swept into the dropdown auto-switch
+          # above and rendered a useless one-row dropdown.
+          if product_option.values.size == 1 and product_resource.options_with_values.size > 1
+            assign variant_style = 'buttons'
+          endif
+
+          # Smart-selector Type A: auto-fire native Shopify swatches when the
+          # option is a real color decision (option name contains color/colour/
+          # finish) AND every option value has a swatch.color from the linked
+          # shopify.color-pattern metaobject. The merchant's show_swatches
+          # toggle still works for non-color options (size/pattern swatches),
+          # but color options no longer need the toggle.
+          assign _opt_name_lower = product_option.name | downcase
+          assign _is_color_option = false
+          if _opt_name_lower contains 'color' or _opt_name_lower contains 'colour' or _opt_name_lower contains 'finish'
+            assign _is_color_option = true
+          endif
 
           if swatch_count > 0 and block_settings.show_swatches
             if block_settings.variant_style == 'dropdown'
@@ -268,7 +1267,119 @@
             else
               assign variant_style = 'swatch'
             endif
+          elsif swatch_count > 0 and _is_color_option and swatch_count == product_option.values.size
+            # All values have swatches AND option is a color decision → force Type A swatch render
+            assign variant_style = 'swatch'
           endif
+
+          # ═════════════════════════════════════════════════════════════
+          # Smart-selector dispatcher — JSON metafield-driven (final word).
+          #
+          # Single product metafield: custom.variant_picker_config (JSON)
+          # Keyed by option NAME (not position) — survives option reorder.
+          #
+          #   {
+          #     "Power Supply": { "selector": "icon",
+          #                       "icons": { "Integrated": "plug",
+          #                                  "External Wire": "cable" } },
+          #     "Length":       { "selector": "size" },
+          #     "Color":        { "selector": "swatch" }
+          #   }
+          #
+          # selector ∈ swatch | mood | size | count | pill | icon | image | default
+          # When unset for an option, existing auto-detection / button
+          # defaults apply (color-name detection routes to 'swatch';
+          # everything else stays 'buttons' / 'dropdown').
+          #
+          # Legacy fallback: position-based keys custom.option_[N]_selector
+          # + custom.option_[N]_icons (CSV) are still read if the JSON
+          # config has no entry for this option. Will be removed once all
+          # products are migrated.
+          # ═════════════════════════════════════════════════════════════
+          assign _opt_position = forloop.index
+          assign _vpc = product_resource.metafields.custom.variant_picker_config.value
+          assign _opt_config = nil
+          if _vpc != blank
+            assign _opt_config = _vpc[product_option.name]
+          endif
+          assign _selector_override = ''
+          assign _icons_map = nil
+          assign _size_icon_name = ''
+          if _opt_config != blank
+            assign _selector_override = _opt_config.selector | default: ''
+            assign _icons_map = _opt_config.icons
+            assign _size_icon_name = _opt_config.icon | default: ''
+          endif
+
+          # Legacy fallback (position-based keys) — only when JSON has no entry
+          if _selector_override == blank or _selector_override == ''
+            assign _legacy_key = 'option_' | append: _opt_position | append: '_selector'
+            assign _legacy_override = product_resource.metafields.custom[_legacy_key]
+            if _legacy_override != blank
+              assign _selector_override = _legacy_override
+            endif
+          endif
+
+          # 'icon' → pills with per-value glyph (from JSON icons map OR legacy CSV)
+          # 'size' / 'pill' → same pill render, no glyph (just text pills)
+          # 'size-bar' → enables the bar visualization. For ≤3 values, forces
+          #               inline-pill render (icon style) so the bar shows
+          #               next to the label. For >3 values, dispatches
+          #               naturally (typically casa-vdd dropdown), which has
+          #               its OWN bar render in the trigger-foot + option-foot
+          #               alongside placement subtitles + per-row price +
+          #               compare-at. Force-routing >3 to icon stripped the
+          #               richer dropdown UX — fixed 2026-05-19 for neon signs.
+          # 'size-icon' → pills with the same icon (from _opt_config.icon
+          #               singular, e.g. "cube") rendered at progressively
+          #               larger sizes (14px → 26px linearly by rank).
+          #               First introduced 2026-05-19 for Infinity Cube
+          #               where the merchant wanted "a cube that's small,
+          #               bigger and bigger" instead of an abstract bar.
+          # These route to variant_style = 'icon' which renders the inline-pill
+          # fieldset; the glyph render is a no-op when no icon mapping exists.
+          if _selector_override == 'icon' or _selector_override == 'size' or _selector_override == 'pill' or _selector_override == 'size-icon'
+            assign variant_style = 'icon'
+          endif
+          if _selector_override == 'size-bar' and product_option.values.size <= 3
+            assign variant_style = 'icon'
+          endif
+          # 'dropdown' → force casa-vdd dropdown render. Use when swatch
+          # auto-detection produces an inconsistent mixed layout (e.g.
+          # Glass Bubble Accessory: 5 single-color variants get swatch
+          # dots, 2 multi-bubble sets fall back to image thumbnails →
+          # two visual languages in one row). Forcing dropdown unifies
+          # every variant to the same row treatment (image + name + price).
+          if _selector_override == 'dropdown'
+            assign variant_style = 'dropdown'
+          endif
+          # 'swatch' → force swatch render even when not all values have
+          # a swatch.color metaobject. Variants without a swatch fall
+          # through to the variant-image thumbnail (current default
+          # behavior). Use when you want to opt-in to swatch grammar.
+          if _selector_override == 'swatch'
+            assign variant_style = 'swatch'
+          endif
+          # 'image' → force image-card render (button-card grid).
+          # Auto-converts to dropdown at >3 values per Rule 1.
+          if _selector_override == 'image'
+            if product_option.values.size > 3
+              assign variant_style = 'dropdown'
+            else
+              assign variant_style = 'buttons'
+            endif
+          endif
+        -%}
+
+        {%- comment -%}
+          DEV-visible warn for unknown selector values — surfaces typos
+          during QA without breaking the render (falls through to default).
+        {%- endcomment -%}
+        {%- if _selector_override != '' and _selector_override != 'icon' and _selector_override != 'size' and _selector_override != 'size-bar' and _selector_override != 'size-icon' and _selector_override != 'pill' and _selector_override != 'swatch' and _selector_override != 'mood' and _selector_override != 'count' and _selector_override != 'image' and _selector_override != 'default' -%}
+          <!-- DEV WARN: variant_picker_config["{{ product_option.name }}"].selector "{{ _selector_override }}" not recognized; falling back to default render. Valid values: swatch | mood | size | size-bar | size-icon | count | pill | icon | image | default -->
+        {%- endif -%}
+
+        {%- liquid
 
           if variant_style == 'buttons' and settings.variant_button_width == 'equal-width-buttons'
             assign fieldset_id = section.id | append: '-' | append: product_resource.id | append: '-' | append: product_option.name | handleize
@@ -279,8 +1390,95 @@
 
         {%- if variant_style == 'swatch' or variant_style == 'buttons' -%}
           {%- assign fieldset_index = forloop.index0 -%}
+          {%- comment -%}
+            Pill redesign: every "buttons"-style fieldset renders as a compact
+            text-pill row. Single-value options on multi-option products
+            collapse to a one-line spec instead of rendering a useless picker.
+          {%- endcomment -%}
+          {%- assign _is_single_value = false -%}
+          {%- if product_option.values.size == 1 and product_resource.options_with_values.size > 1 -%}
+            {%- assign _is_single_value = true -%}
+          {%- endif -%}
+          {%- liquid
+            assign cdl_selected_size_primary = product_option.selected_value
+            assign cdl_selected_size_secondary = ''
+            if _opt_name_lower contains 'size' and product_option.selected_value contains '/'
+              assign cdl_selected_size_parts = product_option.selected_value | split: '/'
+              assign cdl_selected_size_primary = cdl_selected_size_parts.first | strip
+              assign cdl_selected_size_secondary = cdl_selected_size_parts.last | strip
+              assign cdl_selected_size_primary_lower = cdl_selected_size_primary | downcase
+              if cdl_selected_size_primary_lower contains 'cm'
+                assign cdl_selected_size_swap = cdl_selected_size_primary
+                assign cdl_selected_size_primary = cdl_selected_size_secondary
+                assign cdl_selected_size_secondary = cdl_selected_size_swap
+              endif
+            endif
+          -%}
+          {%- comment -%}
+            ═══════════════════════════════════════════════════════════════
+            Auto-layout for buttons-style fieldset.
+
+            Resolution order:
+            1. Per-option override: variant_picker_config[option.name].cards_per_row
+               (merchant decision — wins over everything)
+            2. Auto-pick based on value count + image presence:
+                 1 value      → 1 col (single-value collapse fires separately)
+                 2 values     → 2 cols, fill row
+                 3 values     → 3 cols, fill row
+                 4+ values w/ image cards → cap at 3 cols (multi-row grid;
+                                            keeps images readable at scale)
+                 4+ values text-only       → use merchant cards_per_row setting
+            3. Hard clamp: never exceed values.size (otherwise empty columns)
+
+            Examples:
+              Genix (2 image values, cards_per_row=6) → 2 cols ✓
+              Calini (3 image values, cards_per_row=3) → 3 cols ✓
+              Otis Lighting Colour (2 image values, compact mode on) →
+                 doesn't reach this code path (compact uses flex, not grid)
+              Future product w/ 5 image variants → 3 cols, 2-row grid
+
+            Per-product override example (variant_picker_config JSON):
+              { "Size": { "selector": "size-bar", "cards_per_row": 4 } }
+            ═══════════════════════════════════════════════════════════════
+          {%- endcomment -%}
+          {%- liquid
+            # 1. Does this option have a cards_per_row override?
+            assign _cards_per_row_override = nil
+            if _opt_config != blank
+              assign _cards_per_row_override = _opt_config.cards_per_row
+            endif
+
+            # 2. Detect image cards (any value with a featured_media)
+            assign _has_image_cards = false
+            for _v in product_option.values
+              if _v.variant.featured_media != blank
+                assign _has_image_cards = true
+                break
+              endif
+            endfor
+
+            # 3. Resolve column count
+            if _cards_per_row_override != blank
+              assign _cols_in_row = _cards_per_row_override
+            elsif product_option.values.size <= 3
+              # 1-3 values: fill row with N columns (no empty space)
+              assign _cols_in_row = product_option.values.size
+            elsif _has_image_cards
+              # 4+ image values: cap at 3 cols, let extra wrap to row 2
+              assign _cols_in_row = 3
+            else
+              # 4+ text values: use merchant cards_per_row setting
+              assign _cols_in_row = cdl_cards_per_row
+            endif
+
+            # 4. Hard clamp: never exceed values.size
+            if _cols_in_row > product_option.values.size
+              assign _cols_in_row = product_option.values.size
+            endif
+          -%}
           <fieldset
-            class="variant-option variant-option--buttons{% if variant_style == 'swatch' %} variant-option--swatches{% else %} variant-option--{{ settings.variant_button_width }}{% endif %}"
+            class="variant-option variant-option--buttons{% if variant_style == 'swatch' %} variant-option--swatches{% else %} variant-option--{{ settings.variant_button_width }}{% endif %}{% if _is_single_value %} variant-option--single-value{% endif %}"
+            style="grid-template-columns: repeat({{ _cols_in_row }}, minmax(0, 1fr)) !important;"
             data-fieldset-index="{{ fieldset_index }}"
             ref="fieldsets[]"
             {{ option_id_attribute }}
@@ -289,6 +1487,15 @@
               {{ product_option.name | escape -}}
               {%- if variant_style == 'swatch' -%}
                 <span class="variant-option__swatch-value">{{ product_option.selected_value }}</span>
+              {%- else -%}
+                <span class="variant-option__selected-value">
+                  {%- if cdl_selected_size_secondary != blank -%}
+                    <span class="variant-option__size-primary">{{ cdl_selected_size_primary }}</span>
+                    <small class="variant-option__size-secondary">{{ cdl_selected_size_secondary }}</small>
+                  {%- else -%}
+                    {{ product_option.selected_value }}
+                  {%- endif -%}
+                </span>
               {%- endif %}
             </legend>
             {%- for product_option_value in product_option.values -%}
@@ -296,6 +1503,19 @@
                 {% assign longest_value = product_option_value.size %}
               {% endif %}
               {%- liquid
+                assign cdl_size_primary = product_option_value
+                assign cdl_size_secondary = ''
+                if _opt_name_lower contains 'size' and product_option_value contains '/'
+                  assign cdl_size_parts = product_option_value | split: '/'
+                  assign cdl_size_primary = cdl_size_parts.first | strip
+                  assign cdl_size_secondary = cdl_size_parts.last | strip
+                  assign cdl_size_primary_lower = cdl_size_primary | downcase
+                  if cdl_size_primary_lower contains 'cm'
+                    assign cdl_size_swap = cdl_size_primary
+                    assign cdl_size_primary = cdl_size_secondary
+                    assign cdl_size_secondary = cdl_size_swap
+                  endif
+                endif
                 assign cdl_label_media = product_option_value.variant.featured_media
                 if cdl_label_media == blank and product_option_value.product_url
                   assign cdl_label_media = product_option_value.variant.product.featured_media
@@ -308,7 +1528,7 @@
                   type="radio"
                   name="{{ product_option.name | escape }}-{{ block.id }}-{{ product_resource.id }}"
                   value="{{ product_option_value | escape }}"
-                  aria-label="{{ product_option_value.name }}"
+                  aria-label="{{ product_option_value.name | escape }}"
                   {% if product_option_value.available == false %}
                     aria-disabled="true"
                   {% endif %}
@@ -345,6 +1565,14 @@
                     variant_image: featured_media,
                     mode: 'unscaled'
                   %}
+
+                  {%- comment -%}
+                    Type A · render the option-value name below the swatch dot.
+                    Default Shopify swatch shows the selected value in the legend
+                    only; for our brand-aligned chip design we want each dot to
+                    carry its label below. CSS does the vertical-flex layout.
+                  {%- endcomment -%}
+                  <span class="variant-option__swatch-label">{{ product_option_value | escape }}</span>
                 {% else %}
                   {%- comment -%} Resolve variant image {%- endcomment -%}
                   {%- liquid
@@ -386,7 +1614,12 @@
                       class="variant-option__button-label__text"
                       data-key="variant-option-text"
                     >
-                      {{- product_option_value | escape -}}
+                      {%- if cdl_size_secondary != blank -%}
+                        <span class="variant-option__size-primary">{{ cdl_size_primary | escape }}</span>
+                        <small class="variant-option__size-secondary">{{ cdl_size_secondary | escape }}</small>
+                      {%- else -%}
+                        {{- product_option_value | escape -}}
+                      {%- endif -%}
                     </span>
 
                     {%- if product_option_value.variant -%}
@@ -395,9 +1628,29 @@
                       {%- if v_dimensions != blank -%}
                         <span class="variant-option__dimensions">{{ v_dimensions }}</span>
                       {%- endif -%}
-                      <span class="variant-option__price" data-variant-price>
-                        {{- v.price | money -}}
-                      </span>
+                      {%- comment -%}
+                        Hide per-option price on image-card buttons when the
+                        product has multiple option groups. With 2 axes (e.g.
+                        Color + Size) the dropdown / pill for the SECOND
+                        option already shows the per-variant price, so
+                        repeating it under each color card just doubles the
+                        same number on the page. The buy-box price below
+                        the picker remains as the authoritative current price.
+                        Merchant flagged 2026-05-17 ("showing price twice?
+                        one for the mirror color, then one for the mirror
+                        size?"). Solo-option products (just Color) keep the
+                        price under each card since there's no other surface.
+                      {%- endcomment -%}
+                      {%- if product_resource.options_with_values.size == 1 -%}
+                        <span class="variant-option__price" data-variant-price>
+                          {{- v.price | money_with_currency -}}
+                        </span>
+                        {%- unless cdl_hide_compare_price -%}
+                          {%- if v.compare_at_price > v.price -%}
+                            <span class="variant-option__compare-price">{{ v.compare_at_price | money_with_currency }}</span>
+                          {%- endif -%}
+                        {%- endunless -%}
+                      {%- endif -%}
                     {%- endif -%}
                   </span>
                 {% endif %}
@@ -412,24 +1665,161 @@
               {% endstyle %}
             {% endif %}
           </fieldset>
+
+        {%- elsif variant_style == 'icon' -%}
+          {%- comment -%}
+            ═══════════════════════════════════════════════════════════════
+            TYPE E · Icon pill
+            Renders when variant_picker_config[option.name].selector == 'icon'
+            (or 'size' / 'pill' — same pill, no glyph).
+
+            Per-value glyph mapping comes from the JSON config:
+              "icons": { "Integrated": "plug", "External Wire": "cable" }
+
+            Icon names resolve to versioned SVG glyphs in the
+            casa-variant-icons snippet (single source of truth for icons).
+            Unknown names fall back to a visible placeholder dot.
+
+            Legacy fallback (during migration): if the JSON config has no
+            icons map for this option, read from custom.option_[N]_icons
+            (CSV format: "Integrated:plug,External Wire:cable").
+
+            Form integrity: each pill is a <label> wrapping a real
+            <input type="radio">. Standard Shopify variant-picker form
+            submission works without changes.
+            ═══════════════════════════════════════════════════════════════
+          {%- endcomment -%}
+          {%- liquid
+            # Legacy CSV fallback — only used if JSON icons map is absent
+            assign _legacy_icons_csv = ''
+            if _icons_map == blank or _icons_map == nil
+              assign _legacy_icons_key = 'option_' | append: _opt_position | append: '_icons'
+              assign _legacy_icons_csv = product_resource.metafields.custom[_legacy_icons_key] | default: ''
+            endif
+            assign _legacy_icons_pairs = _legacy_icons_csv | split: ','
+          -%}
+          <fieldset class="variant-option variant-option--icon" data-fieldset-index="{{ forloop.index0 }}" ref="fieldsets[]">
+            <legend>
+              {{ product_option.name | escape -}}
+              <span class="variant-option__selected-value">{{ product_option.selected_value }}</span>
+            </legend>
+            {%- for product_option_value in product_option.values -%}
+              {%- liquid
+                assign _icon_for_value = ''
+                assign _value_trimmed = product_option_value | strip
+
+                # 1. Preferred path: JSON icons map (keyed by value name)
+                if _icons_map != blank and _icons_map != nil
+                  assign _icon_for_value = _icons_map[_value_trimmed] | default: ''
+                endif
+
+                # 2. Legacy fallback: CSV-format pairs in custom.option_[N]_icons
+                if _icon_for_value == '' or _icon_for_value == blank
+                  for _pair in _legacy_icons_pairs
+                    assign _parts = _pair | split: ':'
+                    assign _key_trimmed = _parts[0] | strip
+                    if _key_trimmed == _value_trimmed
+                      assign _icon_for_value = _parts[1] | strip
+                      break
+                    endif
+                  endfor
+                endif
+              -%}
+
+              {%- comment -%}
+                Selected state is driven by :has(input:checked) only — do NOT
+                add a static .variant-option__icon-pill--selected class at
+                server-render time. That class survived clicks (no JS removed
+                it), causing the previously-selected pill to stay ink-filled
+                while the new pill ALSO showed ink-filled. Bug 2026-05-17.
+              {%- endcomment -%}
+              <label class="variant-option__icon-pill">
+                <input
+                  type="radio"
+                  name="{{ product_option.name | escape }}-{{ block.id }}-{{ product_resource.id }}"
+                  value="{{ product_option_value | escape }}"
+                  aria-label="{{ product_option_value.name | escape }}"
+                  {% if product_option_value.available == false %}aria-disabled="true"{% endif %}
+                  data-fieldset-index="{{ forloop.index0 }}"
+                  data-input-index="{{ forloop.index0 }}"
+                  data-input-id="{{ product_option.position }}-{{ forloop.index0 }}"
+                  data-option-value-id="{{ product_option_value.id }}"
+                  data-option-available="{{ product_option_value.available }}"
+                  data-connected-product-url="{{ product_option_value.product_url }}"
+                  {% if product_option_value.variant.id %}data-variant-id="{{ product_option_value.variant.id }}"{% endif %}
+                  {% if product_option_value.selected %}data-current-checked="true" checked{% else %}data-current-checked="false"{% endif %}
+                >
+                {%- if _selector_override == 'size-bar' -%}
+                  {%- comment -%}
+                    Rank-based gradient bar — fills proportionally to the
+                    variant's rank (forloop.index / total). For 2 sizes:
+                    Mini = 50%, Maxi = 100%. For 5 sizes: 20/40/60/80/100.
+                    No metafield setup needed — derived from option order.
+                  {%- endcomment -%}
+                  {%- assign _bar_fill_pct = forloop.index | times: 100 | divided_by: product_option.values.size -%}
+                  <span class="variant-option__size-bar" aria-hidden="true">
+                    <span class="variant-option__size-bar-fill" style="width: {{ _bar_fill_pct }}%"></span>
+                  </span>
+                {%- elsif _selector_override == 'size-icon' and _size_icon_name != '' -%}
+                  {%- comment -%}
+                    Scaled-icon — same icon (_opt_config.icon, singular)
+                    rendered at progressively larger sizes by rank. Range
+                    is 14px (smallest) → 26px (largest), linear over
+                    forloop.length. For 3 values: 14, 20, 26. For 5
+                    values: 14, 17, 20, 23, 26. Falls back to size-bar
+                    behavior if no icon name set.
+                    Locked 2026-05-19 for Infinity Cube ("cube that's
+                    small, bigger and bigger").
+                  {%- endcomment -%}
+                  {%- assign _icon_min = 14 -%}
+                  {%- assign _icon_max = 26 -%}
+                  {%- assign _icon_range = _icon_max | minus: _icon_min -%}
+                  {%- assign _icon_divisor = product_option.values.size | minus: 1 -%}
+                  {%- if _icon_divisor < 1 -%}
+                    {%- assign _icon_size_v = _icon_max -%}
+                  {%- else -%}
+                    {%- assign _icon_step = _icon_range | times: forloop.index0 | divided_by: _icon_divisor -%}
+                    {%- assign _icon_size_v = _icon_min | plus: _icon_step -%}
+                  {%- endif -%}
+                  <span class="variant-option__icon-glyph variant-option__icon-glyph--size-icon" aria-hidden="true">
+                    {%- render 'casa-variant-icons', name: _size_icon_name, size: _icon_size_v -%}
+                  </span>
+                {%- elsif _icon_for_value != '' and _icon_for_value != blank -%}
+                  <span class="variant-option__icon-glyph" aria-hidden="true">
+                    {%- render 'casa-variant-icons', name: _icon_for_value, size: 15 -%}
+                  </span>
+                {%- endif -%}
+                <span class="variant-option__icon-label">{{ product_option_value | escape }}</span>
+                {%- comment -%}
+                  Per-variant price visible inline — shopper sees the full
+                  price ladder without clicking each option. Was-price gets
+                  the <s> wrap (brand_strikethrough_was_price). Currency
+                  flows through money_with_currency so Shopify Markets
+                  converts the display (brand_never_hardcode_currency).
+                  Skipped when the option_value has no connected variant
+                  (multi-option products where Shopify can't unambiguously
+                  resolve a single price for the axis).
+                {%- endcomment -%}
+                {%- if product_option_value.variant and product_option_value.variant.price -%}
+                  {%- assign _opt_v = product_option_value.variant -%}
+                  <span class="variant-option__icon-price">
+                    {%- if _opt_v.compare_at_price and _opt_v.compare_at_price > _opt_v.price -%}
+                      <s class="variant-option__icon-price-was">{{ _opt_v.compare_at_price | money_with_currency }}</s>
+                    {%- endif -%}
+                    <span class="variant-option__icon-price-now">{{ _opt_v.price | money_with_currency }}</span>
+                  </span>
+                {%- endif -%}
+                {% render 'strikethrough-variant', product_option: product_option_value %}
+              </label>
+            {%- endfor -%}
+          </fieldset>
+
         {%- elsif variant_style == 'dropdown' or variant_style == 'swatch_dropdown' -%}
           {%
             # There is an opportunity to build a custom select component that will allow us to style the select element further (animation for dropdown, swatches shown in the dropdown options, etc)
             # It's too bad as it mean rebuilding baked in behaviours but I think we've already done that for the locale selectors
             # in dawn. So it might mean more time spent in setting it up but worth it for future updates/styling.
           %}
-          {% liquid
-            assign property_being_updated = false
-            if settings.variant_swatch_width != settings.variant_swatch_height
-              assign property_being_updated = true
-              # (original width / original height) x new height (20px at the moment) = new width
-              assign new_width = settings.variant_swatch_width | times: 1.0 | divided_by: settings.variant_swatch_height | times: 20
-            endif
-          %}
-
-          {%- comment -%} Parse variant badges from product metafield (JSON object) {%- endcomment -%}
-          {%- assign variant_badges_meta = product_resource.metafields.custom.variant_badges.value -%}
-
           <div class="variant-option variant-option--dropdowns">
             <label for="Option-{{ block.id }}-{{ forloop.index0 }}">{{ product_option.name | escape }}</label>
 
@@ -453,28 +1843,188 @@
               {%- endfor -%}
             </select>
 
-            {%- comment -%} Custom visual dropdown with variant images {%- endcomment -%}
+            {%- comment -%}
+              Resolve product-level overrides ONCE — used by both trigger and option list.
+              (Moved up from inside .casa-vdd__list so the trigger can also render
+              the size bar + placement copy for the selected variant.)
+            {%- endcomment -%}
+
+            {%- comment -%}
+              Size-option detection: OPT-IN via product metafield. When the
+              merchant sets custom.variant_picker_config[Option].selector to
+              "size-bar", we suppress per-variant product photos on the
+              trigger and option rows and let the gradient size-bar carry the
+              visual job. Same flag also drives auto placement-hint labels
+              (compact / small / medium / …).
+
+              Previously this auto-fired whenever the option name contained
+              "size" / "length" / "dimension". That misfired on products where
+              the "Size" axis actually mixes formats or bundles — Melita /
+              Matsutake / Zitake Mushroom Lamps ("Large - Corded / Small -
+              Cordless / Set"), Calini Coffee Table ("Small / Large / Full
+              Set"), Sapphire Pet Bowl ("Single Bowl / Double Bowl"). Bar
+              rank derived from forloop position was meaningless or wrong
+              there. Behavior is now selected per-product, not guessed from
+              a column header — flipped to opt-in 2026-05-19.
+            {%- endcomment -%}
+            {%- assign _is_size_option = false -%}
+            {%- if _selector_override == 'size-bar' -%}
+              {%- assign _is_size_option = true -%}
+            {%- endif -%}
+
+            {%- assign _placement_hints_raw = product_resource.metafields.custom.placement_hints | default: '' -%}
+            {%- assign _has_placement_list = false -%}
+            {%- if _placement_hints_raw != '' -%}
+              {%- assign _placement_hints = _placement_hints_raw | split: ',' -%}
+              {%- assign _has_placement_list = true -%}
+            {%- endif -%}
+            {%- assign _featured_variant_id = product_resource.metafields.custom.featured_variant.value.id | default: 0 -%}
+            {%- assign _auto_placement_labels = 'compact,small,medium,large,statement,oversized,custom' | split: ',' -%}
+
+            {%- comment -%} Resolve the selected option value + its index for the trigger {%- endcomment -%}
+            {%- assign selected_val = nil -%}
+            {%- assign _selected_idx = 0 -%}
+            {%- for product_option_value in product_option.values -%}
+              {%- if product_option_value.selected -%}
+                {%- assign selected_val = product_option_value -%}
+                {%- assign _selected_idx = forloop.index0 -%}
+              {%- endif -%}
+            {%- endfor -%}
+            {%- assign selected_val = selected_val | default: product_option.values.first -%}
+            {%- assign _selected_count = product_option.values.size -%}
+
+            {%- comment -%} Selected variant's metafields (for variant_badge etc.) {%- endcomment -%}
+            {%- assign _sel_variant = nil -%}
+            {%- for v in product_resource.variants -%}
+              {%- if v.title contains selected_val -%}
+                {%- assign _sel_variant = v -%}
+                {%- break -%}
+              {%- endif -%}
+            {%- endfor -%}
+
+            {%- comment -%}
+              Trigger placement_hint — same fallback chain as the option rows:
+              metafield → product list → bundle detection (auto-list siblings) →
+              auto rank labels (no-image only).
+            {%- endcomment -%}
+            {%- assign _t_placement_hint = '' -%}
+            {%- if _sel_variant and _sel_variant.metafields.custom.variant_description != blank -%}
+              {%- assign _t_placement_hint = _sel_variant.metafields.custom.variant_description.value | strip -%}
+            {%- elsif _has_placement_list -%}
+              {%- assign _t_placement_hint = _placement_hints[_selected_idx] | default: '' | strip -%}
+            {%- endif -%}
+
+            {%- if _t_placement_hint == '' -%}
+              {%- assign _t_vname_lower = selected_val | downcase -%}
+              {%- assign _t_is_bundle = false -%}
+              {%- if _t_vname_lower contains 'collection' -%}{%- assign _t_is_bundle = true -%}{%- endif -%}
+              {%- if _t_vname_lower contains 'bundle' -%}{%- assign _t_is_bundle = true -%}{%- endif -%}
+              {%- if _t_vname_lower contains 'complete' -%}{%- assign _t_is_bundle = true -%}{%- endif -%}
+              {%- if _t_vname_lower contains 'all four' -%}{%- assign _t_is_bundle = true -%}{%- endif -%}
+              {%- if _t_vname_lower contains 'all 4' -%}{%- assign _t_is_bundle = true -%}{%- endif -%}
+              {%- if _t_vname_lower contains 'full set' -%}{%- assign _t_is_bundle = true -%}{%- endif -%}
+              {%- if _t_vname_lower contains 'the set' -%}{%- assign _t_is_bundle = true -%}{%- endif -%}
+              {%- if _t_vname_lower contains 'whole set' -%}{%- assign _t_is_bundle = true -%}{%- endif -%}
+              {%- if _t_is_bundle -%}
+                {%- assign _t_sibling_names = '' -%}
+                {%- for _tsv in product_option.values -%}
+                  {%- unless _tsv == selected_val -%}
+                    {%- if _t_sibling_names == '' -%}
+                      {%- assign _t_sibling_names = _tsv -%}
+                    {%- else -%}
+                      {%- assign _t_sibling_names = _t_sibling_names | append: ' + ' | append: _tsv -%}
+                    {%- endif -%}
+                  {%- endunless -%}
+                {%- endfor -%}
+                {%- if _t_sibling_names != '' -%}
+                  {%- assign _t_placement_hint = _t_sibling_names -%}
+                {%- endif -%}
+              {%- endif -%}
+            {%- endif -%}
+
+            {%- unless selected_val.variant.image -%}
+              {%- comment -%}
+                Neon Sign: size-keyed placement labels (tag-gated).
+                Fires BEFORE generic rank fallback so labels track the actual
+                size string, not the rank position — which matters because some
+                neon signs skip the smallest size and a rank-based array would
+                shift labels incorrectly.
+              {%- endcomment -%}
+              {%- if _t_placement_hint == '' and product_resource.tags contains 'LED Neon Sign' -%}
+                {%- case selected_val -%}
+                  {%- when '19.7"/50cm'   -%}{%- assign _t_placement_hint = 'Desktop accent' -%}
+                  {%- when '29.5"/75cm'   -%}{%- assign _t_placement_hint = 'Bedside · Nook' -%}
+                  {%- when '39.4"/100cm'  -%}{%- assign _t_placement_hint = 'Bedroom wall' -%}
+                  {%- when '59.1"/150cm'  -%}{%- assign _t_placement_hint = 'Living room feature' -%}
+                  {%- when '78.7"/200cm'  -%}{%- assign _t_placement_hint = 'Statement wall' -%}
+                  {%- when '98.4"/250cm'  -%}{%- assign _t_placement_hint = 'Gallery scale' -%}
+                  {%- when '118.1"/300cm' -%}{%- assign _t_placement_hint = 'Commercial · Event' -%}
+                {%- endcase -%}
+              {%- endif -%}
+              {%- comment -%}
+                Auto rank labels (compact / small / medium / …) only fire for
+                actual size pickers. Non-size options (color, finish, character,
+                denomination, etc.) get NO auto subtitle — labels there must be
+                intentional, either via variant_description metafield or via
+                product.metafields.custom.placement_hints. Locked decision per
+                merchant: defaults must be product-based, not universal.
+              {%- endcomment -%}
+              {%- if _t_placement_hint == '' and _is_size_option -%}
+                {%- assign _t_auto_idx = _selected_idx -%}
+                {%- if _t_auto_idx > 6 -%}{%- assign _t_auto_idx = 6 -%}{%- endif -%}
+                {%- assign _t_placement_hint = _auto_placement_labels[_t_auto_idx] -%}
+              {%- endif -%}
+            {%- endunless -%}
+
+            {%- comment -%} Trigger bar fill width — same rank math as option rows {%- endcomment -%}
+            {%- assign _t_bar_pct = _selected_idx | plus: 1 | times: 100 | divided_by: _selected_count -%}
+
+            {%- comment -%} Trigger savings % — same as option rows {%- endcomment -%}
+            {%- assign _t_savings_pct = 0 -%}
+            {%- if _sel_variant and _sel_variant.compare_at_price > _sel_variant.price -%}
+              {%- assign _t_savings_amt = _sel_variant.compare_at_price | minus: _sel_variant.price -%}
+              {%- assign _t_savings_pct = _t_savings_amt | times: 100 | divided_by: _sel_variant.compare_at_price -%}
+            {%- endif -%}
+
+            {%- comment -%}
+              Variant image on trigger: skip when option is a size decision —
+              size pickers use the gradient size-bar (rendered in the trigger
+              foot) instead of variant photos. Per-variant "Small / Medium /
+              Large" thumbnails of the same product add noise without info.
+            {%- endcomment -%}
+            {%- assign _show_trigger_img = false -%}
+            {%- if selected_val.variant.image and _is_size_option == false -%}
+              {%- assign _show_trigger_img = true -%}
+            {%- endif -%}
+
+            {%- comment -%} Custom visual dropdown {%- endcomment -%}
             <div class="casa-vdd" data-casa-vdd>
-              {%- comment -%} Selected display (trigger) {%- endcomment -%}
-              {%- for product_option_value in product_option.values -%}
-                {%- if product_option_value.selected -%}
-                  {%- assign selected_val = product_option_value -%}
+              <button type="button" class="casa-vdd__trigger{% if _show_trigger_img %} casa-vdd__trigger--has-img{% endif %}" aria-expanded="false" aria-haspopup="listbox">
+                {%- if _show_trigger_img -%}
+                  <img src="{{ selected_val.variant.image | image_url: width: 200, height: 200, crop: 'center' }}" alt="{{ selected_val | escape }}" class="casa-vdd__trigger-img" loading="lazy" width="100" height="100">
                 {%- endif -%}
-              {%- endfor -%}
-              {%- assign selected_val = selected_val | default: product_option.values.first -%}
-              {%- comment -%} Get selected variant's badges {%- endcomment -%}
-              {%- assign _sel_variant = nil -%}
-              {%- for v in product_resource.variants -%}
-                {%- if v.title contains selected_val -%}
-                  {%- assign _sel_variant = v -%}
-                  {%- break -%}
-                {%- endif -%}
-              {%- endfor -%}
-              <button type="button" class="casa-vdd__trigger" aria-expanded="false" aria-haspopup="listbox">
-                {%- if selected_val.variant.image -%}
-                  <img src="{{ selected_val.variant.image | image_url: width: 80, height: 80, crop: 'center' }}" alt="{{ selected_val | escape }}" class="casa-vdd__trigger-img" loading="lazy" width="40" height="40">
-                {%- endif -%}
-                <span class="casa-vdd__trigger-text">{{ selected_val | escape }}</span>
+                <span class="casa-vdd__trigger-text-block">
+                  {%- comment -%}
+                    Gift cards: the variant title IS the dollar amount
+                    ({{ selected_val }} === "$25.00"), so rendering it next to
+                    .casa-vdd__trigger-pricing ({{ price | money_with_currency }}
+                    === "$25.00 USD") duplicated the same number and the two
+                    money strings collided in narrow buy-box columns. For gift
+                    cards we render the currency-formatted price in this slot
+                    and suppress the pricing strip below — single price truth,
+                    Markets-friendly, no collision.
+                  {%- endcomment -%}
+                  <span class="casa-vdd__trigger-text">{%- if product_resource.gift_card? -%}{{ selected_val.variant.price | money_with_currency }}{%- else -%}{{ selected_val | escape }}{%- endif -%}</span>
+                  {%- comment -%}
+                    Subtitle — only renders for image variants (Bubble Girls et al.),
+                    and only when variant_description metafield is set. The no-image
+                    trigger gets its second-line copy from the bottom-row foot
+                    (bar + placement) so it doesn't need this.
+                  {%- endcomment -%}
+                  {%- if selected_val.variant.image and _t_placement_hint != '' -%}
+                    <span class="casa-vdd__trigger-subtitle">{{ _t_placement_hint | escape }}</span>
+                  {%- endif -%}
+                </span>
                 {%- if _sel_variant and _sel_variant.metafields.custom.variant_badge != blank -%}
                   {%- assign _trig_badges = _sel_variant.metafields.custom.variant_badge.value | split: ',' -%}
                   {%- assign _trig_colors = _sel_variant.metafields.custom.variant_badge_colors.value | default: '' | split: ',' -%}
@@ -489,42 +2039,220 @@
                 {%- if selected_val.available == false -%}
                   <span class="casa-vdd__unavailable">Unavailable</span>
                 {%- endif -%}
-                <svg class="casa-vdd__caret" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 4.5 6 7.5 9 4.5"></polyline></svg>
+                {%- comment -%}
+                  Trigger pricing: current price ONLY. Strikethrough compare
+                  + savings chip removed from the closed-state trigger because
+                  they duplicate the buy-box header above (which already shows
+                  price, $X strikethrough, and Save $X pill). Per locked rule
+                  feedback_variant_trigger_price_always_visible — price stays
+                  on the trigger; the framing around it does not. Compare +
+                  savings remain on the option rows when the dropdown opens
+                  (where comparing prices across sizes is the actual job).
+                {%- endcomment -%}
+                {%- comment -%}
+                  Pricing strip on trigger: suppressed for gift cards (price is
+                  already in .casa-vdd__trigger-text above). For every other
+                  product type, this is the canonical price display per locked
+                  rule feedback_variant_trigger_price_always_visible.
+                {%- endcomment -%}
+                {%- unless cdl_hide_price or product_resource.gift_card? -%}
+                  {%- if selected_val.variant -%}
+                    <span class="casa-vdd__trigger-pricing">
+                      <span class="casa-vdd__trigger-price" data-variant-price>{{ selected_val.variant.price | money_with_currency }}</span>
+                    </span>
+                  {%- endif -%}
+                {%- endunless -%}
+                {%- comment -%}
+                  Size bar + placement copy — bottom row of the trigger.
+                  Renders when there's no variant image OR when this option is
+                  a size decision (size pickers always show the bar even if
+                  the variant has a featured_media — we want the rank visual,
+                  not the product photo).
+                {%- endcomment -%}
+                {%- if _show_trigger_img == false -%}
+                  <div class="casa-vdd__trigger-foot">
+                    <div class="casa-vdd__trigger-bar"><div class="casa-vdd__trigger-bar-fill" style="width: {{ _t_bar_pct }}%"></div></div>
+                    {%- if _t_placement_hint != '' -%}
+                      <span class="casa-vdd__trigger-placement">{{ _t_placement_hint | escape }}</span>
+                    {%- endif -%}
+                  </div>
+                {%- endif -%}
+                {%- comment -%}
+                  Affordance cluster — count + caret. The count tells the shopper
+                  "you've picked 1 of N — tap to see all". Noun chosen by option
+                  name so it reads naturally (sizes / colors / finishes / options).
+                {%- endcomment -%}
+                {%- assign _opt_count = product_option.values.size -%}
+                {%- assign _opt_name_lower = product_option.name | downcase -%}
+                {%- if _opt_name_lower contains 'size' -%}
+                  {%- assign _count_noun = 'sizes' -%}
+                {%- elsif _opt_name_lower contains 'color' or _opt_name_lower contains 'colour' -%}
+                  {%- assign _count_noun = 'colors' -%}
+                {%- elsif _opt_name_lower contains 'finish' -%}
+                  {%- assign _count_noun = 'finishes' -%}
+                {%- elsif _opt_name_lower contains 'style' -%}
+                  {%- assign _count_noun = 'styles' -%}
+                {%- elsif _opt_name_lower contains 'character' -%}
+                  {%- assign _count_noun = 'characters' -%}
+                {%- else -%}
+                  {%- assign _count_noun = 'options' -%}
+                {%- endif -%}
+                <span class="casa-vdd__trigger-affordance">
+                  {%- if _opt_count > 1 -%}
+                    <span class="casa-vdd__trigger-count">{{ _opt_count }} {{ _count_noun }}</span>
+                  {%- endif -%}
+                  <svg class="casa-vdd__caret" width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 4.5 6 7.5 9 4.5"></polyline></svg>
+                </span>
               </button>
 
-              {%- comment -%} Dropdown options list {%- endcomment -%}
+              {%- comment -%} Dropdown options list — uses the product-level overrides resolved above the trigger {%- endcomment -%}
               <div class="casa-vdd__list" role="listbox" aria-label="{{ product_option.name | escape }}">
                 {%- for product_option_value in product_option.values -%}
+                  {%- comment -%} Resolve the variant for this option value {%- endcomment -%}
+                  {%- assign _opt_variant = nil -%}
+                  {%- for v in product_resource.variants -%}
+                    {%- if v.title contains product_option_value -%}
+                      {%- assign _opt_variant = v -%}
+                      {%- break -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+
+                  {%- comment -%}
+                    Placement / subtitle copy fallback chain:
+                    1. variant_description metafield (per-variant merchant copy)
+                    2. product.metafields.custom.placement_hints[i] (product list)
+                    3. Bundle detection — if variant name reads as a set/collection/
+                       bundle/complete-set/all-four, auto-list the sibling variant
+                       names. e.g. Bubble Girls "Full Collection" → "Ava + Daisy +
+                       Mia + Lily" with zero merchant input.
+                    4. Auto rank labels (compact/small/medium/...) — ONLY for
+                       no-image variants. Skipping for image variants because
+                       size-rank copy is meaningless for style/color picks.
+                  {%- endcomment -%}
+                  {%- assign _placement_hint = '' -%}
+                  {%- if _opt_variant and _opt_variant.metafields.custom.variant_description != blank -%}
+                    {%- assign _placement_hint = _opt_variant.metafields.custom.variant_description.value | strip -%}
+                  {%- elsif _has_placement_list -%}
+                    {%- assign _placement_hint = _placement_hints[forloop.index0] | default: '' | strip -%}
+                  {%- endif -%}
+
+                  {%- if _placement_hint == '' -%}
+                    {%- assign _vname_lower = product_option_value | downcase -%}
+                    {%- assign _is_bundle = false -%}
+                    {%- if _vname_lower contains 'collection' -%}{%- assign _is_bundle = true -%}{%- endif -%}
+                    {%- if _vname_lower contains 'bundle' -%}{%- assign _is_bundle = true -%}{%- endif -%}
+                    {%- if _vname_lower contains 'complete' -%}{%- assign _is_bundle = true -%}{%- endif -%}
+                    {%- if _vname_lower contains 'all four' -%}{%- assign _is_bundle = true -%}{%- endif -%}
+                    {%- if _vname_lower contains 'all 4' -%}{%- assign _is_bundle = true -%}{%- endif -%}
+                    {%- if _vname_lower contains 'full set' -%}{%- assign _is_bundle = true -%}{%- endif -%}
+                    {%- if _vname_lower contains 'the set' -%}{%- assign _is_bundle = true -%}{%- endif -%}
+                    {%- if _vname_lower contains 'whole set' -%}{%- assign _is_bundle = true -%}{%- endif -%}
+                    {%- if _is_bundle -%}
+                      {%- assign _sibling_names = '' -%}
+                      {%- for _sv in product_option.values -%}
+                        {%- unless _sv == product_option_value -%}
+                          {%- if _sibling_names == '' -%}
+                            {%- assign _sibling_names = _sv -%}
+                          {%- else -%}
+                            {%- assign _sibling_names = _sibling_names | append: ' + ' | append: _sv -%}
+                          {%- endif -%}
+                        {%- endunless -%}
+                      {%- endfor -%}
+                      {%- if _sibling_names != '' -%}
+                        {%- assign _placement_hint = _sibling_names -%}
+                      {%- endif -%}
+                    {%- endif -%}
+                  {%- endif -%}
+
+                  {%- unless product_option_value.variant.image -%}
+                    {%- comment -%}
+                      Neon Sign: size-keyed placement labels (tag-gated).
+                      Fires BEFORE generic rank fallback. Size-keyed (not rank-
+                      keyed) so signs that skip a measurement still render the
+                      correct label for each size they DO carry.
+                    {%- endcomment -%}
+                    {%- if _placement_hint == '' and product_resource.tags contains 'LED Neon Sign' -%}
+                      {%- case product_option_value -%}
+                        {%- when '19.7"/50cm'   -%}{%- assign _placement_hint = 'Desktop accent' -%}
+                        {%- when '29.5"/75cm'   -%}{%- assign _placement_hint = 'Bedside · Nook' -%}
+                        {%- when '39.4"/100cm'  -%}{%- assign _placement_hint = 'Bedroom wall' -%}
+                        {%- when '59.1"/150cm'  -%}{%- assign _placement_hint = 'Living room feature' -%}
+                        {%- when '78.7"/200cm'  -%}{%- assign _placement_hint = 'Statement wall' -%}
+                        {%- when '98.4"/250cm'  -%}{%- assign _placement_hint = 'Gallery scale' -%}
+                        {%- when '118.1"/300cm' -%}{%- assign _placement_hint = 'Commercial · Event' -%}
+                      {%- endcase -%}
+                    {%- endif -%}
+                    {%- comment -%} Auto rank labels: size pickers only. See trigger note above. {%- endcomment -%}
+                    {%- if _placement_hint == '' and _is_size_option -%}
+                      {%- assign _auto_idx = forloop.index0 -%}
+                      {%- if _auto_idx > 6 -%}{%- assign _auto_idx = 6 -%}{%- endif -%}
+                      {%- assign _placement_hint = _auto_placement_labels[_auto_idx] -%}
+                    {%- endif -%}
+                  {%- endunless -%}
+
+                  {%- comment -%} Size bar fill — rank-based percentage (1..N → ~14%..100% for 7 variants) {%- endcomment -%}
+                  {%- assign _bar_pct = forloop.index0 | plus: 1 | times: 100 | divided_by: forloop.length -%}
+
+                  {%- comment -%} "Most popular" — only when product.metafields.custom.featured_variant points at this variant {%- endcomment -%}
+                  {%- assign _is_featured = false -%}
+                  {%- if _opt_variant and _featured_variant_id != 0 and _opt_variant.id == _featured_variant_id -%}
+                    {%- assign _is_featured = true -%}
+                  {%- endif -%}
+
+                  {%- comment -%} Savings % — only when compare_at > price {%- endcomment -%}
+                  {%- assign _savings_pct = 0 -%}
+                  {%- if _opt_variant and _opt_variant.compare_at_price > _opt_variant.price -%}
+                    {%- assign _savings_amt = _opt_variant.compare_at_price | minus: _opt_variant.price -%}
+                    {%- assign _savings_pct = _savings_amt | times: 100 | divided_by: _opt_variant.compare_at_price -%}
+                  {%- endif -%}
+
+                  {%- comment -%}
+                    Same _is_size_option gate as the trigger — option rows in
+                    a size picker show the size-bar (rank indicator), not
+                    per-variant product photos.
+                  {%- endcomment -%}
+                  {%- assign _show_opt_img = false -%}
+                  {%- if product_option_value.variant.image and _is_size_option == false -%}
+                    {%- assign _show_opt_img = true -%}
+                  {%- endif -%}
                   <button
                     type="button"
-                    class="casa-vdd__option{% if product_option_value.selected %} casa-vdd__option--selected{% endif %}{% unless product_option_value.available %} casa-vdd__option--unavailable{% endunless %}"
+                    class="casa-vdd__option{% if product_option_value.selected %} casa-vdd__option--selected{% endif %}{% unless product_option_value.available %} casa-vdd__option--unavailable{% endunless %}{% if _show_opt_img %} casa-vdd__option--has-img{% endif %}"
                     role="option"
                     aria-selected="{{ product_option_value.selected }}"
                     data-value="{{ product_option_value | escape }}"
                     data-option-value-id="{{ product_option_value.id }}"
                     data-variant-id="{{ product_option_value.variant.id }}"
                   >
-                    {%- if product_option_value.variant.image -%}
+                    {%- if _show_opt_img -%}
                       <img
-                        src="{{ product_option_value.variant.image | image_url: width: 80, height: 80, crop: 'center' }}"
+                        src="{{ product_option_value.variant.image | image_url: width: 200, height: 200, crop: 'center' }}"
                         alt="{{ product_option_value | escape }}"
                         class="casa-vdd__option-img"
                         loading="lazy"
-                        width="40"
-                        height="40"
+                        width="100"
+                        height="100"
                       >
                     {%- endif -%}
-                    {%- comment -%} Find the variant for this option value to read its metafields {%- endcomment -%}
-                    {%- assign _opt_variant = nil -%}
-                    {%- for v in product_resource.variants -%}
-                      {%- if v.title contains product_option_value -%}
-                        {%- assign _opt_variant = v -%}
-                        {%- break -%}
-                      {%- endif -%}
-                    {%- endfor -%}
-                    <span class="casa-vdd__option-text">
+
+                    {%- comment -%} Row 1 left: text block (name + optional subtitle stacked). Subtitle only renders for image variants — the no-image case uses the foot row for placement copy. {%- endcomment -%}
+                    <span class="casa-vdd__option-text-block">
                       <span class="casa-vdd__option-name">
-                        {{ product_option_value | escape }}
+                        {%- comment -%}
+                          Gift card option rows: same redundancy fix as the
+                          trigger — the variant title IS the dollar amount, so
+                          we render the currency-formatted price here and hide
+                          the .casa-vdd__option-pricing strip on the right.
+                          Without this, narrow buy-box widths (tablet, side
+                          panels) gave .casa-vdd__option-name a 27px column
+                          while "$600.00" needed 57px, and the text spilled
+                          into the pricing column.
+                        {%- endcomment -%}
+                        {%- if product_resource.gift_card? -%}
+                          {{ product_option_value.variant.price | money_with_currency }}
+                        {%- else -%}
+                          {{ product_option_value | escape }}
+                        {%- endif -%}
                         {%- if _opt_variant and _opt_variant.metafields.custom.variant_badge != blank -%}
                           {%- assign _vb_badges = _opt_variant.metafields.custom.variant_badge.value | split: ',' -%}
                           {%- assign _vb_colors = _opt_variant.metafields.custom.variant_badge_colors.value | default: '' | split: ',' -%}
@@ -536,17 +2264,73 @@
                             {%- endif -%}
                           {%- endfor -%}
                         {%- endif -%}
+                        {%- comment -%}
+                          Savings % chip on the NAME line for image-variant rows.
+                          Variant names here are short ("Ava"/"Daisy"/"Full
+                          Collection") so the chip fits beside the name, which
+                          keeps the pricing line below to a single line
+                          (price · strikethrough) and the row to its compact
+                          3-row height — instead of the chip wrapping onto its
+                          own pricing line and growing every row. No-image rows
+                          keep the chip in the pricing strip (rendered below).
+                        {%- endcomment -%}
+                        {%- if _show_opt_img and _opt_variant and _opt_variant.compare_at_price > _opt_variant.price and cdl_hide_price != true and cdl_hide_compare_price != true and product_resource.gift_card? != true -%}
+                          <span class="casa-vdd__option-savings casa-vdd__option-savings--on-name">−{{ _savings_pct }}%</span>
+                        {%- endif -%}
                       </span>
-                      {%- if _opt_variant and _opt_variant.metafields.custom.variant_description != blank -%}
-                        <span class="casa-vdd__option-desc">{{ _opt_variant.metafields.custom.variant_description.value }}</span>
+                      {%- if product_option_value.variant.image and _placement_hint != '' -%}
+                        <span class="casa-vdd__option-subtitle">{{ _placement_hint | escape }}</span>
                       {%- endif -%}
-                      {%- unless product_option_value.available -%}
-                        <span class="casa-vdd__option-status">Unavailable</span>
-                      {%- endunless -%}
                     </span>
-                    {%- if product_option_value.selected -%}
-                      <svg class="casa-vdd__check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+
+                    {%- comment -%} Row 1 right: pricing strip — price · strikethrough · savings %. Suppressed for gift cards (price already in .casa-vdd__option-name above). {%- endcomment -%}
+                    {%- unless cdl_hide_price or product_resource.gift_card? -%}
+                      {%- if _opt_variant -%}
+                        <span class="casa-vdd__option-pricing">
+                          <span class="casa-vdd__option-price">{{ _opt_variant.price | money_with_currency }}</span>
+                          {%- unless cdl_hide_compare_price -%}
+                            {%- if _opt_variant.compare_at_price > _opt_variant.price -%}
+                              <span class="casa-vdd__option-compare-price">{{ _opt_variant.compare_at_price | money_with_currency }}</span>
+                              {%- comment -%} Image rows render the −% chip on the name line above; keep it in the pricing strip only for no-image rows. {%- endcomment -%}
+                              {%- unless _show_opt_img -%}
+                                <span class="casa-vdd__option-savings">−{{ _savings_pct }}%</span>
+                              {%- endunless -%}
+                            {%- endif -%}
+                          {%- endunless -%}
+                        </span>
+                      {%- endif -%}
+                    {%- endunless -%}
+
+                    {%- comment -%}
+                      Row 2: size bar + placement copy + "Most popular" tag.
+                      Renders when no variant image OR when this is a size
+                      option (size pickers always show the bar).
+                    {%- endcomment -%}
+                    {%- if _show_opt_img == false -%}
+                      <div class="casa-vdd__option-foot">
+                        <div class="casa-vdd__option-bar"><div class="casa-vdd__option-bar-fill" style="width: {{ _bar_pct }}%"></div></div>
+                        {%- if _placement_hint != '' -%}
+                          <span class="casa-vdd__option-placement">{{ _placement_hint | escape }}</span>
+                        {%- endif -%}
+                        {%- if _is_featured -%}
+                          <span class="casa-vdd__option-featured-tag" aria-label="Most popular size">
+                            <svg viewBox="0 0 12 12" fill="currentColor" width="9" height="9" aria-hidden="true"><path d="M6 0l1.7 3.8 4.3.4-3.2 2.9.9 4.1L6 9.3 2.3 11.2l.9-4.1L0 4.2l4.3-.4z"/></svg>
+                            Most popular
+                          </span>
+                        {%- endif -%}
+                      </div>
                     {%- endif -%}
+
+                    {%- unless product_option_value.available -%}
+                      <span class="casa-vdd__option-status">Unavailable</span>
+                    {%- endunless -%}
+
+                    {%- comment -%}
+                      No separate check-mark SVG — the v2 selected state is
+                      already signalled by the gradient border + pale-purple
+                      fill, and a top-right check collides with the savings %
+                      chip in the pricing strip.
+                    {%- endcomment -%}
                   </button>
                 {%- endfor -%}
               </div>
@@ -674,6 +2458,15 @@
     width: 100%;
   }
 
+  .variant-option__selected-value {
+    font-weight: 400;
+    color: #6b7280;
+    margin-left: 4px;
+  }
+  .variant-option__selected-value::before {
+    content: '— ';
+  }
+
   /* Hide the raw radio input */
   .variant-option__button-label input[type="radio"] {
     position: absolute;
@@ -696,16 +2489,17 @@
     border: 1px solid #e5e5e5;
     border-radius: 8px;
     cursor: pointer;
-    transition: border-color 0.18s, box-shadow 0.18s;
+    /* border-color removed — selection must flip in one frame (Casa rule).
+       Crossfade makes both cards read as co-selected for 180ms. */
+    transition: box-shadow 0.18s;
     text-align: center;
     box-sizing: border-box;
     min-height: 0;
   }
 
-  /* Selected card: base state — overridden by scoped animation style */
+  /* Selected card: base state — solid border, no glow */
   .variant-option--buttons .variant-option__button-label:has(input:checked) {
-    border-color: #9333ea;
-    box-shadow: 0 0 0 1px #9333ea;
+    border-color: #B0C3FA;
   }
   /* Unavailable: muted + strikethrough */
   .variant-option--buttons .variant-option__button-label:has(input[aria-disabled="true"]) {
@@ -731,6 +2525,29 @@
     max-width: 100%;
   }
 
+  /* US-first measurement hierarchy: imperial is the decision value.
+     Keep metric equivalents readable without enlarging prices or cards;
+     preserve larger merchant-set type instead of forcing every label to 11px. */
+  .variant-option__size-primary {
+    font: inherit;
+    color: inherit;
+  }
+
+  .variant-option__size-secondary {
+    /* The readable metric floor must not also inflate the inter-unit gap. */
+    margin-left: min(0.45em, 4px);
+    color: #62626b;
+    font-size: max(11px, 0.72em);
+    font-weight: 450;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .variant-option__selected-value .variant-option__size-secondary {
+    color: currentColor;
+    opacity: 0.58;
+  }
+
   /* Dimension sub-label (from custom.dimensions metafield) */
   .variant-option__dimensions {
     display: block;
@@ -752,12 +2569,24 @@
     margin-top: 2px;
   }
 
+  /* Compare-at (strikethrough) price in button variant cards */
+  .variant-option__compare-price {
+    display: block;
+    font-size: calc(var(--cdl-price-size, 11px) * 0.85);
+    font-weight: 400;
+    color: #9ca3af;
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+    line-height: 1.3;
+    text-align: center;
+  }
+
   /* Badge tag (e.g. "Gift") — gradient pill top-right */
   .variant-option__badge-tag {
     position: absolute;
     top: -7px;
     right: 2px;
-    background: linear-gradient(90deg, #9333ea, #ec4899);
+    background: linear-gradient(90deg, #B0C3FA, #5E0A02);
     color: #fff;
     font-size: 7px;
     font-weight: 600;
@@ -767,6 +2596,13 @@
     white-space: nowrap;
     pointer-events: none;
     z-index: 1;
+  }
+
+  /* Keep variant badges clear of the free-gift dot injected on eligible cards.
+     Match both the gift marker and the injected dot so this survives section morphs. */
+  .variant-option__button-label[data-fg-has-gift] .variant-option__badge-tag,
+  .variant-option__button-label:has(.casa-fg-dot) .variant-option__badge-tag {
+    right: 34px !important;
   }
 
   /* Hide the availability pill dot (not in Figma) */
@@ -815,7 +2651,10 @@
 {% endstylesheet %}
 
 <style>
-/* ── Custom Visual Dropdown (casa-vdd) ── */
+/* ═══════════════════════════════════════════════
+   SEOUL GLOW LAB — Custom Visual Dropdown (casa-vdd)
+   Brand v1: Paper surface, Ink text, purple accent
+   ─────────────────────────────────────────────── */
 .casa-vdd__hidden-select {
   position: absolute;
   width: 1px;
@@ -829,151 +2668,904 @@
 .casa-vdd {
   position: relative;
   margin-top: 6px;
+  font-family: var(--font-body--family, 'Inter', system-ui, -apple-system, sans-serif);
 }
+
+/* ── Trigger (closed state) — 2-row grid that mirrors the open-row layout.
+   Top row: variant name (left) · pricing strip (right) · caret (far right).
+   Bottom row: size bar + placement copy (full width).
+   When the variant has an image, the --has-img modifier flattens this back
+   to the existing image-left flex layout. ── */
 .casa-vdd__trigger {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-rows: auto auto;
   align-items: center;
-  gap: 10px;
+  column-gap: 12px;
+  row-gap: 8px;
   width: 100%;
-  padding: 10px 14px;
-  background: var(--color-input-background, #fff);
-  border: var(--style-border-width-inputs, 1px) solid var(--color-border, #d1d5db);
-  border-radius: var(--style-border-radius-inputs, 8px);
+  min-height: 72px;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  /* Hard rule: nothing inside the trigger may bleed past the rounded card edge.
+     Uses 'clip' (not 'hidden') to avoid creating a containing block for any
+     position:sticky descendants — see feedback_overflow_hidden_traps_sticky. */
+  overflow: clip;
   cursor: pointer;
   text-align: left;
   font-size: 14px;
-  color: inherit;
-  transition: border-color 0.2s;
+  font-family: inherit;
+  color: #0a0a0f;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 .casa-vdd__trigger:hover {
-  border-color: var(--color-variant-hover-border, #9333ea);
+  border-color: #B0C3FA;
 }
-.casa-vdd__trigger-img {
-  width: 44px;
-  height: 44px;
-  object-fit: cover;
-  border-radius: 8px;
-  flex-shrink: 0;
-  border: 2px solid transparent;
+.casa-vdd.is-open .casa-vdd__trigger {
+  border-color: #B0C3FA;
+  box-shadow: 0 0 0 3px rgba(176, 195, 250, 0.08);
 }
+
+/* Row 1 left: text block (name + optional subtitle stacked) */
+.casa-vdd__trigger-text-block {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+/* Trigger text + subtitle wrap onto a 2nd/3rd line when long instead of
+   ellipsis-clipping the selected variant title. Trigger button grows
+   vertically; image (100px) stays the anchor; caret stays right-aligned.
+   Locked 2026-05-20 — was clipping any selected-variant title beyond
+   the trigger's text-column width. */
 .casa-vdd__trigger-text {
-  flex: 1;
   font-weight: 500;
+  font-size: 15px;
+  letter-spacing: -0.005em;
+  color: #0a0a0f;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+  min-width: 0;
+  max-width: 100%;
+  line-height: 1.2;
 }
+.casa-vdd__trigger-subtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(10, 10, 15, 0.55);
+  letter-spacing: -0.003em;
+  line-height: 1.3;
+  /* Preview only — the full variant_description renders per-row when the
+     dropdown opens (.casa-vdd__option-subtitle). On the CLOSED trigger a
+     long list ("Yellow/Pink + Pink/Purple + Yellow/Blue + Green/Pink +
+     Blue/Green" on the Fleur Full Set) wrapped to 3–4 lines and ballooned
+     the trigger height on narrow phones. Clamp to 2 lines + ellipsis so the
+     trigger stays compact; the complete list is one tap away in the list. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .casa-vdd__unavailable {
-  font-size: 11px;
+  font-size: 10px;
   color: #9ca3af;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  font-weight: 500;
+}
+
+/* Row 1 far right: affordance cluster (count + caret) */
+.casa-vdd__trigger-affordance {
+  grid-column: 3;
+  grid-row: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  color: rgba(10, 10, 15, 0.62);
+}
+.casa-vdd__trigger-count {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: rgba(10, 10, 15, 0.55);
+  white-space: nowrap;
+  font-feature-settings: "tnum" 1;
+}
+.casa-vdd__trigger:hover .casa-vdd__trigger-count,
+.casa-vdd.is-open .casa-vdd__trigger-count {
+  color: #B0C3FA;
 }
 .casa-vdd__caret {
   flex-shrink: 0;
-  transition: transform 0.2s;
-  opacity: 0.5;
+  transition: transform 0.2s ease, color 0.2s ease;
+  color: rgba(10, 10, 15, 0.72);
+}
+.casa-vdd__trigger:hover .casa-vdd__caret {
+  color: #B0C3FA;
 }
 .casa-vdd.is-open .casa-vdd__caret {
   transform: rotate(180deg);
+  color: #B0C3FA;
 }
-/* Options list */
-.casa-vdd__list {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  z-index: 999;
-  background: var(--color-background, #ffffff);
-  border: 1px solid var(--color-border, #d1d5db);
-  border-radius: var(--style-border-radius-inputs, 8px);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.2);
-  max-height: 320px;
-  overflow-y: auto;
-  display: none;
-  padding: 0;
+@media (max-width: 380px) {
+  /* Phone: drop the count text, keep the caret. Trigger row stays uncluttered. */
+  .casa-vdd__trigger-count { display: none; }
 }
-.casa-vdd.is-open .casa-vdd__list {
-  display: block;
-}
-.casa-vdd__option {
+
+/* Row 2: size bar + placement copy — hidden when variant has an image */
+.casa-vdd__trigger-foot {
+  grid-column: 1 / -1;
+  grid-row: 2;
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+}
+.casa-vdd__trigger-bar {
+  flex: 0 0 200px;
+  height: 3px;
+  background: rgba(10, 10, 15, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+/* When the foot has no placement copy alongside (gift cards, non-size pickers
+   after the rank-label gate), let the bar fill the full foot row instead of
+   sitting at a fixed 200px with empty space to its right. */
+.casa-vdd__trigger-foot > .casa-vdd__trigger-bar:only-child {
+  flex: 1 1 auto;
+}
+.casa-vdd__trigger-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #B0C3FA 0%, #5E0A02 50%, #F2FFA0 100%);
+  border-radius: 2px;
+  transition: width 0.25s ease;
+}
+.casa-vdd__trigger-placement {
+  font-size: 12px;
+  color: rgba(10, 10, 15, 0.55);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+/* --has-img modifier — image-left STACKED grid layout at every
+   viewport. Earlier I shipped a desktop-horizontal version (name +
+   pricing side-by-side on row 1) but it crushed the name column on
+   products with wide pricing strips (Aurelius: $899.99 + $1,099.99
+   compare-at + −18% badge ≈ 300px wide). Stacking name/pricing/
+   subtitle vertically in col 2 works at every panel width with no
+   horizontal contention. */
+.casa-vdd__trigger--has-img {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto !important;
+  grid-template-rows: auto auto auto !important;
+  grid-template-areas:
+    "img name caret"
+    "img pricing caret"
+    "img subtitle caret" !important;
+  column-gap: 14px;
+  row-gap: 4px;
+  align-items: center;
+  align-content: center;
+  /* No vertical padding — the image fills the trigger top-to-bottom
+     (with the rounded-corner clipping via overflow: hidden on the
+     trigger root). Vertical breathing room for the text col comes
+     from the trigger's min-height pushing the rows taller than the
+     image's intrinsic 1:1 ratio. Right padding keeps the caret
+     clear of the trigger edge. Merchant flagged 2026-05-17: visible
+     white space above/below the image on Ellie Velvet Mirror trigger
+     was just this 12px top + 12px bottom padding showing through. */
+  padding: 0 14px 0 0 !important;
+  min-height: 84px;
+  overflow: hidden;
+}
+.casa-vdd__trigger--has-img .casa-vdd__trigger-img {
+  grid-area: img;
+  grid-row: 1 / span 3;
+  /* Fill the full grid area regardless of intrinsic aspect from the
+     <img width="100" height="100"> HTML attrs. Without an explicit
+     height the image renders at its intrinsic 1:1 ratio (76×76) and
+     leaves 13px of trigger background showing above and below it when
+     the row is taller (102px because the text col has name + pricing
+     + padding). Keep the width fixed (so col 1 still sizes to 76px)
+     and force the height to fill the row via 100% + stretch.
+     object-fit: cover crops the natural image to that 76 × row-height
+     rectangle so the source aspect ratio is preserved without
+     distortion. */
   width: 100%;
-  padding: 14px 16px;
-  border: none;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
-  background: none;
+  height: 100%;
+  align-self: stretch;
+  object-fit: cover;
+}
+/* Pin column 1 of the trigger to the same fixed width the image used
+   to drive (was: image width: 76px → col 1 auto = 76px). Now the
+   image is 100% wide; col 1 needs its own width. */
+.casa-vdd__trigger--has-img {
+  grid-template-columns: 76px minmax(0, 1fr) auto !important;
+}
+@media (max-width: 749px) {
+  .casa-vdd__trigger--has-img {
+    grid-template-columns: 64px minmax(0, 1fr) auto !important;
+  }
+}
+/* When the trigger has NO subtitle (products without variant_description
+   metafield like Ella End Table), collapse to a clean 2-row layout
+   so name + pricing don't get pushed to the top by an empty row. */
+.casa-vdd__trigger--has-img:not(:has(.casa-vdd__trigger-subtitle)) {
+  grid-template-rows: auto auto !important;
+  grid-template-areas:
+    "img name caret"
+    "img pricing caret" !important;
+}
+.casa-vdd__trigger--has-img:not(:has(.casa-vdd__trigger-subtitle)) .casa-vdd__trigger-img,
+.casa-vdd__trigger--has-img:not(:has(.casa-vdd__trigger-subtitle)) .casa-vdd__caret {
+  grid-row: 1 / span 2 !important;
+}
+.casa-vdd__trigger--has-img .casa-vdd__trigger-text-block {
+  display: contents;
+}
+.casa-vdd__trigger--has-img .casa-vdd__trigger-text {
+  grid-area: name;
+  font-size: 14px;
+}
+.casa-vdd__trigger--has-img .casa-vdd__trigger-subtitle {
+  grid-area: subtitle;
+  /* Closed-trigger preview — clamp the long variant_description to 2 lines
+     with an ellipsis instead of wrapping unbounded (was overflow: visible +
+     white-space: normal, which let the Fleur "Full Set" combos string run
+     to 3–4 lines and blow out the trigger height on phones). The full list
+     still shows per-row when the dropdown opens. See base rule above. */
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  max-width: 100% !important;
+}
+.casa-vdd__trigger--has-img .casa-vdd__trigger-pricing { grid-area: pricing; }
+.casa-vdd__trigger--has-img .casa-vdd__caret {
+  grid-area: caret;
+  grid-row: 1 / span 3;
+  align-self: center;
+}
+
+/* Mobile (≤749vw) — stacked layout above is already mobile-correct.
+   No mobile-specific grid override needed anymore (used to redefine
+   grid-template-areas here, now redundant).
+
+   Sizing rule: image FILLS the trigger row vertically (height: 100%)
+   so there's no white space above or below the photo. Width follows
+   from the source aspect (object-fit: cover crops to fit; the wrap
+   itself sets the visible frame). Min-width keeps a square-ish
+   minimum on portrait sources; max-width caps landscape sources
+   so a 16:9 mood shot doesn't blow out the col 1 budget. */
+.casa-vdd__trigger-img {
+  align-self: stretch;
+  height: 100%;
+  width: 64px;
+  min-width: 56px;
+  max-width: 96px;
+  object-fit: cover;
+  border-radius: 0;
+  flex-shrink: 0;
+}
+@media (min-width: 750px) {
+  .casa-vdd__trigger--has-img {
+    min-height: 76px;
+  }
+  .casa-vdd__trigger-img {
+    width: 76px;
+  }
+}
+
+/* ── Options list (open state) ── */
+.casa-vdd__list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(10, 10, 15, 0.14), 0 6px 16px rgba(10, 10, 15, 0.08);
+  max-height: 420px;
+  overflow: hidden auto;
+  display: none;
+  padding: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(10,10,15,0.2) transparent;
+}
+/* List always matches trigger width — same on every viewport, every PDP.
+   (Earlier this had a desktop-only 480px right-anchored override to give the
+   narrow neon-sign trigger some breathing room. That broke Bubble Girls and
+   any other PDP with a wide trigger — the 480px list ended up smaller than
+   and offset from the trigger, reading as floating somewhere disconnected.
+   Trigger-width is the standard custom-select pattern and works everywhere.) */
+.casa-vdd.is-open .casa-vdd__list {
+  display: block;
+}
+.casa-vdd__list::-webkit-scrollbar { width: 6px; }
+.casa-vdd__list::-webkit-scrollbar-thumb { background: rgba(10,10,15,0.18); border-radius: 3px; }
+
+/* ── MOBILE: convert the inline-absolute list into a bottom-sheet drawer.
+   The previous behavior dropped a ~420px tall internally-scrollable list
+   directly below the trigger. On a 375×667 viewport that's 63% of the
+   screen filled with a nested scroll surface — kills the buy-box context,
+   triggers scroll-trap confusion, and reads as broken on a luxury PDP
+   where 70% of traffic is mobile.
+
+   On mobile the list now slides up from the bottom of the viewport,
+   takes over the screen with a backdrop, and is dismissible by tapping
+   anywhere outside it. Body scroll is locked while it's open. Same
+   pattern used by Apple, Glossier, every modern mobile-first storefront.
+
+   Desktop behavior is unchanged. ── */
+@media (max-width: 749px) {
+  .casa-vdd.is-open .casa-vdd__list {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100%;
+    max-width: 100%;
+    /* dvh (dynamic viewport height) excludes iOS Safari URL bar.
+       vh fallback for older browsers ships first. */
+    max-height: 80vh;
+    max-height: 80dvh;
+    margin: 0;
+    border: 1px solid #e5e5e5;
+    border-bottom: none;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -16px 48px rgba(10, 10, 15, 0.18);
+    z-index: 10000;
+    padding: 8px 8px 24px;
+    /* iOS safe-area inset for devices with home indicator (iPhone X+) */
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    overflow: hidden auto;
+    /* Contain scroll so reaching the list's top/bottom doesn't chain into
+       the page underneath (the position:fixed body lock already blocks
+       document scroll; this stops the rubber-band at the sheet edges). */
+    overscroll-behavior: contain;
+    animation: casa-vdd-slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Drag-handle indicator at top of sheet (visual cue: this is a sheet) */
+  .casa-vdd.is-open .casa-vdd__list::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: rgba(10, 10, 15, 0.16);
+    border-radius: 2px;
+    margin: 6px auto 12px;
+    flex-shrink: 0;
+  }
+
+  /* Backdrop — full-viewport dim under the sheet */
+  .casa-vdd.is-open::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 15, 0.42);
+    z-index: 9999;
+    animation: casa-vdd-fade-in 0.28s ease;
+  }
+}
+
+@keyframes casa-vdd-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes casa-vdd-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Body scroll lock for the mobile sheet now lives in JS (initCasaVdd in
+   quick-add-modal.liquid), using the position:fixed + saved-scroll pattern
+   from dialog.js — the same lock every other overlay in the theme uses.
+   A CSS `body:has(.casa-vdd.is-open){overflow:hidden}` lock lived here
+   first but did NOT hold on iOS Safari: overflow:hidden doesn't stop the
+   document's touch-scroll, and :has() recalc is deferred, so the page
+   scrolled behind the open sheet on iPhone. Do NOT reinstate a CSS-only
+   lock here — it silently regresses iOS. */
+
+/* ── Each option — 2-row grid: name / pricing strip on top; bar + placement + featured tag on bottom ── */
+.casa-vdd__option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 16px;
+  row-gap: 6px;
+  width: 100%;
+  padding: 16px 20px;
+  border: 1px solid transparent;
+  background: transparent;
   cursor: pointer;
   text-align: left;
-  font-size: 15px;
-  color: inherit;
-  border-radius: 0;
-  transition: background 0.15s;
+  font-size: 14px;
+  font-family: inherit;
+  color: #0a0a0f;
+  border-radius: 10px;
+  /* Selection-state colors flip instantly (Casa rule) — crossfade
+     between the previously-selected option and the new selection
+     creates a 'both selected' optical illusion for ~180ms. */
+  transition: none;
+  margin-bottom: 4px;
+  position: relative;
 }
-.casa-vdd__option:first-child {
-  border-radius: 6px 6px 0 0;
+.casa-vdd__option:last-child { margin-bottom: 0; }
+.casa-vdd__option:hover:not(.casa-vdd__option--selected) {
+  background: rgba(176, 195, 250, 0.05);
 }
-.casa-vdd__option:last-child {
-  border-radius: 0 0 6px 6px;
-  border-bottom: none;
-}
-.casa-vdd__option:only-child {
-  border-radius: 6px;
-}
-.casa-vdd__option:hover {
-  background: rgba(147, 51, 234, 0.06);
-}
+
+/* Selected — gradient border via background-clip trick (purple→pink→cyan).
+   Inside layer is OPAQUE near-white-with-purple-tint so the vivid gradient
+   underneath only shows through the 1.5px border ring, not the row body.
+   A 4% rgba tint here would be 96% transparent and let the gradient bleed
+   into the entire row. */
 .casa-vdd__option--selected {
-  background: rgba(147, 51, 234, 0.08);
-}
-.casa-vdd__option--selected:hover {
-  background: rgba(147, 51, 234, 0.1);
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(rgb(252, 247, 254), rgb(252, 247, 254)) padding-box,
+    linear-gradient(95deg, #B0C3FA 0%, #5E0A02 50%, #F2FFA0 100%) border-box;
 }
 .casa-vdd__option--unavailable {
-  opacity: 0.45;
+  opacity: 0.4;
+  cursor: not-allowed;
 }
-.casa-vdd__option-img {
-  width: 48px;
-  height: 48px;
-  object-fit: cover;
-  border-radius: 8px;
-  flex-shrink: 0;
-  border: 2px solid transparent;
-}
-.casa-vdd__option--selected .casa-vdd__option-img {
-  border-color: #9333ea;
-}
-.casa-vdd__option-text {
-  flex: 1;
+
+/* Row 1 left — text block (name + optional subtitle stacked).
+   For image variants (Bubble Girls etc.), the subtitle renders below the
+   name from variant_description metafield. For no-image variants, subtitle
+   is empty and the placement copy lives in the foot row below. */
+.casa-vdd__option-text-block {
+  grid-column: 1;
+  grid-row: 1;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 2px;
+  min-width: 0;
 }
 .casa-vdd__option-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #0a0a0f;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  min-width: 0;
+  max-width: 100%;
+}
+.casa-vdd__option-subtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(10, 10, 15, 0.55);
+  letter-spacing: -0.003em;
+  line-height: 1.3;
+  /* Allow the subtitle to wrap onto a 2nd / 3rd line when long.
+     Short mood-word subtitles ("Cheerful · Sunlit · Spring") still
+     render on one line; long multi-piece variant listings
+     ("Yellow/Pink + Pink/Purple + Yellow/Blue + Green/Pink + Blue/Green")
+     wrap naturally onto 2-3 lines instead of clipping with "…" or
+     extending past the row's right edge. text-wrap: pretty avoids
+     orphan words on the last line. */
+  white-space: normal;
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* "Most popular" tag — gradient pill in the bottom row, right-anchored
+   so it never collides with the pricing strip on row 1. Optional via
+   product.metafields.custom.featured_variant. */
+.casa-vdd__option-featured-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: linear-gradient(90deg, #B0C3FA, #5E0A02);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  border-radius: 4px;
+  line-height: 1.4;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;  /* push to the right edge of the foot row */
+}
+.casa-vdd__option-featured-tag svg { width: 9px; height: 9px; }
+
+/* Row 1 right — pricing strip: price · strikethrough · savings %, all on one line */
+.casa-vdd__option-pricing {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.casa-vdd__option-price {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0a0a0f;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.casa-vdd__option-compare-price {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(10, 10, 15, 0.4);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.casa-vdd__option-savings {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  padding: 1px 6px;
+  background: rgba(176, 195, 250, 0.10);
+  color: #B0C3FA;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  border-radius: 3px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* Chip riding on the name line (image-variant rows), pushed to the RIGHT edge
+   of the row via margin-left:auto so it uses the dead space beside the short
+   variant name and reads as a sale tag (name left, −% tag right) rather than
+   crowding the name. The name row is flex/align-items:center so it centers
+   vertically against the name; never let it squish, and if the row is truly
+   tight (long name at ≤280px) it wraps under the name rather than clipping
+   (flex-shrink:0 + the name row's own flex-wrap). */
+.casa-vdd__option-name .casa-vdd__option-savings--on-name {
+  flex-shrink: 0;
+  align-self: center;
+  margin-left: auto;
+}
+
+/* ── PRICING-STRIP OVERLAP SAFETY NET ──
+   Hard rule: the pricing strip must NEVER overlap the variant name or
+   crash the row. If the row gets too narrow to fit name + price +
+   strikethrough + savings chip on one line, drop the strikethrough AND
+   savings chip together, leaving only the current price.
+
+   Two layers of defense:
+     1. CSS container query — the precise tool. Fires when the option /
+        trigger row's CONTENT-BOX is narrower than 250px regardless of
+        viewport (handles long variant names, narrow buy-box columns,
+        embeds in sidebar quick-add modals, etc.). Safari 16+ / Chrome 105+.
+     2. @media fallback at 300px viewport — handles older browsers that
+        don't support container queries. Catches the rare sub-300 viewport.
+
+   Threshold math (corrected from earlier 340 attempt — container queries
+   measure CONTENT-BOX inline size, not border-box):
+
+     Pricing strip with all three pieces ≈ 175px
+       (price 14px ~60 + gap 6 + compare 11px ~50 + gap 6 + chip ~40)
+     Minimum readable name ≈ 50px (with ellipsis)
+     Column gap ≈ 10px
+     Total content-box needed for full strip ≈ 235px
+
+     Setting threshold at 250 content-box gives ~15px safety margin
+     before overlap, which catches truly cramped contexts without
+     preemptively hiding the strip on real iPhones:
+       - 375 viewport → content-box ~323 → no fire ✓ full strip
+       - 320 viewport → content-box ~268 → no fire ✓ full strip (~30px headroom)
+       - 280 viewport (rare/embedded) → content-box ~228 → fires ✓ */
+
+.casa-vdd__option,
+.casa-vdd__trigger {
+  container-type: inline-size;
+}
+
+/* This drop-the-strikethrough+chip guard is for the NO-IMAGE layout, where the
+   pricing strip shares the row's full width and can't wrap cleanly. IMAGE rows
+   (.casa-vdd__option--has-img) are excluded: their pricing strip flex-wraps
+   (see .casa-vdd__option--has-img .casa-vdd__option-pricing), so the −% chip
+   drops to a 2nd line instead of clipping — keeping BOTH the strikethrough and
+   the savings chip visible at every width, per the merchant rule. Without the
+   :not() exclusion, image rows lost the discount at ≤250px container / ≤300px
+   viewport even though they had room to wrap. */
+@container (max-width: 250px) {
+  .casa-vdd__option:not(.casa-vdd__option--has-img) .casa-vdd__option-savings,
+  .casa-vdd__option:not(.casa-vdd__option--has-img) .casa-vdd__option-compare-price,
+  .casa-vdd__trigger-savings,
+  .casa-vdd__trigger-compare-price {
+    display: none !important;
+  }
+}
+
+@media (max-width: 300px) {
+  .casa-vdd__option:not(.casa-vdd__option--has-img) .casa-vdd__option-savings,
+  .casa-vdd__option:not(.casa-vdd__option--has-img) .casa-vdd__option-compare-price,
+  .casa-vdd__trigger-savings,
+  .casa-vdd__trigger-compare-price {
+    display: none !important;
+  }
+}
+
+/* Row 2 — size bar + placement copy, spans the full width */
+.casa-vdd__option-foot {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.casa-vdd__option-bar {
+  flex: 0 0 200px;
+  height: 3px;
+  background: rgba(10, 10, 15, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+/* Same pairing as the trigger bar — fill the row when there's no placement
+   copy or featured tag next to it (gift cards, non-size pickers). */
+.casa-vdd__option-foot > .casa-vdd__option-bar:only-child {
+  flex: 1 1 auto;
+}
+.casa-vdd__option-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #B0C3FA 0%, #5E0A02 50%, #F2FFA0 100%);
+  border-radius: 2px;
+}
+.casa-vdd__option-placement {
+  font-size: 12px;
+  color: rgba(10, 10, 15, 0.55);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+/* Status (Unavailable) — only shown when not available */
+.casa-vdd__option-status {
+  grid-column: 1 / -1;
+  font-size: 10px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
   font-weight: 500;
 }
-.casa-vdd__option-status {
-  font-size: 11px;
-  color: #9ca3af;
+
+/* (Removed: .casa-vdd__check rule. The top-right absolute check icon
+   collided with the savings % chip in the pricing strip on the
+   selected row. v2 uses the gradient border on .casa-vdd__option--
+   selected as the selection signal instead — no SVG, no overlap.) */
+
+/* When variant has an image — image-left layout. STACKED at every
+   viewport: name / pricing / subtitle each on their own row in col 2.
+   No horizontal side-by-side of name + pricing, ever — that broke
+   on products like Aurelius where the pricing strip ($899.99 +
+   $1,099.99 compare-at + −18% badge ≈ 300px) leaves no room for
+   the name column on typical 450-500px dropdown panels.
+
+   Layout:
+     col 1: image (auto width, spans all rows)
+     col 2: name / pricing / subtitle stacked vertically
+   row-gap: 4px between rows.
+   Works at every panel width — name has full col-2 width, no
+   overlap with anything.
+
+   Image stays vertically centered in col 1 via align-self: center. */
+.casa-vdd__option--has-img {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) !important;
+  grid-template-rows: auto auto auto !important;
+  grid-template-areas:
+    "img name"
+    "img pricing"
+    "img subtitle" !important;
+  column-gap: 14px;
+  row-gap: 4px;
+  align-items: center;
+  align-content: center;
+  /* No vertical padding — image runs flush top-to-bottom of the row.
+     See trigger--has-img padding comment for the same rationale. */
+  padding: 0 14px 0 0;
+  min-height: 80px;
+  overflow: hidden;
 }
-.casa-vdd__check {
+.casa-vdd__option--has-img .casa-vdd__option-img {
+  grid-area: img;
+  grid-row: 1 / span 3;
+  /* Same as trigger-img above: fill the grid area regardless of the
+     <img width/height> attrs so no white space shows above/below. */
+  width: 100%;
+  height: 100%;
+  align-self: stretch;
+  object-fit: cover;
+}
+/* Pin column 1 of the option to a fixed width matching what the
+   image used to drive. */
+.casa-vdd__option--has-img {
+  grid-template-columns: 84px minmax(0, 1fr) !important;
+}
+@media (max-width: 749px) {
+  .casa-vdd__option--has-img {
+    grid-template-columns: 72px minmax(0, 1fr) !important;
+  }
+}
+/* When the option has NO subtitle (products without variant_description),
+   collapse to a clean 2-row layout. */
+.casa-vdd__option--has-img:not(:has(.casa-vdd__option-subtitle)) {
+  grid-template-rows: auto auto !important;
+  grid-template-areas:
+    "img name"
+    "img pricing" !important;
+}
+.casa-vdd__option--has-img:not(:has(.casa-vdd__option-subtitle)) .casa-vdd__option-img {
+  grid-row: 1 / span 2 !important;
+}
+.casa-vdd__option--has-img .casa-vdd__option-text-block {
+  /* Text-block holds just the name now — subtitle pulled out into
+     its own grid area via :has() trick or CSS-only rearrangement.
+     Since subtitle is a child of text-block in the markup, we use
+     display: contents to let it participate in the parent grid. */
+  grid-area: name;
+  display: contents;
+}
+.casa-vdd__option--has-img .casa-vdd__option-name {
+  grid-area: name;
+}
+.casa-vdd__option--has-img .casa-vdd__option-subtitle {
+  grid-area: subtitle;
+  /* Subtitle sits in the row 3 grid track of column 2. Column 2 is
+     `minmax(0, 1fr)` which gives ~260-290px on a 390px viewport.
+     Allow wrap so long multi-piece variant listings render in full
+     across 2-3 lines instead of truncating with "…" — the merchant's
+     directive 2026-05-20 is that the customer must see the entire
+     "Yellow/Pink + Pink/Purple + Yellow/Blue + Green/Pink + Blue/Green"
+     description on a Full Set row, not a clipped version of it.
+     Short mood-word subtitles still fit on one line; long ones flow
+     onto additional lines. */
+  white-space: normal !important;
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+.casa-vdd__option--has-img .casa-vdd__option-pricing {
+  grid-area: pricing;
+}
+.casa-vdd__option--has-img .casa-vdd__option-name {
+  font-size: 14px;
+}
+.casa-vdd__option--has-img .casa-vdd__option-pricing {
+  flex-direction: row;
+  /* Wrap the pricing pieces (price · strikethrough · −% chip) instead of
+     letting the rightmost chip run past the row edge and get sliced by the
+     row's overflow:hidden. On phones ≤ ~360px — and in wide currencies like
+     XCD ("$302.00 XCD") / VND — the one-line strip is wider than grid column
+     2, so the −% badge dropped off the right edge ("−16" clipped). Wrapping
+     drops the overflowing piece(s) to a 2nd line, all-currencies-safe, and
+     keeps both the strikethrough AND the savings chip visible per the
+     merchant rule. row-gap 4px separates the wrapped line. */
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 4px 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+.casa-vdd__option--has-img .casa-vdd__option-foot {
+  display: none;
+}
+/* Option row image fills the row height (no white space above/below).
+   Matches the trigger image rule above. */
+.casa-vdd__option-img {
+  align-self: stretch;
+  height: 100%;
+  width: 72px;
+  min-width: 64px;
+  max-width: 104px;
+  object-fit: cover;
+  border-radius: 0;
   flex-shrink: 0;
-  color: #9333ea;
-  width: 20px;
-  height: 20px;
 }
+@media (min-width: 750px) {
+  .casa-vdd__option--has-img {
+    min-height: 84px;
+  }
+  .casa-vdd__option-img {
+    width: 84px;
+  }
+}
+
+/* Mobile — tighten padding, narrow the bar, hide strikethrough (savings % still communicates discount) */
+@media (max-width: 749px) {
+  /* The has-img stacked layout is now the default at every viewport
+     (see .casa-vdd__option--has-img above) — this media query no
+     longer needs to redefine grid-template-* for mobile. Just tighten
+     padding and align pricing left. */
+  .casa-vdd__option--has-img .casa-vdd__option-pricing {
+    /* stretch (not start): pin the strip to grid column 2's width so the
+       flex-wrap above can drop the −% chip to a 2nd line. `start` sized the
+       strip to its content, which let it (and the chip) overflow the column
+       and get clipped by the row's overflow:hidden. Content still reads
+       left-aligned via justify-content:flex-start. */
+    justify-self: stretch;
+  }
+  .casa-vdd__option {
+    padding: 12px 14px;
+    column-gap: 10px;
+    row-gap: 4px;
+  }
+  .casa-vdd__option-name { font-size: 14px; }
+  .casa-vdd__option-price { font-size: 14px; }
+  /* Compare-at price stays visible on mobile too — merchant wants both
+     the strikethrough number and the savings % chip readable. Smaller
+     font + tighter pricing-strip gap so all three pieces fit at 320px. */
+  .casa-vdd__option-compare-price { font-size: 11px; }
+  .casa-vdd__option-pricing { gap: 6px; }
+  .casa-vdd__option-bar { flex: 0 0 80px; }
+  .casa-vdd__option-placement { font-size: 11px; }
+  .casa-vdd__option-featured-tag {
+    padding: 2px 6px;
+    font-size: 8px;
+    letter-spacing: 0.4px;
+  }
+  .casa-vdd__option-featured-tag svg { width: 8px; height: 8px; }
+}
+
+/* Badge pill (variant_badge metafield) */
 .casa-vdd__option-badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
+  padding: 2px 7px;
   margin-left: 6px;
-  background: var(--vdd-badge-bg, linear-gradient(135deg, #9333ea, #ec4899));
+  background: var(--vdd-badge-bg, linear-gradient(90deg, #B0C3FA, #5E0A02));
   color: var(--vdd-badge-text, #fff);
-  font-size: var(--vdd-badge-fs, 10px);
-  font-weight: 700;
+  font-size: 9px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border-radius: 4px;
-  line-height: 1.4;
+  line-height: 1.5;
   vertical-align: middle;
   white-space: nowrap;
 }
@@ -982,19 +3574,110 @@
   gap: 4px;
   flex-wrap: wrap;
 }
-.casa-vdd__option-desc {
-  display: block;
-  font-size: 12px;
-  color: #9ca3af;
-  font-weight: 400;
-  line-height: 1.4;
-  margin-top: 2px;
-}
-.casa-vdd__check {
+
+/* ── Pricing — trigger.
+   Default: horizontal strip in row 1 col 2 (price · ̶c̶o̶m̶p̶a̶r̶e̶ · −X%).
+   --has-img variant overrides to vertical stack to match the existing
+   image-left layout. ── */
+.casa-vdd__trigger-pricing {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px;
   flex-shrink: 0;
-  color: #9333ea;
+}
+.casa-vdd__trigger-price {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0a0a0f;
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.casa-vdd__trigger-compare-price {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(10, 10, 15, 0.4);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.casa-vdd__trigger-savings {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  padding: 1px 6px;
+  background: rgba(176, 195, 250, 0.10);
+  color: #B0C3FA;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  border-radius: 3px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* When trigger has an image — left-align the pricing strip under the name so
+   "Rich Purple" + "$1,326.00 CAD" share the same left edge. The earlier
+   .casa-vdd__trigger-pricing rule sets justify-content: flex-end (right-aligns
+   pricing in the no-image trigger where pricing sits in its own col 2),
+   which here would leave a 200px gap between name and pricing. Restate
+   grid-area + flex-start so the rule is fully explicit and overrides the
+   default `grid-column: 2; grid-row: 1` and `justify-content: flex-end`. */
+.casa-vdd__trigger--has-img .casa-vdd__trigger-pricing {
+  grid-area: pricing;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 8px;
 }
 
+/* (Removed: duplicate .casa-vdd__option-pricing / -price / -compare-price
+   rules from the v1 layer were overriding the v2 horizontal pricing strip
+   with vertical-stack styling — caused 120px tall rows in the open list
+   because flex-direction: column made the column min-content the sum of
+   all three children's heights instead of the max. The v2 rules above
+   are the source of truth now.) */
+
+/* ── Mobile trigger tweaks ── (option-row mobile tweaks live in the v2 block above) */
+@media (max-width: 749px) {
+  .casa-vdd__trigger {
+    min-height: 64px;
+    padding: 12px 14px;
+    column-gap: 10px;
+    row-gap: 6px;
+    font-size: 14px;
+  }
+  .casa-vdd__trigger-text { font-size: 14px; }
+  .casa-vdd__trigger-price { font-size: 14px; }
+  /* Trigger compare-at price stays visible on mobile too — symmetric with
+     the option rows. */
+  .casa-vdd__trigger-compare-price { font-size: 11px; }
+  .casa-vdd__trigger-pricing { gap: 6px; }
+  .casa-vdd__trigger-bar { flex: 0 0 80px; }
+  .casa-vdd__trigger-placement { font-size: 11px; }
+  .casa-vdd__trigger--has-img { min-height: 64px; }
+}
+
+/* ── Section-label above the dropdown ──
+   The Liquid wraps the dropdown in .variant-option--dropdowns
+   with a <label> as the field heading. Style it to match the
+   button-card fieldset legend treatment. */
+.variant-option--dropdowns > label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0a0a0a;
+  /* Baseline gap matches the per-instance title_gap default (14px desktop /
+     10px mobile). The cdl-vp-* scoped rule earlier in this file overrides
+     with !important when a block-level value is set. */
+  margin-bottom: 14px;
+}
 </style>
 
 {%- comment -%} JS for casa-vdd is in snippets/quick-add-modal.liquid (global) {%- endcomment -%}

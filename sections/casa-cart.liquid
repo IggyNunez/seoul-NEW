@@ -1,10 +1,10 @@
-{% doc %}
+{% comment %}
   Casa Cart Section
 
   Premium dark-themed cart page section that replaces main-cart.
   Maintains full JS compatibility with cart-items-component for AJAX updates.
   Uses Casa design system tokens for consistent brand styling.
-{% enddoc %}
+{% endcomment %}
 
 <cart-items-component
   class="cart-items-component"
@@ -29,16 +29,15 @@
     assign bg_secondary = section.settings.bg_secondary | default: '#f9fafb'
     assign text_primary = section.settings.text_primary | default: '#0a0a0a'
     assign text_secondary = section.settings.text_secondary | default: '#6b7280'
-    assign accent_primary = section.settings.accent_primary | default: '#9333ea'
-    assign accent_secondary = section.settings.accent_secondary | default: '#ec4899'
+    assign accent_primary = section.settings.accent_primary | default: '#B0C3FA'
+    assign accent_secondary = section.settings.accent_secondary | default: '#5E0A02'
     assign price_color = section.settings.price_color | default: '#0a0a0a'
     assign compare_price_color = section.settings.compare_price_color | default: '#9ca3af'
-    assign sale_price_color = section.settings.sale_price_color | default: '#ec4899'
-    assign savings_color = section.settings.savings_color | default: '#22c55e'
-    assign checkout_btn_bg = section.settings.checkout_btn_bg | default: '#9333ea'
-    assign checkout_btn_text = section.settings.checkout_btn_text | default: '#ffffff'
-    assign quantity_btn_bg = section.settings.quantity_btn_bg | default: '#9333ea'
-    assign quantity_btn_text = section.settings.quantity_btn_text | default: '#ffffff'
+    assign sale_price_color = section.settings.sale_price_color | default: '#5E0A02'
+    assign checkout_btn_bg = section.settings.checkout_btn_bg | default: '#B0C3FA'
+    assign checkout_btn_text = section.settings.checkout_btn_text | default: '#FAFAF7'
+    assign quantity_btn_bg = section.settings.quantity_btn_bg | default: '#B0C3FA'
+    assign quantity_btn_text = section.settings.quantity_btn_text | default: '#FAFAF7'
     assign title_size = section.settings.title_size | default: 16
     assign body_size = section.settings.body_size | default: 13
   -%}
@@ -54,7 +53,6 @@
     --cart-price-color: {{ price_color }};
     --cart-compare-price-color: {{ compare_price_color }};
     --cart-sale-price-color: {{ sale_price_color }};
-    --cart-savings-color: {{ savings_color }};
     --cart-checkout-btn-bg: {{ checkout_btn_bg }};
     --cart-checkout-btn-text: {{ checkout_btn_text }};
     --cart-quantity-btn-bg: {{ quantity_btn_bg }};
@@ -92,9 +90,12 @@
         {%- comment -%} ═══ Cart Header ═══ {%- endcomment -%}
         {%- if section.settings.show_header != false -%}
         <div class="casa-cart__header">
+          {%- if section.settings.header_tag != blank -%}
+            <span class="casa-cart__header-tag">{{ section.settings.header_tag }}</span>
+          {%- endif -%}
           <h1 class="casa-cart__header-title">
-            {{ section.settings.header_title | default: 'Shopping Bag' }}
-            <span class="casa-cart__header-count">{{ cart.item_count }}</span>
+            {{ section.settings.header_title }}
+            <span class="casa-cart__header-count" aria-label="{{ cart.item_count }} {% if cart.item_count == 1 %}item{% else %}items{% endif %} in cart">{{ cart.item_count }}</span>
           </h1>
         </div>
         {%- endif -%}
@@ -174,7 +175,7 @@
                 {{ settings.cart_gift_wrap_text | default: 'Add gift wrapping' }}
                 {%- assign _gift_price = settings.cart_gift_wrap_price | plus: 0 -%}
                 {%- if _gift_price > 0 -%}
-                  <span class="casa-cart__gift-price">+{{ settings.cart_gift_wrap_price | money }}</span>
+                  <span class="casa-cart__gift-price">+{{ settings.cart_gift_wrap_price | money_with_currency }}</span>
                 {%- endif -%}
               </span>
             </label>
@@ -187,30 +188,57 @@
 
 <script>
   (function() {
+    if (window.__casaCartUpsellInit) return;
+    window.__casaCartUpsellInit = true;
     function initCartUpsellCarousel() {
       var upsell = document.querySelector('.casa-cart__upsell');
       if (!upsell) return;
       var track = upsell.querySelector('.casa-cart__upsell-track');
+      var nav = upsell.querySelector('.casa-cart__upsell-nav');
       var prev = upsell.querySelector('.casa-cart__upsell-arrow--prev');
       var next = upsell.querySelector('.casa-cart__upsell-arrow--next');
       if (!track || !prev || !next) return;
 
       function updateArrows() {
+        // If the track has nothing to scroll to (all upsell cards fit in
+        // the visible area, or there are no cards after filtering out
+        // products already in the cart), hide the whole nav. Previously
+        // the buttons remained visible at opacity 0.25 with the disabled
+        // attribute set — which created the ghosted "click goes nowhere"
+        // behaviour the user reported. Also a scroll-snap snapback after
+        // a no-op scrollBy was briefly toggling prev.disabled false, then
+        // back true once the snap settled — that's the "left arrow
+        // appears after clicking right, then disappears" symptom.
+        var scrollable = track.scrollWidth > track.clientWidth + 2;
+        if (nav) nav.hidden = !scrollable;
+        if (!scrollable) return;
         prev.disabled = track.scrollLeft <= 2;
-        next.disabled = track.scrollLeft + track.offsetWidth >= track.scrollWidth - 2;
+        next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
       }
 
       prev.addEventListener('click', function() {
+        if (prev.disabled) return;
         var card = track.querySelector('.casa-cart__upsell-card');
         if (card) track.scrollBy({ left: -(card.offsetWidth + 16), behavior: 'smooth' });
       });
 
       next.addEventListener('click', function() {
+        if (next.disabled) return;
         var card = track.querySelector('.casa-cart__upsell-card');
         if (card) track.scrollBy({ left: card.offsetWidth + 16, behavior: 'smooth' });
       });
 
       track.addEventListener('scroll', updateArrows, { passive: true });
+
+      // Re-check when the track or its contents resize. Catches the
+      // initial layout after web fonts / images settle, and any changes
+      // when the cart drawer reflows on viewport resize.
+      if ('ResizeObserver' in window) {
+        new ResizeObserver(updateArrows).observe(track);
+      } else {
+        window.addEventListener('resize', updateArrows);
+      }
+
       updateArrows();
     }
 
@@ -225,11 +253,14 @@
      ══════════════════════════════════════════════ */
 
   .casa-cart {
-    background: var(--cart-bg, var(--casa-bg-dark));
-    min-height: 100vh;
+    background: var(--cart-bg, #FAFAF7);
     position: relative;
-    overflow: hidden;
-    color: var(--cart-text, var(--casa-text-primary));
+    /* `clip` instead of `hidden` — `hidden` creates a scroll
+       container that traps the descendant `position: sticky`
+       summary so it falls off when scrolling past the cart
+       (memory: feedback_overflow_hidden_traps_sticky.md). */
+    overflow: clip;
+    color: var(--cart-text, #0A0A0F);
   }
 
   .casa-cart__container {
@@ -270,64 +301,89 @@
     right: -120px;
   }
 
-  /* ── Cart Header ── */
+  /* ── Cart Header — brand v1 H2 token stack with italic-gradient <em> accent ── */
   .casa-cart__header {
     margin-bottom: var(--casa-space-8, 32px);
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 8px;
     padding-bottom: var(--casa-space-5, 20px);
-    border-bottom: 1px solid var(--cart-border, rgba(255, 255, 255, 0.08));
+    border-bottom: 1px solid var(--cart-border, rgba(0, 0, 0, 0.08));
+  }
+
+  .casa-cart__header-tag {
+    font-family: var(--font-body--family, 'Inter', system-ui, sans-serif);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cart-text-muted, #6b7280);
   }
 
   .casa-cart__header-title {
-    font-size: 28px;
-    font-weight: 400;
-    color: var(--cart-text, var(--casa-text-primary));
+    font-family: var(--casa-pdp-h2-family, 'Inter', system-ui, sans-serif);
+    font-size: var(--casa-pdp-h2-size, clamp(36px, 4.5vw, 56px));
+    font-weight: var(--casa-pdp-h2-weight, 600);
+    letter-spacing: var(--casa-pdp-h2-tracking, -0.02em);
+    line-height: var(--casa-pdp-h2-line, 1.05);
+    color: var(--cart-text, #0a0a0a);
     margin: 0;
-    line-height: 1.2;
-    letter-spacing: -0.01em;
     display: flex;
     align-items: baseline;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 14px;
+    text-wrap: balance;
   }
 
-  @media (max-width: 749px) {
-    .casa-cart__header-title {
-      font-size: 22px;
-    }
-    .casa-cart__header {
-      margin-bottom: var(--casa-space-6, 24px);
-      padding-bottom: var(--casa-space-4, 16px);
-    }
+  /* Brand italic-gradient accent — same treatment used by every
+     section H2 across the theme. Falls back to the explicit
+     3-stop gradient if the --grad-text token isn't defined. */
+  .casa-cart__header-title em {
+    font-style: italic;
+    background: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
   .casa-cart__header-count {
-    font-size: 14px;
-    font-weight: 400;
-    color: var(--cart-text-muted, var(--casa-text-secondary));
+    font-family: var(--font-body--family, 'Inter', system-ui, sans-serif);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--cart-text-muted, #6b7280);
     letter-spacing: 0;
+  }
+  .casa-cart__header-count::before { content: '/ '; opacity: 0.4; }
+
+  @media (max-width: 749px) {
+    .casa-cart__header { gap: 6px; padding-bottom: var(--casa-space-4, 16px); margin-bottom: var(--casa-space-6, 24px); }
+    .casa-cart__header-tag { font-size: 10px; letter-spacing: 0.12em; }
+    .casa-cart__header-count { font-size: 14px; }
   }
   .casa-cart__header-count::before { content: '/ '; opacity: 0.4; }
 
   /* ── Grid Layout ── */
   .casa-cart__grid {
     display: grid;
-    grid-template-columns: 1fr 360px;
+    grid-template-columns: minmax(0, 1fr) 360px;
     gap: var(--casa-space-10, 48px);
-    align-items: start;
+    /* `align-items: start` was here previously — removed because it
+       collapsed the sidebar to its content height (= summary height),
+       which left sticky no room to travel. Default `stretch` makes
+       sidebar fill the grid row, giving the summary a real
+       containing-block to stick within. */
   }
 
   @media (max-width: 1199px) and (min-width: 1000px) {
     .casa-cart__grid {
-      grid-template-columns: 1fr 320px;
+      grid-template-columns: minmax(0, 1fr) 320px;
       gap: var(--casa-space-6, 24px);
     }
   }
 
   @media (max-width: 999px) {
     .casa-cart__grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
       gap: var(--casa-space-6, 24px);
     }
   }
@@ -350,7 +406,7 @@
   }
 
   .casa-cart__upsell-title {
-    font-size: 18px;
+    font-size: var(--font-h4--size, 18px);
     font-weight: 500;
     color: var(--cart-upsell-title, var(--cart-text, var(--casa-text-primary)));
     margin: 0;
@@ -555,14 +611,16 @@
     {
       "type": "text",
       "id": "header_tag",
-      "label": "Header tag text",
+      "label": "Header eyebrow tag",
+      "info": "UPPERCASE label above the heading",
       "default": "YOUR CART"
     },
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "header_title",
       "label": "Header title",
-      "default": "Shopping Bag"
+      "info": "Wrap one word in <em></em> for the brand italic-gradient accent",
+      "default": "Your <em>cart.</em>"
     },
     {
       "type": "header",
@@ -615,13 +673,13 @@
       "type": "color",
       "id": "accent_primary",
       "label": "Accent primary",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "accent_secondary",
       "label": "Accent secondary",
-      "default": "#ec4899"
+      "default": "#5E0A02"
     },
     {
       "type": "color",
@@ -673,13 +731,7 @@
       "type": "color",
       "id": "sale_price_color",
       "label": "Sale price color",
-      "default": "#ec4899"
-    },
-    {
-      "type": "color",
-      "id": "savings_color",
-      "label": "Savings text color",
-      "default": "#22c55e"
+      "default": "#5E0A02"
     },
     {
       "type": "header",
@@ -689,13 +741,13 @@
       "type": "color",
       "id": "checkout_btn_bg",
       "label": "Checkout button background",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "checkout_btn_text",
       "label": "Checkout button text",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
@@ -717,13 +769,13 @@
       "type": "color",
       "id": "quantity_btn_bg",
       "label": "Quantity button background",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "quantity_btn_text",
       "label": "Quantity button text",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",

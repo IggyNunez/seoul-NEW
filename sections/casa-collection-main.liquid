@@ -2,6 +2,15 @@
   assign products_per_page = section.settings.products_per_page | default: 24
   assign columns_desktop = section.settings.columns_desktop | default: 4
   assign columns_mobile = section.settings.columns_mobile | default: 2
+  # Card img `sizes`, computed from the configured column counts so the
+  # srcset pick matches the real slot width (the 901-1200px band is
+  # hardcoded 3-col in the CSS below; ≤900px reads columns_mobile).
+  # The column settings are select strings — plus: 0 coerces for math.
+  assign _ccm_cols_n = columns_desktop | plus: 0
+  assign _ccm_mobile_n = columns_mobile | plus: 0
+  assign _ccm_share_d = 100 | divided_by: _ccm_cols_n
+  assign _ccm_share_m = 100 | divided_by: _ccm_mobile_n
+  assign card_sizes = '(min-width: 1201px) ' | append: _ccm_share_d | append: 'vw, (min-width: 901px) 33vw, ' | append: _ccm_share_m | append: 'vw'
   assign show_sidebar = section.settings.show_sidebar_filters | default: true
   assign show_sort = section.settings.show_sort | default: true
   assign show_view_toggle = section.settings.show_view_toggle | default: true
@@ -11,21 +20,27 @@
   assign padding_bottom = section.settings.padding_bottom | default: 60
 
   # Color settings
-  assign bg_color = section.settings.bg_color | default: '#0a0a0f'
-  assign bg_secondary = section.settings.bg_secondary | default: '#0f0f18'
-  assign text_primary = section.settings.text_primary | default: '#ffffff'
+  assign bg_color = section.settings.bg_color | default: '#0A0A0F'
+  assign bg_secondary = section.settings.bg_secondary | default: '#0A0A0F'
+  assign text_primary = section.settings.text_primary | default: '#FAFAF7'
   assign text_secondary = section.settings.text_secondary | default: '#a0a0a0'
-  assign accent_primary = section.settings.accent_primary | default: '#9333ea'
-  assign accent_secondary = section.settings.accent_secondary | default: '#ec4899'
-  assign toolbar_bg = section.settings.toolbar_bg | default: '#1a1a24'
+  assign accent_primary = section.settings.accent_primary | default: '#B0C3FA'
+  assign accent_secondary = section.settings.accent_secondary | default: '#5E0A02'
+  assign toolbar_bg = section.settings.toolbar_bg | default: '#1F1F24'
   assign toolbar_border = section.settings.toolbar_border | default: '#2a2a3a'
   assign remove_accent = section.settings.remove_accent | default: '#ef4444'
   assign divider_color = section.settings.divider_color | default: '#1a1a2e'
-  assign overlay_color = section.settings.overlay_color | default: '#000000'
+  assign overlay_color = section.settings.overlay_color | default: '#0A0A0F'
   assign input_bg = section.settings.input_bg | default: '#12121a'
   assign input_border = section.settings.input_border | default: '#2a2a3e'
-  assign card_bg = section.settings.card_bg | default: '#0f0f18'
-  assign highlight_bg = section.settings.highlight_bg | default: '#1f1f2e'
+  assign card_bg = section.settings.card_bg | default: '#0A0A0F'
+  assign highlight_bg = section.settings.highlight_bg | default: '#1F1F24'
+
+  # Mobile filter drawer "Show Results" button colors
+  assign apply_button_bg = section.settings.apply_button_bg | default: 'linear-gradient(135deg, #B0C3FA, #5E0A02)'
+  assign apply_button_text = section.settings.apply_button_text | default: '#FAFAF7'
+  assign apply_button_bg_hover = section.settings.apply_button_bg_hover | default: 'linear-gradient(135deg, #7e22ce, #5E0A02)'
+  assign apply_button_text_hover = section.settings.apply_button_text_hover | default: '#FAFAF7'
 
   # Border radius settings
   assign radius_small = section.settings.radius_small | default: 8
@@ -98,28 +113,27 @@
   assign disabled_opacity = section.settings.disabled_opacity | default: 30
   assign hover_scale = section.settings.hover_scale | default: 110
 
-  # CRO feature flags
-  assign show_quick_add = section.settings.show_quick_add | default: false
-  assign show_variant_swatches = section.settings.show_variant_swatches | default: false
-  assign show_wishlist = section.settings.show_wishlist | default: false
-  assign show_rating = section.settings.show_rating | default: false
-  assign show_quick_view = section.settings.show_quick_view | default: false
-  assign show_stock_urgency = section.settings.show_stock_urgency | default: false
-  assign show_installment = section.settings.show_installment | default: false
-  assign show_savings_highlight = section.settings.show_savings_highlight | default: false
-  assign show_social_proof = section.settings.show_social_proof | default: false
-
-  # Collect promo banner positions for insertion logic
-  assign promo_blocks = '' | split: ','
-  for block in section.blocks
-    if block.type == 'promo_banner' or block.type == 'full_width_banner' or block.type == 'media_banner'
-      assign promo_blocks = promo_blocks | push: block
-    endif
-  endfor
+  # CRO feature flags — gated by override_card_features.
+  # When OFF, the vars stay nil and casa-product-card falls back to
+  # the global Theme Settings → Casa Product Cards (settings.card_*).
+  # When ON, the section's local toggles take effect.
+  # Matches the pattern in casa-products-grid + casa-recently-viewed.
+  assign override_card_features = section.settings.override_card_features
+  if override_card_features
+    assign show_quick_add = section.settings.show_quick_add
+    assign show_variant_swatches = section.settings.show_variant_swatches
+    assign show_wishlist = section.settings.show_wishlist
+    assign show_rating = section.settings.show_rating
+    assign show_quick_view = section.settings.show_quick_view
+    assign show_stock_urgency = section.settings.show_stock_urgency
+    assign show_installment = section.settings.show_installment
+    assign show_savings_highlight = section.settings.show_savings_highlight
+    assign show_social_proof = section.settings.show_social_proof
+  endif
 -%}
 
 <section
-  class="casa-col-main"
+  class="casa-col-main{% if section.settings.disable_animations %} casa-col-main--no-anim{% endif %}"
   id="casa-collection-main"
   data-section-id="{{ section.id }}"
   style="
@@ -142,11 +156,13 @@
     --ccm-input-border: {{ input_border }};
     --ccm-card-bg: {{ card_bg }};
     --ccm-highlight-bg: {{ highlight_bg }};
+    --ccm-apply-bg: {{ apply_button_bg }};
+    --ccm-apply-text: {{ apply_button_text }};
+    --ccm-apply-bg-hover: {{ apply_button_bg_hover }};
+    --ccm-apply-text-hover: {{ apply_button_text_hover }};
     --ccm-radius-sm: {{ radius_small }}px;
     --ccm-radius-pill: {{ radius_pill }}px;
     --ccm-grid-gap: {{ grid_gap }}px;
-    --card-title-size: {{ section.settings.card_title_size | default: 13 }}px;
-    --card-info-gap: {{ section.settings.card_info_gap | default: 4 }}px;
     --ccm-sidebar-w: {{ sidebar_width }}px;
     --ccm-toolbar-pad: {{ toolbar_padding }}px;
     --ccm-filter-gap: {{ filter_gap }}px;
@@ -191,10 +207,6 @@
     --ccm-option-gap: {{ option_gap }}px;
     --ccm-disabled-opacity: {{ disabled_opacity | divided_by: 100.0 }};
     --ccm-hover-scale: {{ hover_scale | divided_by: 100.0 }};
-    {%- if section.settings.card_atc_bg_1 != blank and section.settings.card_atc_bg_2 != blank -%}--card-atc-bg: linear-gradient(135deg, {{ section.settings.card_atc_bg_1 }}, {{ section.settings.card_atc_bg_2 }});{%- endif -%}
-    {%- if section.settings.card_atc_text != blank -%}--card-atc-text: {{ section.settings.card_atc_text }};{%- endif -%}
-    {%- if section.settings.card_options_bg_1 != blank and section.settings.card_options_bg_2 != blank -%}--card-options-bg: linear-gradient(135deg, {{ section.settings.card_options_bg_1 }}, {{ section.settings.card_options_bg_2 }});{%- endif -%}
-    {%- if section.settings.card_options_text != blank -%}--card-options-text: {{ section.settings.card_options_text }};{%- endif -%}
   "
 >
   {%- comment -%} ══════════════════════════════════════════════════
@@ -229,8 +241,28 @@
       {%- endif -%}
 
       {%- if show_sort -%}
+        {%- comment -%}
+          Resolve the currently-selected sort option's display label so
+          the visible pill renders it directly. The native <select> sits
+          on top, invisible — it captures taps and opens the OS picker,
+          while the visible label + chevron stay tightly bound as one
+          unit (you can't achieve this with a native styled <select>
+          because browsers size <select> to the widest option and the
+          chevron has to live at the right edge).
+        {%- endcomment -%}
+        {%- liquid
+          assign current_sort_label = 'Sort by'
+          for option in collection.sort_options
+            if option.value == sort_by
+              assign current_sort_label = option.name
+              break
+            endif
+          endfor
+        -%}
         <div class="casa-col-main__sort">
           <label for="casa-sort-select" class="visually-hidden">Sort by</label>
+          <span class="casa-col-main__sort-label" aria-hidden="true" data-sort-label>{{ current_sort_label }}</span>
+          <svg class="casa-col-main__sort-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
           <select id="casa-sort-select" class="casa-col-main__sort-select" data-sort-select>
             {%- for option in collection.sort_options -%}
               <option value="{{ option.value }}" {% if option.value == sort_by %}selected{% endif %}>
@@ -238,7 +270,6 @@
               </option>
             {%- endfor -%}
           </select>
-          <svg class="casa-col-main__sort-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </div>
       {%- endif -%}
 
@@ -327,8 +358,8 @@
                 {%- render 'casa-product-card',
                   product: product,
                   variant: 'collection',
-                  info_align: section.settings.card_info_align,
                   index: forloop.index0,
+                  sizes: card_sizes,
                   show_quick_add: show_quick_add,
                   show_variant_swatches: show_variant_swatches,
                   show_wishlist: show_wishlist,
@@ -338,17 +369,7 @@
                   show_installment: show_installment,
                   show_savings_highlight: show_savings_highlight,
                   show_social_proof: show_social_proof,
-                  title_color: section.settings.card_title_color,
-                  price_color: section.settings.card_price_color,
-                  compare_color: section.settings.card_compare_color,
-                  show_sale_badge: section.settings.show_sale_badge,
-                  badge_bg: section.settings.card_badge_bg,
-                  badge_text: section.settings.card_badge_text,
-                  savings_bg: section.settings.card_savings_bg,
-                  savings_text: section.settings.card_savings_text,
-                  installment_color: section.settings.card_installment_color,
-                  stars_color: section.settings.card_stars_color,
-                  reviews_color: section.settings.card_reviews_color
+                  show_sale_badge: section.settings.show_sale_badge
                 -%}
               </li>
             {%- endfor -%}
@@ -427,8 +448,11 @@
       {%- comment -%} Filter form gets cloned here via JS {%- endcomment -%}
     </div>
     <div class="casa-col-main__drawer-footer">
+      <button type="button" class="casa-col-main__drawer-clear" data-drawer-clear>
+        Clear all
+      </button>
       <button type="button" class="casa-col-main__drawer-apply" data-drawer-apply>
-        Show <span data-results-count>{{ collection.products_count }}</span> Results
+        <span data-drawer-apply-label>Show <span data-results-count>{{ collection.products_count }}</span> Results</span>
       </button>
     </div>
   </div>
@@ -507,58 +531,78 @@
       "content": "CRO Features"
     },
     {
+      "type": "paragraph",
+      "content": "All card display + features (badges, ratings, price, Quick Add, Wishlist, Quick View, etc.) follow Theme Settings → Casa Product Cards by default. Toggle the checkbox below to override them just for this section."
+    },
+    {
+      "type": "checkbox",
+      "id": "override_card_features",
+      "label": "Override theme card settings",
+      "info": "When OFF, this section uses the global Theme Settings. When ON, the toggles below take effect.",
+      "default": false
+    },
+    {
       "type": "checkbox",
       "id": "show_quick_add",
       "label": "Quick Add to Cart",
-      "default": true
+      "default": true,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_variant_swatches",
       "label": "Variant swatches",
-      "default": true
+      "default": true,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_wishlist",
       "label": "Wishlist button",
-      "default": true
+      "default": true,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_rating",
       "label": "Star rating",
-      "default": true
+      "default": true,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_quick_view",
       "label": "Quick view",
-      "default": false
+      "default": false,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_stock_urgency",
       "label": "Low stock urgency badge",
-      "default": true
+      "default": true,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_installment",
       "label": "Installment pricing",
-      "default": false
+      "default": false,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_savings_highlight",
       "label": "Savings highlight",
-      "default": true
+      "default": true,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_social_proof",
       "label": "Social proof badges",
-      "default": false
+      "default": false,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "header",
@@ -568,19 +612,19 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background color",
-      "default": "#0a0a0f"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
       "id": "bg_secondary",
       "label": "Secondary background",
-      "default": "#0f0f18"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
       "id": "text_primary",
       "label": "Text color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
@@ -592,19 +636,19 @@
       "type": "color",
       "id": "accent_primary",
       "label": "Primary accent",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "accent_secondary",
       "label": "Secondary accent",
-      "default": "#ec4899"
+      "default": "#5E0A02"
     },
     {
       "type": "color",
       "id": "toolbar_bg",
       "label": "Toolbar/filter pill background",
-      "default": "#1a1a24"
+      "default": "#1F1F24"
     },
     {
       "type": "color",
@@ -630,7 +674,7 @@
       "type": "color",
       "id": "overlay_color",
       "label": "Overlay color",
-      "default": "#000000",
+      "default": "#0A0A0F",
       "info": "Base color for drawer overlay"
     },
     {
@@ -651,48 +695,48 @@
       "type": "color",
       "id": "card_bg",
       "label": "Card background",
-      "default": "#0f0f18",
+      "default": "#0A0A0F",
       "info": "Promo cards and empty state"
     },
     {
       "type": "color",
       "id": "highlight_bg",
       "label": "Highlight background",
-      "default": "#1f1f2e",
+      "default": "#1F1F24",
       "info": "Hover/active state backgrounds"
     },
     {
       "type": "header",
-      "content": "Product Card Colors"
+      "content": "Mobile filter drawer — Show Results button"
+    },
+    {
+      "type": "paragraph",
+      "content": "Style for the \"Show N Results\" button at the bottom of the mobile filter drawer."
+    },
+    {
+      "type": "color_background",
+      "id": "apply_button_bg",
+      "label": "Background",
+      "info": "Solid color OR gradient (e.g. linear-gradient(135deg, #B0C3FA, #5E0A02)). Defaults to a purple → pink gradient.",
+      "default": "linear-gradient(135deg, #B0C3FA, #5E0A02)"
     },
     {
       "type": "color",
-      "id": "card_title_color",
-      "label": "Product title",
-      "default": "#ffffff"
+      "id": "apply_button_text",
+      "label": "Text color",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color_background",
+      "id": "apply_button_bg_hover",
+      "label": "Hover background",
+      "default": "linear-gradient(135deg, #7e22ce, #5E0A02)"
     },
     {
       "type": "color",
-      "id": "card_price_color",
-      "label": "Product price",
-      "default": "#ffffff"
-    },
-    {
-      "type": "color",
-      "id": "card_compare_color",
-      "label": "Compare at price",
-      "info": "Overrides global compare price color for this section. Leave empty to use theme setting."
-    },
-    {
-      "type": "select",
-      "id": "card_info_align",
-      "label": "Card text alignment",
-      "options": [
-        { "value": "left", "label": "Left" },
-        { "value": "center", "label": "Center" },
-        { "value": "right", "label": "Right" }
-      ],
-      "default": "left"
+      "id": "apply_button_text_hover",
+      "label": "Hover text color",
+      "default": "#FAFAF7"
     },
     {
       "type": "checkbox",
@@ -700,83 +744,6 @@
       "label": "Show sale % badge",
       "info": "Auto-calculated discount percentage. Disable to hide sale badges while keeping custom badges.",
       "default": true
-    },
-    {
-      "type": "color",
-      "id": "card_badge_bg",
-      "label": "Sale badge background",
-      "default": "#ef4444"
-    },
-    {
-      "type": "color",
-      "id": "card_badge_text",
-      "label": "Sale badge text",
-      "default": "#ffffff"
-    },
-    {
-      "type": "color",
-      "id": "card_savings_bg",
-      "label": "Savings badge background",
-      "default": "#fef2f2"
-    },
-    {
-      "type": "color",
-      "id": "card_savings_text",
-      "label": "Savings badge text",
-      "default": "#dc2626"
-    },
-    {
-      "type": "color",
-      "id": "card_installment_color",
-      "label": "Installment price",
-      "default": "#9ca3af",
-      "info": "e.g. Or 4× RD$ 3,075.00"
-    },
-    {
-      "type": "color",
-      "id": "card_stars_color",
-      "label": "Star rating color",
-      "default": "#fbbf24"
-    },
-    {
-      "type": "color",
-      "id": "card_reviews_color",
-      "label": "Reviews count",
-      "default": "#9ca3af"
-    },
-    {
-      "type": "header",
-      "content": "Button Colors"
-    },
-    {
-      "type": "color",
-      "id": "card_atc_bg_1",
-      "label": "Add to Cart gradient start"
-    },
-    {
-      "type": "color",
-      "id": "card_atc_bg_2",
-      "label": "Add to Cart gradient end"
-    },
-    {
-      "type": "color",
-      "id": "card_atc_text",
-      "label": "Add to Cart text color"
-    },
-    {
-      "type": "color",
-      "id": "card_options_bg_1",
-      "label": "Select Options gradient start"
-    },
-    {
-      "type": "color",
-      "id": "card_options_bg_2",
-      "label": "Select Options gradient end"
-    },
-    {
-      "type": "color",
-      "id": "card_options_text",
-      "label": "Select Options text color"
     },
     {
       "type": "header",
@@ -817,27 +784,6 @@
       "step": 2,
       "default": 12,
       "unit": "px"
-    },
-    {
-      "type": "range",
-      "id": "card_title_size",
-      "label": "Card title size",
-      "min": 10,
-      "max": 18,
-      "step": 1,
-      "unit": "px",
-      "default": 13
-    },
-    {
-      "type": "range",
-      "id": "card_info_gap",
-      "label": "Card info spacing",
-      "min": 0,
-      "max": 12,
-      "step": 1,
-      "unit": "px",
-      "default": 4,
-      "info": "Space between title, reviews, price"
     },
     {
       "type": "range",
@@ -895,6 +841,13 @@
       "default": 60,
       "unit": "%",
       "info": "Drawer overlay darkness"
+    },
+    {
+      "type": "checkbox",
+      "id": "disable_animations",
+      "label": "Disable animations on desktop",
+      "info": "Turns off hover effects, transitions, and transforms. Mobile animations are always disabled.",
+      "default": false
     },
     {
       "type": "range",
@@ -1502,31 +1455,31 @@
           "id": "bg_color",
           "label": "Background color",
           "info": "Fallback when no image set",
-          "default": "#0f0f18"
+          "default": "#0A0A0F"
         },
         {
           "type": "color",
           "id": "text_color",
           "label": "Text color",
-          "default": "#ffffff"
+          "default": "#FAFAF7"
         },
         {
           "type": "color",
           "id": "tag_bg",
           "label": "Badge background",
-          "default": "#9333ea"
+          "default": "#B0C3FA"
         },
         {
           "type": "color",
           "id": "btn_bg",
           "label": "Button background",
-          "default": "#9333ea"
+          "default": "#B0C3FA"
         },
         {
           "type": "color",
           "id": "btn_text",
           "label": "Button text color",
-          "default": "#ffffff"
+          "default": "#FAFAF7"
         }
       ]
     }
@@ -1554,10 +1507,24 @@
   padding: 16px var(--ccm-toolbar-pad);
   border-bottom: var(--ccm-border-w) solid var(--ccm-divider);
   position: sticky;
-  top: 0;
+  /* Pin under the chrome that is ACTUALLY on screen. `top: 0` pinned this bar
+     to the same y as the sticky header group, which owns z-index 1000 against
+     this bar's 20 - so it rendered UNDER the header: fully buried with the nav
+     out (79 of 79px covered), sliced across the middle once the nav auto-hide
+     left only the promo strip. --casa-chrome-top is the live on-screen chrome
+     (casa-header.liquid); the fallback keeps the old behaviour wherever
+     auto-hide is inactive. */
+  top: var(--casa-chrome-top, var(--header-group-height, 100px));
   z-index: 20;
   background: color-mix(in srgb, var(--ccm-bg) 95%, transparent);
   backdrop-filter: blur(var(--ccm-blur));
+  /* Match the layout cap so toolbar contents align with the grid below
+     on ultrawide screens. The bar itself stays edge-to-edge (sticky
+     banner), only its contents center. */
+  max-width: var(--ccm-layout-max-w, 1920px);
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 }
 
 .casa-col-main__toolbar-left {
@@ -1612,44 +1579,101 @@
   white-space: nowrap;
 }
 
-/* Sort dropdown */
+/* Sort dropdown — visible pill (label + chevron) with invisible
+   native <select> overlaid for the OS picker affordance.
+
+   Why: browsers size native <select> to fit the widest option, so a
+   styled <select> always has its chevron pinned at the right edge of
+   the pill regardless of which option is selected. That makes short
+   labels like "Best selling" feel detached from the chevron. With
+   this overlay pattern, the visible label + chevron are flex children
+   of the pill — they stay tight to each other and the pill auto-sizes
+   per selection. */
 .casa-col-main__sort {
   position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-}
-
-.casa-col-main__sort-select {
-  appearance: none;
-  -webkit-appearance: none;
-  background: color-mix(in srgb, var(--ccm-toolbar-bg) 50%, transparent);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: var(--ccm-border-w) solid color-mix(in srgb, var(--ccm-toolbar-border) 50%, transparent);
-  border-radius: var(--ccm-radius-sm);
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  background: var(--ccm-toolbar-bg, rgba(255, 255, 255, 0.04));
+  /* blur ≤10px + will-change, no stacked saturate() — the pill lives
+     inside the sticky toolbar, so its backdrop re-blurs every scrolled
+     frame. Wide/stacked filter kernels here are the documented
+     re-blur-flicker class (see reference_pdp_sticky_behind_header_bug). */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter;
+  border: 1px solid var(--ccm-toolbar-border, rgba(255, 255, 255, 0.12));
+  border-radius: 999px;
   color: var(--ccm-text);
-  font-size: var(--ccm-font-sm);
-  padding: var(--ccm-chip-py) 36px var(--ccm-chip-py) var(--ccm-chip-px);
+  font-size: var(--ccm-font-sm, 13px);
+  font-weight: 500;
+  letter-spacing: 0.01em;
   cursor: pointer;
-  transition: border-color var(--ccm-trans-fast);
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  max-width: 100%;
+  font-family: inherit;
 }
 
-.casa-col-main__sort-select:hover,
-.casa-col-main__sort-select:focus {
-  border-color: var(--ccm-accent-1);
+.casa-col-main__sort:hover {
+  background: color-mix(in srgb, var(--ccm-toolbar-bg, rgba(255, 255, 255, 0.04)) 100%, transparent);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* :focus-within so the pill shows the focus ring when the (visually
+   hidden) <select> receives keyboard focus. */
+.casa-col-main__sort:focus-within {
   outline: none;
+  border-color: var(--ccm-accent-1, #B0C3FA);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--ccm-accent-1, #B0C3FA) 18%, transparent),
+    0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
-.casa-col-main__sort-select option {
-  background: var(--ccm-bg-secondary);
-  color: var(--ccm-text);
+.casa-col-main__sort-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .casa-col-main__sort-icon {
-  position: absolute;
-  right: 12px;
+  flex-shrink: 0;
   pointer-events: none;
   color: var(--ccm-text-muted);
+}
+
+/* Invisible native <select> overlaid on the entire pill. Receives all
+   taps + keyboard input + opens the OS picker. opacity:0 keeps it
+   interactive (display:none / visibility:hidden would not). */
+.casa-col-main__sort-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  opacity: 0;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* The dropdown list itself (when opened by the OS) — only styles that
+   work cross-browser via the option element. iOS shows a native sheet
+   regardless. */
+.casa-col-main__sort-select option {
+  background: var(--ccm-bg-secondary, var(--casa-ink));
+  color: var(--ccm-text, #fff);
+  padding: 12px 16px;
+  font-weight: 500;
 }
 
 /* View toggle */
@@ -1675,7 +1699,7 @@
   background: transparent;
   color: var(--ccm-text-muted);
   cursor: pointer;
-  transition: all var(--ccm-trans-fast);
+  transition: background var(--ccm-trans-fast), color var(--ccm-trans-fast);
 }
 
 .casa-col-main__view-btn:hover {
@@ -1693,6 +1717,13 @@
   display: flex;
   gap: 0;
   padding: 0 var(--ccm-toolbar-pad);
+  /* Cap the grid + sidebar at a reasonable max-width so on ultrawide /
+     4K screens cards don't balloon and inter-card gaps don't grow.
+     Layout centers with whitespace on either side past this point. */
+  max-width: var(--ccm-layout-max-w, 1920px);
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 }
 
 /* ── SIDEBAR ─────────────────────────────────────────────────────────── */
@@ -1701,10 +1732,22 @@
   flex-shrink: 0;
   width: var(--ccm-sidebar-w);
   padding: var(--ccm-filter-gap);
-  max-height: calc(100vh - var(--header-group-height, 80px) - 20px);
+  /* Track the on-screen chrome, not the constant group height: pinned against
+     the constant, the panel stayed at 110px while only the 28px strip remained,
+     leaving an 82px band of empty background above it. Same fix f28dd661 gave
+     the PDP columns.
+
+     Then clear the TOOLBAR too. The toolbar is a full-width sticky banner that
+     pins directly under the chrome, so chrome + 10px puts this panel 69px
+     BEHIND it and hides the first filter group ("TYPE" / "Floor Lamps") - the
+     old `top: 0` toolbar was invisible, which is the only reason the two never
+     visibly collided before. --ccm-toolbar-h is published from the section's
+     JS below (the height moves with padding settings and with wrapping), and
+     the 79px fallback is the measured desktop height for a no-JS render. */
+  max-height: calc(100vh - var(--casa-chrome-top, var(--header-group-height, 80px)) - var(--ccm-toolbar-h, 79px) - 20px);
   overflow-y: auto;
   position: sticky;
-  top: calc(var(--header-group-height, 80px) + 10px);
+  top: calc(var(--casa-chrome-top, var(--header-group-height, 80px)) + var(--ccm-toolbar-h, 79px) + 10px);
   align-self: flex-start;
   scrollbar-width: thin;
   scrollbar-color: var(--ccm-highlight-bg) transparent;
@@ -1755,6 +1798,11 @@
 .casa-col-main__grid-item {
   min-width: 0;
   display: flex;
+  /* Stretch the LI to fill the grid row's tallest item. The card
+     inside is responsible for stretching to fill the LI (see
+     align-self: stretch on .casa-product-card in the snippet). */
+  align-self: stretch;
+  align-items: stretch;
 }
 
 /* Banners — grid-column set inline, content fills */
@@ -1811,7 +1859,7 @@
   background: var(--ccm-input-bg);
   color: var(--ccm-text-muted);
   text-decoration: none;
-  transition: all var(--ccm-trans-fast);
+  transition: background var(--ccm-trans-fast), color var(--ccm-trans-fast);
 }
 
 .casa-col-main__page-btn:hover {
@@ -1831,7 +1879,7 @@
   font-weight: var(--ccm-fw-normal);
   color: var(--ccm-text-muted);
   text-decoration: none;
-  transition: all var(--ccm-trans-fast);
+  transition: background var(--ccm-trans-fast), color var(--ccm-trans-fast);
 }
 
 .casa-col-main__page-num:hover {
@@ -1860,16 +1908,33 @@
   max-width: var(--ccm-drawer-w);
   height: 100vh;
   height: 100dvh;
-  z-index: 1000;
+  /* High z-index so the drawer + overlay sit above the site header,
+     sticky elements, and any product card that creates a stacking
+     context inside the section. Was z-index: 1000 (overlay 999) which
+     only beat the section's own children — anything painted by other
+     section groups (header, recommendations, etc.) could still
+     receive touches under the drawer. */
+  z-index: 100000;
   transform: translateX(-100%);
+  /* iOS Safari: while the drawer is sliding in or out, the drawer
+     itself MUST block touches across its full viewport-aligned box
+     so long-press events can't reach products behind it during the
+     transition. translateX moves the box visually but the touch
+     hitbox is the post-transform position — so we explicitly keep
+     pointer-events on. The overlay sibling handles touches in the
+     15vw gutter on the right. */
+  pointer-events: auto;
   transition: transform var(--ccm-trans-normal) cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   border-radius: 0 var(--ccm-drawer-radius) var(--ccm-drawer-radius) 0;
-  /* Glassmorphism */
+  /* Glassmorphism. The slide-in ANIMATES with the blur active — same
+     fade-in failure mode as the mega panel layer dropouts (83acb79c) —
+     so the radius is capped at 16px per the overlay rule.
+     perf-justified: scroll-locked drawer overlay at the 16px cap */
   background: color-mix(in srgb, var(--ccm-bg-secondary) 70%, transparent);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-right: var(--ccm-border-w) solid color-mix(in srgb, var(--ccm-divider) 40%, transparent);
   box-shadow:
     4px 0 30px rgba(0, 0, 0, 0.2),
@@ -1907,6 +1972,9 @@
   color: var(--ccm-text-muted);
   cursor: pointer;
   transition: color var(--ccm-trans-fast);
+  /* iOS: removes 300ms tap delay + prevents double-tap zoom from
+     interfering with the touch handlers. Required for one-tap apply. */
+  touch-action: manipulation;
 }
 
 .casa-col-main__drawer-close:hover {
@@ -1924,24 +1992,64 @@
   padding: var(--ccm-drawer-pad) calc(var(--ccm-drawer-pad) + 4px);
   min-height: var(--ccm-drawer-footer);
   border-top: var(--ccm-border-w) solid color-mix(in srgb, var(--ccm-divider) 40%, transparent);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.casa-col-main__drawer-clear {
+  flex: 0 0 auto;
+  padding: var(--ccm-chip-px);
+  background: transparent;
+  color: var(--ccm-text);
+  font-size: var(--ccm-font-md);
+  font-weight: var(--ccm-fw-normal);
+  border: var(--ccm-border-w) solid color-mix(in srgb, var(--ccm-divider) 60%, transparent);
+  border-radius: calc(var(--ccm-radius-sm) + 4px);
+  cursor: pointer;
+  transition: background var(--ccm-trans-fast), border-color var(--ccm-trans-fast);
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.casa-col-main__drawer-clear:hover {
+  background: color-mix(in srgb, var(--ccm-divider) 20%, transparent);
+  border-color: var(--ccm-text);
+}
+.casa-col-main__drawer-clear[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .casa-col-main__drawer-apply {
-  width: 100%;
+  flex: 1 1 auto;
   padding: var(--ccm-chip-px);
-  background: linear-gradient(135deg, var(--ccm-accent-1), var(--ccm-accent-2));
-  color: var(--ccm-text);
+  background: var(--ccm-apply-bg, linear-gradient(135deg, var(--ccm-accent-1), var(--ccm-accent-2)));
+  color: var(--ccm-apply-text, var(--ccm-text));
   font-size: var(--ccm-font-md);
   font-weight: var(--ccm-fw-bold);
   border: none;
   border-radius: calc(var(--ccm-radius-sm) + 4px);
   cursor: pointer;
-  transition: transform var(--ccm-trans-fast), box-shadow var(--ccm-trans-fast);
+  transition: background var(--ccm-trans-fast), color var(--ccm-trans-fast), transform var(--ccm-trans-fast), box-shadow var(--ccm-trans-fast), opacity var(--ccm-trans-fast);
+  touch-action: manipulation;
 }
 
 .casa-col-main__drawer-apply:hover {
+  background: var(--ccm-apply-bg-hover, var(--ccm-apply-bg));
+  color: var(--ccm-apply-text-hover, var(--ccm-apply-text, var(--ccm-text)));
   transform: translateY(-1px);
   box-shadow: 0 var(--ccm-shadow-offset) var(--ccm-shadow-blur) color-mix(in srgb, var(--ccm-accent-1) var(--ccm-shadow-intensity), transparent);
+}
+
+.casa-col-main__drawer-apply[disabled] {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+/* Visual loading hint — does NOT block clicks (disabled attr does) */
+.casa-col-main__drawer-apply.is-loading {
+  opacity: 0.85;
+  cursor: progress;
 }
 
 .casa-col-main__drawer-overlay {
@@ -1949,15 +2057,44 @@
   inset: 0;
   background: color-mix(in srgb, var(--ccm-overlay) calc(var(--ccm-overlay-opacity) * 1%), transparent);
   backdrop-filter: blur(4px);
-  z-index: 999;
+  /* Just below the drawer (100000) so the drawer sits on top of the
+     overlay, but well above any other site content. */
+  z-index: 99999;
   opacity: 0;
-  visibility: hidden;
-  transition: opacity var(--ccm-trans-normal), visibility var(--ccm-trans-normal);
+  /* IMPORTANT: do NOT use `visibility: hidden` here. iOS Safari has a
+     paint-timing window during the visibility transition where the
+     overlay is still visually present but no longer hit-testable —
+     long-presses on a product card under the overlay fire BEFORE the
+     visibility flip completes, and tap-through reaches the product
+     link. We use `pointer-events` toggled by .is-visible instead,
+     which flips synchronously without a transition window. */
+  pointer-events: none;
+  transition: opacity var(--ccm-trans-normal);
+  touch-action: manipulation;
 }
 
 .casa-col-main__drawer-overlay.is-visible {
   opacity: 1;
-  visibility: visible;
+  /* When the drawer is open, the overlay catches every tap in the
+     15vw gutter to the right of the drawer — no tap-through to the
+     product grid behind, regardless of long-press duration. */
+  pointer-events: auto;
+}
+
+/* Hard lock on the rest of the page while the drawer is open.
+   `inert` on <body> children (set by JS) is the a11y/keyboard layer;
+   this CSS rule is the touch layer — pointer-events: none on the page
+   container means even a long press that somehow lands outside the
+   drawer + overlay (e.g. a top-of-page header element painted in its
+   own stacking context above 99999) cannot fire a click on the
+   product behind. */
+body.casa-col-drawer-locked {
+  /* Belt-and-braces: also lock scroll at the body level so iOS
+     Safari's rubber-band can't reveal a tap target behind the drawer. */
+  overflow: hidden;
+  /* iOS: prevent the rubber-band that exposes underlying tap targets. */
+  position: fixed;
+  width: 100%;
 }
 
 /* ── FILTER STYLES ───────────────────────────────────────────────────── */
@@ -2146,38 +2283,93 @@
 .casa-col-filter__swatch {
   position: relative;
   cursor: pointer;
+  padding: 4px; /* tap target buffer */
 }
 
-.casa-col-filter__swatch-color {
-  display: block;
-  width: var(--ccm-swatch-size);
-  height: var(--ccm-swatch-size);
-  border-radius: 50%;
-  border: var(--ccm-border-w) solid transparent;
-  box-shadow: inset 0 2px 4px color-mix(in srgb, var(--ccm-text) 15%, transparent), 0 0 0 1px var(--ccm-input-border);
-  transition: all var(--ccm-trans-fast);
-}
-
+.casa-col-filter__swatch-color,
 .casa-col-filter__swatch-img {
   display: block;
   width: var(--ccm-swatch-size);
   height: var(--ccm-swatch-size);
   border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.08),
+    0 0 0 1px var(--ccm-input-border);
+  transition: transform 0.15s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.casa-col-filter__swatch-img {
   object-fit: cover;
-  border: var(--ccm-border-w) solid transparent;
-  transition: all var(--ccm-trans-fast);
 }
 
 .casa-col-filter__swatch:hover .casa-col-filter__swatch-color,
 .casa-col-filter__swatch:hover .casa-col-filter__swatch-img {
-  border-color: color-mix(in srgb, var(--ccm-text) 50%, transparent);
-  transform: scale(var(--ccm-hover-scale));
+  transform: scale(1.08);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.08),
+    0 0 0 1px color-mix(in srgb, var(--ccm-text) 35%, transparent);
 }
 
+/* Selected state — purple accent ring outside the swatch so the
+   actual color stays fully visible. No inset white ring (was
+   washing out light-colored swatches like silver/white/light-pink
+   to look entirely white). The transparent border keeps the
+   swatch's natural edge.
+
+   Use :has(:checked) so toggling off in the cloned drawer form
+   immediately removes the selected look. */
 .casa-col-filter__swatch--active .casa-col-filter__swatch-color,
-.casa-col-filter__swatch--active .casa-col-filter__swatch-img {
-  border-color: var(--ccm-accent-1);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ccm-accent-1) 30%, transparent);
+.casa-col-filter__swatch--active .casa-col-filter__swatch-img,
+.casa-col-filter__swatch:has(input:checked) .casa-col-filter__swatch-color,
+.casa-col-filter__swatch:has(input:checked) .casa-col-filter__swatch-img {
+  border-color: transparent !important;
+  /* Outside-only ring: 1px hairline (subtle separator from color),
+     then 2px accent ring, then soft glow. No 0 0 0 2px #ffffff
+     that would visually merge with light swatches. */
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.12),
+    0 0 0 3px var(--ccm-accent-1, #B0C3FA),
+    0 4px 12px rgba(176, 195, 250, 0.35) !important;
+  transform: scale(1.05);
+}
+
+/* Reverse: if --active class is stuck but checkbox is unchecked */
+.casa-col-filter__swatch.casa-col-filter__swatch--active:not(:has(input:checked)) .casa-col-filter__swatch-color,
+.casa-col-filter__swatch.casa-col-filter__swatch--active:not(:has(input:checked)) .casa-col-filter__swatch-img {
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.08),
+    0 0 0 1px var(--ccm-input-border) !important;
+  transform: none;
+}
+
+/* Small checkmark in the top-right corner — does NOT cover the
+   swatch color underneath. */
+.casa-col-filter__swatch--active::after,
+.casa-col-filter__swatch:has(input:checked)::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: var(--ccm-accent-1, #B0C3FA);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='20 6 9 17 4 12'/></svg>");
+  background-size: 11px 11px;
+  background-repeat: no-repeat;
+  background-position: center;
+  box-shadow:
+    0 0 0 1.5px #ffffff,
+    0 1px 3px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* If --active class is stuck but unchecked, hide the badge */
+.casa-col-filter__swatch.casa-col-filter__swatch--active:not(:has(input:checked))::after {
+  content: none;
 }
 
 .casa-col-filter__swatch--disabled {
@@ -2193,30 +2385,101 @@
 }
 
 .casa-col-filter__chip {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: var(--ccm-chip-py) var(--ccm-chip-px);
-  border-radius: var(--ccm-radius-sm);
+  gap: 6px;
+  padding: 8px 14px;
+  min-height: 36px; /* easier tap target */
+  border-radius: 999px;
   background: var(--ccm-input-bg);
-  border: var(--ccm-border-w) solid var(--ccm-input-border);
+  border: 1.5px solid var(--ccm-input-border);
   color: var(--ccm-text-muted);
-  font-size: calc(var(--ccm-font-sm) - 1px);
+  font-size: var(--ccm-font-sm, 13px);
+  font-weight: 500;
   cursor: pointer;
-  transition: all var(--ccm-trans-fast);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
   line-height: 1.2;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+
+/* Hard-hide the checkbox inside chips/swatches — bypass Horizon's
+   .visually-hidden :focus/:active escape that briefly reveals the
+   native checkbox on click and causes layout shift. */
+.casa-col-filter__chip input[type="checkbox"],
+.casa-col-filter__swatch input[type="checkbox"] {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .casa-col-filter__chip:hover {
   background: var(--ccm-highlight-bg);
-  border-color: color-mix(in srgb, var(--ccm-text) 20%, transparent);
+  border-color: color-mix(in srgb, var(--ccm-text) 35%, transparent);
   color: var(--ccm-text);
 }
 
-.casa-col-filter__chip--active {
-  background: color-mix(in srgb, var(--ccm-accent-1) 20%, transparent);
-  border-color: color-mix(in srgb, var(--ccm-accent-1) 40%, transparent);
-  color: var(--ccm-text);
+/* Subtle press feedback — no scale that competes with the chip width */
+.casa-col-filter__chip:active {
+  filter: brightness(0.95);
+}
+
+/* Selected state — derived from :has(:checked) so it follows the
+   ACTUAL checkbox state, not a stale Liquid-rendered class. The
+   .casa-col-filter__chip--active class is set at server render
+   based on URL params, but on the cloned drawer form the user can
+   toggle without reloading — the class would stay even after
+   uncheck. :has() solves it: any chip whose <input> is checked
+   gets active styling, regardless of class. */
+.casa-col-filter__chip--active,
+.casa-col-filter__chip.casa-col-filter__chip--active,
+.casa-col-filter__chip:has(input:checked) {
+  background: var(--casa-ink) !important;
+  border-color: var(--casa-ink) !important;
+  color: var(--casa-text-on-ink) !important;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+/* Reverse: if the chip has --active class but the input is NOT
+   checked (user just toggled off), force the unselected look. */
+.casa-col-filter__chip.casa-col-filter__chip--active:not(:has(input:checked)) {
+  background: var(--ccm-input-bg) !important;
+  border-color: var(--ccm-input-border) !important;
+  color: var(--ccm-text-muted) !important;
+  font-weight: 500;
+  box-shadow: none;
+}
+
+.casa-col-filter__chip--active:hover,
+.casa-col-filter__chip:has(input:checked):hover {
+  background: var(--casa-border-on-ink) !important;
+  border-color: var(--casa-border-on-ink) !important;
+  color: var(--casa-text-on-ink) !important;
+  filter: none;
+}
+
+.casa-col-filter__chip--active .casa-col-filter__chip-icon,
+.casa-col-filter__chip--active .casa-col-filter__chip-text,
+.casa-col-filter__chip:has(input:checked) .casa-col-filter__chip-icon,
+.casa-col-filter__chip:has(input:checked) .casa-col-filter__chip-text {
+  color: var(--casa-text-on-ink) !important;
+}
+
+/* When the chip toggles off, force inner text/icon back to muted */
+.casa-col-filter__chip.casa-col-filter__chip--active:not(:has(input:checked)) .casa-col-filter__chip-icon,
+.casa-col-filter__chip.casa-col-filter__chip--active:not(:has(input:checked)) .casa-col-filter__chip-text {
+  color: var(--ccm-text-muted) !important;
 }
 
 .casa-col-filter__chip--disabled {
@@ -2246,6 +2509,7 @@
   padding: var(--ccm-chip-py) 0;
   cursor: pointer;
   transition: color var(--ccm-trans-fast);
+  /* Use main text color so options are readable. Counts in muted color. */
   color: var(--ccm-text);
   font-weight: 500;
   font-size: var(--ccm-font-sm);
@@ -2256,8 +2520,43 @@
   color: var(--ccm-text);
 }
 
-.casa-col-filter__option--active {
+.casa-col-filter__option--active,
+.casa-col-filter__option:has(input:checked) {
   color: var(--ccm-text);
+  font-weight: 700;
+}
+
+.casa-col-filter__option.casa-col-filter__option--active:not(:has(input:checked)) {
+  color: var(--ccm-text-muted);
+  font-weight: normal;
+}
+
+/* Inside the mobile drawer, the body has a backdrop-blur overlay that
+   washes out muted text. Force darker option text in drawer too. */
+.casa-col-main__drawer .casa-col-filter__option {
+  color: var(--casa-border-on-ink) !important;
+  font-weight: 500;
+}
+/* Drawer "active" styling MUST also gate on actual checked state —
+   without :has(input:checked) the Liquid-rendered --active class
+   stays bold/black even after the user unchecks the box, making it
+   look like the filter is still selected when it isn't. */
+.casa-col-main__drawer .casa-col-filter__option--active:has(input:checked),
+.casa-col-main__drawer .casa-col-filter__option:has(input:checked) {
+  color: #000000 !important;
+  font-weight: 700;
+}
+.casa-col-main__drawer .casa-col-filter__option--active:not(:has(input:checked)) {
+  color: var(--casa-border-on-ink) !important;
+  font-weight: 500;
+}
+.casa-col-main__drawer .casa-col-filter__option-count {
+  color: #666666 !important;
+}
+.casa-col-main__drawer .casa-col-filter__group-title,
+.casa-col-main__drawer .casa-col-filter__legend {
+  color: #000000 !important;
+  font-weight: 700;
 }
 
 .casa-col-filter__option--disabled {
@@ -2290,13 +2589,24 @@
 }
 
 .casa-col-filter__option input:checked ~ .casa-col-filter__checkbox {
-  background: var(--ccm-accent-1);
-  border-color: var(--ccm-accent-1);
+  background: var(--ccm-accent-1) !important;
+  border-color: var(--ccm-accent-1) !important;
 }
 
 .casa-col-filter__option input:checked ~ .casa-col-filter__checkbox svg {
-  opacity: 1;
-  transform: scale(1);
+  opacity: 1 !important;
+  transform: scale(1) !important;
+  color: var(--casa-text-on-ink) !important;
+}
+
+/* Force unchecked appearance even if --active class is stale */
+.casa-col-filter__option:not(:has(input:checked)) .casa-col-filter__checkbox {
+  background: transparent !important;
+  border-color: var(--ccm-input-border) !important;
+}
+.casa-col-filter__option:not(:has(input:checked)) .casa-col-filter__checkbox svg {
+  opacity: 0 !important;
+  transform: scale(0.5) !important;
 }
 
 .casa-col-filter__option-text {
@@ -2428,7 +2738,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--cb-bg, #0f0f18);
+  background: var(--cb-bg, var(--casa-ink));
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -2514,8 +2824,8 @@
   display: inline-flex;
   padding: 4px 12px;
   border-radius: 6px;
-  background: var(--cb-tag-bg, #9333ea);
-  color: #ffffff;
+  background: var(--cb-tag-bg, #B0C3FA);
+  color: var(--casa-text-on-ink);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -2547,12 +2857,16 @@
   padding: 10px 24px;
   margin-top: 4px;
   border-radius: 8px;
-  background: var(--cb-btn-bg, #9333ea);
+  background: var(--cb-btn-bg, #B0C3FA);
   color: var(--cb-btn-text, #ffffff);
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.3s ease;
+  /* Brand-book typography */
+  text-transform: var(--button-text-case-primary, uppercase);
+  letter-spacing: 0.06em;
+  text-indent: 0.06em;
 }
 
 .casa-col-banner__cta:hover {
@@ -2572,7 +2886,7 @@
     padding: 20px;
   }
   .casa-col-banner__title {
-    font-size: 20px;
+    font-size: var(--font-h4--size, 20px);
   }
   .casa-col-banner__cta {
     width: 100%;
@@ -2642,22 +2956,59 @@
   .casa-col-main__active-filters-wrap {
     display: none;
   }
-  .casa-col-main__sort-select {
+  /* On the smallest phones, tighten the pill itself (was overriding
+     padding on the now-invisible select — moved to the visible pill). */
+  .casa-col-main__sort {
     font-size: 13px;
-    padding: 6px 30px 6px 10px;
+    height: 36px;
+    padding: 0 12px;
+    gap: 4px;
   }
 }
 
+/* ── Disable animations on mobile (always) ── */
+@media (max-width: 749px) {
+  .casa-col-main * {
+    animation: none !important;
+    transition: none !important;
+  }
+  .casa-col-main *:hover {
+    transform: none !important;
+  }
+}
+
+/* ── Disable animations (merchant setting via .casa-col-main--no-anim) ── */
+.casa-col-main--no-anim * {
+  animation: none !important;
+  transition: none !important;
+}
+.casa-col-main--no-anim *:hover {
+  transform: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .casa-col-main__drawer,
-  .casa-col-main__drawer-overlay,
-  .casa-col-main__grid-item,
-  .casa-col-banner,
-  .casa-col-banner__cta,
-  .casa-col-filter__chevron,
-  .casa-col-filter__toggle-slider,
-  .casa-col-filter__toggle-slider::after {
-    transition: none;
+  .casa-col-main * {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+  /* transform: none above kills STATE transforms, not just motion. The
+     drawer's entire closed state IS a transform — translateX(-100%) —
+     so without these re-asserts every reduce-motion visitor saw the
+     drawer permanently painted open at the top-left of every collection
+     page (frost panel, no overlay; merchant report 2026-07-23, shipped
+     in 7b395a87). Same class as the casa-hero reduced-motion centring
+     bug. Price-slider thumb centring re-asserted too (latent while the
+     price filter is disabled). The toggle-knob ::after is unaffected —
+     bare * does not match pseudo-elements. */
+  .casa-col-main .casa-col-main__drawer {
+    transform: translateX(-100%) !important;
+  }
+  .casa-col-main .casa-col-main__drawer.is-open {
+    transform: translateX(0) !important;
+  }
+  .casa-col-main .casa-col-filter__price-thumb {
+    transform: translateY(-50%) !important;
   }
 }
 {% endstylesheet %}
@@ -2669,6 +3020,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
   const sectionId = section.dataset.sectionId;
 
+  /* Publish the sticky toolbar's live height so the sticky filter panel can
+     pin BELOW it instead of behind it (see --ccm-toolbar-h in the CSS above).
+     Measured rather than assumed: the bar's height moves with the merchant's
+     toolbar padding setting and with content wrapping at narrow widths.
+     Scoped to the section element, so nothing global is written. */
+  const toolbarEl = section.querySelector('.casa-col-main__toolbar');
+  if (toolbarEl) {
+    let lastToolbarH = -1;
+    const publishToolbarHeight = () => {
+      const h = toolbarEl.offsetHeight;
+      if (h === lastToolbarH) return;
+      lastToolbarH = h;
+      section.style.setProperty('--ccm-toolbar-h', h + 'px');
+    };
+    publishToolbarHeight();
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(publishToolbarHeight).observe(toolbarEl);
+    } else {
+      window.addEventListener('resize', publishToolbarHeight, { passive: true });
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════════════════
   // AJAX FILTERING
   // ═══════════════════════════════════════════════════════════════════════
@@ -2678,6 +3051,39 @@ document.addEventListener('DOMContentLoaded', function() {
   const activeFiltersContainer = section.querySelector('[data-active-filters-container]');
   const productCountEl = section.querySelector('[data-product-count]');
   let fetchController = null;
+
+  /* Toggles the user makes AFTER a fetch fires aren't in that fetch's
+     response — a naive form swap silently undoes them (2026-07-15
+     recording: check "Accessories & Parts", check "Coffee Tables" →
+     the first response lands inside the second click's debounce window
+     and un-checks it; getFilterURL() then serializes the wiped form, so
+     the selection is lost for good, not just visually). Record every
+     user toggle here; entries are cleared when a fetch whose URL was
+     built from the live form fires (at that point they're settled into
+     the URL), and re-applied — both directions — after each swap. */
+  const pendingToggles = new Map();  /* name|value -> desired checked  */
+  const pendingValues = new Map();   /* name       -> desired value    */
+
+  function recordPending(el) {
+    if (!el || !el.name) return;
+    if (el.type === 'checkbox' || el.type === 'radio') {
+      pendingToggles.set(el.name + '|' + el.value, el.checked);
+    } else {
+      pendingValues.set(el.name, el.value);
+    }
+  }
+
+  /* Stable key for a facet <details> across re-renders. Summary text
+     is NOT stable (it embeds the result count); the group's filter
+     param name is. */
+  function detailsKey(d, i) {
+    const inp = d.querySelector('input[name]');
+    if (inp && inp.name) return inp.name;
+    const summary = d.querySelector('summary');
+    return d.getAttribute('data-filter-id') ||
+           (summary ? (summary.textContent || '').trim() : '') ||
+           ('idx-' + i);
+  }
 
   function getFilterURL() {
     if (!filterForm) return window.location.pathname;
@@ -2705,9 +3111,18 @@ document.addEventListener('DOMContentLoaded', function() {
     return paramString ? url + '?' + paramString : url;
   }
 
-  function updateSection(url) {
+  function updateSection(url, urlFromForm) {
     if (fetchController) fetchController.abort();
     fetchController = new AbortController();
+
+    /* A URL serialized from the live form already carries every
+       recorded toggle — they're settled now. URLs from active-filter
+       chips / pagination hrefs do NOT, so pending entries survive to
+       be re-applied after that response's swap. */
+    if (urlFromForm) {
+      pendingToggles.clear();
+      pendingValues.clear();
+    }
 
     gridWrapper.classList.add('is-loading');
 
@@ -2748,6 +3163,63 @@ document.addEventListener('DOMContentLoaded', function() {
             });
           }
 
+          // Sync filter form state — replace inner HTML so checked/values
+          // reflect the URL we just navigated to (otherwise after Clear
+          // All the form keeps stale checks and the next change re-applies
+          // the cleared filters).
+          const newFormEl = newSection.querySelector('[data-filter-form]');
+          if (newFormEl && filterForm) {
+            /* Preserve which facet groups the user opened/closed
+               through the swap (server always renders them open). */
+            const openMap = {};
+            filterForm.querySelectorAll('details').forEach(function (d, i) {
+              openMap[detailsKey(d, i)] = d.open;
+            });
+
+            filterForm.innerHTML = newFormEl.innerHTML;
+
+            filterForm.querySelectorAll('details').forEach(function (d, i) {
+              const k = detailsKey(d, i);
+              if (openMap[k] !== undefined) d.open = openMap[k];
+            });
+
+            /* Re-apply toggles made while this fetch was in flight —
+               both directions (see pendingToggles above). Unlike the
+               drawer's restore we must NOT blanket-restore everything
+               that was checked pre-swap: that would resurrect filters
+               the user just removed via Clear All / a filter chip. */
+            let reapplied = false;
+            if (pendingToggles.size) {
+              filterForm.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(function (i) {
+                if (!i.name) return;
+                const want = pendingToggles.get(i.name + '|' + i.value);
+                if (want !== undefined && i.checked !== want) {
+                  i.checked = want;
+                  reapplied = true;
+                }
+              });
+            }
+            if (pendingValues.size) {
+              filterForm.querySelectorAll('input[type="number"], input[type="range"], select, .casa-col-filter__price-input').forEach(function (i) {
+                if (!i.name) return;
+                const want = pendingValues.get(i.name);
+                if (want !== undefined && i.value !== want) {
+                  i.value = want;
+                  reapplied = true;
+                }
+              });
+            }
+
+            // Re-bind price slider sync since it depends on DOM nodes
+            bindPriceSliders();
+
+            /* The grid, count and URL reflect the response, not the
+               re-applied in-flight state — converge with one more
+               debounced fetch (its URL is form-derived, so pending
+               entries clear when it fires). */
+            if (reapplied) debouncedUpdate();
+          }
+
           // Re-bind pagination links
           bindPaginationLinks();
           // Re-bind active filter removal
@@ -2770,7 +3242,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function debouncedUpdate() {
     clearTimeout(filterTimeout);
     filterTimeout = setTimeout(() => {
-      updateSection(getFilterURL());
+      updateSection(getFilterURL(), true);
     }, 300);
   }
 
@@ -2778,27 +3250,34 @@ document.addEventListener('DOMContentLoaded', function() {
   if (filterForm) {
     filterForm.addEventListener('change', function(e) {
       if (e.target.matches('input, select')) {
+        recordPending(e.target);
         debouncedUpdate();
       }
     });
 
     filterForm.addEventListener('input', function(e) {
       if (e.target.matches('.casa-col-filter__price-input')) {
+        recordPending(e.target);
         debouncedUpdate();
       }
     });
 
     filterForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      updateSection(getFilterURL());
+      updateSection(getFilterURL(), true);
     });
   }
 
-  // Sort change
+  // Sort change — sync the visible label, then trigger the section update.
   const sortSelect = section.querySelector('[data-sort-select]');
+  const sortLabel = section.querySelector('[data-sort-label]');
   if (sortSelect) {
     sortSelect.addEventListener('change', function() {
-      updateSection(getFilterURL());
+      if (sortLabel) {
+        const opt = sortSelect.options[sortSelect.selectedIndex];
+        if (opt) sortLabel.textContent = opt.text.trim();
+      }
+      updateSection(getFilterURL(), true);
     });
   }
 
@@ -2810,6 +3289,12 @@ document.addEventListener('DOMContentLoaded', function() {
     section.querySelectorAll('[data-filter-remove], [data-filter-clear]').forEach(link => {
       link.addEventListener('click', function(e) {
         e.preventDefault();
+        /* An armed debounce would fire ~300ms from now, abort THIS
+           fetch and re-serialize the form (which still contains the
+           filter being removed) — losing the removal. Cancel it; any
+           in-flight toggle is in pendingToggles and gets re-applied
+           after this response's swap, then converges. */
+        clearTimeout(filterTimeout);
         updateSection(this.href);
       });
     });
@@ -2824,6 +3309,7 @@ document.addEventListener('DOMContentLoaded', function() {
     section.querySelectorAll('[data-page-link]').forEach(link => {
       link.addEventListener('click', function(e) {
         e.preventDefault();
+        clearTimeout(filterTimeout); // see bindActiveFilterLinks
         updateSection(this.href);
         // Scroll to top of section
         section.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2837,6 +3323,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // ═══════════════════════════════════════════════════════════════════════
 
   window.addEventListener('popstate', function() {
+    clearTimeout(filterTimeout); // see bindActiveFilterLinks
     updateSection(window.location.href);
   });
 
@@ -2860,6 +3347,25 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         grid.style.removeProperty('--ccm-columns');
       }
+
+      // Keep the card images' `sizes` honest with the toggled column
+      // count: the Liquid-rendered srcset/sizes assume the default grid
+      // columns, so without this, list view (~full-width slots) keeps
+      // the small grid-view candidate selected and renders soft.
+      // Browsers only ever UPGRADE the selected candidate on a sizes
+      // change, so a post-load rewrite is safe. Below 901px the grid
+      // reads --ccm-columns-mobile (untouched by the toggle), hence the
+      // 50vw fallback in the toggled values.
+      grid.querySelectorAll('.casa-product-card__img').forEach(img => {
+        if (!img.dataset.casaGridSizes) img.dataset.casaGridSizes = img.getAttribute('sizes') || '';
+        if (view === 'large') {
+          img.sizes = '(min-width: 901px) 50vw, 50vw';
+        } else if (view === 'list') {
+          img.sizes = '(min-width: 901px) 100vw, 50vw';
+        } else if (img.dataset.casaGridSizes) {
+          img.sizes = img.dataset.casaGridSizes;
+        }
+      });
     });
   });
 
@@ -2873,84 +3379,503 @@ document.addEventListener('DOMContentLoaded', function() {
   const openBtn = section.querySelector('[data-drawer-open]');
   const closeBtn = section.querySelector('[data-drawer-close]');
   const applyBtn = section.querySelector('[data-drawer-apply]');
+  const applyLabel = section.querySelector('[data-drawer-apply-label]');
+  const clearBtn = section.querySelector('[data-drawer-clear]');
+
+  // Build a URL for the *currently-pending* filter state inside the drawer.
+  // Uses the cloned drawer form (not the main one) so we preview without
+  // affecting the live page state.
+  function getDrawerFilterURL() {
+    const clone = drawerBody?.querySelector('[data-drawer-filter-form]');
+    if (!clone) return getFilterURL();
+    const formData = new FormData(clone);
+    const params = new URLSearchParams();
+    for (const [key, value] of formData.entries()) {
+      if (value !== '' && value !== null) params.append(key, value);
+    }
+    if (params.get('filter.v.price.gte') === '') params.delete('filter.v.price.gte');
+    if (params.get('filter.v.price.lte') === '') params.delete('filter.v.price.lte');
+    const sortSelect = section.querySelector('[data-sort-select]');
+    if (sortSelect && sortSelect.value) params.set('sort_by', sortSelect.value);
+    const url = window.location.pathname;
+    const paramString = params.toString();
+    return paramString ? url + '?' + paramString : url;
+  }
+
+  /* Fetch the section via Section Rendering API. Used to:
+     1. Update the Apply button label with the count of products that
+        WOULD match the current drawer filter selection
+     2. Re-render the drawer's filter form so other filter sections
+        narrow to only show options compatible with the selection
+        (Amazon-style facet refinement)
+
+     `forceUrl` lets callers (e.g. Clear button) force a specific
+     URL, like the unfiltered base path. */
+  let previewController = null;
+  let previewTimeout = null;
+  function previewDrawerCount(forceUrl) {
+    clearTimeout(previewTimeout);
+    previewTimeout = setTimeout(function () {
+      if (previewController) previewController.abort();
+      previewController = new AbortController();
+
+      const url = forceUrl || getDrawerFilterURL();
+      // Add ?section_id so Shopify returns just this section's HTML
+      const sectionId = section.dataset.sectionId || '{{ section.id }}';
+      const sep = url.indexOf('?') > -1 ? '&' : '?';
+      const fetchUrl = url + sep + 'section_id=' + encodeURIComponent(sectionId);
+
+      if (applyBtn) applyBtn.classList.add('is-loading');
+      if (applyLabel) applyLabel.textContent = 'Loading…';
+
+      fetch(fetchUrl, { signal: previewController.signal })
+        .then(function (r) { return r.text(); })
+        .then(function (html) {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+
+          /* Update the Apply button label */
+          const newCount = doc.querySelector('[data-product-count]');
+          let count = null;
+          if (newCount) {
+            const m = (newCount.textContent || '').match(/\d[\d,]*/);
+            count = m ? m[0] : newCount.textContent.trim();
+          }
+          if (applyLabel) {
+            applyLabel.textContent = count !== null
+              ? 'Show ' + count + ' Result' + (count === '1' ? '' : 's')
+              : 'Apply Filters';
+          }
+
+          /* Re-render the drawer's filter form so adjacent filter
+             sections narrow to compatible options. Preserve:
+               - <details> open/closed state
+               - scroll position
+               - CURRENT checkbox/radio/text state (CRITICAL — see
+                 below)
+             …so the user doesn't lose context.
+
+             The checkbox-preservation is what fixes the "tap a filter,
+             it gets deselected immediately" bug Elie reported. The
+             race: user taps filter A → 250ms debounce → fetch fires
+             with A in URL → user taps filter B while fetch is in
+             flight → response returns with HTML reflecting ONLY A
+             checked → naive innerHTML swap wipes B's checked state.
+             By capturing the live checked-state RIGHT BEFORE the
+             swap, we restore B after the response paints. */
+          const newForm = doc.querySelector('[data-filter-form]');
+          const oldClone = drawerBody && drawerBody.querySelector('[data-drawer-filter-form]');
+          if (newForm && oldClone) {
+            const scrollTop = drawerBody.scrollTop;
+
+            /* Capture which <details> are currently open in the drawer */
+            const openMap = {};
+            oldClone.querySelectorAll('details').forEach(function (d, i) {
+              const key = d.getAttribute('data-filter-id') ||
+                          (d.querySelector('summary')?.textContent || '').trim() ||
+                          ('idx-' + i);
+              openMap[key] = d.open;
+            });
+
+            /* Capture which checkboxes/radios are currently checked.
+               Keyed by name+value so it survives DOM-node replacement. */
+            const checkedSet = new Set();
+            oldClone.querySelectorAll('input[type="checkbox"]:checked, input[type="radio"]:checked').forEach(function (i) {
+              if (i.name) checkedSet.add(i.name + '|' + i.value);
+            });
+
+            /* Capture price/range/text input values. */
+            const inputValues = {};
+            oldClone.querySelectorAll('input[type="number"], input[type="range"], .casa-col-filter__price-input').forEach(function (i) {
+              if (i.name) inputValues[i.name] = i.value;
+            });
+
+            oldClone.innerHTML = newForm.innerHTML;
+
+            /* Restore the open state */
+            oldClone.querySelectorAll('details').forEach(function (d, i) {
+              const key = d.getAttribute('data-filter-id') ||
+                          (d.querySelector('summary')?.textContent || '').trim() ||
+                          ('idx-' + i);
+              if (openMap[key] !== undefined) d.open = openMap[key];
+            });
+
+            /* Restore checkbox/radio state — only flip to checked,
+               never uncheck (the server's response already reflects
+               the URL state for everything the user HAS settled on).
+               This re-applies any in-flight tap the user made after
+               the fetch fired. */
+            oldClone.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(function (i) {
+              if (i.name && checkedSet.has(i.name + '|' + i.value)) {
+                i.checked = true;
+              }
+            });
+
+            /* Restore text input values if the user typed in them
+               during the fetch. */
+            oldClone.querySelectorAll('input[type="number"], input[type="range"], .casa-col-filter__price-input').forEach(function (i) {
+              if (i.name && inputValues[i.name] !== undefined && inputValues[i.name] !== '') {
+                i.value = inputValues[i.name];
+              }
+            });
+
+            /* Restore scroll position */
+            drawerBody.scrollTop = scrollTop;
+
+            /* The swap replaced the slider DOM with server-rendered
+               (unbound) nodes — rebind or the price slider dies after
+               the first facet-refinement fetch. Mirrors the main
+               form's re-render path, which rebinds after every swap. */
+            bindPriceSliders();
+          }
+
+          if (applyBtn) applyBtn.classList.remove('is-loading');
+        })
+        .catch(function (err) {
+          if (err.name !== 'AbortError') {
+            if (applyBtn) applyBtn.classList.remove('is-loading');
+            if (applyLabel) applyLabel.textContent = 'Apply Filters';
+          }
+        });
+    }, 250);
+  }
+
+  function syncDrawerToMainForm() {
+    const clone = drawerBody?.querySelector('[data-drawer-filter-form]');
+    if (!clone || !filterForm) return;
+
+    /* Step 1: Uncheck every filter checkbox / radio in the main form so
+       we start clean. (Without this, a filter the user just unticked
+       in the drawer would remain checked in the main form.) */
+    filterForm.querySelectorAll('input[type="checkbox"], input[type="radio"]')
+      .forEach(function (i) { i.checked = false; });
+
+    /* Step 2: Clear price + range text inputs in the main form. */
+    filterForm.querySelectorAll('input[type="number"], input[type="range"], .casa-col-filter__price-input')
+      .forEach(function (i) {
+        if (i.dataset.defaultValue) i.value = i.dataset.defaultValue;
+        else if (i.name && i.name.startsWith('filter.')) i.value = '';
+      });
+
+    /* Step 3: Walk the drawer's inputs and copy state into the main
+       form. For checkboxes/radios match by name+value. For everything
+       else match by name only (price inputs, hidden fields). */
+    clone.querySelectorAll('input, select').forEach(function (cloneInput) {
+      const name = cloneInput.name;
+      if (!name) return;
+
+      if (cloneInput.type === 'checkbox' || cloneInput.type === 'radio') {
+        if (!cloneInput.checked) return; /* nothing to copy */
+        /* Use attribute-selector with CSS-escape to handle special
+           characters in filter values (e.g. "color: red" or names
+           with brackets). */
+        const safeName = (window.CSS && CSS.escape) ? CSS.escape(name) : name.replace(/"/g, '\\"');
+        const safeValue = (window.CSS && CSS.escape) ? CSS.escape(cloneInput.value) : cloneInput.value.replace(/"/g, '\\"');
+        const main = filterForm.querySelector('input[name="' + safeName + '"][value="' + safeValue + '"]');
+        if (main) main.checked = true;
+      } else {
+        /* Text / number / range / select: match by name. */
+        const safeName = (window.CSS && CSS.escape) ? CSS.escape(name) : name.replace(/"/g, '\\"');
+        const main = filterForm.querySelector('[name="' + safeName + '"]');
+        if (main && cloneInput.value !== '') {
+          main.value = cloneInput.value;
+        }
+      }
+    });
+  }
+
+  /* Tracks the scroll position so we can restore it on close.
+     Required because we set `position: fixed` on <body> while the
+     drawer is open (the iOS tap-through fix) which would otherwise
+     scroll the page to the top. */
+  var savedScrollY = 0;
 
   function openDrawer() {
     if (!drawer || !drawerBody || !filterForm) return;
 
-    // Clone filter form into drawer
+    // Clone filter form into drawer (fresh copy, preserves current state)
     const clone = filterForm.cloneNode(true);
     clone.removeAttribute('id');
     clone.setAttribute('data-drawer-filter-form', '');
     drawerBody.innerHTML = '';
     drawerBody.appendChild(clone);
 
+    /* cloneNode(true) copies data-pricebound="true" from the already-
+       bound main form but NOT the listeners that came with it — the
+       drawer's price slider arrives inert AND pre-marked as bound, so
+       bindPriceSliders() would skip it forever. Clear the marker on
+       the clone, then rebind. (The marker keeps the main form's own
+       slider from double-binding; the rebind must stay AFTER
+       appendChild — bindPriceSliders scans the section, and a
+       detached clone is invisible to it.) */
+    clone.querySelectorAll('.casa-col-filter__price-range[data-pricebound]').forEach(function (pr) {
+      delete pr.dataset.pricebound;
+    });
+    bindPriceSliders();
+
     drawer.classList.add('is-open');
     drawer.setAttribute('aria-hidden', 'false');
+    /* Remove inert so the drawer can receive focus / interactions.
+       It was set on close to keep focus out while hidden. */
+    drawer.removeAttribute('inert');
     drawerOverlay.classList.add('is-visible');
-    document.body.style.overflow = 'hidden';
 
-    // Sync changes from drawer back to main form, then trigger an AJAX refresh
-    // so the "Show N Results" button reflects the live filtered count.
-    clone.addEventListener('change', function(e) {
-      const target = e.target;
-      if (!target || !target.name) return;
+    /* iOS tap-through lock: freeze the body in place. Save the scroll
+       position FIRST, then apply position: fixed via the locked class. */
+    savedScrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    document.body.style.top = '-' + savedScrollY + 'px';
+    document.body.classList.add('casa-col-drawer-locked');
 
-      const name = target.name;
-      const value = target.value;
-
-      // Find the corresponding input in the main form
-      let mainInput;
-      if (target.type === 'checkbox' || target.type === 'radio') {
-        mainInput = filterForm.querySelector('[name="' + CSS.escape(name) + '"][value="' + CSS.escape(value) + '"]');
-        if (mainInput) mainInput.checked = target.checked;
-      } else {
-        mainInput = filterForm.querySelector('[name="' + CSS.escape(name) + '"]');
-        if (mainInput) mainInput.value = target.value;
+    // Listen to changes inside the drawer to live-preview the count
+    clone.addEventListener('change', function (e) {
+      if (e.target.matches('input, select')) {
+        previewDrawerCount();
       }
-
-      // Fire change on the main form so the AJAX filter handler runs and
-      // [data-results-count] elements (including the drawer's Show Results button) update.
-      if (mainInput) {
-        mainInput.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    clone.addEventListener('input', function (e) {
+      if (e.target.matches('.casa-col-filter__price-input, input[type="range"]')) {
+        previewDrawerCount();
       }
     });
 
-    // Mirror price number inputs typed into the drawer too (they fire 'input' not 'change')
-    clone.addEventListener('input', function(e) {
-      const target = e.target;
-      if (!target || !target.matches('.casa-col-filter__price-input')) return;
-      const mainInput = filterForm.querySelector('[name="' + CSS.escape(target.name) + '"]');
-      if (mainInput) {
-        mainInput.value = target.value;
-        mainInput.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-    });
-
-    // The cloned form has its own price slider markup. Re-bind the slider JS
-    // on the clone so dragging in the drawer also updates filters.
-    initPriceSlidersWithin(clone);
+    // Initial preview reflects whatever filters are already applied
+    previewDrawerCount();
   }
 
   function closeDrawer() {
     if (!drawer) return;
+
+    /* Cancel any in-flight preview fetch BEFORE we close. If we don't,
+       the response can come back AFTER closeDrawer() and overwrite the
+       drawer's form HTML — which on iPhone manifests as "I tapped a
+       filter and it got deselected instantly" because the response was
+       computed before the user's latest tap. */
+    if (typeof previewController !== 'undefined' && previewController) {
+      try { previewController.abort(); } catch (_) {}
+      previewController = null;
+    }
+    if (typeof previewTimeout !== 'undefined') {
+      clearTimeout(previewTimeout);
+    }
+
+    /* Step 1: blur whatever has focus inside the drawer.
+       Browsers correctly block aria-hidden on an ancestor of the
+       focused element. On iOS Safari, a synchronous .blur() during
+       a touch sequence may not actually clear focus before later
+       lines run — so we set inert FIRST (which forcibly removes
+       focusability synchronously), THEN aria-hidden. */
+    var activeEl = document.activeElement;
+    if (activeEl && drawer.contains(activeEl)) {
+      try { activeEl.blur(); } catch (_) {}
+    }
+
+    /* Step 2: inert FIRST. Setting inert immediately removes the
+       drawer (and its focused descendant) from the focus tree —
+       iOS honors this synchronously even when blur() lags. */
+    drawer.setAttribute('inert', '');
+
+    /* Step 3: now safe to set aria-hidden — focus is no longer
+       inside the drawer because inert pulled it. */
     drawer.classList.remove('is-open');
     drawer.setAttribute('aria-hidden', 'true');
     drawerOverlay.classList.remove('is-visible');
-    document.body.style.overflow = '';
+
+    /* Step 4: iOS Safari paint-stall workaround. Even after .is-open
+       is removed, iOS sometimes delays the transform: translateX
+       repaint for hundreds of ms — the drawer state is "closed" but
+       the user still sees it. Forcing a layout read + a transform
+       write nudges WebKit to commit the close paint in the same task
+       as the class toggle. (offsetWidth read forces synchronous
+       layout; the explicit inline transform overrides any
+       in-progress transition and gives iOS a fresh value to composite
+       against.) */
+    /* eslint-disable-next-line no-unused-expressions */
+    drawer.offsetWidth;
+    drawer.style.transform = 'translateX(-100%)';
+    /* Clear the inline override on the next frame so the CSS class
+       takes over for the next open animation. */
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        drawer.style.transform = '';
+      });
+    });
+
+    /* Unlock the body and restore the saved scroll position. Done in
+       this order: remove the locked class FIRST (which strips
+       position: fixed), then jump to the saved scroll position. */
+    document.body.classList.remove('casa-col-drawer-locked');
+    document.body.style.top = '';
+    window.scrollTo(0, savedScrollY);
+
+    /* NOTE: previously called document.body.focus() here as a "belt"
+       to clean up focus state. Removed — `inert` already removes focus
+       from the drawer subtree synchronously, which is the only thing
+       a11y/screen readers care about. The body.focus() call was a
+       known iOS Safari touch-defer trigger: calling .focus() on body
+       during a touch sequence can cause iOS to delay the close paint
+       until the next tap, manifesting as the "need two taps" bug. */
   }
 
   if (openBtn) openBtn.addEventListener('click', openDrawer);
-  if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
-  if (drawerOverlay) drawerOverlay.addEventListener('click', closeDrawer);
+
   if (applyBtn) {
-    applyBtn.addEventListener('click', function() {
-      closeDrawer();
-      updateSection(getFilterURL());
+    applyBtn.removeAttribute('disabled');
+  }
+
+  /* Action handlers — pure functions, called by direct listeners below.
+     Each is idempotent so a double-fire (pointerup + click) is a no-op.
+
+     iOS Safari touch-sequence rule we learned the hard way:
+       Safari holds the next paint until the touch handler returns AND
+       any synthetic click finishes. If the handler kicks off a fetch()
+       FIRST and toggles the close class SECOND (or defers it via rAF),
+       the close paint slides past the touch frame and the user has to
+       tap again to "see" it close. To avoid the two-tap bug:
+         1. Mutate the closing CSS class SYNCHRONOUSLY in the handler.
+         2. Defer everything network-y (fetch, sync, history.pushState)
+            to a microtask so it doesn't compete for the paint frame. */
+  /* iOS Safari ghost-click shield.
+     When the user taps Apply or Close, iOS fires pointerup → handler
+     runs → drawer slides out (~250ms) → THEN ~300ms after pointerup
+     iOS dispatches the synthetic `click` event at the SAME screen
+     coordinates. By that time the drawer is gone and a product card
+     is sitting where the user's finger was — the synthetic click
+     navigates to that product. Body lock + z-index don't prevent it
+     because the click is dispatched at click-time coordinates, not
+     touch-time coordinates.
+
+     The shield: for the 500ms window AFTER any drawer tap, swallow
+     every click that didn't originate inside the drawer. Captures
+     in capture phase on <html> so it runs before any handler. */
+  var ghostShieldUntil = 0;
+  var freshDrawerTouchTarget = null;
+  function armGhostShield() {
+    /* 800ms window. iOS's synthetic click fires ~300ms after pointerup,
+       but the drawer transform-transition is 250ms AND iOS can stall
+       the close paint another ~200-400ms beyond that. 500ms wasn't
+       enough — Elie's "tap show results, then tap again, hit product
+       behind" was happening because the shield expired before the
+       second tap landed. */
+    ghostShieldUntil = Date.now() + 800;
+    freshDrawerTouchTarget = null;
+  }
+  function drawerTouchControl(target) {
+    return target instanceof Element
+      ? target.closest('button, a, input, select, textarea, [role="button"]') || target
+      : null;
+  }
+  document.documentElement.addEventListener('pointerdown', function (e) {
+    if (Date.now() > ghostShieldUntil || !e.isTrusted || !e.isPrimary || e.pointerType !== 'touch') return;
+    freshDrawerTouchTarget = drawerTouchControl(e.target);
+  }, true);
+  document.documentElement.addEventListener('pointercancel', function () {
+    freshDrawerTouchTarget = null;
+  }, true);
+  document.documentElement.addEventListener('click', function (e) {
+    if (Date.now() > ghostShieldUntil) return;
+    if (drawer && drawer.contains(e.target)) return;
+    if (drawerOverlay && drawerOverlay.contains(e.target)) return;
+    if (freshDrawerTouchTarget && drawerTouchControl(e.target) === freshDrawerTouchTarget) {
+      freshDrawerTouchTarget = null;
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }, true);
+
+  function doClose(e) {
+    if (e) e.preventDefault();
+    armGhostShield();
+    closeDrawer();
+  }
+
+  function doApply(e) {
+    if (e) e.preventDefault();
+    armGhostShield();
+    /* Cancel any pending preview fetch synchronously so it can't
+       clobber the upcoming real update. */
+    if (typeof previewController !== 'undefined' && previewController) {
+      try { previewController.abort(); } catch (_) {}
+    }
+    /* 1. Close paint FIRST, in the same task as the touch — iOS will
+          composite this on the same frame as pointerup. */
+    closeDrawer();
+    /* 2. Sync drawer state → main form. Cheap, synchronous, no paint
+          impact (the main form is below the now-closing drawer). */
+    try {
+      syncDrawerToMainForm();
+    } catch (err) {
+      console.error('Drawer apply: sync failed', err);
+    }
+    /* 3. Defer the fetch + section swap to a microtask so it does
+          NOT share the same paint frame as the close transform. The
+          previous version put the close inside rAF *after* the fetch
+          had started, which is what produced the iPhone two-tap. */
+    Promise.resolve().then(function () {
+      updateSection(getFilterURL(), true);
     });
   }
 
+  function doClear(e) {
+    if (e) e.preventDefault();
+    armGhostShield();
+    var clone = drawerBody && drawerBody.querySelector('[data-drawer-filter-form]');
+    if (!clone) return;
+    /* Step 1: optimistic local clear so the UI feels instant */
+    clone.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(function (i) {
+      i.checked = false;
+    });
+    clone.querySelectorAll('input[type="range"]').forEach(function (r) {
+      if (r.dataset.defaultValue) r.value = r.dataset.defaultValue;
+    });
+    clone.querySelectorAll('.casa-col-filter__price-input').forEach(function (i) {
+      i.value = '';
+    });
+    /* Step 2: fetch the UNFILTERED collection URL so the drawer's
+       filter form is re-rendered with ALL original options visible —
+       not the narrowed list that comes back from currently-applied
+       filters. */
+    previewDrawerCount(window.location.pathname);
+  }
+
+  /* Direct per-element tap binding with pointerup+click dedupe.
+     Why per-element instead of section-level delegation:
+       - Samsung Internet and some Android WebViews drop capture-phase
+         events on container elements when a child is interactive.
+       - SVG children inside buttons can fail .closest() walks in
+         older browsers, breaking delegation by event-target lookup.
+       - Direct listeners match what works for the Open button on
+         every browser we've tested.
+     Why both pointerup and click:
+       - pointerup gives iPhone its one-tap behaviour (avoids the
+         touchend/click dedupe race that caused the original
+         "needs two taps" bug).
+       - click is the universal fallback for any browser that
+         silently suppresses pointerup (Samsung Internet, Firefox
+         Mobile in scroll contexts, in-app WebViews). */
+  function bindTap(el, handler) {
+    if (!el) return;
+    var lastTap = 0;
+    var DEDUPE_MS = 350;
+    el.addEventListener('pointerup', function (e) {
+      if (e.button !== undefined && e.button !== 0) return;
+      lastTap = Date.now();
+      handler(e);
+    });
+    el.addEventListener('click', function (e) {
+      if (Date.now() - lastTap < DEDUPE_MS) return;
+      handler(e);
+    });
+  }
+
+  bindTap(closeBtn, doClose);
+  bindTap(applyBtn, doApply);
+  bindTap(clearBtn, doClear);
+  bindTap(drawerOverlay, doClose);
+
   // Close drawer on Escape
-  document.addEventListener('keydown', function(e) {
+  document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && drawer && drawer.classList.contains('is-open')) {
       closeDrawer();
     }
@@ -2963,9 +3888,10 @@ document.addEventListener('DOMContentLoaded', function() {
   function initPriceSlidersWithin(scope) {
     if (!scope) return;
     scope.querySelectorAll('[data-price-range]').forEach(priceRange => {
-    // Guard against double-binding when re-cloned into the drawer
-    if (priceRange.hasAttribute('data-price-slider-ready')) return;
-    priceRange.setAttribute('data-price-slider-ready', '');
+    // Guard against double-binding. openDrawer() clears this marker on the
+    // drawer clone so the cloned slider gets rebound.
+    if (priceRange.dataset.pricebound === 'true') return;
+    priceRange.dataset.pricebound = 'true';
 
     const track = priceRange.querySelector('[data-price-track]');
     const fill = priceRange.querySelector('[data-price-fill]');
@@ -3152,30 +4078,113 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Bind sliders inside the main (sidebar) form on initial render.
-  initPriceSlidersWithin(section);
+  /* Casa's entry point (called on init, after AJAX form swaps, and after
+     the drawer clone is appended). Binds every not-yet-bound slider in
+     the section using Seoul's pointer-event handle slider. */
+  function bindPriceSliders() {
+    initPriceSlidersWithin(section);
+  }
+  bindPriceSliders();
 
   // ═══════════════════════════════════════════════════════════════════════
   // ENTRANCE ANIMATIONS
   // ═══════════════════════════════════════════════════════════════════════
 
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver(function(entries) {
+  /* Entrance animation — only animate cards NOT already in viewport
+     when the script first runs. Otherwise hiding then revealing
+     above-the-fold cards causes a visible blank-then-reappear flash
+     on initial page load.
+
+     Skipped entirely on touch devices (hover: none) — cards just
+     appear, which reads FASTER on phones and avoids paying the
+     staggered inline-transition cost on WebKit, where this page
+     measured red for scroll jank. Also skipped under
+     prefers-reduced-motion: the global casa-animations.css
+     kill-switch only covers CSS animations, not JS-written inline
+     transitions, so it needs its own matchMedia check here. */
+  if (
+    'IntersectionObserver' in window &&
+    !window.matchMedia('(hover: none)').matches &&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  ) {
+    const items = section.querySelectorAll('.casa-col-main__grid-item');
+
+    /* rootMargin '0px 0px 400px 0px' pre-loads the fade-in 400px BEFORE
+       the card enters the viewport, so the 0.4s opacity transition
+       completes before the user sees the card. Prior value
+       '-50px' DELAYED trigger 50px past viewport edge — guaranteed
+       blank cards on fast scroll on a 144-card collection page, which
+       the user reported as "massive white sections" on 2026-05-13.
+
+       Threshold 0 (was 0.1) pairs with the rootMargin — we want to
+       trigger as soon as the pre-load box overlaps the viewport, not
+       when 10% of the card itself is visible. */
+    const animateObserver = new IntersectionObserver(function(entries) {
+      /* A fast scroll reveals cards in bursts of a full row (or more).
+         Batch the whole burst's style writes into ONE rAF so the
+         reveal costs a single style/layout pass per frame instead of
+         one interleaved write per entry. */
+      const revealed = [];
       entries.forEach(function(entry) {
         if (entry.isIntersecting) {
-          entry.target.style.opacity = '1';
-          entry.target.style.transform = 'translateY(0)';
-          observer.unobserve(entry.target);
+          revealed.push(entry.target);
+          animateObserver.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+      if (!revealed.length) return;
+      requestAnimationFrame(function() {
+        revealed.forEach(function(item) {
+          item.style.opacity = '1';
+          item.style.transform = 'translateY(0)';
+        });
+      });
+    }, { threshold: 0, rootMargin: '0px 0px 400px 0px' });
 
-    section.querySelectorAll('.casa-col-main__grid-item').forEach(function(item, index) {
-      item.style.opacity = '0';
-      item.style.transform = 'translateY(20px)';
-      item.style.transition = 'opacity 0.4s ease ' + (index % 4) * 0.08 + 's, transform 0.4s ease ' + (index % 4) * 0.08 + 's';
-      observer.observe(item);
+    /* First pass: detect which items are already on screen */
+    const visibleAtLoad = new Set();
+    const initialObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) visibleAtLoad.add(entry.target);
+      });
+      initialObserver.disconnect();
+
+      /* Batch the whole initial pass (3 inline-style writes × ~140
+         items) into one rAF so it lands as a single style pass right
+         before paint, not interleaved with the observer callback. Only
+         below-the-fold items get hidden, so the one-frame delay can't
+         flash visible cards. */
+      requestAnimationFrame(function() {
+        items.forEach(function(item, index) {
+          if (visibleAtLoad.has(item)) {
+            /* Already visible — skip the fade-in entirely so above-the-fold
+               cards don't blank out on script init. */
+            item.style.opacity = '1';
+            item.style.transform = 'none';
+            return;
+          }
+          /* Below the fold — fade in when scrolled to */
+          item.style.opacity = '0';
+          item.style.transform = 'translateY(20px)';
+          item.style.transition = 'opacity 0.4s ease ' + (index % 4) * 0.08 + 's, transform 0.4s ease ' + (index % 4) * 0.08 + 's';
+          animateObserver.observe(item);
+        });
+      });
+
+      /* Safety net: any card still at opacity:0 after 1500ms gets
+         force-revealed. Handles fast scrollers, off-screen tab init,
+         and missed observer callbacks. Better to skip the fade-in than
+         to leave 100+ cards invisible on a long collection page. */
+      setTimeout(function() {
+        items.forEach(function(item) {
+          if (item.style.opacity === '0') {
+            item.style.transition = 'opacity 0.2s ease';
+            item.style.opacity = '1';
+            item.style.transform = 'none';
+          }
+        });
+      }, 1500);
     });
+    items.forEach(function(item) { initialObserver.observe(item); });
   }
 });
 </script>

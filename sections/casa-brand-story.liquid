@@ -3,11 +3,28 @@
   2-column layout with image and text content
 {%- endcomment -%}
 
+{%- comment -%} Auto-hide when no image or title exists {%- endcomment -%}
+{%- if section.settings.image == blank and section.settings.title == blank and section.settings.video == blank and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
 {%- liquid
   assign img_ratio = section.settings.image_ratio | default: 'auto'
   assign img_fit = section.settings.image_fit | default: 'cover'
   assign img_height = section.settings.image_height | default: 500
   assign img_pos = section.settings.image_position | default: 'left'
+
+  # Poster = the still shown before the lazy-loaded video starts, and the
+  # ONLY visual for reduced-motion / Save-Data visitors (the inline script
+  # removes the <video> outright for them). The merchant Image still wins
+  # when set; left blank it falls back to the Shopify video's own first
+  # frame, so the pre-play still always matches the footage instead of
+  # drifting to an unrelated photo. The external Video URL fallback has no
+  # Shopify-side preview frame, so it keeps relying on the Image setting.
+  assign poster_image = section.settings.image
+  if poster_image == blank and section.settings.video != blank
+    assign poster_image = section.settings.video.preview_image
+  endif
 -%}
 <section
   class="casa-brand-story{% if img_pos == 'right' %} casa-brand-story--img-right{% endif %}"
@@ -15,19 +32,22 @@
     --cbs-ratio: {{ img_ratio }};
     --cbs-fit: {{ img_fit }};
     --cbs-height: {{ img_height }}px;
-    --cbs-bg: {{ section.settings.bg_color | default: '#ffffff' }};
-    --cbs-tag: {{ section.settings.tag_color | default: '#9333ea' }};
-    --cbs-title: {{ section.settings.title_color | default: '#0a0a0a' }};
+    --cbs-bg: {{ section.settings.bg_color | default: '#FAFAF7' }};
+    --cbs-tag: {{ section.settings.tag_color | default: '#B0C3FA' }};
+    --cbs-title: {{ section.settings.title_color | default: '#0A0A0F' }};
     --cbs-text: {{ section.settings.text_color | default: '#6b7280' }};
-    --cbs-btn-bg: {{ section.settings.button_bg | default: '#9333ea' }};
-    --cbs-btn-bg2: {{ section.settings.button_bg_2 | default: '#ec4899' }};
-    --cbs-btn-text: {{ section.settings.button_text_color | default: '#ffffff' }};
-    --cbs-grad1: {{ section.settings.image_gradient_1 | default: '#9333ea' }};
-    --cbs-grad2: {{ section.settings.image_gradient_2 | default: '#ec4899' }};
+    --cbs-grad1: {{ section.settings.image_gradient_1 | default: '#B0C3FA' }};
+    --cbs-grad2: {{ section.settings.image_gradient_2 | default: '#5E0A02' }};
     --cbs-gap: {{ section.settings.gap | default: 80 }}px;
     --cbs-img-radius: {{ section.settings.image_radius | default: 24 }}px;
-    --cbs-pt: {{ section.settings.padding_top | default: 120 }}px;
-    --cbs-pb: {{ section.settings.padding_bottom | default: 120 }}px;
+    {%- if section.settings.override_spacing -%}
+      --cbs-pt: {{ section.settings.padding_top | default: 120 }}px;
+      --cbs-pb: {{ section.settings.padding_bottom | default: 120 }}px;
+      {%- if section.settings.padding_top_mobile %}--cbs-pt-m: {{ section.settings.padding_top_mobile }}px;{% endif -%}
+      {%- if section.settings.padding_bottom_mobile %}--cbs-pb-m: {{ section.settings.padding_bottom_mobile }}px;{% endif -%}
+    {%- endif -%}
+    {%- if section.settings.text_size_desktop %}--cbs-text-size: {{ section.settings.text_size_desktop }}px;{% endif -%}
+    {%- if section.settings.text_size_mobile %}--cbs-text-size-m: {{ section.settings.text_size_mobile }}px;{% endif -%}
     --cbs-max-w: {% case section.settings.section_width %}{% when 'full' %}100%{% when 'wide' %}1600px{% when 'narrow' %}1200px{% else %}1400px{% endcase %};
   "
 >
@@ -35,23 +55,50 @@
     <div class="casa-brand-story__visual"
       style="{% if img_ratio != 'auto' %}aspect-ratio: {{ img_ratio }};{% else %}height: var(--cbs-height);{% endif %}"
     >
+      {%- comment -%}
+        Lazy-loaded video: ships with preload="none" + data-src instead of
+        src. IntersectionObserver triggers loadVideo() + .play() at first
+        intersection (rootMargin 200px). Cuts ~2.4 MB from cold homepage
+        loads for users who bounce before reaching this section.
+
+        Poster attribute KEPT here — unlike casa-split-feature and
+        casa-styled-spaces (which have their poster image stacked ABOVE
+        the video element via z-index), this section has the video at
+        z-index:1 and the .casa-brand-story__poster image at z-index:0.
+        Without the poster= attribute, the user would see a transparent
+        video element until buffering completes. Restoring poster= adds
+        one image fetch but ensures the visual stays coherent during
+        the IntersectionObserver-triggered load window. Both the attribute
+        and the stacked <img> read the same resolved poster_image, so the
+        pre-play frame can never disagree with itself.
+      {%- endcomment -%}
       {%- if section.settings.video != blank -%}
-        <video class="casa-brand-story__video" autoplay loop muted playsinline
-          {%- if section.settings.image != blank %} poster="{{ section.settings.image | image_url: width: 1200 }}"{% endif %}>
+        <video class="casa-brand-story__video" data-casa-pause loop muted playsinline preload="none"
+          {%- if poster_image != blank %} poster="{{ poster_image | image_url: width: 1200 }}"{% endif %}>
+          {%- comment -%} MP4 only — never the .m3u8. Safari picks the first
+            supported <source>, and the HLS stream costs its adaptive-decode
+            pipeline for a looping bg video (the homepage scroll jitter).
+            Chrome/Firefox can't play HLS in <video> at all. Same fix as
+            casa-video-demo.liquid. {%- endcomment -%}
           {%- for source in section.settings.video.sources -%}
-            <source src="{{ source.url }}" type="{{ source.mime_type }}">
+            {%- if source.mime_type == 'video/mp4' -%}
+              <source data-src="{{ source.url }}" type="video/mp4">
+            {%- endif -%}
           {%- endfor -%}
         </video>
       {%- elsif section.settings.video_url != blank -%}
-        <video class="casa-brand-story__video" src="{{ section.settings.video_url }}" autoplay loop muted playsinline
-          {%- if section.settings.image != blank %} poster="{{ section.settings.image | image_url: width: 1200 }}"{% endif %}></video>
+        <video class="casa-brand-story__video" data-casa-pause data-src="{{ section.settings.video_url | escape }}" loop muted playsinline preload="none"
+          {%- if poster_image != blank %} poster="{{ poster_image | image_url: width: 1200 }}"{% endif %}></video>
       {%- endif -%}
-      {%- if section.settings.image != blank -%}
+      {%- if poster_image != blank -%}
         <img
-          src="{{ section.settings.image | image_url: width: 1200 }}"
-          alt="{{ section.settings.title | escape }}"
+          src="{{ poster_image | image_url: width: 1200 }}"
+          width="{{ poster_image.width }}"
+          height="{{ poster_image.height }}"
+          alt="{{ section.settings.title | strip_html | escape }}"
           class="{% if section.settings.video != blank or section.settings.video_url != blank %}casa-brand-story__poster{% endif %}"
           loading="lazy"
+          decoding="async"
         >
       {%- endif -%}
     </div>
@@ -70,8 +117,10 @@
       {%- endif -%}
 
       {%- if section.settings.button_text != blank -%}
-        <a href="{{ section.settings.button_link }}" class="casa-brand-story__btn">
+        {%- assign btn_treatment = section.settings.button_treatment | default: 'featured' -%}
+        <a href="{{ section.settings.button_link }}" class="btn btn-{{ btn_treatment }} casa-brand-story__btn">
           {{ section.settings.button_text }}
+          {%- render 'casa-icon', icon: 'arrow-right', size: 16 -%}
         </a>
       {%- endif -%}
     </div>
@@ -80,21 +129,88 @@
 
 <script>
 (function() {
-  var visual = document.querySelector('.casa-brand-story__visual');
+  /* Scope to THIS instance. document.querySelector handed every copy of this
+     script the FIRST .casa-brand-story__visual in the document, so a second
+     instance of the section never got its own data-src promoted — its video
+     stayed at preload="none" with no src and sat on the poster forever. */
+  var root = document.getElementById('shopify-section-{{ section.id }}');
+  var visual = root && root.querySelector('.casa-brand-story__visual');
   if (!visual) return;
   var video = visual.querySelector('.casa-brand-story__video');
+  if (!video) return;
+
+  /* Save-Data / slow-network / reduced-motion: drop video entirely.
+     Static poster image remains. Matches casa-hero / casa-split-feature
+     / casa-styled-spaces pattern. */
+  var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var saveData = (navigator.connection && navigator.connection.saveData) === true;
+  var slowNet = navigator.connection && /2g|slow-2g/.test(navigator.connection.effectiveType || '');
+  if (reducedMotion || saveData || slowNet) {
+    video.remove();
+    return;
+  }
+
   var poster = visual.querySelector('.casa-brand-story__poster');
-  if (video && poster) {
+  if (poster) {
     video.addEventListener('playing', function() { poster.style.opacity = '0'; }, { once: true });
   }
-  if (video && 'IntersectionObserver' in window) {
-    new IntersectionObserver(function(entries) {
-      entries.forEach(function(e) {
-        if (e.isIntersecting) e.target.play().catch(function(){});
-        else e.target.pause();
-      });
-    }, { rootMargin: '100px' }).observe(video);
+
+  /* iOS Safari rejects programmatic muted autoplay unless the muted/inline
+     PROPERTIES (not just the HTML attributes) are set before play() is called
+     on a JS-assigned src. Without this the brand-story video stays paused
+     until the visitor taps. Re-assert at play time too — some iOS builds drop
+     the muted flag across load(). */
+  /* PLAYBACK OWNER: assets/casa-offscreen-pause.js (data-casa-pause on the
+     <video>) — plays in view / pauses off-screen from real geometry. This
+     script only LAZY-LOADS the bytes: copy data-src → src 200px before the
+     section enters view so the buffer gets a head start. The old inline owner
+     here had an unguarded deferred retry ('canplay' → play(), {once:true})
+     that restarted the video AFTER the off-screen pause when buffering
+     finished late — the "keeps playing after you scroll past it" bug. */
+  function loadVideo(v) {
+    if (v.dataset.casaBrandStoryLoaded) return;
+    v.dataset.casaBrandStoryLoaded = '1';
+    v.muted = true;
+    v.defaultMuted = true;
+    v.playsInline = true;
+    v.setAttribute('muted', '');
+    v.setAttribute('playsinline', '');
+    v.setAttribute('webkit-playsinline', '');
+    if (v.dataset.src && !v.src) v.src = v.dataset.src;
+    v.querySelectorAll('source[data-src]').forEach(function(s) {
+      if (!s.src) s.src = s.dataset.src;
+    });
+    /* preload=none would defer the fetch until play(); with the src now
+       assigned, auto lets the browser buffer ahead — the point of the
+       200px head start. */
+    v.preload = 'auto';
+    v.load();
+    /* The global owner's initial pass ran while this video had no src (its
+       play() no-opped); re-gate now that it is loadable. */
+    if (window.casa && window.casa.offscreenPauseRefresh) window.casa.offscreenPauseRefresh();
   }
+
+  var observer = null;
+  if ('IntersectionObserver' in window) {
+    observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) {
+          loadVideo(e.target);
+          observer.unobserve(e.target); /* load once; playback is the global owner's job */
+        }
+      });
+    }, { rootMargin: '200px' });
+    observer.observe(video);
+  } else {
+    loadVideo(video);
+  }
+
+  /* Theme-editor cleanup */
+  document.addEventListener('shopify:section:unload', function(e) {
+    if (e.target && e.target.id === 'shopify-section-{{ section.id }}' && observer) {
+      observer.disconnect();
+    }
+  });
 })();
 </script>
 
@@ -112,7 +228,7 @@
       "type": "image_picker",
       "id": "image",
       "label": "Image",
-      "info": "Also used as poster frame when a video is set"
+      "info": "Also the poster frame when a video is set. Leave blank to use the Shopify video's own first frame, so the still always matches the footage. The Video URL fallback has no first frame — set an image here if you use that, or if you remove the video, otherwise the visual falls back to the placeholder gradient."
     },
     {
       "type": "video",
@@ -174,16 +290,17 @@
       "default": "Our Story"
     },
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "title",
       "label": "Title",
-      "default": "We Dream, Envision & Innovate"
+      "info": "Wrap a phrase in <em>...</em> for the brand italic-gradient accent (e.g. \"Light that <em>earns its place.</em>\").",
+      "default": "Light that <em>earns its place.</em>"
     },
     {
       "type": "richtext",
       "id": "text",
       "label": "Content",
-      "default": "<p>Seoul Glow Lab — House of Light. We're on a mission to revolutionize the world of home décor through high-quality, beautiful, and functional pieces that inspire customers to create personalized living spaces like never seen before.</p><p>For the world travelers and the storytellers, for the embracers of unique culture, and for the lovers of expression through design.</p>"
+      "default": "<p>Seoul Glow Lab means House of Light. We don't sell lamps — we sell how a room feels.</p><p>The moment your friends walk in and stop mid-sentence. The character on your shelf that makes you smile every morning. The wall that changes when the lights come on.</p><p>The room is luminous. And so are you.</p>"
     },
     {
       "type": "header",
@@ -239,65 +356,102 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
       "id": "tag_color",
       "label": "Tag text color",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "title_color",
       "label": "Title color",
-      "default": "#0a0a0a"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
       "id": "text_color",
       "label": "Body text color",
-      "default": "#6b7280"
+      "default": "#525252"
     },
     {
       "type": "color",
       "id": "button_bg",
       "label": "Button background",
-      "default": "#9333ea"
+      "default": "#B0C3FA",
+      "visible_if": "{{ false }}"
     },
     {
       "type": "color",
       "id": "button_bg_2",
       "label": "Button gradient end",
       "info": "Set same as button background for solid color",
-      "default": "#ec4899"
+      "default": "#5E0A02",
+      "visible_if": "{{ false }}"
     },
     {
       "type": "color",
       "id": "button_text_color",
       "label": "Button text color",
-      "default": "#ffffff"
+      "default": "#FAFAF7",
+      "visible_if": "{{ false }}"
     },
     {
       "type": "color",
       "id": "image_gradient_1",
       "label": "Image placeholder gradient start",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "image_gradient_2",
       "label": "Image placeholder gradient end",
-      "default": "#ec4899"
+      "default": "#5E0A02"
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "text_size_desktop",
+      "label": "Body text size (desktop)",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 18
+    },
+    {
+      "type": "range",
+      "id": "text_size_mobile",
+      "label": "Body text size (mobile)",
+      "min": 12,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 16
     },
     {
       "type": "header",
       "content": "Spacing"
     },
     {
+      "type": "paragraph",
+      "content": "Follows Theme settings → Casa Section Spacing by default. Toggle to override."
+    },
+    {
+      "type": "checkbox",
+      "id": "override_spacing",
+      "label": "Override theme spacing",
+      "default": false
+    },
+    {
       "type": "range",
       "id": "padding_top",
-      "label": "Padding top",
+      "label": "Padding top (desktop)",
       "min": 0,
       "max": 200,
       "step": 10,
@@ -307,11 +461,31 @@
     {
       "type": "range",
       "id": "padding_bottom",
-      "label": "Padding bottom",
+      "label": "Padding bottom (desktop)",
       "min": 0,
       "max": 200,
       "step": 10,
       "default": 120,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_top_mobile",
+      "label": "Padding top (mobile)",
+      "min": 0,
+      "max": 120,
+      "step": 10,
+      "default": 60,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom_mobile",
+      "label": "Padding bottom (mobile)",
+      "min": 0,
+      "max": 120,
+      "step": 10,
+      "default": 60,
       "unit": "px"
     },
     {
@@ -322,12 +496,27 @@
       "type": "text",
       "id": "button_text",
       "label": "Button text",
-      "default": "Learn More"
+      "default": "SEE THE COLLECTION"
     },
     {
       "type": "url",
       "id": "button_link",
       "label": "Button link"
+    },
+    {
+      "type": "select",
+      "id": "button_treatment",
+      "label": "Button treatment",
+      "info": "Brand-book button style. Featured (gradient) is rare — reserved for hero/launch CTAs.",
+      "options": [
+        { "value": "primary",            "label": "Primary — solid ink (light surface)" },
+        { "value": "primary-on-dark",    "label": "Primary — solid white (dark surface)" },
+        { "value": "secondary",          "label": "Secondary — outline (light surface)" },
+        { "value": "secondary-on-dark",  "label": "Secondary — outline (dark surface)" },
+        { "value": "tertiary",           "label": "Tertiary — underlined link" },
+        { "value": "featured",           "label": "Featured — purple→pink gradient" }
+      ],
+      "default": "featured"
     }
   ],
   "presets": [
@@ -340,8 +529,9 @@
 
 {% stylesheet %}
 .casa-brand-story {
-  background: var(--cbs-bg, #ffffff);
-  padding: var(--cbs-pt, 120px) 80px var(--cbs-pb, 120px);
+  /* Brand v1 surface lock fallback: Paper #FAFAF7 if merchant hasn't set bg_color. */
+  background: var(--cbs-bg, var(--bg-paper, var(--casa-paper)));
+  padding: var(--cbs-pt, var(--casa-section-pt, 120px)) 80px var(--cbs-pb, var(--casa-section-pb, 120px));
 }
 
 .casa-brand-story__inner {
@@ -353,6 +543,15 @@
   margin: 0 auto;
 }
 
+/* Ultrawide guardrail: the 1fr 1fr split over a full-width inner puts body
+   copy at ~180 characters per line on a 3440px screen. Capping past 1920px
+   holds the ≤1920 measure; min() lets narrower presets keep winning. */
+@media screen and (min-width: 1920px) {
+  .casa-brand-story__inner {
+    max-width: min(var(--cbs-max-w, 100%), var(--casa-content-max-w, 1920px));
+  }
+}
+
 .casa-brand-story--img-right .casa-brand-story__visual { order: 2; }
 .casa-brand-story--img-right .casa-brand-story__content { order: 1; }
 
@@ -360,7 +559,7 @@
   position: relative;
   border-radius: var(--cbs-img-radius, 24px);
   overflow: hidden;
-  background: linear-gradient(135deg, var(--cbs-grad1, #9333ea), var(--cbs-grad2, #ec4899));
+  background: linear-gradient(135deg, var(--cbs-grad1, #B0C3FA), var(--cbs-grad2, #5E0A02));
 }
 
 .casa-brand-story__visual img,
@@ -376,6 +575,29 @@
   z-index: 1;
 }
 
+/* Belt-and-suspenders: if a device blocks muted autoplay (Low Power Mode,
+   reduced-data) the video stays paused and iOS would paint its native centre
+   play button on this decorative media. Suppress the WebKit media-control
+   pseudo-elements so the poster image is the clean fallback, never a stray
+   button. ONE RULE PER PSEUDO-ELEMENT — a comma-grouped list is dropped in
+   its entirety by any selector the engine doesn't recognise, and
+   `-overlay-play-button` (Chromium-only) would otherwise poison the iOS-only
+   `-start-playback-button` rule. */
+.casa-brand-story__video::-webkit-media-controls {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.casa-brand-story__video::-webkit-media-controls-enclosure { display: none !important; }
+.casa-brand-story__video::-webkit-media-controls-panel { display: none !important; }
+.casa-brand-story__video::-webkit-media-controls-play-button { display: none !important; }
+.casa-brand-story__video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.casa-brand-story__video::-webkit-media-controls-overlay-play-button { display: none !important; }
+
 .casa-brand-story__poster {
   position: relative;
   z-index: 0;
@@ -386,25 +608,51 @@
   display: inline-block;
   font-size: 12px;
   font-weight: 600;
-  color: var(--cbs-tag, #9333ea);
+  color: var(--cbs-tag, #B0C3FA);
   text-transform: uppercase;
   letter-spacing: 2px;
   margin-bottom: 12px;
 }
 
 .casa-brand-story__title {
-  font-size: 42px;
-  font-weight: 300;
+  /* Brand book v1 §03 locked H2 spec — Inter 500 / -0.015em / 1.10 LH.
+     white-space: nowrap forces single-line per merchant.
+     Deliberately NOT driven by the Horizon --font-hN-- tokens: h1 resolves to
+     clamp(3rem, 5.6vw, 3.5rem) @700, which overflows the single-line lock. */
+  font-size: clamp(22px, 4vw, 40px);
+  font-weight: 500;
+  line-height: 1.10;
+  letter-spacing: -0.015em;
+  text-transform: none;
   margin: 0 0 24px 0;
-  line-height: 1.2;
-  color: var(--cbs-title, #0a0a0a);
+  color: var(--cbs-title, var(--casa-ink));
+  white-space: nowrap;
+}
+
+/* Italic accent inside title — LARGER (1.15em) per merchant. Italic
+   600 weight + brand gradient. line-height: 1 prevents inflation. */
+.casa-brand-story__title em {
+  font-size: 1.15em;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1;
+  background-image: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .casa-brand-story__text {
-  font-size: 18px;
+  font-size: var(--cbs-text-size, 18px);
   color: var(--cbs-text, #6b7280);
   line-height: 1.8;
   margin-bottom: 32px;
+  /* Readability cap: the content column reaches ~920px at 1920px+
+     viewports (~105 characters per line; comfortable is 50-75).
+     ch-based so it only binds where lines actually run long —
+     mobile/tablet columns are narrower than 72ch and don't move. */
+  max-width: var(--casa-measure-max, 72ch);
 }
 
 .casa-brand-story__text p {
@@ -415,27 +663,20 @@
   margin-bottom: 0;
 }
 
-.casa-brand-story__btn {
-  display: inline-block;
-  padding: 18px 40px;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  text-decoration: none;
-  background: linear-gradient(135deg, var(--cbs-btn-bg, #9333ea), var(--cbs-btn-bg2, #ec4899));
-  color: var(--cbs-btn-text, #ffffff);
-  transition: all 0.3s ease;
-}
-
+/* Brand Story CTA: brand class (.btn .btn-[treatment]) provides
+   baseline (display, padding, font, radius, transition, transform,
+   uppercase, letter-spacing, hover lift). Override below applies
+   the section's deeper hover shadow that diverges from the brand
+   .btn-featured baseline -- same pattern as hero primary CTA. */
 .casa-brand-story__btn:hover {
-  transform: translateY(-2px);
   filter: brightness(1.1);
-  box-shadow: 0 20px 40px -10px rgba(147, 51, 234, 0.5);
+  box-shadow: 0 20px 40px -10px rgba(176, 195, 250, 0.5);
 }
 
 @media (max-width: 1200px) {
   .casa-brand-story {
-    padding: 80px 40px;
+    padding-left: 40px;
+    padding-right: 40px;
   }
 
   .casa-brand-story__inner {
@@ -452,32 +693,51 @@
   .casa-brand-story__visual[style*="height"] {
     height: 350px !important;
   }
-
-  .casa-brand-story__title {
-    font-size: 32px;
-  }
 }
 
 @media (max-width: 600px) {
   .casa-brand-story {
-    padding: 60px 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-top: var(--cbs-pt-m, var(--casa-section-pt-m, 60px));
+    padding-bottom: var(--cbs-pb-m, var(--casa-section-pb-m, 60px));
   }
 
   .casa-brand-story__visual[style*="height"] {
     height: 280px !important;
   }
 
+  /* Mobile cap for the section title — locked to fit on one line.
+     "Light that earns its place." has 27 chars with the italic-bold
+     <em> on "earns its place." which renders ~15.7× the font size
+     in width. To fit in the 335px content area at 375px viewport
+     (and 240px at 320px viewport), font must be ≤ ~21px max.
+     Using clamp(16px, 5vw, 22px) and text-wrap: nowrap defensively
+     so the heading stays on one line at every mobile width the
+     merchant tests. */
   .casa-brand-story__title {
-    font-size: 28px;
+    font-size: clamp(14px, 4.5vw, 22px);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  .casa-brand-story__title em {
+    font-size: 1.15em;
   }
 
   .casa-brand-story__text {
-    font-size: 16px;
+    font-size: var(--cbs-text-size-m, 16px);
   }
 
+  /* Mobile: keep CTA compact (auto-width) and centered in its
+     column to match the brand-book button visual rhythm
+     (e.g. SHOP BUBBLE GIRLS style — pill, not full-bleed bar).
+     .btn baseline is inline-flex; using display:flex + width:fit-content
+     + margin:auto centers without forcing full-width. */
   .casa-brand-story__btn {
-    width: 100%;
-    text-align: center;
+    display: flex;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
   }
 }
 {% endstylesheet %}

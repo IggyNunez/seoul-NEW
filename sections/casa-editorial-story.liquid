@@ -5,6 +5,11 @@
   Supports overlay, split, and stacked layout modes.
 {%- endcomment -%}
 
+{%- comment -%} Auto-hide when no content exists {%- endcomment -%}
+{%- if section.settings.heading == blank and section.settings.image == blank and section.settings.body_text == blank and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
 {%- liquid
   assign layout        = section.settings.layout_style | default: 'overlay'
   assign image_pos     = section.settings.image_position | default: 'left'
@@ -16,6 +21,8 @@
   assign names_color   = section.settings.names_color | default: ''
   assign heading       = section.settings.heading | default: ''
   assign heading_size  = section.settings.heading_size | default: 'large'
+  assign custom_heading_desktop = section.settings.heading_font_size_desktop | default: 48
+  assign custom_heading_mobile = section.settings.heading_font_size_mobile | default: 28
   assign body_text     = section.settings.body_text
   assign align         = section.settings.content_alignment | default: 'center'
   assign max_w         = section.settings.content_max_width | default: 680
@@ -24,13 +31,15 @@
   assign btn_text      = section.settings.button_text | default: ''
   assign btn_url       = section.settings.button_url | default: ''
   assign btn_style     = section.settings.button_style | default: 'gradient'
-  assign bg_color      = section.settings.bg_color | default: '#0a0a0a'
-  assign text_color    = section.settings.text_color | default: '#f5f5f5'
-  assign heading_color = section.settings.heading_color | default: '#ffffff'
+  assign btn_treatment = section.settings.button_treatment | default: 'featured'
+  assign bg_color      = section.settings.bg_color | default: '#0A0A0F'
+  assign text_color    = section.settings.text_color | default: '#E5E3DC'
+  assign heading_color = section.settings.heading_color | default: '#FAFAF7'
   assign body_color    = section.settings.body_color | default: '#d4d4d4'
   assign accent_color  = section.settings.accent_color | default: '#c8956c'
   assign pad_top       = section.settings.padding_top | default: 80
   assign pad_bottom    = section.settings.padding_bottom | default: 80
+  assign image_pct     = section.settings.split_image_pct | default: 55
 
   assign overlay_dec = overlay_op | times: 1.0 | divided_by: 100.0
 
@@ -61,6 +70,16 @@
     --ce-pad-top: {{ pad_top }}px;
     --ce-pad-bottom: {{ pad_bottom }}px;
     --ce-flex-dir: {{ flex_dir }};
+    --ce-image-col: {{ image_pct }}%;
+    {%- comment -%}
+      Heading-scale dropdown: merchant picks H1-H6 from Theme Settings -> Typography.
+    {%- endcomment -%}
+    {%- assign _ces_title_h = section.settings.ces_heading_level | default: 'h1' -%}
+    --ce-heading-fs:   var(--font-{{ _ces_title_h }}--size);
+    --ce-heading-fw:   var(--font-{{ _ces_title_h }}--weight);
+    --ce-heading-lh:   var(--font-{{ _ces_title_h }}--line-height);
+    --ce-heading-ls:   var(--font-{{ _ces_title_h }}--letter-spacing);
+    --ce-heading-case: var(--font-{{ _ces_title_h }}--case);
   "
 >
 
@@ -103,6 +122,7 @@
             btn_text: btn_text,
             btn_url: btn_url,
             btn_style: btn_style,
+            btn_treatment: btn_treatment,
             accent_color: accent_color,
             section_id: section.id
           -%}
@@ -150,9 +170,36 @@
             btn_text: btn_text,
             btn_url: btn_url,
             btn_style: btn_style,
+            btn_treatment: btn_treatment,
             accent_color: accent_color,
             section_id: section.id
           -%}
+
+          {%- comment -%}
+            Structural callouts (A/B/C list). Rendered after body_text in
+            split layout only. Each block is a `callout` type with marker,
+            optional title, optional body. Section renders nothing if no
+            callout blocks present (back-compat).
+          {%- endcomment -%}
+          {%- assign callout_count = 0 -%}
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'callout' -%}{%- assign callout_count = callout_count | plus: 1 -%}{%- endif -%}
+          {%- endfor -%}
+          {%- if callout_count > 0 -%}
+            <div class="casa-edit__callouts">
+              {%- for block in section.blocks -%}
+                {%- if block.type == 'callout' -%}
+                  <div class="casa-edit__callout" {{ block.shopify_attributes }}>
+                    <span class="casa-edit__callout-marker">{{ block.settings.marker }}</span>
+                    <p class="casa-edit__callout-text">
+                      {%- if block.settings.title != blank -%}<strong>{{ block.settings.title }}</strong> {% endif -%}
+                      {{ block.settings.body }}
+                    </p>
+                  </div>
+                {%- endif -%}
+              {%- endfor -%}
+            </div>
+          {%- endif -%}
         {%- if glass -%}</div>{%- endif -%}
       </div>
     </div>
@@ -197,6 +244,7 @@
             btn_text: btn_text,
             btn_url: btn_url,
             btn_style: btn_style,
+            btn_treatment: btn_treatment,
             accent_color: accent_color,
             section_id: section.id
           -%}
@@ -212,15 +260,31 @@
   .casa-edit {
     position: relative;
     width: 100%;
+    max-width: 100vw;
     color: var(--ce-text);
     background: var(--ce-bg);
-    overflow: hidden;
+    /* overflow: clip (not hidden) — clip clips overflow visually without
+       creating a scroll container, so position: sticky on descendants
+       (image col on split layout) can stick to the page viewport instead
+       of being trapped inside this section. clip is fully supported on
+       all browsers we care about (Chrome 90+, Firefox 102+, Safari 16+). */
+    overflow: clip;
+    box-sizing: border-box;
+  }
+
+  .casa-edit *,
+  .casa-edit *::before,
+  .casa-edit *::after {
+    box-sizing: border-box;
   }
 
   /* ── Content zone shared ── */
   .casa-edit__content-zone {
     text-align: var(--ce-align);
-    max-width: var(--ce-max-w);
+    max-width: min(var(--ce-max-w), calc(100vw - 40px));
+    box-sizing: border-box;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
     opacity: 0;
     transform: translateY(32px);
     transition: opacity .9s cubic-bezier(.22,1,.36,1), transform .9s cubic-bezier(.22,1,.36,1);
@@ -252,8 +316,8 @@
   /* ── Glassmorphic card ── */
   .casa-edit__glass {
     background: rgba(10, 10, 10, .35);
-    backdrop-filter: blur(18px) saturate(1.4);
-    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255,255,255,.08);
     border-radius: 16px;
     padding: 48px 40px;
@@ -298,13 +362,13 @@
      ══════════════════════════════════════ */
   .casa-edit__split-wrap {
     display: grid;
-    grid-template-columns: 55% 45%;
+    grid-template-columns: var(--ce-image-col, 55%) calc(100% - var(--ce-image-col, 55%));
     min-height: var(--ce-min-h);
     gap: 0;
     align-items: center;
   }
   .casa-edit--img-right .casa-edit__split-wrap {
-    grid-template-columns: 45% 55%;
+    grid-template-columns: calc(100% - var(--ce-image-col, 55%)) var(--ce-image-col, 55%);
   }
   .casa-edit--img-right .casa-edit__split-image {
     order: 2;
@@ -329,6 +393,34 @@
     justify-content: center;
     padding: var(--ce-pad-top) 48px var(--ce-pad-bottom);
     background: var(--ce-bg);
+  }
+  /* Desktop ≥990px — image becomes sticky so it follows the viewport as
+     the user scrolls a tall callout column. Prevents the "single image
+     at top, empty block underneath" failure mode on smaller laptops
+     when the content side is much taller than the image side. */
+  @media (min-width: 990px) {
+    .casa-edit__split-image {
+      position: sticky;
+      top: calc(var(--header-height, 80px) + 16px);
+      align-self: start;
+      aspect-ratio: 4 / 5;
+      max-height: calc(100vh - var(--header-height, 80px) - 48px);
+      height: auto;
+    }
+  }
+  /* Ultrawide cap — at viewports >1500px, full-bleed editorial spreads
+     stretch unnaturally and the gap between image and text column grows.
+     Cap the split-layout wrap at 1500px centered. Section bg still
+     extends edge-to-edge; only the layout content is constrained. */
+  @media (min-width: 1500px) {
+    .casa-edit__split-wrap,
+    .casa-edit--img-right .casa-edit__split-wrap {
+      max-width: 1500px;
+      margin-inline: auto;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .casa-edit__split-image { position: static; }
   }
 
   /* ══════════════════════════════════════
@@ -381,6 +473,60 @@
   }
 
   /* ══════════════════════════════════════
+     STRUCTURAL CALLOUTS (A/B/C list)
+     ══════════════════════════════════════ */
+  .casa-edit__callouts {
+    margin-top: clamp(20px, 2.5vw, 32px);
+    display: grid;
+    gap: 0;
+    /* Brand discipline: structural lists always left-aligned. The
+       A/B/C markers form a scannable vertical column — centering
+       breaks the index-style read. */
+    text-align: left;
+  }
+  .casa-edit__callout {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 14px;
+    align-items: baseline;
+    padding: 14px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .casa-edit__callout:first-child {
+    border-top: none;
+    padding-top: 4px;
+  }
+  .casa-edit__callout-marker {
+    font: 500 11px/1 'JetBrains Mono', 'IBM Plex Mono', monospace;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #B0C3FA 0%, #5E0A02 60%, #F2FFA0 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+  .casa-edit__callout-text {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ce-body, rgba(255, 255, 255, 0.78));
+    margin: 0;
+  }
+  .casa-edit__callout-text strong {
+    font-weight: 600;
+    color: var(--ce-heading, #FAFAF7);
+  }
+  @media (max-width: 749px) {
+    .casa-edit__callout {
+      grid-template-columns: 22px 1fr;
+      gap: 10px;
+      padding: 10px 0;
+    }
+    .casa-edit__callout-marker { font-size: 10px; }
+    .casa-edit__callout-text { font-size: 13px; }
+  }
+
+  /* ══════════════════════════════════════
      DIVIDER
      ══════════════════════════════════════ */
   .casa-edit__divider {
@@ -397,17 +543,41 @@
      HEADING
      ══════════════════════════════════════ */
   .casa-edit__heading {
-    font-weight: 300;
-    line-height: 1.05;
-    letter-spacing: .06em;
-    text-transform: uppercase;
+    /* Heading scale comes from Theme Settings -> Typography via the
+       ces_heading_level dropdown; legacy .casa-edit__heading--{size} modifier
+       classes below preserve old behavior as fallbacks. */
+    font-size: var(--ce-heading-fs, inherit);
+    font-weight: var(--ce-heading-fw, 300);
+    line-height: var(--ce-heading-lh, 1.05);
+    letter-spacing: var(--ce-heading-ls, .06em);
+    text-transform: var(--ce-heading-case, uppercase);
     color: var(--ce-heading);
     margin: 0 0 24px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    /* Even out multi-line wraps so we don't strand the <em> keyword
+       on its own short line. Safari 17.4+ / Chromium 114+ — degrades
+       gracefully on older browsers. */
+    text-wrap: balance;
   }
-  .casa-edit__heading--small  { font-size: clamp(1.5rem, 3vw, 2.25rem); }
-  .casa-edit__heading--medium { font-size: clamp(2rem, 4.5vw, 3.25rem); }
-  .casa-edit__heading--large  { font-size: clamp(2.5rem, 5.5vw, 4.5rem); }
-  .casa-edit__heading--extra-large { font-size: clamp(3rem, 7vw, 6rem); }
+  /* Brand italic-gradient accent — wrap one keyword in <em> in the heading. */
+  .casa-edit__heading em {
+    font-style: italic;
+    background: linear-gradient(90deg, #B0C3FA 0%, #5E0A02 50%, #F2FFA0 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+  /* Legacy size modifiers - only applied if merchant hasn't picked a
+     heading scale yet (the var fallback above wins when set). Once Pass 2
+     removes the heading_size field these classes can be deleted. */
+  .casa-edit__heading--small  { font-size: var(--ce-heading-fs, clamp(1.5rem, 3vw, 2.25rem)); }
+  .casa-edit__heading--medium { font-size: var(--ce-heading-fs, clamp(2rem, 4.5vw, 3.25rem)); }
+  .casa-edit__heading--large  { font-size: var(--ce-heading-fs, clamp(2.5rem, 5.5vw, 4.5rem)); }
+  .casa-edit__heading--extra-large { font-size: var(--ce-heading-fs, clamp(3rem, 7vw, 6rem)); }
+  .casa-edit__heading--custom { font-size: var(--ce-heading-fs, {{ custom_heading_desktop }}px); }
 
   /* ══════════════════════════════════════
      BODY TEXT
@@ -417,6 +587,11 @@
     font-size: 16px;
     line-height: 1.7;
     font-weight: 400;
+    /* Brand discipline: multi-line prose always left-aligned even when
+       the section sets center alignment for the heading/eyebrow. Readers
+       form a vertical anchor against the left edge — centered ragged
+       paragraphs force re-scanning every line. */
+    text-align: left;
   }
   .casa-edit__body p {
     margin: 0 0 16px;
@@ -431,24 +606,16 @@
   .casa-edit__btn-wrap {
     margin-top: 32px;
   }
-  .casa-edit__btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 14px 36px;
-    font-size: 13px;
-    font-weight: 500;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    text-decoration: none;
-    border-radius: 6px;
-    transition: all .35s cubic-bezier(.22,1,.36,1);
-    cursor: pointer;
-    line-height: 1.2;
-  }
+  /* Brand class .btn .btn-{{treatment}} provides display, padding,
+     gap, font, radius, transition, text-transform, letter-spacing,
+     hover, line-height. casa-edit__btn class kept as a hook for
+     section-specific overrides (intentionally minimal).
+     Legacy --gradient/--solid/--outline modifier rules below kept so
+     templates still using deprecated button_style keep rendering until
+     merchant picks a new treatment. */
   .casa-edit__btn--gradient {
     background: linear-gradient(135deg, var(--ce-accent), #e0b98a);
-    color: #0a0a0a;
+    color: var(--casa-ink);
     border: none;
   }
   .casa-edit__btn--gradient:hover {
@@ -458,7 +625,7 @@
   }
   .casa-edit__btn--solid {
     background: var(--ce-accent);
-    color: #0a0a0a;
+    color: var(--casa-ink);
     border: none;
   }
   .casa-edit__btn--solid:hover {
@@ -507,6 +674,24 @@
   /* ══════════════════════════════════════
      RESPONSIVE
      ══════════════════════════════════════ */
+  /* Tablet stack — at <= 989px, split layout becomes single column
+     so the image gets the full viewport width instead of a cramped
+     side column. Image always sits above text once stacked, even
+     when image_position is "right". */
+  @media (max-width: 989px) {
+    .casa-edit__split-wrap,
+    .casa-edit--img-right .casa-edit__split-wrap {
+      grid-template-columns: 1fr;
+    }
+    .casa-edit--img-right .casa-edit__split-image { order: 1; }
+    .casa-edit--img-right .casa-edit__split-content { order: 2; }
+    .casa-edit__split-image {
+      max-height: 520px;
+    }
+    .casa-edit__split-content {
+      padding: 48px 32px 56px;
+    }
+  }
   @media (max-width: 749px) {
     .casa-edit__split-wrap {
       grid-template-columns: 1fr !important;
@@ -516,23 +701,36 @@
       max-height: 380px;
     }
     .casa-edit__split-content {
-      padding: 40px 20px 48px;
+      padding: 40px 16px 48px;
     }
     .casa-edit__overlay-wrap {
       min-height: 420px;
-      padding: 48px 20px;
+      padding: 48px 16px;
     }
     .casa-edit__glass {
-      padding: 32px 24px;
+      padding: 28px 16px;
       border-radius: 12px;
+      max-width: calc(100vw - 32px);
     }
-    .casa-edit__heading--large { font-size: clamp(2rem, 8vw, 3rem); }
-    .casa-edit__heading--extra-large { font-size: clamp(2.2rem, 9vw, 3.5rem); }
+    /* Mobile font-size driven by Horizon heading tokens (auto-swap)
+       when ces_heading_level is set. Legacy values kept as fallbacks. */
+    .casa-edit__heading--small { font-size: var(--ce-heading-fs, clamp(1.25rem, 6vw, 2rem)); letter-spacing: 0.03em; }
+    .casa-edit__heading--medium { font-size: var(--ce-heading-fs, clamp(1.5rem, 7vw, 2.5rem)); letter-spacing: 0.03em; }
+    .casa-edit__heading--large { font-size: var(--ce-heading-fs, clamp(1.75rem, 8vw, 3rem)); letter-spacing: 0.03em; }
+    .casa-edit__heading--extra-large { font-size: var(--ce-heading-fs, clamp(2rem, 9vw, 3.5rem)); letter-spacing: 0.03em; }
+    .casa-edit__heading--custom { font-size: var(--ce-heading-fs, {{ custom_heading_mobile }}px); letter-spacing: 0.03em; }
     .casa-edit__stacked-content {
-      padding: 40px 20px 48px;
+      padding: 40px 16px 48px;
     }
     .casa-edit__names {
-      gap: 4px 14px;
+      gap: 4px 10px;
+    }
+    .casa-edit__name {
+      white-space: normal;
+      font-size: clamp(10px, 2.5vw, 13px);
+    }
+    .casa-edit__content-zone {
+      max-width: calc(100vw - 32px);
     }
   }
 </style>
@@ -667,22 +865,64 @@
       "content": "Content"
     },
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "heading",
       "label": "Heading",
+      "info": "Wrap one word in <em>…</em> for the brand italic-gradient accent.",
       "default": "VINTAGE NOSTALGIA"
     },
     {
       "type": "select",
+      "id": "ces_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "select",
       "id": "heading_size",
-      "label": "Heading size",
+      "label": "Heading size preset",
       "options": [
         { "value": "small", "label": "Small" },
         { "value": "medium", "label": "Medium" },
         { "value": "large", "label": "Large" },
-        { "value": "extra-large", "label": "Extra Large" }
+        { "value": "extra-large", "label": "Extra Large" },
+        { "value": "custom", "label": "Custom" }
       ],
-      "default": "large"
+      "default": "large",
+      "visible_if": "{{ false }}"
+    },
+    {
+      "type": "range",
+      "id": "heading_font_size_desktop",
+      "label": "Heading size (desktop)",
+      "info": "Only used when preset is Custom",
+      "min": 16,
+      "max": 120,
+      "step": 2,
+      "unit": "px",
+      "default": 48,
+      "visible_if": "{{ section.settings.heading_size == 'custom' }}"
+    },
+    {
+      "type": "range",
+      "id": "heading_font_size_mobile",
+      "label": "Heading size (mobile)",
+      "info": "Only used when preset is Custom",
+      "min": 16,
+      "max": 72,
+      "step": 2,
+      "unit": "px",
+      "default": 28,
+      "visible_if": "{{ section.settings.heading_size == 'custom' }}"
     },
     {
       "type": "richtext",
@@ -741,13 +981,30 @@
     {
       "type": "select",
       "id": "button_style",
-      "label": "Button style",
+      "label": "Button style (legacy)",
+      "info": "Deprecated. Superseded by Button treatment below.",
       "options": [
         { "value": "gradient", "label": "Gradient" },
         { "value": "solid", "label": "Solid" },
         { "value": "outline", "label": "Outline" }
       ],
-      "default": "gradient"
+      "default": "gradient",
+      "visible_if": "{{ false }}"
+    },
+    {
+      "type": "select",
+      "id": "button_treatment",
+      "label": "Button treatment",
+      "info": "Brand-book button style. Featured (gradient) is rare per brand book — reserved for hero/launch CTAs.",
+      "options": [
+        { "value": "primary",            "label": "Primary — solid ink (light surface)" },
+        { "value": "primary-on-dark",    "label": "Primary — solid white (dark surface)" },
+        { "value": "secondary",          "label": "Secondary — outline (light surface)" },
+        { "value": "secondary-on-dark",  "label": "Secondary — outline (dark surface)" },
+        { "value": "tertiary",           "label": "Tertiary — underlined link" },
+        { "value": "featured",           "label": "Featured — purple→pink gradient" }
+      ],
+      "default": "featured"
     },
     {
       "type": "header",
@@ -757,19 +1014,19 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background color",
-      "default": "#0a0a0a"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
       "id": "text_color",
       "label": "Text color",
-      "default": "#f5f5f5"
+      "default": "#E5E3DC"
     },
     {
       "type": "color",
       "id": "heading_color",
       "label": "Heading color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
@@ -807,6 +1064,46 @@
       "step": 4,
       "default": 80,
       "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "split_image_pct",
+      "label": "Image column width (split layout)",
+      "info": "How much of the section width the image takes. Lower = smaller image. Only applies in Split layout.",
+      "min": 30,
+      "max": 70,
+      "step": 1,
+      "default": 55,
+      "unit": "%"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "callout",
+      "name": "Callout (A/B/C)",
+      "limit": 6,
+      "settings": [
+        {
+          "type": "text",
+          "id": "marker",
+          "label": "Marker (A/B/C/…)",
+          "info": "Single letter or short label that appears as the pink marker.",
+          "default": "A"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title (bold prefix)",
+          "info": "Optional bold lead-in. Rendered before the body.",
+          "default": "Title."
+        },
+        {
+          "type": "text",
+          "id": "body",
+          "label": "Body text",
+          "default": "Description of this structural element."
+        }
+      ]
     }
   ],
   "presets": [

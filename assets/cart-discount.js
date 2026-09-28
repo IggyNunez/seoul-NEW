@@ -72,6 +72,14 @@ class CartDiscount extends Component {
         signal: abortController.signal,
       });
 
+      // Casa deviation from stock Horizon: guard before parsing. A challenged /
+      // rate-limited response is non-JSON HTML; without this, response.json() throws
+      // into the empty catch below and the shopper gets no feedback at all.
+      const contentType = response.headers.get('content-type') || '';
+      if (!response.ok || !contentType.includes('application/json')) {
+        throw new Error(`Discount update failed: HTTP ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (
@@ -111,6 +119,13 @@ class CartDiscount extends Component {
       document.dispatchEvent(new DiscountUpdateEvent(data, this.id));
       morphSection(this.dataset.sectionId, newHtml);
     } catch (error) {
+      // Casa deviation from stock Horizon: don't swallow discount failures silently.
+      // An AbortError means a newer apply superseded this one (expected) — ignore it.
+      // Anything else surfaces the standard discount error so the shopper knows the
+      // code did not apply, rather than assuming it did and checking out at full price.
+      if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        this.#handleDiscountError('discount_code');
+      }
     } finally {
       this.#activeFetch = null;
       cartPerformance.measureFromEvent('discount-update:user-action', event);
@@ -126,9 +141,8 @@ class CartDiscount extends Component {
     event.stopPropagation();
 
     if (
-      (event instanceof KeyboardEvent && event.key !== 'Enter') ||
-      !(event instanceof MouseEvent) ||
-      !(event.target instanceof HTMLElement) ||
+      (event instanceof KeyboardEvent && event.key !== 'Enter' && event.key !== ' ') ||
+      !(event.target instanceof Element) ||
       typeof this.dataset.sectionId !== 'string'
     ) {
       return;
@@ -158,11 +172,23 @@ class CartDiscount extends Component {
         signal: abortController.signal,
       });
 
+      // Casa deviation from stock Horizon: guard before parsing (see applyDiscount).
+      const contentType = response.headers.get('content-type') || '';
+      if (!response.ok || !contentType.includes('application/json')) {
+        throw new Error(`Discount removal failed: HTTP ${response.status}`);
+      }
+
       const data = await response.json();
 
       document.dispatchEvent(new DiscountUpdateEvent(data, this.id));
       morphSection(this.dataset.sectionId, data.sections[this.dataset.sectionId]);
     } catch (error) {
+      // Casa deviation from stock Horizon: surface removal failures. On failure the
+      // pill stays rendered (no morph happened), so the shopper can retry; showing
+      // the error tells them the tap registered but the code is still applied.
+      if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        this.#handleDiscountError('discount_code');
+      }
     } finally {
       this.#activeFetch = null;
     }

@@ -3,7 +3,22 @@
   Renders delivery estimate, feature highlights, accordion (Specs, What's Included,
   Installation, Care & Maintenance), and inline reviews below the buy buttons.
   Works as a @theme block inside _product-details.
+
+  Pre-2026-05-17 the feature highlights, care text, and review quote schemas
+  defaulted to smart-mirror copy (16M RGB, 50K LED hours, "Clean the mirror
+  surface…"). That copy bled onto every non-smart product (side tables,
+  vases, etc.). Defaults removed; metafield reads added below.
 {%- endcomment -%}
+
+{%- liquid
+  assign p = closest.product
+  assign feature_1 = p.metafields.custom.feature_highlight_1 | default: block.settings.feature_1
+  assign feature_2 = p.metafields.custom.feature_highlight_2 | default: block.settings.feature_2
+  assign feature_3 = p.metafields.custom.feature_highlight_3 | default: block.settings.feature_3
+  assign feature_4 = p.metafields.custom.feature_highlight_4 | default: block.settings.feature_4
+  assign care_text = p.metafields.custom.care_text | default: block.settings.care_text
+  assign review_text = p.metafields.custom.inline_review_quote | default: block.settings.review_text
+-%}
 
 <div class="casa-pdp-extras" {{ block.shopify_attributes }}>
 
@@ -19,24 +34,32 @@
   {%- endif -%}
 
   {%- comment -%} ── Feature Highlights (2×2 grid) ── {%- endcomment -%}
-  {%- if block.settings.show_features != false and block.settings.feature_1 != blank -%}
+  {%- if block.settings.show_features != false and feature_1 != blank -%}
   <div class="casa-pdp-features">
+    {%- if feature_1 != blank -%}
     <div class="casa-pdp-features__item">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-      <span>{{ block.settings.feature_1 }}</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0C3FA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>{{ feature_1 }}</span>
     </div>
+    {%- endif -%}
+    {%- if feature_2 != blank -%}
     <div class="casa-pdp-features__item">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-      <span>{{ block.settings.feature_2 }}</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0C3FA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>{{ feature_2 }}</span>
     </div>
+    {%- endif -%}
+    {%- if feature_3 != blank -%}
     <div class="casa-pdp-features__item">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-      <span>{{ block.settings.feature_3 }}</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0C3FA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>{{ feature_3 }}</span>
     </div>
+    {%- endif -%}
+    {%- if feature_4 != blank -%}
     <div class="casa-pdp-features__item">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-      <span>{{ block.settings.feature_4 }}</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B0C3FA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>{{ feature_4 }}</span>
     </div>
+    {%- endif -%}
   </div>
 
   {%- endif -%}
@@ -143,8 +166,8 @@
   </details>
   {%- endif -%}
 
-  {%- comment -%} ── Care & Maintenance (no metafield — uses block settings) ── {%- endcomment -%}
-  {%- if block.settings.show_care != false and block.settings.care_text != blank -%}
+  {%- comment -%} ── Care & Maintenance (product metafield with per-template fallback) ── {%- endcomment -%}
+  {%- if block.settings.show_care != false and care_text != blank -%}
   <details class="casa-pdp-acc">
     <summary class="casa-pdp-acc__header">
       <span class="casa-pdp-acc__title">Care & Maintenance</span>
@@ -153,7 +176,7 @@
       </span>
     </summary>
     <div class="casa-pdp-acc__body">
-      <p class="casa-pdp-care">{{ block.settings.care_text }}</p>
+      <p class="casa-pdp-care">{{ care_text }}</p>
     </div>
   </details>
   {%- endif -%}
@@ -191,7 +214,7 @@
   {%- endif -%}
 
   {%- comment -%} ── Inline Reviews ── {%- endcomment -%}
-  {%- if block.settings.show_inline_review != false and block.settings.review_text != blank -%}
+  {%- if block.settings.show_inline_review != false and review_text != blank -%}
   <div class="casa-pdp-reviews-inline" id="reviews">
     <div class="casa-pdp-reviews-inline__header">
       <span class="casa-pdp-reviews-inline__title">What Customers Say</span>
@@ -199,7 +222,7 @@
     </div>
     <div class="casa-pdp-reviews-inline__card">
       <div class="casa-pdp-reviews-inline__stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
-      <p class="casa-pdp-reviews-inline__text">{{ block.settings.review_text }}</p>
+      <p class="casa-pdp-reviews-inline__text">{{ review_text }}</p>
       <div class="casa-pdp-reviews-inline__author">
         <div class="casa-pdp-reviews-inline__avatar">{{ block.settings.reviewer_initials }}</div>
         <div class="casa-pdp-reviews-inline__info">
@@ -358,7 +381,7 @@
 .casa-pdp-reviews-inline__link {
   font-size: 13px;
   font-weight: 500;
-  color: #9333ea;
+  color: #B0C3FA;
   text-decoration: none;
 }
 .casa-pdp-reviews-inline__link:hover { text-decoration: underline; }
@@ -529,31 +552,28 @@
     },
     {
       "type": "header",
-      "content": "Feature Highlights"
+      "content": "Feature Highlights",
+      "info": "Per-product source is metafields custom.feature_highlight_1..4. Fields below are per-template fallback. Leave blank for products that don't need feature pills here."
     },
     {
       "type": "text",
       "id": "feature_1",
-      "label": "Feature 1",
-      "default": "16+ Million RGB Colors"
+      "label": "Feature 1"
     },
     {
       "type": "text",
       "id": "feature_2",
-      "label": "Feature 2",
-      "default": "App & Voice Control"
+      "label": "Feature 2"
     },
     {
       "type": "text",
       "id": "feature_3",
-      "label": "Feature 3",
-      "default": "Mirror by Day, Portal by Night"
+      "label": "Feature 3"
     },
     {
       "type": "text",
       "id": "feature_4",
-      "label": "Feature 4",
-      "default": "50,000 Hour LED Lifespan"
+      "label": "Feature 4"
     },
     {
       "type": "header",
@@ -563,8 +583,7 @@
       "type": "textarea",
       "id": "care_text",
       "label": "Care text",
-      "info": "No metafield for this — enter text manually",
-      "default": "Clean the mirror surface with a soft microfiber cloth. Avoid harsh chemicals or abrasive materials. The LED system is maintenance-free with a 50,000+ hour lifespan."
+      "info": "Per-product source is metafield custom.care_text. Leave blank to hide the care block."
     },
     {
       "type": "header",
@@ -574,7 +593,7 @@
       "type": "text",
       "id": "review_text",
       "label": "Review quote",
-      "default": "\"Completely transformed my gaming setup. The music sync is absolutely unreal. Best purchase I've made for my room!\""
+      "info": "Per-product source is metafield custom.inline_review_quote. Leave blank to hide."
     },
     {
       "type": "text",

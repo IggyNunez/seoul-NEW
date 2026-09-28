@@ -1,0 +1,2054 @@
+{%- comment -%}
+  Seoul Glow Lab — Phoenix Arms Showcase (§04 of Phoenix PDP)
+  Stylized lamp on a wall. Four preset arm-configurations show how the
+  5 articulating arms can be aimed; each preset assigns each arm to one
+  of the 5 sunset films. Tap a pattern → SVG arms rotate and the wall-
+  wash ellipses re-tint.
+
+  Replaces the `casa-split-feature` block used on Apollo for multi-lamp
+  sync — that messaging doesn't apply to Phoenix (single-product).
+
+  Section blocks: max 4 of type 'pattern'. Each block holds:
+    name, subtitle, hint, arms_json (5 angle+film-index pairs).
+
+  Surface: Ink. Brand-book v1 — H2 italic-gradient `<em>` accent via
+  `.casa-sunset-em` (loaded by Phoenix-conditional casa-phoenix.css).
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign pat_count = section.blocks.size
+
+  assign film_gold   = s.film_gold   | default: '#E95F77'
+  assign film_amber  = s.film_amber  | default: '#2FA66F'
+  assign film_blush  = s.film_blush  | default: '#315BCF'
+  assign film_red    = s.film_red    | default: '#28BFC7'
+  assign film_violet = s.film_violet | default: '#7A4DCE'
+-%}
+
+{%- if pat_count > 0 -%}
+<section
+  id="casa-arms-{{ section.id }}"
+  class="casa-arms"
+  data-pat-count="{{ pat_count }}"
+  style="
+    --pt: {{ s.padding_top    | default: 96 }}px;
+    --pb: {{ s.padding_bottom | default: 96 }}px;
+    --paper: {{ s.color_paper | default: '#FAFAF7' }};
+    --ink:   {{ s.color_ink   | default: '#0A0A0F' }};
+    --film-gold:   {{ film_gold }};
+    --film-amber:  {{ film_amber }};
+    --film-blush:  {{ film_blush }};
+    --film-red:    {{ film_red }};
+    --film-violet: {{ film_violet }};
+  "
+  data-film-hex="{{ film_gold }},{{ film_amber }},{{ film_blush }},{{ film_red }},{{ film_violet }}"
+>
+  {%- comment -%}
+    Section-wide ambient light layer. Five radial-gradient blobs, one
+    per arm, positioned across the WHOLE section (header → strip), so
+    the light each arm emits washes through the title, the picker, the
+    caption text, and the footer — not just the stage. Each blob's
+    centre is driven by JS off the arm's angle: x = 50% + sin(a)·spread,
+    y = anchor[i] − cos(a)·spread. Colour is the film hex on that arm
+    in the active pattern; @property --amb-color makes the colour
+    transition interpolate smoothly. mix-blend-mode: screen brightens
+    the dark Ink base to the film tint where blobs land; overlap of
+    five blobs around the lamp creates a continuous sunset gradient
+    that redistributes naturally when the pattern changes. Per merchant
+    2026-05-18 — "the light from each arm should extend throughout the
+    whole section, not just the image, through the text and title; a
+    gradient of light that emits each time we change the feature".
+  {%- endcomment -%}
+  <div class="casa-arms__ambient" aria-hidden="true">
+    {%- for i in (0..4) -%}
+      <div class="casa-arms__amb" data-amb-index="{{ i }}"></div>
+    {%- endfor -%}
+  </div>
+
+  {%- comment -%} Phoenix 2026-07-15: pin wrapper — the section HOLDS while the
+    arms cycle through the arrangements, then releases. (Runway height + sticky
+    live in CSS, gated to non-reduced-motion.) The runway is a DEDICATED tall
+    wrapper that contains ONLY the sticky pin — the bottom strip lives OUTSIDE
+    it, so nothing scrolls up through the held screen (fix 2026-07-16). {%- endcomment -%}
+  <div class="casa-arms__runway">
+  <div class="casa-arms__pin">
+  <header class="casa-arms__head">
+    {%- if s.kicker != blank -%}
+      <p class="casa-arms__mono">{{ s.kicker }}</p>
+    {%- endif -%}
+    {%- if s.heading != blank -%}
+      <h2 class="casa-arms__h2">{{ s.heading }}</h2>
+    {%- endif -%}
+    {%- if s.lede != blank -%}
+      <p class="casa-arms__lede">{{ s.lede }}</p>
+    {%- endif -%}
+  </header>
+
+  <div class="casa-arms__layout">
+    <div class="casa-arms__picker" role="tablist" aria-label="Arm configurations">
+      {%- for block in section.blocks -%}
+        {%- assign b = block.settings -%}
+        <button
+          type="button"
+          class="casa-arms__pick{% if forloop.first %} is-on{% endif %}"
+          role="tab"
+          aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+          aria-controls="casa-arms-{{ section.id }}-stage"
+          data-pat-index="{{ forloop.index0 }}"
+          data-pat-name="{{ b.name | escape }}"
+          data-pat-subtitle="{{ b.subtitle | escape }}"
+          data-pat-number="{{ b.number | default: forloop.index | escape }}"
+          data-pat-hint="{{ b.hint | strip_html | escape }}"
+          data-pat-arms='{{ b.arms_json | escape }}'
+          {{ block.shopify_attributes }}
+        >
+          <span class="casa-arms__pick-mini" aria-hidden="true">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+              {%- comment -%} Slim chrome pole. {%- endcomment -%}
+              <line x1="50" y1="20" x2="50" y2="86" stroke="rgba(255,255,255,0.7)" stroke-width="1.1" stroke-linecap="round"></line>
+              {%- comment -%} Square chrome base. {%- endcomment -%}
+              <rect x="46" y="86" width="8" height="3" fill="rgba(255,255,255,0.7)"></rect>
+              {%- comment -%}
+                5 mini-arms, alternating L/R. Each one is a J-curve
+                ending in a tiny dark disc with a color-dot center,
+                mirroring the stage geometry above. JS rotates each
+                .casa-arms__mini-rot group.
+              {%- endcomment -%}
+              {%- comment -%}
+                Mini-anchors scaled to match the big-stage shift (arms
+                higher + tighter). 28,36,44,52,60 vs old 28,42,54,66,78 —
+                same top anchor, bottom anchor moved up from 78 to 60.
+              {%- endcomment -%}
+              {%- assign mini_anchors = '28,36,44,52,60' | split: ',' -%}
+              {%- for j in (0..4) -%}
+                {%- assign m_y = mini_anchors[j] -%}
+                {%- assign m_side = j | modulo: 2 -%}
+                {%- if m_side == 0 -%}
+                  {%- assign m_disc_x = 64 -%}
+                  {%- assign m_tube_in_x = 51 -%}
+                  {%- assign m_tube_out_x = 56 -%}
+                {%- else -%}
+                  {%- assign m_disc_x = 36 -%}
+                  {%- assign m_tube_in_x = 49 -%}
+                  {%- assign m_tube_out_x = 44 -%}
+                {%- endif -%}
+                {%- assign m_top_y = m_y | minus: 10 -%}
+                <g class="casa-arms__mini-rot" data-mini-rot-index="{{ j }}" transform="rotate(0 50 {{ m_y }})">
+                  <path
+                    d="M {{ m_tube_in_x }} {{ m_y | minus: 1 }} L {{ m_tube_in_x }} {{ m_y | minus: 6 }} Q {{ m_tube_in_x }} {{ m_top_y }}, {{ m_tube_out_x }} {{ m_top_y }} L {{ m_disc_x | minus: 2.4 }} {{ m_top_y }}"
+                    stroke="rgba(255,255,255,0.6)"
+                    stroke-width="0.9"
+                    fill="none"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  ></path>
+                  <circle cx="{{ m_disc_x }}" cy="{{ m_top_y }}" r="2.2" fill="#0a0a0f" stroke="rgba(255,255,255,0.4)" stroke-width="0.4"></circle>
+                  <circle class="casa-arms__mini-tip" data-mini-tip-index="{{ j }}" cx="{{ m_disc_x }}" cy="{{ m_top_y }}" r="0.9" fill="rgba(232,184,106,0.95)"></circle>
+                </g>
+              {%- endfor -%}
+            </svg>
+          </span>
+          <span class="casa-arms__pick-meta">
+            <span class="casa-arms__mono">{{ b.number | default: forloop.index }}</span>
+            <strong>{{ b.name }}</strong>
+            <em>{{ b.subtitle }}</em>
+          </span>
+        </button>
+      {%- endfor -%}
+    </div>
+
+    <div
+      class="casa-arms__stage"
+      id="casa-arms-{{ section.id }}-stage"
+      aria-live="polite"
+    >
+      <svg
+        viewBox="270 -130 660 930"
+        class="casa-arms__svg"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Phoenix Floor Lamp arm configuration"
+      >
+        <defs>
+          {%- comment -%}
+            Chrome cylinder gradient — used by pole + arm shafts.
+            Bright center / dark edges = the polished-steel signature.
+          {%- endcomment -%}
+          <linearGradient id="casa-arms-chrome-{{ section.id }}" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stop-color="#4a4a54"></stop>
+            <stop offset="35%"  stop-color="#b8b8c4"></stop>
+            <stop offset="50%"  stop-color="#e8e8f0"></stop>
+            <stop offset="65%"  stop-color="#b8b8c4"></stop>
+            <stop offset="100%" stop-color="#4a4a54"></stop>
+          </linearGradient>
+          {%- comment -%}
+            Flat base-plate gradient — vertical (top bright / bottom
+            dark). Distinct from the chrome cylinder gradient so the
+            base reads as a flat metal square pad, NOT a chrome cylinder.
+            Per merchant 2026-05-18 base-shape pass.
+          {%- endcomment -%}
+          <linearGradient id="casa-arms-base-plate-{{ section.id }}" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%"   stop-color="#bcbcc6"></stop>
+            <stop offset="40%"  stop-color="#8c8c96"></stop>
+            <stop offset="100%" stop-color="#4c4c54"></stop>
+          </linearGradient>
+          {%- comment -%}
+            Wall vignette + floor shadow gradient defs deleted per merchant
+            2026-05-18 16th pass: "There should be no boxes at all in this
+            section... the Phoenix lamp should just be placed there. The
+            gradient should be the strongest at the lamp and emit more
+            light." All ambient sunset now lives at the SECTION level
+            (.casa-arms background). SVG is transparent except for the
+            lamp + per-arm glows; the section's gradient flows behind it
+            continuously, with no figure/stage box.
+          {%- endcomment -%}
+          {%- comment -%}
+            Per-arm wall-light gradients — one radialGradient per arm.
+            Stops are tuned for a SEAMLESS bright-disc → wall-glow
+            falloff (merchant 2026-05-18 fifth pass: "the glow from
+            the film should extend all the way into the gradient, not
+            just from the lamp itself"). Each gradient now does BOTH
+            jobs the old separate disc-halo did + the old wall-wash
+            did, in one continuous radial fade:
+
+              0%  full intensity (the disc location)
+              12% still bright (immediate disc halo)
+              35% soft mid-glow (close wall wash)
+              65% faint halo (outer wall wash)
+              100% transparent
+
+            JS updates each gradient's stop-color to the active film
+            hex per pattern. Combined with the disc-level positioning
+            (ARM_LEN=56 in JS), each disc's local glow IS its film
+            colour and extends seamlessly outward.
+          {%- endcomment -%}
+          {%- for i in (0..4) -%}
+            <radialGradient
+              id="casa-arms-glow-{{ section.id }}-{{ i }}"
+              class="casa-arms__wash-grad"
+              data-grad-index="{{ i }}"
+              cx="50%" cy="50%" r="50%"
+            >
+              {%- comment -%}
+                Opacities softened (merchant 2026-05-21) so the wash is a
+                gentle glow that dissolves into the bg under `lighten`,
+                not a hard bright disc. Wide, smooth falloff to 0 by 100%
+                = no edge where the light meets the gradient.
+              {%- endcomment -%}
+              {%- comment -%} Phoenix gradient override 2026-07-15: stronger
+                opacity; JS pales the colour + lightens the centre stop so each
+                head reads as a strong PASTEL glow on the shifting gradient. {%- endcomment -%}
+              <stop offset="0%"   stop-color="{{ film_gold }}" stop-opacity="0.95"></stop>
+              <stop offset="30%"  stop-color="{{ film_gold }}" stop-opacity="0.74"></stop>
+              <stop offset="62%"  stop-color="{{ film_gold }}" stop-opacity="0.34"></stop>
+              <stop offset="100%" stop-color="{{ film_gold }}" stop-opacity="0"></stop>
+            </radialGradient>
+          {%- endfor -%}
+          {%- comment -%} Phoenix 2026-07-15: one soft neutral SHADOW gradient.
+            A dark disc sits behind each head's glow (multiply) and tracks it,
+            dipping the bright gradient locally so the pastel light pops. {%- endcomment -%}
+          <radialGradient id="casa-arms-halo-{{ section.id }}" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"   stop-color="#171019" stop-opacity="0.48"></stop>
+            <stop offset="46%"  stop-color="#171019" stop-opacity="0.19"></stop>
+            <stop offset="100%" stop-color="#171019" stop-opacity="0"></stop>
+          </radialGradient>
+          {%- comment -%}
+            Per-arm GLASS gradient — used inside the diffuser disc to
+            give the film colour depth (bright LED hot-spot in the
+            centre, film body around it, darker film at the edge where
+            the glass meets the bezel). Replaces the old 3-concentric-
+            circles cartoon look that read as a flat dot. JS updates
+            stops 1 + 2 to the active film hex; stop 0 stays white-ish
+            for the bulb-on hot-spot regardless of film colour.
+            cy=40% offsets the gradient centre slightly upward so the
+            hot-spot reads as a top-lit reflection rather than a dead-
+            centre highlight — feels more like a real diffuser.
+          {%- endcomment -%}
+          {%- for i in (0..4) -%}
+            <radialGradient
+              id="casa-arms-glass-{{ section.id }}-{{ i }}"
+              class="casa-arms__glass-grad"
+              data-glass-index="{{ i }}"
+              cx="50%" cy="40%" r="60%"
+            >
+              <stop offset="0%"   stop-color="#ffffff"      stop-opacity="0.55"></stop>
+              <stop offset="38%"  stop-color="{{ film_gold }}" stop-opacity="0.95"></stop>
+              <stop offset="100%" stop-color="{{ film_gold }}" stop-opacity="0.55"></stop>
+            </radialGradient>
+          {%- endfor -%}
+        </defs>
+
+        {%- comment -%}
+          Dark wall + ambient wall vignette rects deleted per merchant
+          2026-05-18 16th pass ("there should be no boxes at all in
+          this section"). SVG canvas is now fully transparent in this
+          band — the section's sunset gradient background shows
+          through everywhere outside the lamp shapes + per-arm glows.
+        {%- endcomment -%}
+
+        {%- comment -%}
+          Per-arm wall light. One radial-gradient circle per arm,
+          centred AT the disc (ARM_LEN=56 in JS) so each light source's
+          glow originates exactly where its bulb sits and fades smoothly
+          outward through the wall gradient. r=300 covers a wide area
+          so adjacent arms blend into a continuous sunset wash. screen
+          blend mode makes overlap brighten naturally. NO static ambient
+          bokehs — all visible glow originates from the 5 arms.
+        {%- endcomment -%}
+        {%- comment -%}
+          Blend = `lighten`, NOT `screen` (merchant 2026-05-21: the
+          emitted light had a "chopped cut" against the bg gradient and
+          looked boxed). Screen sums channels toward white, so the warm
+          wash spiked bright against the rose bg = a hard contrast edge.
+          `lighten` takes the per-channel MAX, so the wash dissolves
+          smoothly into the warm base gradient with no cut — the lamp's
+          light blends into the sunset instead of sitting in a box.
+        {%- endcomment -%}
+        {%- comment -%} Per-head SHADOW discs (multiply) — behind the glows,
+          tracked to each head so the pastel light has local contrast to pop
+          against the bright gradient. Phoenix 2026-07-15. {%- endcomment -%}
+        <g style="mix-blend-mode: multiply;">
+          {%- for i in (0..4) -%}
+            <circle
+              class="casa-arms__halo"
+              data-halo-index="{{ i }}"
+              cx="600" cy="300" r="195"
+              fill="url(#casa-arms-halo-{{ section.id }})"
+            ></circle>
+          {%- endfor -%}
+        </g>
+        {%- comment -%} Per-arm pastel glows (screen) on top of the shadows.
+          Blend changed lighten -> screen (2026-07-15): with the per-head
+          shadow giving contrast, screen makes the pastels read as light. {%- endcomment -%}
+        <g style="mix-blend-mode: screen;">
+          {%- for i in (0..4) -%}
+            <circle
+              class="casa-arms__wash"
+              data-wash-index="{{ i }}"
+              cx="600" cy="300" r="250"
+              fill="url(#casa-arms-glow-{{ section.id }}-{{ i }})"
+            ></circle>
+          {%- endfor -%}
+        </g>
+
+        {%- comment -%}
+          Floor band + contact shadow deleted (merchant 2026-05-18 16th
+          pass). There is no floor anymore — the lamp sits in a sunset,
+          not on a surface. Adding either would re-imply the box.
+        {%- endcomment -%}
+
+        {%- comment -%}
+          Chrome pole — width 6→8, top y 120→80. Taller + slightly
+          thicker reads as more imposing without changing arm
+          positions (anchors stay 190…490). Per merchant 2026-05-18 —
+          "increase the size of the lamp itself to be bigger".
+        {%- endcomment -%}
+        <rect x="596" y="80" width="8" height="704" fill="url(#casa-arms-chrome-{{ section.id }})"></rect>
+        <rect x="599.4" y="80" width="1" height="704" fill="rgba(255,255,255,0.6)"></rect>
+
+        {%- comment -%}
+          Base — wider square plinth (44×14 → 60×18). Centred on the
+          new pole position and sitting flush at floor level y=784.
+          Top + bottom highlight stripes scaled with the bigger size.
+        {%- endcomment -%}
+        <rect x="570" y="766" width="60" height="18" fill="url(#casa-arms-base-plate-{{ section.id }})"></rect>
+        <rect x="570" y="766" width="60" height="1.8" fill="rgba(255,255,255,0.7)"></rect>
+        <rect x="570" y="782.2" width="60" height="1.8" fill="rgba(0,0,0,0.55)"></rect>
+
+        {%- comment -%}
+          5 arm assemblies. Each one matches the real Phoenix arm
+          geometry per the studio reference:
+            - Small dark BRACKET clamping the arm to the pole
+            - Chrome ARM TUBE that rises ~30 units, then curves 90°
+              outward in a smooth quarter-arc, then extends horizontally
+              ~30 units to the diffuser
+            - Small dark DIFFUSER DISC facing forward at the arm end,
+              with a tiny color dot center (the film tint)
+            - Thin black POWER CORD drooping in a J-curve from below
+              the bracket back to the pole
+
+          Arms alternate side L↔R up the pole (i=0 right, 1 left, 2 right,
+          3 left, 4 right) — matches the photo's zig-zag staggering.
+          JS rotates the entire .casa-arms__rot group around the anchor
+          for pattern animations; alternation gives natural variety at
+          the default "vertical-ish" angles in Stacked / Gathered.
+
+          ARM_LEN in the JS bokeh calc still places wall bokeh at radius
+          220 from the anchor — well beyond the disc position (~85px out)
+          so the bokeh reads as light projected on the wall behind.
+        {%- endcomment -%}
+        {%- comment -%}
+          Arm anchors shifted UP and clustered tighter per merchant
+          2026-05-18 fourth pass: previous [260,360,460,560,660] spread
+          arms across the whole pole with the bottom arm sitting near
+          the base (too low). New [190,265,340,415,490] puts the top
+          arm just below the pole top (disc top ≈ 121 ≈ pole top 120)
+          and the bottom arm at ~mid-pole. Spacing 75 (was 100). Gives
+          the lamp the proportions of the studio reference where the
+          arms cluster in the upper-mid section above a clean pole+base.
+        {%- endcomment -%}
+        {%- assign anchors = '190,265,340,415,490' | split: ',' -%}
+        {%- for i in (0..4) -%}
+          {%- assign anchor_y = anchors[i] -%}
+          {%- assign side_modulo = i | modulo: 2 -%}
+          {%- comment -%} Even-index arm = right side, odd = left side. {%- endcomment -%}
+
+          {%- comment -%} Bracket geometry — anchored against the pole edge. {%- endcomment -%}
+          {%- if side_modulo == 0 -%}
+            {%- comment -%} RIGHT-side arm: bracket sits to the right of the pole. {%- endcomment -%}
+            {%- assign br_x      = 600 -%}
+            {%- assign tube_in_x = 607 -%}
+            {%- assign curve_y   = anchor_y | minus: 30 -%}
+            {%- assign tube_top_y = anchor_y | minus: 56 -%}
+            {%- assign tube_out_x = 632 -%}
+            {%- assign disc_cx    = 672 -%}
+            {%- assign cord_end_x = 600 -%}
+            {%- assign cord_ctrl_x = 614 -%}
+          {%- else -%}
+            {%- comment -%} LEFT-side arm: mirror of the above across x=600. {%- endcomment -%}
+            {%- assign br_x      = 586 -%}
+            {%- assign tube_in_x = 593 -%}
+            {%- assign curve_y   = anchor_y | minus: 30 -%}
+            {%- assign tube_top_y = anchor_y | minus: 56 -%}
+            {%- assign tube_out_x = 568 -%}
+            {%- assign disc_cx    = 528 -%}
+            {%- assign cord_end_x = 600 -%}
+            {%- assign cord_ctrl_x = 586 -%}
+          {%- endif -%}
+
+          <g
+            class="casa-arms__arm"
+            data-arm-index="{{ i }}"
+            data-anchor-y="{{ anchor_y }}"
+          >
+            {%- comment -%}
+              The whole arm assembly rotates as one group. Each pattern's
+              angle swings the bracket + tube + disc + cord around the
+              anchor point (600, anchor_y). For "neutral" (~0°) angles the
+              alternating L/R bases produce the zig-zag photo geometry.
+            {%- endcomment -%}
+            <g class="casa-arms__rot" data-rot-index="{{ i }}" transform="rotate(0 600 {{ anchor_y }})">
+
+              {%- comment -%}
+                Bracket — small dark clamp where the arm meets the pole.
+                Enlarged 14×10 → 16×12 for the bigger-lamp pass; thin
+                highlight stripe on top scaled accordingly.
+              {%- endcomment -%}
+              <rect x="{{ br_x }}" y="{{ anchor_y | minus: 6 }}" width="16" height="12"
+                    fill="#1a1620" stroke="rgba(255,255,255,0.18)" stroke-width="0.6"></rect>
+              <rect x="{{ br_x }}" y="{{ anchor_y | minus: 6 }}" width="16" height="1.5"
+                    fill="rgba(255,255,255,0.28)"></rect>
+
+              {%- comment -%}
+                Chrome arm tube. Path: M start-at-bracket-top, L rise,
+                Q 90° quarter-circle bend, L extend horizontally to the
+                disc rim. Stroke-width 3.6→4.4 keeps the tube
+                proportional to the bigger disc + bracket. Highlight
+                stroke layered on top for the polished-steel specular
+                line.
+              {%- endcomment -%}
+              <path
+                d="M {{ tube_in_x }} {{ anchor_y | minus: 6 }} L {{ tube_in_x }} {{ curve_y }} Q {{ tube_in_x }} {{ tube_top_y }}, {{ tube_out_x }} {{ tube_top_y }} L {{ disc_cx | minus: 14 }} {{ tube_top_y }}"
+                stroke="url(#casa-arms-chrome-{{ section.id }})"
+                stroke-width="4.4"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></path>
+              <path
+                d="M {{ tube_in_x }} {{ anchor_y | minus: 6 }} L {{ tube_in_x }} {{ curve_y }} Q {{ tube_in_x }} {{ tube_top_y }}, {{ tube_out_x }} {{ tube_top_y }} L {{ disc_cx | minus: 14 }} {{ tube_top_y }}"
+                stroke="rgba(255,255,255,0.55)"
+                stroke-width="0.9"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style="transform: translate({% if side_modulo == 0 %}0.5{% else %}-0.5{% endif %}px, -0.5px);"
+              ></path>
+
+              {%- comment -%}
+                Diffuser disc — sleek saucer (NOT the old cartoon
+                concentric-circles look). Per merchant 2026-05-18 —
+                "the circle heads look horrible, too cartoonish, not
+                sleek". New geometry:
+
+                  1. CHROME BEZEL — ellipse rx=18 ry=14 (saucer shape,
+                     not a perfect circle). Filled with the same chrome
+                     gradient as the pole so the bezel reads as a
+                     unified metal material rather than a heavy black
+                     ring. Thin hairline shadow at the bezel edge for
+                     depth without weight.
+                  2. GLASS FILM — ellipse rx=14 ry=10.5 filled with a
+                     RADIAL GRADIENT (white centre 55% → film colour
+                     95% → film colour 55% at edge). The gradient does
+                     the work the LED + flat fill + outline used to do:
+                     bright lit core, body of film colour, slight
+                     fall-off at the bezel meeting. JS updates stops
+                     1 + 2 on pattern change to swap film colour.
+                  3. EDGE SHADOW — thin shadow ring at the glass edge
+                     reads as the inset where film meets bezel.
+                  4. LED HOT-SPOT — tiny r=2 circle (was r=2.6). With
+                     the gradient already brightening the centre, the
+                     LED dot only needs to be a faint highlight.
+                  5. TOP SPECULAR — single curved highlight on the
+                     bezel's upper rim. Sells the polished-metal feel.
+              {%- endcomment -%}
+              <ellipse cx="{{ disc_cx }}" cy="{{ tube_top_y }}" rx="18" ry="14"
+                       fill="url(#casa-arms-chrome-{{ section.id }})"></ellipse>
+              <ellipse cx="{{ disc_cx }}" cy="{{ tube_top_y }}" rx="18" ry="14"
+                       fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="0.6"></ellipse>
+              <ellipse class="casa-arms__tip" data-tip-index="{{ i }}"
+                       cx="{{ disc_cx }}" cy="{{ tube_top_y }}" rx="14" ry="10.5"
+                       fill="url(#casa-arms-glass-{{ section.id }}-{{ i }})"></ellipse>
+              <ellipse cx="{{ disc_cx }}" cy="{{ tube_top_y }}" rx="14" ry="10.5"
+                       fill="none" stroke="rgba(0,0,0,0.32)" stroke-width="0.5"></ellipse>
+              <circle class="casa-arms__led" data-led-index="{{ i }}"
+                      cx="{{ disc_cx }}" cy="{{ tube_top_y | minus: 1 }}" r="2"
+                      fill="rgba(255,250,240,0.9)"></circle>
+              <ellipse cx="{{ disc_cx }}" cy="{{ tube_top_y | minus: 11 }}" rx="7" ry="1.4"
+                       fill="rgba(255,255,255,0.55)"></ellipse>
+
+              {%- comment -%}
+                Power cord — thin black J-curve drooping from below the
+                bracket back to a small static-look tab on the pole below.
+                Drawn inside the rotating group so the cord rotates with
+                the arm (consistent during pattern animations).
+              {%- endcomment -%}
+              <path
+                d="M {{ tube_in_x }} {{ anchor_y | plus: 5 }} Q {{ cord_ctrl_x }} {{ anchor_y | plus: 24 }}, {{ cord_end_x }} {{ anchor_y | plus: 28 }}"
+                stroke="#0a080d"
+                stroke-width="1.5"
+                fill="none"
+                stroke-linecap="round"
+              ></path>
+              {%- comment -%} Cord pole-side clip — small dark tab where the cord meets the pole. {%- endcomment -%}
+              <rect x="{% if side_modulo == 0 %}600{% else %}596{% endif %}" y="{{ anchor_y | plus: 25 }}"
+                    width="4" height="6" fill="#1a1620"></rect>
+            </g>
+          </g>
+        {%- endfor -%}
+      </svg>
+
+      {%- comment -%} Dots indicator — redundant control + position cue, overlaid on stage. {%- endcomment -%}
+      <div class="casa-arms__dots" role="tablist" aria-label="Arm configurations (compact)">
+        {%- for block in section.blocks -%}
+          {%- assign b = block.settings -%}
+          <button
+            type="button"
+            class="casa-arms__dot{% if forloop.first %} is-on{% endif %}"
+            data-dot-index="{{ forloop.index0 }}"
+            role="tab"
+            aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+            aria-label="Show {{ b.name | escape }} arrangement"
+          >
+            <span class="casa-arms__dot-disc" aria-hidden="true"></span>
+          </button>
+        {%- endfor -%}
+      </div>
+    </div>
+
+    {%- comment -%}
+      Caption — moved OUT of the stage so the lamp image isn't covered on
+      desktop. On desktop, this becomes the third grid column (right of the
+      stage). On mobile, it stacks below the stage.
+    {%- endcomment -%}
+    <div class="casa-arms__caption" data-caption>
+      {%- assign first = section.blocks.first.settings -%}
+      <span class="casa-arms__mono" data-cap-mono>{{ first.number | default: 1 }} · {{ first.name | upcase }} · {{ first.subtitle | upcase }}</span>
+      <div class="casa-arms__cap-body" data-cap-body>{{ first.hint }}</div>
+    </div>
+  </div>
+  </div>{%- comment -%} end .casa-arms__pin {%- endcomment -%}
+  </div>{%- comment -%} end .casa-arms__runway {%- endcomment -%}
+
+  {%- if s.strip_1_label != blank or s.strip_2_label != blank or s.strip_3_label != blank -%}
+  <div class="casa-arms__strip">
+    {%- if s.strip_1_label != blank -%}
+      <div class="casa-arms__strip-item">
+        <span class="casa-arms__mono">→ {{ s.strip_1_label }}</span>
+        <p>{{ s.strip_1_body }}</p>
+      </div>
+    {%- endif -%}
+    {%- if s.strip_2_label != blank -%}
+      <div class="casa-arms__strip-item">
+        <span class="casa-arms__mono">→ {{ s.strip_2_label }}</span>
+        <p>{{ s.strip_2_body }}</p>
+      </div>
+    {%- endif -%}
+    {%- if s.strip_3_label != blank -%}
+      <div class="casa-arms__strip-item">
+        <span class="casa-arms__mono">→ {{ s.strip_3_label }}</span>
+        <p>{{ s.strip_3_body }}</p>
+      </div>
+    {%- endif -%}
+  </div>
+  {%- endif -%}
+</section>
+{%- endif -%}
+
+{% stylesheet %}
+  /* Registered custom property so the per-blob film colour interpolates
+     smoothly when patterns swap. Without @property, the colour swap
+     would be an instant jump even with a transition declared on it,
+     because browsers don't animate raw CSS variable strings. With this,
+     --amb-color is treated as a real CSS color value and Chrome / Safari
+     16.4+ / Firefox 128+ tween it through colour space. */
+  @property --amb-color {
+    syntax: '<color>';
+    inherits: false;
+    initial-value: #E95F77;
+  }
+
+  .casa-arms {
+    /* Section background = INK + top/bottom feathers ONLY. The STATIC
+       sunset radial wash (peach/amber/red/violet ellipse at lamp
+       centre) was removed per merchant 2026-05-18 — "we want more of
+       these colors in the gradient background. When we click from
+       the four options, the orange, the yellow, the purple, the blue
+       — they shift around in the background. It projects wherever
+       the lamp head is pointing."
+
+       The fixed wash read as peach REGARDLESS of arm positions, and
+       its screen-blend interaction with the per-arm blobs on a
+       light backdrop washed every blob colour out. With the static
+       wash gone, the section's mid-band is pure ink and the 5 arm-
+       driven blobs paint THE ENTIRE coloured gradient on top of it
+       via screen blend. Pattern change = the whole gradient bodily
+       relocates because every blob moves to the new disc position.
+
+       The top + bottom 0–22% feathers stay so the section meets §03
+       above + §05 below at identical #0A0A0F edges (invisible
+       seams). The mood is fully driven by the blobs now. */
+    /* Phoenix gradient override 2026-07-15: transparent so the page-wide
+       shifting sunset (casa-phoenix-gradient) shows through §04. */
+    background: transparent;
+    color: var(--paper, #FAFAF7);
+    padding: var(--pt, 96px) clamp(20px, 5vw, 64px) var(--pb, 96px);
+    font-family: var(--font-body--family, "Inter", system-ui, sans-serif);
+    /* Anchor the section-wide ambient light layer. isolation creates
+       a clean stacking context so mix-blend-mode on blobs composites
+       against the section's sunset gradient bg. overflow: visible
+       lets the ambient layer extend BELOW the section into the dark
+       gap before §05, so the gradient reads as continuous rather
+       than ending abruptly at the section edge. z-index: 2 (with §05
+       set to z-index: 1) makes §04's downward overflow paint on top
+       of §05's background so the blob colour shows through the gap.
+       Per merchant 2026-05-18 — "the gradient light should blend into
+       each other and throughout all the black area between the two
+       sections" + 16th pass "connect seamlessly into the next section
+       underneath." */
+    position: relative;
+    overflow: visible;
+    isolation: isolate;
+    z-index: 2;
+  }
+
+  /* Section-wide ambient light layer. inset extends the layer 340 px
+     past §04's TOP and BOTTOM so the per-arm sunset gradient bleeds
+     INTO §03 above and into §05 below — the gradient flows through
+     the whole PDP, starting from where the lamps emit it. §04's
+     z-index: 2 + overflow: visible let the upward/downward
+     extensions paint on top of the neighbouring sections' bgs.
+     pointer-events: none so the picker, dots, and caption stay
+     clickable underneath. */
+  /* Phoenix 2026-07-15 PIN: the section is a tall runway; the inner wrapper
+     sticks to the top and holds while the arms cycle through the arrangements,
+     then releases so the page scroll continues. Gated to non-reduced-motion
+     (reduced motion keeps §04 at natural height with the arms static). */
+  @media (prefers-reduced-motion: no-preference) {
+    /* The runway holds the scroll height; the strip sits OUTSIDE it so it
+       never scrolls up through the held screen (overlap fix 2026-07-16). */
+    .casa-arms__runway { min-height: 320vh; }  /* Hold length. The runway MINUS the 100svh pin is how long the
+                                                  section stays locked, so this is the real "does it feel pinned"
+                                                  dial. 200vh gave only ~1 screen of hold — you scrolled straight
+                                                  through the animation and it read as never locking. 320vh gives
+                                                  ~2.2 screens of hold: the four arrangements get room to land and
+                                                  the lock is unmistakable (merchant 2026-07-16). */
+    .casa-arms__pin {
+      position: sticky;
+      top: 0;
+      height: 100svh;        /* exactly one screen — held content never scrolls */
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;  /* children keep full width so the 3-col layout holds */
+      justify-content: center;
+      gap: clamp(8px, 1.6vh, 20px);
+    }
+    /* header centres itself (has its own max-width + auto margins) */
+    .casa-arms__pin .casa-arms__head { margin-left: auto; margin-right: auto; }
+    /* §04's Phoenix layout is a deliberate vertical stack (lamp -> caption ->
+       picker row, from casa-phoenix.css). The lamp cap above keeps that whole
+       stack within the held screen so all four tabs stay visible. */
+    /* Cap the pieces so header + lamp + caption fit one screen while pinned
+       (fixes "a portion of §04 scrolls" + clipped heading). */
+    .casa-arms__pin .casa-arms__stage,
+    .casa-arms__pin .casa-arms__stage svg { max-height: 40vh; }
+    .casa-arms__pin .casa-arms__head { gap: 5px; margin-bottom: 0; }
+    .casa-arms__pin .casa-arms__lede { font-size: 14px; line-height: 1.45; }
+  }
+
+  /* Desktop: let the lamp GROW to fill the room instead of being pinned to its
+     16/11 aspect (which capped it at ~371px). The layout + stage flex to fill
+     the leftover height after the header, caption and picker, and the boxes
+     below are compacted — so the lamp reads large AND the whole section still
+     fits one screen with no scroll (merchant 2026-07-16). max-width keeps the
+     meet-scaled lamp from over-widening; the sunset fills any side gap.
+
+     max-height 500px (2026-08-25): "fill the leftover height" was validated on
+     870–1010px-tall windows, where leftover ≈ 300–450px. On a QHD monitor
+     (~1340px inner) the uncapped stage flexed to ~870px and the 1.32-scaled
+     SVG drew a ~1150px lamp whose glows swallowed the strip + §05 heading —
+     the giant-blob render the media buyer hit on his 2560×1440 screen. 500px
+     is the largest stage the glow-to-caption geometry was tuned for; taller
+     windows keep the validated composition, centred by the layout rule in
+     casa-phoenix.css. */
+  @media (min-width: 1100px) {
+    .casa-arms__pin .casa-arms__layout { flex: 1 1 auto; min-height: 0; }
+    .casa-arms__pin .casa-arms__stage {
+      flex: 1 1 auto;
+      min-height: 0;
+      aspect-ratio: auto;
+      max-height: 500px;
+      width: min(600px, 90%);
+      margin-inline: auto;
+    }
+    /* compact the boxes so the lamp gets the vertical room */
+    .casa-arms__pin .casa-arms__caption { padding: 12px 18px; gap: 8px; }
+    .casa-arms__pin .casa-arms__pick { min-height: 74px; padding: 11px 14px; }
+  }
+
+  .casa-arms__ambient {
+    position: absolute;
+    inset: -340px 0 -340px 0;
+    z-index: 0;
+    pointer-events: none;
+    /* Phoenix gradient override 2026-07-15: the page-wide gradient now paints
+       the sunset, so the old section-wide ambient blobs are hidden. The
+       per-head glows in the SVG (below) carry the emitted light instead. */
+    display: none;
+  }
+  /* Each blob = one arm's emitted light. Sized at 65% of section width
+     × same aspect-ratio, so 5 of them overlap heavily around the lamp
+     and fade smoothly into the section edges. JS sets left/top to
+     centre the blob at the projected arm-light position. opacity 0.32
+     keeps individual blobs subtle so overlap stacks to ~0.9 in the
+     densest area without washing the section out. blur(20px) softens
+     the gradient edge into the ink so the boundary between glow and
+     background is invisible. */
+  .casa-arms__amb {
+    position: absolute;
+    /* Each blob paints one arm's emitted-light colour onto the
+       section. Five-blob overlap in `screen` blend was driving every
+       channel toward 1.0 (white) — text disappeared and the hues
+       fused into "just bright". `lighten` instead picks the MAX of
+       each RGB channel from the stack: where all 5 colours overlap,
+       the result is (max-R, max-G, max-B) across the sunset palette
+       = a pink-lavender, NOT white — so individual hues stay
+       distinguishable and the bg never blows out.
+
+       Per merchant 2026-05-18 — "way too light of a color, makes
+       the text disappear... it has to give the sunset kind of flow
+       vibe, colors of pink, purple, orange, yellow, blue, not just
+       one color." */
+    width: 100%;
+    aspect-ratio: 1;
+    top: 0;
+    left: 0;
+    /* JS rAF sets transform every frame during transitions so the
+       blob TRACKS the disc head through the rotation arc — not just
+       interpolates between rest positions. */
+    transform: translate(50%, 50%) translate(-50%, -50%);
+    border-radius: 50%;
+    --amb-color: #E95F77;
+    background: radial-gradient(
+      circle,
+      var(--amb-color) 0%,
+      transparent 65%
+    );
+    mix-blend-mode: lighten;
+    opacity: 1;
+    filter: blur(36px);
+    will-change: transform;
+    /* Only colour + opacity transition via CSS. Transform is
+       JS-driven (rAF angle interpolation) so the blob can follow
+       the disc through its arc — a CSS transform transition would
+       short-circuit it across the chord. */
+    transition:
+      --amb-color 700ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Lift every content layer above the ambient background.
+     Without z-index: 1 here, the layout would render at z-index: auto
+     and could end up in the same stacking layer as the blobs, with
+     unpredictable paint order. */
+  .casa-arms__head,
+  .casa-arms__layout,
+  .casa-arms__strip {
+    position: relative;
+    z-index: 1;
+  }
+  /* Header — centered as a block AND text-aligned center. Lede gets
+     its own max-width inside the centered header so the H2 + lede
+     visually share the same axis (the auto margin on the lede pins
+     it to the column center). 56ch keeps the lede readable without
+     sprawling across the full 720px header width. */
+  .casa-arms__head {
+    max-width: 720px;
+    margin: 0 auto clamp(36px, 5vw, 56px);
+    padding: 0 clamp(0px, 2vw, 16px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+  }
+  .casa-arms__mono {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(250, 250, 247, 0.55);
+    margin: 0;
+    /* Soft dark vignette behind every chrome text element so it stays
+       readable when the sunset gradient peaks behind the headline.
+       Per merchant 2026-05-18 — "makes the text disappear, which we
+       don't want." */
+    text-shadow: 0 1px 6px rgba(10, 10, 15, 0.55), 0 0 18px rgba(10, 10, 15, 0.45);
+  }
+  .casa-arms__h2 {
+    font-family: var(--font-heading--family, "Inter", system-ui, sans-serif);
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 500;
+    line-height: 1.12;
+    letter-spacing: -0.015em;
+    margin: 0;
+    text-wrap: balance;
+    color: #FAFAF7;
+    text-shadow: 0 2px 12px rgba(10, 10, 15, 0.65), 0 0 28px rgba(10, 10, 15, 0.5);
+  }
+  .casa-arms__h2 em {
+    font-style: italic;
+    font-weight: 600;
+  }
+  .casa-arms__lede {
+    font-size: 16px;
+    line-height: 1.55;
+    color: rgba(250, 250, 247, 0.88);
+    margin: 0 auto;
+    max-width: 56ch;
+    text-wrap: pretty;
+    text-shadow: 0 1px 8px rgba(10, 10, 15, 0.6), 0 0 20px rgba(10, 10, 15, 0.4);
+  }
+
+  .casa-arms__layout {
+    max-width: 1440px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(20px, 3vw, 32px);
+  }
+  /* Desktop ≥1100 — 3-col layout: picker (left, slim) | stage (center,
+     dominant) | caption (right). Side columns intentionally narrower
+     than the stage so the lamp reads as the main centerpiece. Caption
+     moved out of stage absolute overlay into its own column per merchant
+     2026-05-18: previous bottom-overlay caption was covering the image. */
+  @media (min-width: 1100px) {
+    .casa-arms__layout {
+      grid-template-columns: 200px minmax(0, 1fr) 320px;
+      align-items: stretch;
+    }
+    .casa-arms__picker  { grid-column: 1; }
+    .casa-arms__stage   { grid-column: 2; }
+    .casa-arms__caption { grid-column: 3; align-self: center; }
+  }
+
+  .casa-arms__picker {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+  @media (min-width: 1100px) {
+    .casa-arms__picker {
+      grid-template-columns: 1fr;
+      align-self: start;
+    }
+  }
+  /* Tablet range — 2×2 grid so ALL FOUR arrangements show on one screen
+     (merchant 2026-05-21: "only three of them currently show, you have
+     to scroll to get all four"). The previous horizontal-scroll picker
+     showed ~3 cards + hid the 4th behind a scroll. Phone (≤749) gets its
+     own compact 4-column chip grid in the mobile block at the bottom. */
+  @media (min-width: 750px) and (max-width: 1099px) {
+    .casa-arms__picker {
+      grid-auto-flow: row;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      overflow-x: visible;
+      scroll-snap-type: none;
+      padding-bottom: 0;
+    }
+  }
+
+  /* Picker cards. Each card: mini-thumb (left, vertically centered)
+     + meta stack (number kicker / name strong / subtitle muted).
+     Padding + gap tuned so the meta column has room for 2 lines of
+     subtitle without crowding the thumb. */
+  .casa-arms__pick {
+    /* Border softened 0.12 → 0.10 + radius bumped 4 → 8 per merchant
+       2026-05-18 16th pass ("transparent box, gradient should flow
+       through it"). Bg already transparent; the sunset gradient
+       behind .casa-arms now shows through every picker cell. */
+    appearance: none;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+    color: #FAFAF7;
+    font: inherit;
+    cursor: pointer;
+    transition: background 200ms ease, border-color 200ms ease;
+    min-height: 96px;
+  }
+  .casa-arms__pick:hover,
+  .casa-arms__pick:focus-visible {
+    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.04);
+    outline: none;
+  }
+  .casa-arms__pick:focus-visible {
+    outline: 2px solid #E95F77;
+    outline-offset: 2px;
+  }
+  .casa-arms__pick.is-on {
+    background: rgba(232, 184, 106, 0.06);
+    border-color: var(--film-gold, #E95F77);
+  }
+  .casa-arms__pick-mini {
+    flex: 0 0 auto;
+    width: 50px;
+    height: 50px;
+  }
+  .casa-arms__pick-mini svg { width: 100%; height: 100%; display: block; }
+  .casa-arms__pick-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+  .casa-arms__pick-meta .casa-arms__mono {
+    /* Override global mono size — picker number kickers stay small to
+       not compete with the name + subtitle below them. */
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    opacity: 0.85;
+  }
+  .casa-arms__pick-meta strong {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    color: #FAFAF7;
+  }
+  .casa-arms__pick-meta em {
+    font-size: 13px;
+    font-style: normal;
+    color: rgba(250, 250, 247, 0.6);
+    line-height: 1.4;
+  }
+
+  .casa-arms__stage {
+    /* Stage no longer has any box — SVG is now transparent and the
+       section's sunset gradient flows through. overflow: visible so
+       per-arm glows can bleed slightly past the SVG viewBox into the
+       section wash if needed. aspect-ratio preserved so layout
+       doesn't shift. */
+    position: relative;
+    aspect-ratio: 16 / 11;
+    background: transparent;
+    overflow: visible;
+  }
+  .casa-arms__svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    /* preserveAspectRatio is `meet` (contain) with a padded viewBox
+       (0 -120 1200 1000) that already includes headroom for every head-glow's
+       radial falloff. So the WHOLE lamp + all its glows always fit inside the
+       stage box — the glow fades to zero within the viewBox (no hard "box"
+       edge, the earlier slice-crop bug) AND the lamp never spills upward into
+       the header (the desktop overlap bug, merchant 2026-07-16). Nothing
+       overflows, so the default clip is fine. */
+    overflow: hidden;
+  }
+  /* .casa-arms__rot rotation + .casa-arms__wash cx/cy + .casa-arms__amb
+     transform are ALL driven by a JS rAF loop now (see <script> below).
+     Per merchant 2026-05-18 — "the light should follow the lamps at
+     the end of the arms during the transition. The blue light should
+     constantly follow the blue lamp head."
+
+     A CSS transition tweens between rest states in a straight line.
+     But the disc moves on a CIRCULAR ARC around the bracket anchor
+     during rotation, so the blob (which sits on the disc) needs to
+     follow that arc — not chord-shortcut across it. rAF interpolates
+     the ANGLE and re-projects the disc position every frame, so the
+     blob stays glued to its lamp head throughout the swing.
+
+     Mini-thumbs in the picker cards keep their CSS rotation transition
+     because they're small enough that the chord error is invisible
+     and the simpler CSS path is cheaper. */
+  .casa-arms__mini-rot {
+    transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .casa-arms__tip,
+  .casa-arms__led,
+  .casa-arms__mini-tip {
+    transition:
+      fill 600ms cubic-bezier(0.22, 1, 0.36, 1),
+      stroke 600ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  /* Wash circles — opacity / fill / stroke transition is fine; cx / cy
+     are JS-driven so omitted from the transition list. */
+  .casa-arms__wash {
+    transition:
+      fill 600ms cubic-bezier(0.22, 1, 0.36, 1),
+      stroke 600ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  /* SVG gradient stops — Chrome / Safari / Firefox can transition
+     stop-color when changed via setAttribute. Without this rule the
+     glass + wash colour swap was instant; the disc's chrome bezel
+     stayed put but the colour inside snapped. */
+  .casa-arms__glass-grad stop,
+  .casa-arms__wash-grad stop {
+    transition: stop-color 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Caption — DEFAULT (mobile/tablet) renders as a static card below the
+     stage so the lamp image stays uncovered. Padding + gap tuned so the
+     kicker and body breathe; thin film-gold accent on the left edge ties
+     to the active pattern's color. Desktop ≥1100 places it in the third
+     grid column (see media query above). */
+  .casa-arms__caption {
+    /* Caption flipped from opaque dark card (0.78 alpha) to glass-pill
+       transparency (merchant 2026-05-18 16th pass: "no boxes... should
+       all just flow into each other"). 0.18 alpha + heavier blur keeps
+       text readable on the sunset gradient without reading as a box.
+       Film-gold left accent stays — ties the caption to the active
+       arm's color and reads as a typographic detail, not a card edge. */
+    padding: 16px 20px;
+    background: rgba(10, 10, 15, 0.18);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
+    border-left: 2px solid var(--film-gold, #E95F77);
+    border-radius: 0 6px 6px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  @media (min-width: 1100px) {
+    .casa-arms__caption {
+      padding: 22px 26px;
+      gap: 14px;
+      border-radius: 0 8px 8px 0;
+    }
+  }
+  .casa-arms__caption .casa-arms__mono {
+    font-size: 10.5px;
+    color: rgba(250, 250, 247, 0.7);
+  }
+  .casa-arms__cap-body {
+    font-size: 14px;
+    line-height: 1.55;
+    color: rgba(250, 250, 247, 0.88);
+  }
+  .casa-arms__cap-body p { margin: 0; }
+
+  .casa-arms__dots {
+    /* Dots pill also dropped to glass-pill transparency per 16th pass.
+       0.55 → 0.20 alpha + heavier blur — pill is still legible as a
+       grouped control on top of the sunset wash, but no longer reads
+       as an opaque dark box overlaid on the gradient. */
+    position: absolute;
+    bottom: 14px;
+    right: 16px;
+    display: flex;
+    gap: 8px;
+    padding: 6px 8px;
+    background: rgba(10, 10, 15, 0.20);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 100px;
+  }
+  .casa-arms__dot {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: 6px;
+    margin: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
+    border-radius: 100px;
+  }
+  .casa-arms__dot:focus-visible {
+    outline: 2px solid var(--film-gold, #E95F77);
+    outline-offset: 2px;
+  }
+  /* Each pattern dot carries its own sunset film color so the four pills
+     read as a chromatic progression (gold → amber → blush → violet),
+     not four identical white dots that turn yellow when active.
+     Inactive: 35% opacity of the dot's color (visible but dim).
+     Active: full opacity + 1.4× scale + matching outline halo. */
+  .casa-arms__dot-disc {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 100px;
+    opacity: 0.4;
+    transition: opacity 240ms ease, transform 240ms ease, box-shadow 240ms ease;
+  }
+  .casa-arms__dot:nth-child(1) .casa-arms__dot-disc { background: var(--film-gold,   #E95F77); }
+  .casa-arms__dot:nth-child(2) .casa-arms__dot-disc { background: var(--film-amber,  #2FA66F); }
+  .casa-arms__dot:nth-child(3) .casa-arms__dot-disc { background: var(--film-blush,  #315BCF); }
+  .casa-arms__dot:nth-child(4) .casa-arms__dot-disc { background: var(--film-violet, #7A4DCE); }
+  .casa-arms__dot.is-on .casa-arms__dot-disc {
+    opacity: 1;
+    transform: scale(1.4);
+    box-shadow: 0 0 0 2px rgba(10, 10, 15, 0.6), 0 0 12px 2px currentColor;
+  }
+  .casa-arms__dot:nth-child(1).is-on .casa-arms__dot-disc { color: var(--film-gold,   #E95F77); }
+  .casa-arms__dot:nth-child(2).is-on .casa-arms__dot-disc { color: var(--film-amber,  #2FA66F); }
+  .casa-arms__dot:nth-child(3).is-on .casa-arms__dot-disc { color: var(--film-blush,  #315BCF); }
+  .casa-arms__dot:nth-child(4).is-on .casa-arms__dot-disc { color: var(--film-violet, #7A4DCE); }
+
+  /* Bottom strip — 3 evenly-distributed feature cells. Hairline divider
+     above; each cell stacks mono kicker + body paragraph. Body has its
+     own max-width so the three columns read as parallel paragraph blocks
+     at any container width. */
+  .casa-arms__strip {
+    max-width: 1200px;
+    margin: clamp(36px, 5vw, 56px) auto 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(24px, 3vw, 40px);
+    padding-top: 28px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .casa-arms__strip-item {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .casa-arms__strip-item .casa-arms__mono {
+    color: rgba(250, 250, 247, 0.65);
+  }
+  .casa-arms__strip-item p {
+    font-size: 14px;
+    line-height: 1.55;
+    color: rgba(250, 250, 247, 0.88);
+    margin: 0;
+    max-width: 36ch;
+    text-shadow: 0 1px 8px rgba(10, 10, 15, 0.6), 0 0 18px rgba(10, 10, 15, 0.4);
+  }
+
+  /* Mobile redesign (≤749) — full rework per merchant 2026-05-18.
+     The horizontal-scroll picker was eating the top of the section
+     before the lamp even appeared. Now: stage FIRST (centerpiece),
+     compact 4-column chip-row picker BELOW it, caption tightened so
+     it doesn't cover the lamp. Tablet range keeps the previous
+     horizontal-scroll picker (see the 750-1099 rule above). */
+  @media (max-width: 749px) {
+    .casa-arms { padding: 48px clamp(18px, 5vw, 24px); }
+
+    /* Header — tight */
+    .casa-arms__head {
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .casa-arms__mono { font-size: 10px; letter-spacing: 0.16em; }
+    .casa-arms__h2   { font-size: clamp(22px, 6vw, 30px); }
+    .casa-arms__lede { font-size: 14px; line-height: 1.5; }
+
+    /* Layout — stage above picker via flex order. The default markup
+       has picker first, stage second; flipping order on mobile means
+       the user sees the lamp + active pattern result immediately and
+       the chip picker sits below as a control row. */
+    .casa-arms__layout {
+      gap: 14px;
+      grid-template-columns: 1fr;
+    }
+    .casa-arms__stage  { order: 0; aspect-ratio: 4 / 5; }
+    .casa-arms__picker { order: 1; }
+
+    /* Picker — compact 4-column chip grid (NOT horizontal scroll).
+       Override the picker base rules: row flow, 4 even columns. */
+    .casa-arms__picker {
+      display: grid;
+      grid-auto-flow: row;
+      grid-auto-columns: unset;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      overflow: visible;
+      scroll-snap-type: none;
+      padding-bottom: 0;
+      gap: 6px;
+    }
+
+    /* Chip card — vertical stack of number + name only. Hide the
+       mini-thumb (unreadable at chip scale) and the subtitle (the
+       active chip + caption inside the stage already convey what's
+       happening). Equal padding on both axes so the chips look like
+       a proper segmented control. */
+    .casa-arms__pick {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px 6px;
+      gap: 4px;
+      min-height: 0;
+      border-radius: 4px;
+      scroll-snap-align: none;
+    }
+    .casa-arms__pick-mini { display: none; }
+    .casa-arms__pick-meta {
+      align-items: center;
+      gap: 2px;
+      min-width: 0;
+    }
+    .casa-arms__pick-meta .casa-arms__mono {
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      opacity: 0.85;
+    }
+    .casa-arms__pick-meta strong {
+      font-size: 12.5px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .casa-arms__pick-meta em { display: none; }
+
+    /* Stage on mobile = flex column so the caption flows BELOW the SVG
+       instead of overlaying it. Lamp stays fully visible at every
+       pattern switch; caption sits cleanly under the image.
+       SVG holds its own 4/5 aspect; stage container grows to fit
+       SVG + caption. */
+    .casa-arms__stage {
+      aspect-ratio: auto;
+      display: flex;
+      flex-direction: column;
+      overflow: visible;
+      background: transparent;
+    }
+    .casa-arms__svg {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 4 / 5;
+    }
+
+    .casa-arms__caption {
+      position: static;
+      bottom: auto;
+      left: auto;
+      right: auto;
+      max-width: none;
+      margin-top: 10px;
+      padding: 11px 13px;
+      gap: 5px;
+      border-radius: 4px;
+      background: rgba(10, 10, 15, 0.6);
+    }
+    .casa-arms__caption .casa-arms__mono {
+      font-size: 9.5px;
+      letter-spacing: 0.14em;
+    }
+    .casa-arms__cap-body {
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+
+    .casa-arms__dots { display: none; }
+
+    .casa-arms__strip {
+      grid-template-columns: 1fr;
+      gap: 18px;
+      margin-top: 28px;
+      padding-top: 22px;
+    }
+    .casa-arms__strip-item p { max-width: none; font-size: 13.5px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .casa-arms__tip,
+    .casa-arms__led,
+    .casa-arms__wash,
+    .casa-arms__mini-rot,
+    .casa-arms__mini-tip,
+    .casa-arms__amb,
+    .casa-arms__glass-grad stop,
+    .casa-arms__wash-grad stop,
+    .casa-arms__pick { transition: none; transition-delay: 0ms; }
+    /* rAF animation is also bypassed at the JS layer when the user
+       prefers reduced motion (see applyPattern) — angles jump
+       straight to the target without the easing curve. */
+  }
+{% endstylesheet %}
+
+<script>
+  (function() {
+    function initArms(ROOT) {
+      if (!ROOT || ROOT.dataset.armsInit === '1') return;
+      ROOT.dataset.armsInit = '1';
+
+    var SVG_W = 1200;
+    var SVG_H = 800;
+    /* Wash radial-gradient circles are positioned by JS at distance
+       ARM_LEN from each anchor along the arm's rotation. ARM_LEN=56
+       matches the disc's vertical offset from the anchor (tube_top_y =
+       anchor - 56), so each wash centre lands AT the disc location.
+       Combined with the new gradient stops (bright 0% → soft 100%),
+       this gives a seamless bright-disc → wall-glow falloff that
+       continues outward into the wider gradient without a visible
+       boundary. Per merchant 2026-05-18 sixth pass: "the colour
+       emitting a soft glow from the film should extend all the way
+       into the gradient, not just from the lamp itself". */
+    var ARM_LEN = 56;
+    var picks   = Array.prototype.slice.call(ROOT.querySelectorAll('.casa-arms__pick'));
+    var dots    = Array.prototype.slice.call(ROOT.querySelectorAll('.casa-arms__dot'));
+    var rots      = ROOT.querySelectorAll('.casa-arms__rot');
+    var leds       = ROOT.querySelectorAll('.casa-arms__led');
+    var washes     = ROOT.querySelectorAll('.casa-arms__wash');
+    var halos      = ROOT.querySelectorAll('.casa-arms__halo');   /* per-head shadow discs (Phoenix 2026-07-15) */
+    var washGrads  = ROOT.querySelectorAll('.casa-arms__wash-grad');
+    var glassGrads = ROOT.querySelectorAll('.casa-arms__glass-grad');
+    var arms       = ROOT.querySelectorAll('.casa-arms__arm');
+    /* Five section-wide ambient blobs, one per arm. JS sets each blob's
+       left/top + --amb-color to reflect the active pattern. Anchor Y
+       values (percentages of section height) approximate where each
+       arm's bracket sits vertically in the section flow: arm 0 highest,
+       arm 4 lowest. The projection math (sin/cos × spread) places each
+       blob at the arm's emitted-light direction within the section. */
+    var ambs           = ROOT.querySelectorAll('.casa-arms__amb');
+    var stageEl        = ROOT.querySelector('.casa-arms__stage');
+    var ambientEl      = ROOT.querySelector('.casa-arms__ambient');
+    var runwayEl       = ROOT.querySelector('.casa-arms__runway');
+    /* Blob positioning rewritten per merchant 2026-05-18 18th pass:
+       "the color should move with the head of the arm where the
+       light is being emitted, because currently it's not. It's
+       moving randomly in the area where that arm is. It's supposed
+       to be exactly where the head is."
+
+       Previous code positioned each blob at AMB_ANCHOR_Y[i] (38, 50,
+       65, 85, 105 — percentages of section height) plus a sin/cos
+       spread that vaguely approximated the arm's emission direction.
+       The blob ended up SOMEWHERE in the arm's region, not at the
+       disc.
+
+       New approach: project each arm's disc head from SVG viewBox
+       coordinates (cx=600, cy=anchor-cos(angle)*ARM_LEN — same
+       formula as the wash circle) into section pixel coordinates,
+       then position the blob's center exactly on the disc. The
+       transform pipeline is:
+
+         SVG coords (0..1200, 0..800)
+            ↓ × scaleFit (preserveAspectRatio="xMidYMid meet")
+         Stage pixels
+            ↓ + stage offset within section
+         Section pixels
+            ↓ + ambient layer offset (it's inset -340 above section)
+         Ambient-layer pixels = blob translate(X, Y)
+
+       The blob's CSS adds translate(-50%, -50%) afterward to center
+       the blob on (X, Y) rather than top-left it. Result: blob center
+       lands EXACTLY on the disc head, and its 65%-of-ambient-width
+       radial glow spreads from the disc outward through the section,
+       matching the merchant's "let the gradient flow as well, not
+       just surrounding that" directive. */
+
+    // Lighten a hex color by mixing toward white. Used for the LED
+    // hot-spot at the center of each diffuser — the actual LED behind
+    // the film reads as a bright TINT of the film color, not pure white.
+    function brighten(hex, amount) {
+      if (!hex || hex.charAt(0) !== '#' || hex.length < 7) return '#ffffff';
+      var r = parseInt(hex.substr(1, 2), 16);
+      var g = parseInt(hex.substr(3, 2), 16);
+      var b = parseInt(hex.substr(5, 2), 16);
+      r = Math.round(r + (255 - r) * amount);
+      g = Math.round(g + (255 - g) * amount);
+      b = Math.round(b + (255 - b) * amount);
+      var toHex = function (v) { var s = v.toString(16); return s.length === 1 ? '0' + s : s; };
+      return '#' + toHex(r) + toHex(g) + toHex(b);
+    }
+    var capMono = ROOT.querySelector('[data-cap-mono]');
+    var capBody = ROOT.querySelector('[data-cap-body]');
+
+    var filmHex = (ROOT.getAttribute('data-film-hex') || '').split(',');
+
+    function parseArms(raw) {
+      try { var a = JSON.parse(raw || '[]'); return Array.isArray(a) ? a : []; }
+      catch (e) { return []; }
+    }
+
+    // Render the mini-thumb on each picker card to match its arms_json.
+    // This makes the cards visually distinct at a glance.
+    function paintMiniThumb(pick) {
+      var armsArr = parseArms(pick.getAttribute('data-pat-arms'));
+      if (armsArr.length === 0) return;
+      var miniRots = pick.querySelectorAll('.casa-arms__mini-rot');
+      var miniTips = pick.querySelectorAll('.casa-arms__mini-tip');
+      // Anchors mirror the mini-svg markup (28,36,44,52,60 / x=50).
+      var miniAnchors = [28, 36, 44, 52, 60];
+      for (var i = 0; i < 5; i++) {
+        var arm = armsArr[i] || { a: 0, f: i };
+        var angle = Number(arm.a) || 0;
+        var filmIdx = Math.max(0, Math.min(filmHex.length - 1, Number(arm.f) || 0));
+        var color = filmHex[filmIdx] || '#E95F77';
+        if (miniRots[i]) miniRots[i].setAttribute('transform', 'rotate(' + angle + ' 50 ' + miniAnchors[i] + ')');
+        if (miniTips[i]) miniTips[i].setAttribute('fill', color);
+      }
+    }
+
+    /* Animation params. Per-arm stagger keeps the natural top-to-
+       bottom cascade; total animation per arm = ANIM_DURATION, full
+       wave length = ANIM_DURATION + 4·STAGGER_GAP. */
+    var ANIM_DURATION = 850;
+    var STAGGER_GAP   = 70;
+    var animFrame     = 0;        // current rAF id (0 = idle)
+    var firstApply    = true;     // first call skips the animation
+    var lastArmsArr   = null;     // last applied armsArr (for tick events)
+    var lastPatIdx    = 0;
+
+    function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
+
+    /* Render the i-th arm at a given angle. Pure function — no state
+       reads beyond the passed-in cache. Called per arm per frame from
+       the rAF loop. Includes everything that depends on angle:
+         - SVG <g class="casa-arms__rot"> rotation transform
+         - In-SVG wall-wash circle cx/cy (arm-projected beam)
+         - HTML ambient blob transform (disc-head position in section)
+       Colour updates do NOT live here — they're applied once per
+       applyPattern call and fade via CSS stop-color transitions. */
+    function renderArmAt(i, angle, cache) {
+      if (!arms[i]) return;
+      var anchorY = Number(arms[i].getAttribute('data-anchor-y')) || 0;
+      var rad = angle * Math.PI / 180;
+      var cos_a = Math.cos(rad);
+      var sin_a = Math.sin(rad);
+
+      if (rots[i]) {
+        rots[i].setAttribute('transform', 'rotate(' + angle + ' 600 ' + anchorY + ')');
+      }
+      if (washes[i]) {
+        /* Phoenix 2026-07-15: centre the glow (and its shadow) on the ACTUAL
+           disc head — dx=±72, dy=-56 through the same rotation matrix as the
+           arm group — so the emitted light tracks the head as it swings. */
+        var w_dx = (i % 2 === 0) ? 72 : -72;
+        var w_cx = SVG_W / 2 + w_dx * cos_a + 56 * sin_a;
+        var w_cy = anchorY + w_dx * sin_a - 56 * cos_a;
+        washes[i].setAttribute('cx', w_cx);
+        washes[i].setAttribute('cy', w_cy);
+        if (halos[i]) { halos[i].setAttribute('cx', w_cx); halos[i].setAttribute('cy', w_cy); }
+      }
+      if (ambs[i] && cache) {
+        /* Disc-head true position via the SAME rotation matrix the SVG
+           applies to the arm group. Right-side arms start at dx=+72
+           from the pivot (600, anchorY), left-side at dx=−72; both
+           start dy=−56 (disc sits 56 above the bracket). After
+           rotating by `angle` around the pivot:
+             discX = 600     + dx·cos − dy·sin
+             discY = anchorY + dx·sin + dy·cos
+           Then convert SVG → stage pixels → section pixels → ambient-
+           layer pixels via the cached scale + offsets. */
+        var disc_dx = (i % 2 === 0) ? 72 : -72;
+        var disc_dy = -56;
+        var discSvgX = 600     + disc_dx * cos_a - disc_dy * sin_a;
+        var discSvgY = anchorY + disc_dx * sin_a + disc_dy * cos_a;
+        var discSecX = cache.svgOffsetX + discSvgX * cache.scaleFit;
+        var discSecY = cache.svgOffsetY + discSvgY * cache.scaleFit;
+        ambs[i].style.transform =
+          'translate(' + (discSecX + cache.ambDX) + 'px, ' +
+                        (discSecY + cache.ambDY) + 'px) ' +
+          'translate(-50%, -50%)';
+      }
+    }
+
+    /* Read the current rotation angle off arm i's SVG transform attr.
+       Returns 0 when no transform is set yet (initial state). */
+    function currentAngleOf(i) {
+      if (!rots[i]) return 0;
+      var t = rots[i].getAttribute('transform') || '';
+      var m = t.match(/rotate\(\s*(-?\d+(?:\.\d+)?)/);
+      return m ? Number(m[1]) : 0;
+    }
+
+    /* Compute the cache once per pattern swap (and on resize). All
+       per-frame renders share these numbers — no layout thrash inside
+       the rAF loop. */
+    function buildCache() {
+      var secRect   = ROOT.getBoundingClientRect();
+      var stageRect = stageEl   ? stageEl.getBoundingClientRect()   : secRect;
+      var ambRect   = ambientEl ? ambientEl.getBoundingClientRect() : secRect;
+      var stageW = stageRect.width;
+      var stageH = stageRect.height;
+      var scaleFit = stageW > 0 && stageH > 0
+        ? Math.min(stageW / SVG_W, stageH / SVG_H) : 1;
+      var contentW = SVG_W * scaleFit;
+      var contentH = SVG_H * scaleFit;
+      var stageOffsetX = stageRect.left - secRect.left;
+      var stageOffsetY = stageRect.top  - secRect.top;
+      return {
+        scaleFit:    scaleFit,
+        svgOffsetX:  stageOffsetX + (stageW - contentW) / 2,
+        svgOffsetY:  stageOffsetY + (stageH - contentH) / 2,
+        ambDX:       secRect.left - ambRect.left,
+        ambDY:       secRect.top  - ambRect.top
+      };
+    }
+
+    function dispatchPatternTick(currentAngles, colors, patIdx) {
+      document.dispatchEvent(new CustomEvent('casa-phoenix-pattern-change', {
+        detail: {
+          /* armsArr carries the CURRENT (interpolated) angles per
+             frame — not the target. §05's listener uses these to
+             keep its blobs in lockstep with §04's lamp heads. */
+          armsArr: currentAngles.map(function (a, i) {
+            return { a: a, f: lastArmsArr && lastArmsArr[i] ? Number(lastArmsArr[i].f) || i : i };
+          }),
+          filmHex: filmHex,
+          colors:  colors,
+          patIdx:  patIdx
+        }
+      }));
+    }
+
+    function applyPattern(pick) {
+      var armsArr = parseArms(pick.getAttribute('data-pat-arms'));
+      if (armsArr.length === 0) return;
+      var patIdx = Number(pick.getAttribute('data-pat-index')) || 0;
+
+      /* Cancel any in-flight rAF — picking a new pattern mid-animation
+         picks up the CURRENT angles (whatever frame we're on) and
+         interpolates from there to the new target. */
+      if (animFrame) {
+        cancelAnimationFrame(animFrame);
+        animFrame = 0;
+      }
+
+      var cache = buildCache();
+
+      /* Per-arm start (current SVG angle) + end (target) + colour. */
+      var startAngles = [];
+      var endAngles   = [];
+      var colors      = [];
+      for (var i = 0; i < 5; i++) {
+        var arm = armsArr[i] || { a: 0, f: i };
+        startAngles[i] = currentAngleOf(i);
+        endAngles[i]   = Number(arm.a) || 0;
+        var filmIdx    = Math.max(0, Math.min(filmHex.length - 1, Number(arm.f) || 0));
+        colors[i]      = filmHex[filmIdx] || '#E95F77';
+      }
+
+      /* COLOUR pass — applied once. The CSS stop-color transitions on
+         .casa-arms__glass-grad stop + .casa-arms__wash-grad stop do
+         the smooth fade, and --amb-color is registered via @property
+         for smooth interpolation. */
+      for (var j = 0; j < 5; j++) {
+        var color = colors[j];
+        if (leds[j]) leds[j].setAttribute('fill', brighten(color, 0.75));
+        var glass = glassGrads[j];
+        if (glass) {
+          var gstops = glass.querySelectorAll('stop');
+          if (gstops[1]) gstops[1].setAttribute('stop-color', color);
+          if (gstops[2]) gstops[2].setAttribute('stop-color', color);
+        }
+        var wgrad = washGrads[j];
+        if (wgrad) {
+          var wstops = wgrad.querySelectorAll('stop');
+          /* Phoenix 2026-07-15: PASTEL wash — pale body, lighter core (brighten
+             mixes toward white), so each head reads as a soft pastel glow. */
+          var washPale = brighten(color, 0.32), washCore = brighten(color, 0.58);
+          for (var k = 0; k < wstops.length; k++) {
+            wstops[k].setAttribute('stop-color', k === 0 ? washCore : washPale);
+          }
+        }
+        if (ambs[j]) ambs[j].style.setProperty('--amb-color', color);
+      }
+
+      /* Caption + picker / dot active state — instant, never animated. */
+      var num  = pick.getAttribute('data-pat-number')   || '';
+      var name = pick.getAttribute('data-pat-name')     || '';
+      var sub  = pick.getAttribute('data-pat-subtitle') || '';
+      var hint = pick.getAttribute('data-pat-hint')     || '';
+      if (capMono) capMono.textContent = num + ' · ' + name.toUpperCase() + ' · ' + sub.toUpperCase();
+      if (capBody) capBody.textContent = hint;
+      picks.forEach(function (p) {
+        var on = p === pick;
+        p.classList.toggle('is-on', on);
+        p.setAttribute('aria-selected', on ? 'true' : 'false');
+        p.setAttribute('tabindex', on ? '0' : '-1');
+      });
+      dots.forEach(function (d, i2) {
+        var on = i2 === patIdx;
+        d.classList.toggle('is-on', on);
+        d.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+
+      lastArmsArr = armsArr;
+      lastPatIdx  = patIdx;
+
+      var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      /* First apply OR reduced motion → jump to the target angles in
+         one frame; no easing, no rAF loop. */
+      if (firstApply || reduceMotion) {
+        firstApply = false;
+        for (var ii = 0; ii < 5; ii++) renderArmAt(ii, endAngles[ii], cache);
+        dispatchPatternTick(endAngles, colors, patIdx);
+        return;
+      }
+
+      /* rAF angle-interpolation loop. Each arm advances on its own
+         clock (staggered by i × STAGGER_GAP) so the cascade reads as
+         the lamp settling top-down. The blob position is recomputed
+         from the CURRENT angle each frame — that's how the colour
+         physically follows its lamp head through the arc swing,
+         rather than chord-shortcutting between rest positions. */
+      var t0 = performance.now();
+      function tick(now) {
+        var elapsed = now - t0;
+        var allDone = true;
+        var current = [];
+        for (var ii = 0; ii < 5; ii++) {
+          var armElapsed = Math.max(0, elapsed - ii * STAGGER_GAP);
+          var t = Math.min(armElapsed / ANIM_DURATION, 1);
+          var eased = easeOutQuart(t);
+          var angle = startAngles[ii] + (endAngles[ii] - startAngles[ii]) * eased;
+          current[ii] = angle;
+          renderArmAt(ii, angle, cache);
+          if (t < 1) allDone = false;
+        }
+        /* Per-frame broadcast so §05 (and any future synced section)
+           paints its blobs at the same arm angles §04 has right now. */
+        dispatchPatternTick(current, colors, patIdx);
+
+        if (!allDone) {
+          animFrame = requestAnimationFrame(tick);
+        } else {
+          animFrame = 0;
+        }
+      }
+      animFrame = requestAnimationFrame(tick);
+    }
+
+    /* Recompute the cache + re-pin blobs on resize without restarting
+       an animation. Called from the resize handler below. */
+    function repinAtCurrent() {
+      var cache = buildCache();
+      for (var i = 0; i < 5; i++) {
+        renderArmAt(i, currentAngleOf(i), cache);
+      }
+    }
+
+    function activateByIndex(idx, focusPick) {
+      if (idx < 0) idx = picks.length - 1;
+      if (idx >= picks.length) idx = 0;
+      var p = picks[idx];
+      if (!p) return;
+      applyPattern(p);
+      if (focusPick) p.focus();
+    }
+
+    // Click handlers — picker.
+    picks.forEach(function(pick) {
+      pick.addEventListener('click', function() { applyPattern(pick); });
+      // Keyboard arrow-nav between tabs (WCAG role="tab" contract).
+      pick.addEventListener('keydown', function(e) {
+        var idx = picks.indexOf(pick);
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          activateByIndex(idx + 1, true);
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          activateByIndex(idx - 1, true);
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          activateByIndex(0, true);
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          activateByIndex(picks.length - 1, true);
+        }
+      });
+    });
+
+    // Click handlers — dots.
+    dots.forEach(function(dot, idx) {
+      dot.addEventListener('click', function() { activateByIndex(idx, false); });
+    });
+
+    // Paint mini-thumbs once at load — each card previews its arrangement.
+    picks.forEach(paintMiniThumb);
+
+    // Initialize tabindex roving-focus + activate first preset.
+    picks.forEach(function(p, i) { p.setAttribute('tabindex', i === 0 ? '0' : '-1'); });
+    if (picks[0]) applyPattern(picks[0]);
+
+    /* ── Scroll-scrub: the arms track your scroll position ─────────────
+       As §04 passes through the viewport, the five arms interpolate
+       CONTINUOUSLY across the four arrangements (Stacked → Fan →
+       Asymmetric → Gathered) in lockstep with the scroll — scroll a
+       little, they rotate a little; scroll back up, they reverse. Angles
+       are driven per-frame through the REAL renderArmAt (so the gooseneck
+       arms, the saucer heads, and the wall-glow circles all move together),
+       rather than applyPattern's timed tween — that's what makes the motion
+       feel driven by the scroll instead of playing on its own clock.
+       Merchant 2026-07-13: scrub, arms track scroll. No pin, no added
+       section height (mobile-safe).
+
+       - POSES = each picker pattern's per-arm target angle, read once.
+       - applyLook(idx) swaps the film colours + caption + active card at
+         each pattern boundary (colour work only — no angle motion, no
+         tween), mirroring applyPattern's visual pass.
+       - buildCache offsets are scroll-invariant, so the cache is built once
+         per visibility/resize and reused every scroll frame (no thrash).
+       - passive scroll + rAF debounce; IO-gated to on-screen; reduced
+         motion holds the first pose; teardown removes the listener + IO. */
+    var POSES = picks.map(function (p) {
+      return parseArms(p.getAttribute('data-pat-arms')).map(function (a) { return Number(a.a) || 0; });
+    });
+    /* easeInOutQuint — steeper than the old cubic so each arm swing whips
+       through its transition and lands decisively (drama pass 2026-07-16). */
+    function scrubEase(t) { return t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2; }
+
+    function applyLook(idx) {
+      var pick = picks[idx];
+      if (!pick) return;
+      var armsArr = parseArms(pick.getAttribute('data-pat-arms'));
+      var patIdx = Number(pick.getAttribute('data-pat-index')) || 0;
+      for (var j = 0; j < 5; j++) {
+        var arm = armsArr[j] || { a: 0, f: j };
+        var filmIdx = Math.max(0, Math.min(filmHex.length - 1, Number(arm.f) || 0));
+        var color = filmHex[filmIdx] || '#E95F77';
+        if (leds[j]) leds[j].setAttribute('fill', brighten(color, 0.75));
+        var glass = glassGrads[j];
+        if (glass) { var gs = glass.querySelectorAll('stop'); if (gs[1]) gs[1].setAttribute('stop-color', color); if (gs[2]) gs[2].setAttribute('stop-color', color); }
+        var wgrad = washGrads[j];
+        if (wgrad) { var wsr = wgrad.querySelectorAll('stop'); var wPale = brighten(color, 0.32), wCore = brighten(color, 0.58); for (var w = 0; w < wsr.length; w++) wsr[w].setAttribute('stop-color', w === 0 ? wCore : wPale); }   /* pastel wash — Phoenix 2026-07-15 */
+        if (ambs[j]) ambs[j].style.setProperty('--amb-color', color);
+      }
+      var num = pick.getAttribute('data-pat-number') || '', name = pick.getAttribute('data-pat-name') || '', sub = pick.getAttribute('data-pat-subtitle') || '', hint = pick.getAttribute('data-pat-hint') || '';
+      if (capMono) capMono.textContent = num + ' · ' + name.toUpperCase() + ' · ' + sub.toUpperCase();
+      if (capBody) capBody.textContent = hint;
+      picks.forEach(function (p) { var on = p === pick; p.classList.toggle('is-on', on); p.setAttribute('aria-selected', on ? 'true' : 'false'); p.setAttribute('tabindex', on ? '0' : '-1'); });
+      dots.forEach(function (d, di) { var on = di === patIdx; d.classList.toggle('is-on', on); d.setAttribute('aria-selected', on ? 'true' : 'false'); });
+      lastArmsArr = armsArr; lastPatIdx = patIdx;
+    }
+
+    var scrubReduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var scrubN = picks.length;
+    var scrubCache = null, scrubVisible = false, scrubRaf = 0, scrubLook = -1, scrubIO = null;
+    var scrubCur = 0, scrubTarget = 0;
+
+    /* ── Dwell-and-snap ────────────────────────────────────────────────
+       The scroll pass is carved into N flat DWELL plateaus — where a real
+       arrangement sits fully settled and legible — joined by TRANSITION
+       ramps. Integer beats are settled plateaus, fractional beats are eased
+       mid-morph. p (0..1 scroll progress) → beat (0..N-1).
+
+       Split rebalanced 66/34 → 44/56 (merchant 2026-07-21: "the scroll
+       animations are not big enough they're very minimal, it's meant to be
+       the main piece of attention"). At 66/34 two thirds of the scroll was a
+       static hold and the arms only moved in short bursts, so the section
+       read as still. Giving the morph the majority means each sweep now
+       spans MORE scroll distance, which makes it both slower and far more
+       visible — that also settles the earlier "it's too fast" note, since
+       these two complaints point the same way: a longer ramp fixes both.
+       The plateaus survive, so the four arrangements still lock and read. */
+    var DWELL = 0.40 / scrubN;                          /* dwell share, per pose — brief settle/lock (was 0.44) */
+    var TRANS = scrubN > 1 ? 0.60 / (scrubN - 1) : 1;   /* ramp share, per gap — pushed 0.56 -> 0.60, arms in motion 60% of the scroll (merchant 2026-07-21: "scroll animation should be more emphasized") */
+    function pToBeat(p) {
+      if (p <= 0) return 0;
+      if (p >= 1) return scrubN - 1;
+      var pos = 0;
+      for (var j = 0; j < scrubN; j++) {
+        if (p < pos + DWELL) return j;                 /* inside dwell j */
+        pos += DWELL;
+        if (j < scrubN - 1) {
+          if (p < pos + TRANS) return j + scrubEase((p - pos) / TRANS);  /* morph j→j+1 */
+          pos += TRANS;
+        }
+      }
+      return scrubN - 1;
+    }
+
+    /* Read the scroll-derived TARGET beat off the stage's viewport
+       position (0 as it enters from the bottom → N-1 as it clears the
+       top). Damping (below) eases the live beat toward this target. */
+    function scrubReadTarget() {
+      var vh = window.innerHeight || document.documentElement.clientHeight || 1;
+      /* Phoenix 2026-07-16 PIN: progress spans the RUNWAY wrapper only — the
+         tall element that holds the sticky pin — NOT the whole section, which
+         also contains the bottom strip below the runway. Measuring ROOT
+         (section) stretched the mapping so the last arrangement barely showed
+         while pinned and the tail cycled after the pin released. Runway-based
+         p makes 0..1 line up exactly with the pinned hold, so all four
+         arrangements (incl. a full Gathered dwell) cycle on-screen. Falls back
+         to the stage-centre pass when there's no tall runway (reduced motion). */
+      var travel = runwayEl ? runwayEl.offsetHeight - vh : ROOT.offsetHeight - vh;
+      var p;
+      if (runwayEl && travel > vh) {
+        p = (-runwayEl.getBoundingClientRect().top) / travel;
+      } else {
+        var r = stageEl.getBoundingClientRect();
+        p = (vh - (r.top + r.height / 2)) / vh;
+      }
+      if (p < 0) p = 0; else if (p > 1) p = 1;
+      scrubTarget = pToBeat(p);
+    }
+
+    /* Render the five arms at a continuous beat through the REAL
+       renderArmAt (gooseneck + saucer head + wall-wash all move together).
+       applyLook swaps film colours + caption + active card once per
+       settled plateau (scrubLook change), never mid-morph. */
+    function scrubRenderBeat(b) {
+      if (!scrubCache) scrubCache = buildCache();
+      var i = Math.floor(b); if (i > scrubN - 2) i = scrubN - 2; if (i < 0) i = 0;
+      var f = b - i;
+      for (var k = 0; k < 5; k++) {
+        var a0 = (POSES[i] && POSES[i][k] != null) ? POSES[i][k] : 0;
+        var a1 = (POSES[i + 1] && POSES[i + 1][k] != null) ? POSES[i + 1][k] : a0;
+        renderArmAt(k, a0 + (a1 - a0) * f, scrubCache);
+      }
+      var nearest = Math.round(b); if (nearest > scrubN - 1) nearest = scrubN - 1; if (nearest < 0) nearest = 0;
+      if (nearest !== scrubLook) { scrubLook = nearest; applyLook(nearest); }
+    }
+
+    /* ── Damped follow ─────────────────────────────────────────────────
+       Rather than snapping the arms to the raw scroll position each frame,
+       ease the live beat toward its target (weight — goosenecks have mass,
+       so a fast flick glides them in). The rAF loop runs only while the
+       beat is still settling AND the section is on-screen, then parks
+       itself — no idle battery drain. */
+    function scrubFrame() {
+      scrubRaf = 0;
+      scrubCur += (scrubTarget - scrubCur) * 0.20;   /* tighter follow — less float, more punch (2026-07-16) */
+      if (Math.abs(scrubTarget - scrubCur) < 0.0008) scrubCur = scrubTarget;
+      scrubRenderBeat(scrubCur);
+      if (scrubCur !== scrubTarget && scrubVisible) scrubRaf = requestAnimationFrame(scrubFrame);
+    }
+    function scrubSchedule() {
+      /* IntersectionObserver gates the rAF for battery, but if it ever misses
+         an intersection (fast programmatic scroll, a modal that briefly locks
+         the body and shifts layout, Safari IO quirks), scrubVisible could stay
+         false and freeze the arms mid-scroll. Self-heal: if a scroll arrives
+         while the section is genuinely on-screen, treat it as visible.
+         (2026-07-16 robustness fix.) */
+      if (!scrubVisible) {
+        var rr = ROOT.getBoundingClientRect();
+        var vhh = window.innerHeight || document.documentElement.clientHeight || 0;
+        if (rr.bottom <= 0 || rr.top >= vhh) return;   /* truly off-screen */
+        scrubVisible = true;
+      }
+      scrubReadTarget();
+      if (!scrubRaf) scrubRaf = requestAnimationFrame(scrubFrame);
+    }
+
+    if (!scrubReduce && scrubN > 1 && stageEl && typeof IntersectionObserver === 'function') {
+      scrubIO = new IntersectionObserver(function (entries) {
+        scrubVisible = entries[0].isIntersecting;
+        if (scrubVisible) { scrubCache = buildCache(); scrubSchedule(); }
+      }, { threshold: 0 });
+      scrubIO.observe(ROOT);
+      window.addEventListener('scroll', scrubSchedule, { passive: true });
+      scrubReadTarget(); scrubCur = scrubTarget; scrubRenderBeat(scrubCur);   /* place the arms for the current scroll position */
+    }
+
+    /* On viewport resize, blob transforms are in pixels — they drift
+       if the section shrinks/grows. repinAtCurrent reads each arm's
+       CURRENT angle (whatever the rAF is in the middle of, or the
+       rest angle) and re-projects the blob position with fresh cache.
+       Does NOT call applyPattern — that would restart the animation
+       and visually snap during resize. */
+    var resizeRaf = 0;
+    function onResize() {
+      if (resizeRaf) return;
+      resizeRaf = requestAnimationFrame(function() {
+        resizeRaf = 0;
+        scrubCache = null;    /* layout changed → rebuild the scroll-scrub offsets */
+        repinAtCurrent();
+        scrubSchedule();      /* re-place the arms for the new layout */
+      });
+    }
+    window.addEventListener('resize', onResize, { passive: true });
+
+      /* Editor teardown: remove the global resize listener and cancel any
+         pending rAF (resize debounce + the arm-tween loop) so a re-render
+         starts clean and doesn't leak a handler per mount/unmount cycle. */
+      ROOT.__armsTeardown = function() {
+        window.removeEventListener('resize', onResize);
+        window.removeEventListener('scroll', scrubSchedule);
+        if (resizeRaf) { cancelAnimationFrame(resizeRaf); resizeRaf = 0; }
+        if (scrubRaf) { cancelAnimationFrame(scrubRaf); scrubRaf = 0; }
+        if (animFrame) { cancelAnimationFrame(animFrame); animFrame = 0; }
+        if (scrubIO) { scrubIO.disconnect(); scrubIO = null; }
+        ROOT.dataset.armsInit = '';
+      };
+    } /* end initArms */
+
+    initArms(document.getElementById('casa-arms-{{ section.id }}'));
+
+    /* Theme-editor compatibility (JS pre-flight item 6): the merchant edits
+       these files via two-way sync, so the section re-renders on setting
+       changes / reorder. An inline <script> inserted via innerHTML doesn't
+       re-execute, so bind load/unload ONCE (globally guarded) to re-init the
+       fresh DOM and tear down the old instance — otherwise the arm picker
+       goes dead until a full page refresh. */
+    if (!window.__casaArmsSectionBound) {
+      window.__casaArmsSectionBound = true;
+      document.addEventListener('shopify:section:load', function(e) {
+        var el = e.target.querySelector('.casa-arms');
+        if (el) initArms(el);
+      });
+      document.addEventListener('shopify:section:unload', function(e) {
+        var el = e.target.querySelector('.casa-arms');
+        if (el && el.__armsTeardown) el.__armsTeardown();
+      });
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Casa Arms Showcase",
+  "tag": "section",
+  "class": "shopify-section-casa-arms-showcase",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Headline"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker (mono)",
+      "default": "04 · WHAT MAKES IT PHOENIX"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Five arms. <em>Aim them anywhere.</em>"
+    },
+    {
+      "type": "richtext",
+      "id": "lede",
+      "label": "Lede",
+      "default": "<p>Each arm rotates 360° at the joint and pivots at the diffuser. Lay them flat for a fan, aim them all up for a wash, stagger them for drama. Four common arrangements, infinite combinations.</p>"
+    },
+    {
+      "type": "header",
+      "content": "Film colors (5)"
+    },
+    { "type": "color", "id": "film_gold",   "label": "Rose Ember (pink-red)",             "default": "#E95F77" },
+    { "type": "color", "id": "film_amber",  "label": "Emerald Glow (green)",              "default": "#2FA66F" },
+    { "type": "color", "id": "film_blush",  "label": "Cobalt Dusk (deep blue)",           "default": "#315BCF" },
+    { "type": "color", "id": "film_red",    "label": "Turquoise Horizon (turquoise blue)", "default": "#28BFC7" },
+    { "type": "color", "id": "film_violet", "label": "Aurora Fusion (red-blue gradient)",  "default": "#7A4DCE" },
+    {
+      "type": "header",
+      "content": "Footer strip"
+    },
+    { "type": "text",     "id": "strip_1_label", "label": "Cell 1 label", "default": "360° JOINTS" },
+    { "type": "richtext", "id": "strip_1_body",  "label": "Cell 1 body",  "default": "<p>Each arm pivots at the pole and rotates independently at the diffuser end. Set once, holds position.</p>" },
+    { "type": "text",     "id": "strip_2_label", "label": "Cell 2 label", "default": "5 ANGLES" },
+    { "type": "richtext", "id": "strip_2_body",  "label": "Cell 2 body",  "default": "<p>Mix all five effects in one arrangement, or repeat one effect across all five arms for a coordinated wash. Both work.</p>" },
+    { "type": "text",     "id": "strip_3_label", "label": "Cell 3 label", "default": "NO TOOLS" },
+    { "type": "richtext", "id": "strip_3_body",  "label": "Cell 3 body",  "default": "<p>Films slide in and out of the diffuser slot by hand. Swap a film in under 5 seconds.</p>" },
+    {
+      "type": "header",
+      "content": "Surface"
+    },
+    { "type": "color", "id": "color_paper", "label": "Paper (text)", "default": "#FAFAF7" },
+    { "type": "color", "id": "color_ink",   "label": "Ink (bg)",     "default": "#0A0A0F" },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    { "type": "range", "id": "padding_top",    "label": "Top",    "min": 0, "max": 200, "step": 4, "unit": "px", "default": 96 },
+    { "type": "range", "id": "padding_bottom", "label": "Bottom", "min": 0, "max": 200, "step": 4, "unit": "px", "default": 96 }
+  ],
+  "blocks": [
+    {
+      "type": "pattern",
+      "name": "Pattern",
+      "limit": 4,
+      "settings": [
+        { "type": "text",     "id": "number",    "label": "Number",   "default": "1" },
+        { "type": "text",     "id": "name",      "label": "Name",     "default": "Fan" },
+        { "type": "text",     "id": "subtitle",  "label": "Subtitle", "default": "Spread 60° wide" },
+        { "type": "richtext", "id": "hint",      "label": "Hint",     "default": "<p>One-sentence description of how this configuration reads in a room.</p>" },
+        {
+          "type": "textarea",
+          "id": "arms_json",
+          "label": "Arms JSON",
+          "info": "JSON array of 5 objects, each with 'a' (angle in degrees from vertical, -90 to 90) and 'f' (film index 0-4).",
+          "default": "[{\"a\":-50,\"f\":0},{\"a\":-25,\"f\":1},{\"a\":0,\"f\":2},{\"a\":25,\"f\":3},{\"a\":50,\"f\":4}]"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Arms Showcase",
+      "blocks": [
+        {
+          "type": "pattern",
+          "settings": {
+            "number": "1", "name": "Stacked", "subtitle": "One effect, five heads",
+            "hint": "<p>A single column of coordinated color up the wall. Use five matching films of one design for a unified wash, or mix the five effects for contrast.</p>",
+            "arms_json": "[{\"a\":-2,\"f\":0},{\"a\":0,\"f\":0},{\"a\":2,\"f\":0},{\"a\":-1,\"f\":0},{\"a\":1,\"f\":0}]"
+          }
+        },
+        {
+          "type": "pattern",
+          "settings": {
+            "number": "2", "name": "Fan", "subtitle": "Spread 60° wide",
+            "hint": "<p>Five arms spread evenly across the wall — a full sunset, top to bottom. The most-used preset.</p>",
+            "arms_json": "[{\"a\":-50,\"f\":0},{\"a\":-25,\"f\":1},{\"a\":0,\"f\":2},{\"a\":25,\"f\":3},{\"a\":50,\"f\":4}]"
+          }
+        },
+        {
+          "type": "pattern",
+          "settings": {
+            "number": "3", "name": "Asymmetric", "subtitle": "Uneven spread",
+            "hint": "<p>Deliberately off-balance. Two arms swing strongly left, three lean right at varied angles — most dramatic, least uniform.</p>",
+            "arms_json": "[{\"a\":-62,\"f\":0},{\"a\":-30,\"f\":1},{\"a\":-8,\"f\":2},{\"a\":34,\"f\":3},{\"a\":15,\"f\":4}]"
+          }
+        },
+        {
+          "type": "pattern",
+          "settings": {
+            "number": "4", "name": "Gathered", "subtitle": "All arms pointing up",
+            "hint": "<p>Up-lighter mode. All five arms wash the ceiling — the softest, most gentle light. Often used in bedrooms.</p>",
+            "arms_json": "[{\"a\":-18,\"f\":0},{\"a\":-9,\"f\":1},{\"a\":0,\"f\":2},{\"a\":9,\"f\":3},{\"a\":18,\"f\":4}]"
+          }
+        }
+      ]
+    }
+  ],
+  "enabled_on": {
+    "templates": ["product"]
+  }
+}
+{% endschema %}

@@ -1,0 +1,68 @@
+{%- comment -%}
+  casa-coll-card.liquid
+  Used by: sections/casa-list-collections.liquid
+  Inputs:
+    - coll (required): a Shopify Collection drop
+    - show_count (bool): show "N products" eyebrow under image
+    - override_title (string, optional)
+    - override_image (Image, optional)
+    - forloop_index (int): 1-based card index — used to set
+      loading="eager" + fetchpriority="high" on the first two cards
+      (likely above-the-fold LCP candidates) and lazy on the rest.
+{%- endcomment -%}
+
+{%- liquid
+  assign card_title = override_title | default: coll.title
+  assign card_image = override_image | default: coll.image
+  if card_image == blank and coll.products.first
+    assign card_image = coll.products.first.featured_image
+  endif
+
+  assign is_above_fold = false
+  if forloop_index and forloop_index <= 2
+    assign is_above_fold = true
+  endif
+-%}
+
+<a
+  href="{{ coll.url }}"
+  class="cdl-coll-card"
+  aria-label="{{ card_title | escape }}{% if show_count %}, {{ coll.all_products_count }} products{% endif %}"
+>
+  <div class="cdl-coll-card__media">
+    {%- if card_image != blank -%}
+      {%- if is_above_fold -%}
+        {{ card_image | image_url: width: 1200 | image_tag:
+          class: 'cdl-coll-card__img',
+          loading: 'eager',
+          fetchpriority: 'high',
+          decoding: 'async',
+          width: card_image.width,
+          height: card_image.height,
+          widths: '320,480,640,800,1000,1200',
+          sizes: '(min-width: 1100px) 420px, (min-width: 750px) 50vw, 100vw',
+          alt: card_title
+        }}
+      {%- else -%}
+        {{ card_image | image_url: width: 1000 | image_tag:
+          class: 'cdl-coll-card__img',
+          loading: 'lazy',
+          decoding: 'async',
+          width: card_image.width,
+          height: card_image.height,
+          widths: '320,480,640,800,1000',
+          sizes: '(min-width: 1100px) 420px, (min-width: 750px) 50vw, 100vw',
+          alt: card_title
+        }}
+      {%- endif -%}
+    {%- else -%}
+      <div class="cdl-coll-card__placeholder" aria-hidden="true">{{ card_title | escape }}</div>
+    {%- endif -%}
+  </div>
+  <div class="cdl-coll-card__meta">
+    {%- if show_count -%}
+      <span class="cdl-coll-card__count">{{ coll.all_products_count }} {{ coll.all_products_count | pluralize: 'product', 'products' }}</span>
+    {%- endif -%}
+    <h2 class="cdl-coll-card__title">{{ card_title }}</h2>
+  </div>
+</a>

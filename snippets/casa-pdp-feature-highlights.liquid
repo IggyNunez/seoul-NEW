@@ -2,15 +2,27 @@
   Casa PDP Feature Highlights
   2×2 grid with purple checkmarks
 
+  Source-of-truth resolution (in order):
+    1. Product metafield (custom.feature_highlight_1..4) — preferred
+    2. Block setting (per-template fallback)
+    3. Blank → row is skipped
+
+  No hardcoded copy. Pre-2026-05-17 this snippet defaulted to smart-mirror
+  copy ("16+ Million RGB Colors", "Mirror by Day, Portal by Night", etc.)
+  which bled onto every non-smart product that used the block (e.g. side
+  tables, vases). Defaults removed; metafield read added.
+
   Parameters:
   - block: The block object with settings
+  - product (optional): the product object — falls back to `closest.product`
 {%- endcomment -%}
 
 {%- liquid
-  assign highlight_1 = block.settings.highlight_1 | default: '16+ Million RGB Colors'
-  assign highlight_2 = block.settings.highlight_2 | default: 'App & Voice Control'
-  assign highlight_3 = block.settings.highlight_3 | default: 'Mirror by Day, Portal by Night'
-  assign highlight_4 = block.settings.highlight_4 | default: '50,000 Hour LED Lifespan'
+  assign p = product | default: closest.product
+  assign highlight_1 = p.metafields.custom.feature_highlight_1 | default: block.settings.highlight_1
+  assign highlight_2 = p.metafields.custom.feature_highlight_2 | default: block.settings.highlight_2
+  assign highlight_3 = p.metafields.custom.feature_highlight_3 | default: block.settings.highlight_3
+  assign highlight_4 = p.metafields.custom.feature_highlight_4 | default: block.settings.highlight_4
 -%}
 
 <div class="casa-pdp-highlights">
@@ -80,7 +92,7 @@
   width: 20px;
   height: 20px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #9333ea, #ec4899);
+  background: var(--grad-primary, linear-gradient(135deg, #B0C3FA, #5E0A02));
   color: #fff;
 }
 

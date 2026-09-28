@@ -1,0 +1,56 @@
+{%- comment -%}
+  casa-breadcrumb-collection.liquid
+  Used by: blocks/breadcrumbs.liquid (live visible crumb),
+           snippets/casa-jsonld-breadcrumbs.liquid (structured data),
+           blocks/casa-title.liquid, blocks/casa-breadcrumbs.liquid,
+           snippets/breadcrumbs.liquid (legacy).
+
+  Echoes the HANDLE of the collection that should be the middle breadcrumb
+  crumb for a product — or "" when none is suitable. Every breadcrumb renderer
+  goes through this one snippet so the visible crumb and the JSON-LD can never
+  disagree.
+
+  Pass the product explicitly from block scope:
+    {%- render 'casa-breadcrumb-collection', product: closest.product -%}
+  In <head>/section scope the global `product` is used automatically.
+
+  Selection order:
+    1. Merchant-set primary — the per-product metafield
+       `custom.casa_breadcrumb_value` (Collection reference). Explicit merchant
+       choice, always wins. (Wrong crumb here = fix the metafield in Admin.)
+    2. Fallback — the product's first REAL CATEGORY collection, chosen from the
+       casa_bc_categories ALLOW-list below, in that priority order.
+    3. Otherwise "" → breadcrumb shows Home / Product only.
+
+  Why an allow-list, not a block-list: a block-list of "junk" collections fails
+  WRONG — any new marketing/ops collection a merchant creates (a "6 Must-Have's",
+  "Trending", "Back to School", "Father's Day Gifts"…) silently becomes a
+  breadcrumb until someone adds it to the list. The allow-list fails SAFE: only
+  genuine product categories can ever be a crumb; anything unknown is skipped and
+  the crumb is omitted rather than showing junk. When you add a NEW product
+  category collection, add its handle here (most specific first).
+{%- endcomment -%}
+{%- liquid
+  assign casa_bc_categories = 'cleansers,toners-1,essences,serums-1,treatments-1,exfoliators,masks,eye-cream,moisturizers,sunscreens-1,makeup,wellness-rituals' | split: ','
+
+  assign casa_bc_chosen = ''
+
+  # 1. Merchant-set primary collection (per-product metafield) — explicit choice wins.
+  assign casa_bc_meta = product.metafields.custom.casa_breadcrumb_value.value
+  if casa_bc_meta != blank and casa_bc_meta.handle != blank
+    assign casa_bc_chosen = casa_bc_meta.handle
+  endif
+
+  # 2. Fallback: first real category the product belongs to, in allow-list priority.
+  if casa_bc_chosen == '' and product != blank
+    assign casa_bc_product_handles = product.collections | map: 'handle'
+    for casa_bc_cat in casa_bc_categories
+      if casa_bc_product_handles contains casa_bc_cat
+        assign casa_bc_chosen = casa_bc_cat
+        break
+      endif
+    endfor
+  endif
+
+  echo casa_bc_chosen
+-%}

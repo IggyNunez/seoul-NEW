@@ -1,0 +1,683 @@
+{%- comment -%}
+  Seoul Glow Lab — Final CTA + reassurance strip
+
+  Ink section. Closing image + headline + price + one last add-to-cart,
+  then a three-item reassurance row (guarantee / shipping / returns).
+
+  Per the Casa Design mirror-family PDP closing beat. Sits after the
+  recommendations rail so the last thing on the page is a buy decision,
+  not a competing product.
+
+  CART PATH — a real <form> + <button type="submit">, so Enter AND Space
+  both work and the control announces as a button. With JS on, the submit
+  is intercepted and proxied to the buy box's own add-to-cart, so variant,
+  quantity, cart drawer and error handling all come from one place. With
+  JS off the form POSTs natively for the variant in the URL.
+
+  The proxy lookup is SCOPED BY PRODUCT ID (the chain casa-sticky-cart
+  uses), not a bare `form[action*="/cart/add"] button[name=add]`. That
+  bare selector takes the first match in document order, and quick-add.
+  liquid, casa-pdp-buy-buttons.liquid, casa-pdp-save-bundle.liquid and
+  blocks/buy-buttons.liquid all emit one — put any of those above the buy
+  box and the closing CTA would silently add the wrong product. This
+  section's own submit deliberately carries no name="add" so it can never
+  match its own lookup.
+
+  PRICE — server-rendered through the shared `casa-money` snippet, which
+  emits money_with_currency with non-breaking joins. A bare `money` filter
+  shows "$1,299.00" where the buy box on the same page shows "$1,299.00
+  CAD" — same page, two formats, and in CAD/HKD/DOP a bare $ is ambiguous.
+  On variant change the already-formatted string is COPIED from the buy
+  box rather than re-formatted in JS; if that element is missing the price
+  is hidden rather than left stale.
+
+  Used by: templates/product.infinity-octamirror-v2.json
+  Blocks:  reassurance (kicker, title, body)
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+
+  assign media = s.image
+  if media == blank
+    assign media = product.featured_image
+  endif
+
+  assign media_alt = media.alt
+  if media_alt == blank
+    assign media_alt = product.title
+  endif
+
+  assign cur_variant = product.selected_or_first_available_variant
+-%}
+
+<section
+  id="casa-fcta-{{ section.id }}"
+  class="casa-fcta{% if s.layout_density == 'one_frame' %} casa-fcta--compact{% endif %}"
+  style="
+    --casa-fcta-paper:  {{ s.color_paper  | default: '#FAFAF7' }};
+    --casa-fcta-ink:    {{ s.color_ink    | default: '#0A0A0F' }};
+    --casa-fcta-purple: {{ s.color_purple | default: '#B0C3FA' }};
+    --casa-fcta-pink:   {{ s.color_pink   | default: '#5E0A02' }};
+    --casa-fcta-cyan:   {{ s.color_cyan   | default: '#F2FFA0' }};
+    --casa-fcta-pt:     {{ s.padding_top    | default: 96 }}px;
+    --casa-fcta-pb:     {{ s.padding_bottom | default: 96 }}px;
+  "
+>
+  <div class="casa-fcta__cap">
+    {%- if media != blank -%}
+      <div class="casa-fcta__media">
+        {{
+          media
+          | image_url: width: 1200
+          | image_tag:
+            widths: '400, 600, 800, 1200',
+            sizes: '(max-width: 1023px) 100vw, 45vw',
+            loading: 'lazy',
+            decoding: 'async',
+            alt: media_alt
+        }}
+      </div>
+    {%- endif -%}
+
+    <div class="casa-fcta__copy">
+      {%- if s.kicker != blank -%}
+        <p class="casa-fcta__mono casa-fcta__mono--accent">{{ s.kicker | escape }}</p>
+      {%- endif -%}
+      {%- if s.heading != blank -%}
+        <h2 class="casa-fcta__h2">{{ s.heading }}</h2>
+      {%- endif -%}
+      {%- if s.body != blank -%}
+        <p class="casa-fcta__lede">{{ s.body | escape | newline_to_br }}</p>
+      {%- endif -%}
+
+      {%- if product != blank -%}
+        <div class="casa-fcta__buy">
+          <p class="casa-fcta__price" data-casa-fcta-price-wrap>
+            <span class="casa-fcta__price-row">
+              <span class="casa-fcta__price-now" data-casa-fcta-price>
+                {%- capture _fcta_price -%}{%- render 'casa-money', amount: cur_variant.price -%}{%- endcapture -%}
+                {{- _fcta_price | remove_first: '&nbsp;' -}}
+              </span>
+              {%- if cur_variant.compare_at_price > cur_variant.price -%}
+                {%- capture _fcta_was -%}{%- render 'casa-money', amount: cur_variant.compare_at_price -%}{%- endcapture -%}
+                <s class="casa-fcta__price-was" data-casa-fcta-compare>
+                  <span class="visually-hidden">{{ s.was_sr_label | default: 'Regular price' | escape }}</span>
+                  {{- _fcta_was | remove_first: '&nbsp;' -}}
+                </s>
+              {%- else -%}
+                <s class="casa-fcta__price-was" data-casa-fcta-compare hidden></s>
+              {%- endif -%}
+            </span>
+            {%- if s.pay_note != blank -%}
+              <span class="casa-fcta__price-pay">{{ s.pay_note | escape }}</span>
+            {%- endif -%}
+          </p>
+
+          <form
+            action="{{ routes.cart_add_url }}"
+            method="post"
+            class="casa-fcta__form"
+            data-casa-fcta-form
+          >
+            <input type="hidden" name="id" value="{{ cur_variant.id }}">
+            <input type="hidden" name="quantity" value="1">
+            <button
+              type="submit"
+              class="btn btn-primary-on-dark casa-fcta__atc"
+              data-casa-fcta-atc
+              {% unless cur_variant.available %}disabled{% endunless %}
+            >{% if cur_variant.available %}{{ s.cta_label | default: 'Add to cart' | escape }}{% else %}{{ s.sold_out_label | default: 'Sold out' | escape }}{% endif %}</button>
+          </form>
+        </div>
+      {%- endif -%}
+
+      {%- if section.blocks.size > 0 -%}
+        <ul class="casa-fcta__reassure">
+          {%- for block in section.blocks -%}
+            <li {{ block.shopify_attributes }}>
+              {%- if block.settings.kicker != blank -%}
+                <span class="casa-fcta__mono casa-fcta__mono--cyan">{{ block.settings.kicker | escape }}</span>
+              {%- endif -%}
+              {%- if block.settings.title != blank -%}
+                <strong>{{ block.settings.title | escape }}</strong>
+              {%- endif -%}
+              {%- if block.settings.body != blank -%}
+                <span class="casa-fcta__reassure-body">{{ block.settings.body | escape }}</span>
+              {%- endif -%}
+            </li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+
+{%- if product != blank -%}
+  <script>
+    (function () {
+      var ROOT = document.getElementById('casa-fcta-{{ section.id }}');
+      if (!ROOT || ROOT.dataset.casaFctaInit === '1') return;
+      ROOT.dataset.casaFctaInit = '1';
+
+      var form = ROOT.querySelector('[data-casa-fcta-form]');
+      var priceEl = ROOT.querySelector('[data-casa-fcta-price]');
+      var priceWrap = ROOT.querySelector('[data-casa-fcta-price-wrap]');
+      var idInput = ROOT.querySelector('[data-casa-fcta-form] input[name="id"]');
+      var compareEl = ROOT.querySelector('[data-casa-fcta-compare]');
+      if (!form) return;
+
+      var PID = '{{ product.id }}';
+
+      // Scoped by product id, most specific first — the chain casa-sticky-cart
+      // uses. The bare `form[action*="/cart/add"] button[name=add]` fallback is
+      // last and is filtered against this section, so a quick-add rail or a
+      // bundle block rendered above the buy box can never be picked up.
+      function mainAtc() {
+        var candidates = [
+          '.cpm [data-product-id="' + PID + '"] [ref="addToCartButton"]',
+          'product-form-component[data-product-id="' + PID + '"] [ref="addToCartButton"]',
+          'product-form-component[data-product-id="' + PID + '"] button[type="submit"]',
+          'form[action*="/cart/add"] button[type="submit"][name="add"]'
+        ];
+        for (var i = 0; i < candidates.length; i++) {
+          var el = document.querySelector(candidates[i]);
+          if (el && !ROOT.contains(el)) return el;
+        }
+        return null;
+      }
+
+      function buyBoxEl(sel) {
+        var scope = document.querySelector('.cpm [data-product-id="' + PID + '"]') || document;
+        var el = scope.querySelector(sel);
+        return el && !ROOT.contains(el) ? el : null;
+      }
+
+      var onSubmit = function (e) {
+        var target = mainAtc();
+        // No in-page buy box at all: do NOT preventDefault — let the form POST
+        // natively so the CTA still works with JS off or on a stripped template.
+        if (!target) return;
+        e.preventDefault();
+        if (target.disabled) {
+          // Sold out. The old code fell through to href="{{ product.url }}",
+          // which on a PDP is the current page — a full reload to the top that
+          // reads as a broken button. Show the visitor the buy box instead.
+          target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          return;
+        }
+        target.click();
+      };
+      form.addEventListener('submit', onSubmit);
+
+      // Keep the price honest against the button. The string is COPIED from
+      // the buy box (already rendered by Liquid's money filter in the buyer's
+      // active market) — never re-formatted here. If there is no buy-box price
+      // to read, hide ours rather than leave a stale number above a button
+      // that adds a different amount.
+      var onVariant = function (e) {
+        // Keep the no-JS fallback form honest as well. The hidden id is
+        // server-rendered from selected_or_first_available_variant, which is
+        // right on load but goes stale after a client-side size change — so a
+        // native POST (proxy target missing) would add the size the shopper
+        // stopped looking at.
+        var variant = e && e.detail ? e.detail.resource : null;
+        if (idInput && variant && variant.id) idInput.value = variant.id;
+
+        if (!priceEl) return;
+        var src = buyBoxEl('.cpm__price-current');
+        if (src) {
+          priceEl.innerHTML = src.innerHTML;
+        } else if (priceWrap) {
+          priceWrap.hidden = true;
+          return;
+        }
+
+        // Compare-at follows the same copy-don't-format rule. Hidden when the
+        // newly selected variant is not discounted, so a struck price can
+        // never linger from the previous size.
+        if (compareEl) {
+          var wasSrc = buyBoxEl('.cpm__price-compare');
+          if (wasSrc && wasSrc.textContent.trim()) {
+            compareEl.innerHTML = wasSrc.innerHTML;
+            compareEl.hidden = false;
+          } else {
+            compareEl.hidden = true;
+          }
+        }
+      };
+      document.addEventListener('variant:update', onVariant);
+
+      // Element listeners die with their nodes; the document listeners are the
+      // only ones that need removing, and this one must remove ITSELF or the
+      // editor accumulates a stale closure per re-render.
+      var onUnload = function (e) {
+        if (e.detail && e.detail.sectionId !== '{{ section.id }}') return;
+        document.removeEventListener('variant:update', onVariant);
+        document.removeEventListener('shopify:section:unload', onUnload);
+      };
+      document.addEventListener('shopify:section:unload', onUnload);
+    })();
+  </script>
+{%- endif -%}
+
+{% stylesheet %}
+.casa-fcta {
+  background: var(--casa-fcta-ink, #0A0A0F);
+  color: var(--casa-fcta-paper, #FAFAF7);
+  padding: var(--casa-fcta-pt, 96px) 0 var(--casa-fcta-pb, 96px);
+}
+.casa-fcta__cap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(28px, 4vw, 64px);
+  align-items: center;
+}
+@media (max-width: 1023px) {
+  .casa-fcta__cap { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+}
+
+.casa-fcta__media {
+  position: relative;
+  aspect-ratio: 5 / 4;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.06);
+  min-width: 0;
+}
+.casa-fcta__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.casa-fcta__copy { min-width: 0; }
+.casa-fcta__mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0 0 18px;
+  display: block;
+}
+.casa-fcta__mono--accent { color: var(--casa-fcta-pink, #5E0A02); }
+.casa-fcta__mono--cyan { color: var(--casa-fcta-cyan, #F2FFA0); margin-bottom: 6px; }
+
+.casa-fcta__h2 {
+  font-family: var(--casa-pdp-h2-family);
+  font-size: var(--casa-pdp-h2-size);
+  font-weight: var(--casa-pdp-h2-weight);
+  letter-spacing: var(--casa-pdp-h2-tracking);
+  line-height: var(--casa-pdp-h2-line);
+  color: #fff;
+  margin: 0 0 16px;
+  text-wrap: balance;
+}
+.casa-fcta__h2 em {
+  font-style: italic;
+  font-weight: 800;
+  background: linear-gradient(90deg, var(--casa-fcta-pink, #5E0A02), var(--casa-fcta-cyan, #F2FFA0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+@media (max-width: 380px) {
+  .casa-fcta__h2 em { font-size: 1.02em; }
+}
+
+.casa-fcta__lede {
+  font-size: clamp(15px, 1.4vw, 17px);
+  line-height: 1.6;
+  color: rgba(255,255,255,0.82);
+  margin: 0 0 24px;
+  max-width: 58ch;
+  text-wrap: pretty;
+}
+
+.casa-fcta__buy {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+.casa-fcta__price {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  min-width: 0;
+}
+/* current + struck sit on one baseline, the pay note drops under both */
+.casa-fcta__price-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0;
+  min-width: 0;
+}
+.casa-fcta__price-now {
+  font-family: var(--font-body--family);
+  font-size: clamp(22px, 2.6vw, 26px);
+  font-weight: 500;
+  line-height: 1.1;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  /* NOT overflow-wrap: anywhere. That authorises a break at any character,
+     including inside a numeral group — "38.343." / "000 VND". casa-money's
+     non-breaking joins plus flex-wrap on .casa-fcta__buy handle the narrow
+     case without ever splitting a number. */
+  overflow-wrap: normal;
+}
+.casa-fcta__price-was {
+  font-size: 14px;
+  color: rgba(255,255,255,0.55);
+  text-decoration-thickness: 1px;
+  margin-inline-start: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.casa-fcta__price-was[hidden] { display: none; }
+.casa-fcta__price-pay {
+  font-size: 12px;
+  color: rgba(255,255,255,0.62);
+  overflow-wrap: anywhere;
+}
+/* The Paper-on-Ink inversion now comes from .btn-primary-on-dark in
+   assets/casa-buttons.css, which is the canonical class for this surface.
+   Re-declaring the colours here instead left the outcome decided purely by
+   load order between the compiled section-style bundle and casa-buttons.css
+   — two single-class selectors, same specificity. This block now only adds
+   what the button system does not cover.
+
+   .btn is white-space: nowrap + line-height: 1, which is safe only while it
+   stays single-line. Allowing a long merchant label to wrap at 280px means
+   restoring leading too, or the lines collide. */
+.casa-fcta__form { margin: 0; min-width: 0; }
+.casa-fcta__atc {
+  white-space: normal;
+  line-height: 1.25;
+  text-align: center;
+  max-width: 100%;
+  min-height: 44px;
+}
+.casa-fcta__atc:focus-visible {
+  outline: 2px solid var(--casa-fcta-cyan, #F2FFA0);
+  outline-offset: 3px;
+}
+.casa-fcta__atc[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.casa-fcta__atc[disabled]:hover { transform: none; }
+@media (max-width: 520px) {
+  .casa-fcta__buy { gap: 14px; }
+  .casa-fcta__form { width: 100%; }
+  .casa-fcta__atc { width: 100%; }
+}
+
+.casa-fcta__reassure {
+  list-style: none;
+  margin: 0;
+  padding: 24px 0 0;
+  border-top: 1px solid rgba(255,255,255,0.16);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+@media (max-width: 620px) {
+  .casa-fcta__reassure { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.casa-fcta__reassure li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.casa-fcta__reassure strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+.casa-fcta__reassure-body {
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(255,255,255,0.78);
+  text-wrap: pretty;
+}
+
+/* ── One-frame density ───────────────────────────────────────────────
+   Opt-in via the "Section height" setting.
+
+   Desktop already fits inside a frame — the media sits beside the copy.
+   The overrun is on phones, where the grid stacks and the 5:4 image is
+   added to the full height of the copy column. A 16:9 crop on the
+   stacked layout costs ~150px less and still carries the product.      */
+/* One line on a phone: needs ~365px against 350px available at 28px, so it
+   was breaking and costing 31px. Same phones-only divergence from the
+   brand-book H2 floor as the other compact sections. */
+.casa-fcta--compact .casa-fcta__h2 { font-size: clamp(23px, 6.6vw, 28px); }
+.casa-fcta--compact .casa-fcta__mono { margin-bottom: 12px; }
+.casa-fcta--compact .casa-fcta__h2 { margin-bottom: 12px; }
+.casa-fcta--compact .casa-fcta__lede { margin-bottom: 16px; }
+.casa-fcta--compact .casa-fcta__buy { margin-bottom: 18px; }
+
+/* Short viewports: the image and the three reassurance rows compress
+   before the price or the button do. */
+
+
+@media (max-width: 1023px) {
+  .casa-fcta--compact .casa-fcta__cap { gap: 20px; }
+  /* Measured on a 390px phone: the stacked copy column is 604px on its
+     own, so the image has to earn its place in what is left. 21:9 still
+     reads as a room shot at this width. */
+  .casa-fcta--compact .casa-fcta__media { aspect-ratio: 2.6 / 1; }
+  .casa-fcta--compact .casa-fcta__mono { margin-bottom: 8px; }
+  .casa-fcta--compact .casa-fcta__h2 { margin-bottom: 8px; }
+  .casa-fcta--compact .casa-fcta__lede { font-size: 13.5px; line-height: 1.45; margin-bottom: 12px; }
+  .casa-fcta--compact .casa-fcta__buy { margin-bottom: 12px; gap: 12px; }
+  /* The three reassurance rows stack here and cost 260px — more than the
+     headline, lede and price put together. Tightened, not dropped: they
+     are the last objection-handling on the page. */
+  .casa-fcta--compact .casa-fcta__reassure { padding-top: 14px; gap: 10px; }
+  .casa-fcta--compact .casa-fcta__reassure li { gap: 2px; }
+  .casa-fcta--compact .casa-fcta__reassure-body { font-size: 11.5px; line-height: 1.4; }
+}
+
+/* 790px, not 800: it has to catch a 768-tall landscape tablet, which
+   the first attempt at 760 missed by eight pixels, without also firing
+   on an 800-tall laptop that already fits and would only get smaller
+   for nothing.
+
+   Height tiers live LAST. They share specificity with the width
+   queries above and only win on source order — placed earlier they
+   silently lost, which is exactly what happened on the first pass. */
+@media (max-height: 790px) {
+  .casa-fcta--compact .casa-fcta__media { aspect-ratio: 3.2 / 1; }
+  .casa-fcta--compact .casa-fcta__lede { font-size: 13px; margin-bottom: 10px; }
+  .casa-fcta--compact .casa-fcta__buy { margin-bottom: 10px; }
+  .casa-fcta--compact .casa-fcta__reassure { padding-top: 10px; gap: 8px; }
+  .casa-fcta--compact .casa-fcta__reassure-body { font-size: 11px; }
+  .casa-fcta--compact .casa-fcta__h2 { margin-bottom: 8px; }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Final CTA",
+  "tag": "section",
+  "class": "casa-final-cta-section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "layout_density",
+      "label": "Section height",
+      "info": "One frame tightens spacing and crops the image wider on phones so the section fits a single screen.",
+      "options": [
+        { "value": "comfortable", "label": "Comfortable" },
+        { "value": "one_frame", "label": "Fit one frame" }
+      ],
+      "default": "comfortable"
+    },
+    {
+      "type": "header",
+      "content": "Heading"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker (mono)"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading (use <em>word</em> for italic gradient accent)"
+    },
+    {
+      "type": "textarea",
+      "id": "body",
+      "label": "Body"
+    },
+    {
+      "type": "header",
+      "content": "Image",
+      "info": "Falls back to the product's featured image."
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Closing image"
+    },
+    {
+      "type": "header",
+      "content": "Call to action",
+      "info": "Reuses the buy box's own add-to-cart, so it always adds the size the visitor selected. Falls back to a plain form POST if the buy box is missing."
+    },
+    {
+      "type": "text",
+      "id": "cta_label",
+      "label": "Button label",
+      "default": "Add to cart"
+    },
+    {
+      "type": "text",
+      "id": "was_sr_label",
+      "label": "Screen-reader wording for the struck price",
+      "default": "Regular price"
+    },
+    {
+      "type": "text",
+      "id": "sold_out_label",
+      "label": "Button label when sold out",
+      "default": "Sold out"
+    },
+    {
+      "type": "text",
+      "id": "pay_note",
+      "label": "Line under the price",
+      "info": "e.g. \"Free worldwide shipping · 30-day returns\"."
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "color_paper",
+      "label": "Paper",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "color_ink",
+      "label": "Ink",
+      "default": "#0A0A0F"
+    },
+    {
+      "type": "color",
+      "id": "color_purple",
+      "label": "Accent purple",
+      "default": "#B0C3FA"
+    },
+    {
+      "type": "color",
+      "id": "color_pink",
+      "label": "Accent pink",
+      "default": "#5E0A02"
+    },
+    {
+      "type": "color",
+      "id": "color_cyan",
+      "label": "Accent cyan",
+      "default": "#F2FFA0"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 200,
+      "step": 8,
+      "default": 96,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 200,
+      "step": 8,
+      "default": 96,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "reassurance",
+      "name": "Reassurance item",
+      "settings": [
+        {
+          "type": "text",
+          "id": "kicker",
+          "label": "Kicker (mono)"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title"
+        },
+        {
+          "type": "textarea",
+          "id": "body",
+          "label": "Body"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 4,
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "presets": [
+    {
+      "name": "Casa Final CTA",
+      "category": "Product",
+      "blocks": [
+        { "type": "reassurance" },
+        { "type": "reassurance" },
+        { "type": "reassurance" }
+      ]
+    }
+  ]
+}
+{% endschema %}

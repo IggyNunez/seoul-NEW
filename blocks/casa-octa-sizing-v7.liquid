@@ -1,0 +1,424 @@
+{% doc %}
+  Renders expandable OctaMirror V7 size guidance and specifications below the buy buttons.
+{% enddoc %}
+
+<casa-confidence-size-v7 class="casa-v7-sizing" id="casa-v7-sizing-details" data-purchase-target="#casa-octa-purchase" {{ block.shopify_attributes }}>
+  <details class="casa-v7-sizing__details" name="casa-v7-sizing-{{ block.id }}">
+    <summary>{{ 'casa_octa.sizing.size_fit' | t }}<span aria-hidden="true"></span></summary>
+    <div class="casa-v7-sizing__body">
+      <div class="casa-v7-sizing__readouts" aria-live="polite" aria-atomic="true">
+        {% for variant in product.variants %}
+          {% liquid
+            assign inches = '11.8'
+            assign centimeters = '30'
+            assign size_weight = block.settings.small_weight
+            assign placement = 'casa_octa.sizing.small_placement' | t
+            if variant.title contains '70'
+              assign inches = '27.6'
+              assign centimeters = '70'
+              assign size_weight = block.settings.large_weight
+              assign placement = 'casa_octa.sizing.large_placement' | t
+            elsif variant.title contains '50'
+              assign inches = '19.7'
+              assign centimeters = '50'
+              assign size_weight = block.settings.medium_weight
+              assign placement = 'casa_octa.sizing.medium_placement' | t
+            endif
+          %}
+          <div data-size-readout="{{ variant.id }}"{% unless variant.id == product.selected_or_first_available_variant.id %} hidden{% endunless %}>
+            <p class="casa-v7-sizing__placement">{{ placement }}</p>
+            <dl class="casa-v7-sizing__measurements">
+              <div><dt>{{ 'casa_octa.sizing.dimensions' | t }}</dt><dd>{{ inches }} × {{ inches }} in<small>{{ centimeters }} × {{ centimeters }} cm</small></dd></div>
+              <div><dt>{{ 'casa_octa.sizing.depth' | t }}</dt><dd>5 in<small>12.7 cm</small></dd></div>
+              <div><dt>{{ 'casa_octa.sizing.weight' | t }}</dt><dd>{{ size_weight | escape }}</dd></div>
+            </dl>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="casa-v7-confidence__size-compare-head">
+        <strong>{{ 'casa_octa.sizing.relative_scale' | t }}</strong>
+        <span>{{ 'casa_octa.sizing.tap_to_choose' | t }}</span>
+      </div>
+      <div class="casa-v7-confidence__size-compare-stage" role="group" aria-label="{{ 'casa_octa.sizing.compare_label' | t | escape }}">
+        {% for variant in product.variants %}
+          {% liquid
+            assign comparison_key = 'S'
+            assign comparison_scale = '42.857143%'
+            assign comparison_measure = '11.8 in'
+            assign comparison_metric = '30 cm'
+            assign comparison_role = 'accessibility.size_small' | t
+            if variant.title contains '70'
+              assign comparison_key = 'L'
+              assign comparison_scale = '100%'
+              assign comparison_measure = '27.6 in'
+              assign comparison_metric = '70 cm'
+              assign comparison_role = 'accessibility.size_large' | t
+            elsif variant.title contains '50'
+              assign comparison_key = 'M'
+              assign comparison_scale = '71.428571%'
+              assign comparison_measure = '19.7 in'
+              assign comparison_metric = '50 cm'
+              assign comparison_role = 'accessibility.size_medium' | t
+            endif
+          %}
+          <button
+            type="button"
+            class="casa-v7-confidence__size-compare-option{% if variant.id == product.selected_or_first_available_variant.id %} is-selected{% endif %}"
+            data-confidence-size-option
+            data-confidence-size-key="{{ comparison_key }}"
+            data-variant-id="{{ variant.id }}"
+            {% unless variant.available %}disabled{% endunless %}
+            data-variant-title="{{ variant.title | escape }}"
+            aria-label="{{ 'casa_octa.sizing.select_size' | t: size: comparison_measure, role: comparison_role | escape }}"
+            aria-pressed="{% if variant.id == product.selected_or_first_available_variant.id %}true{% else %}false{% endif %}"
+          >
+            <span class="casa-v7-confidence__size-compare-visual" style="--confidence-size-scale: {{ comparison_scale }};" aria-hidden="true">
+              <svg viewBox="0 0 100 100" focusable="false">
+                <polygon class="casa-v7-confidence__size-compare-glass" points="29.3,1 70.7,1 99,29.3 99,70.7 70.7,99 29.3,99 1,70.7 1,29.3"/>
+                <polygon points="33.5,11 66.5,11 89,33.5 89,66.5 66.5,89 33.5,89 11,66.5 11,33.5"/>
+                <polygon points="37.4,20.5 62.6,20.5 79.5,37.4 79.5,62.6 62.6,79.5 37.4,79.5 20.5,62.6 20.5,37.4"/>
+                <polygon points="41,29 59,29 71,41 71,59 59,71 41,71 29,59 29,41"/>
+              </svg>
+            </span>
+            <span class="casa-v7-confidence__size-compare-copy">
+              <strong>{{ comparison_measure }}</strong>
+              <small>{{ comparison_metric }} · {{ comparison_role }}</small>
+              {% if comparison_key == 'L' %}<em>{{ 'accessibility.size_bestseller' | t }}</em>{% endif %}
+            </span>
+            <span class="casa-v7-confidence__size-compare-selected" aria-hidden="true">✓ {{ 'accessibility.size_selected' | t }}</span>
+          </button>
+        {% endfor %}
+      </div>
+      <p>{{ 'casa_octa.sizing.size_note' | t }}</p>
+    </div>
+  </details>
+  <details class="casa-v7-sizing__details" name="casa-v7-sizing-{{ block.id }}">
+    <summary>{{ 'casa_octa.sizing.full_specs' | t }}<span aria-hidden="true"></span></summary>
+    <div class="casa-v7-sizing__body">
+      <table class="casa-v7-sizing__table">
+        <caption>{{ 'casa_octa.sizing.all_dimensions' | t }}</caption>
+        <thead><tr><th scope="col">{{ 'casa_octa.sizing.dimensions' | t }}</th><th scope="col">{{ 'casa_octa.sizing.depth' | t }}</th><th scope="col">{{ 'casa_octa.sizing.weight' | t }}</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">11.8 × 11.8 in<small>30 × 30 cm</small></th><td>5 in<small>12.7 cm</small></td><td>{{ block.settings.small_weight | escape }}</td></tr>
+          <tr><th scope="row">19.7 × 19.7 in<small>50 × 50 cm</small></th><td>5 in<small>12.7 cm</small></td><td>{{ block.settings.medium_weight | escape }}</td></tr>
+          <tr><th scope="row">27.6 × 27.6 in<small>70 × 70 cm</small></th><td>5 in<small>12.7 cm</small></td><td>{{ block.settings.large_weight | escape }}</td></tr>
+        </tbody>
+      </table>
+      <p>{{ 'casa_octa.sizing.measurement_note' | t }}</p>
+      <dl class="casa-v7-sizing__specs">
+        {% assign spec_keys = 'materials,lighting,controls,power,lifespan,included,care' | split: ',' %}
+        {% for spec in spec_keys %}
+          {% assign label_key = 'casa_octa.sizing.' | append: spec %}
+          {% assign value_key = label_key | append: '_value' %}
+          <div><dt>{{ label_key | t }}</dt><dd>{{ value_key | t }}</dd></div>
+        {% endfor %}
+      </dl>
+    </div>
+  </details>
+</casa-confidence-size-v7>
+
+{% stylesheet %}
+  .casa-v7-sizing { display: block; width: 100%; color: #24212a; scroll-margin-top: 120px; }
+  .casa-v7-sizing [hidden] { display: none !important; }
+  .casa-v7-sizing__placement { margin: 0 0 10px; color: #56515c; font-size: 12px; line-height: 1.5; }
+  .casa-v7-sizing__measurements { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.8fr) minmax(0, 1fr); gap: 12px; margin: 0 0 12px; }
+  .casa-v7-sizing__measurements > div { min-width: 0; }
+  .casa-v7-sizing__measurements dt { color: #69636e; font-size: 11px; }
+  .casa-v7-sizing__measurements dd { margin: 4px 0 0; font-size: 13px; font-weight: 650; line-height: 1.5; }
+  .casa-v7-sizing small { display: block; color: #69636e; font-size: 11px; font-weight: 400; }
+  .casa-v7-sizing__details { border-top: 1px solid #e5e3de; }
+  .casa-v7-sizing__details:last-child { border-bottom: 1px solid #e5e3de; }
+  .casa-v7-sizing__details > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 10px 0; list-style: none; cursor: pointer; font-size: 13px; font-weight: 650; }
+  .casa-v7-sizing__details > summary::-webkit-details-marker { display: none; }
+  .casa-v7-sizing__details > summary:focus-visible { outline: 2px solid #B0C3FA; outline-offset: 2px; }
+  .casa-v7-sizing__details > summary > span { position: relative; width: 14px; height: 14px; flex-shrink: 0; }
+  .casa-v7-sizing__details > summary > span::before, .casa-v7-sizing__details > summary > span::after { content: ''; position: absolute; inset: 6px 0; height: 2px; background: currentColor; }
+  .casa-v7-sizing__details > summary > span::after { transform: rotate(90deg); }
+  .casa-v7-sizing__details[open] > summary > span::after { transform: none; }
+  .casa-v7-sizing__body { padding: 4px 0 16px; font-size: 12px; line-height: 1.6; }
+  .casa-v7-sizing__body > p { margin: 12px 0 0; color: #69636e; }
+  .casa-v7-sizing__table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12px; }
+  .casa-v7-sizing__table caption { padding-bottom: 8px; text-align: left; font-weight: 650; }
+  .casa-v7-sizing__table th, .casa-v7-sizing__table td { padding: 10px 4px; border-bottom: 1px solid #e5e3de; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+  .casa-v7-sizing__table th:first-child { width: 42%; }
+  .casa-v7-sizing__table th { font-weight: 600; }
+  .casa-v7-sizing__specs { margin: 16px 0 0; }
+  .casa-v7-sizing__specs > div { display: grid; grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.8fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid #e5e3de; }
+  .casa-v7-sizing__specs dt { font-weight: 650; }
+  .casa-v7-sizing__specs dd { margin: 0; }
+  .casa-v7-sizing button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .casa-v7-confidence__size-compare-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: baseline;
+    margin-bottom: 9px;
+  }
+
+  .casa-v7-confidence__size-compare-head strong,
+  .casa-v7-confidence__size-compare-head span {
+    font: 720 8.5px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-confidence__size-compare-head strong {
+    color: #29252f;
+  }
+
+  .casa-v7-confidence__size-compare-head span {
+    color: #7e22ce;
+  }
+
+  .casa-v7-confidence__size-compare-stage {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    min-height: 210px;
+    padding: 18px 12px 13px;
+    overflow: hidden;
+    border: 1px solid #ded9e4;
+    border-radius: 14px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(248, 244, 251, 0.94)),
+      repeating-linear-gradient(90deg, transparent 0 48px, rgba(176, 195, 250, 0.035) 48px 49px);
+    box-shadow: inset 0 -34px 0 rgba(227, 219, 211, 0.22);
+  }
+
+  .casa-v7-confidence__size-compare-option {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 0;
+    padding: 4px;
+    border: 0;
+    border-radius: 10px;
+    color: #918b98;
+    background: transparent;
+    cursor: pointer;
+    box-shadow: none;
+  }
+
+  .casa-v7-confidence__size-compare-option:hover {
+    color: #918b98;
+  }
+
+  .casa-v7-confidence__size-compare-option:focus-visible {
+    outline: 2px dashed #55515c;
+    outline-offset: 1px;
+  }
+
+  .casa-v7-confidence__size-compare-option[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--casa-purple, #B0C3FA) 7%, var(--casa-paper, #fafaf7));
+    box-shadow: inset 0 0 0 2px var(--casa-purple, #B0C3FA);
+  }
+
+  .casa-v7-confidence__size-compare-selected {
+    visibility: hidden;
+    color: var(--casa-purple, #B0C3FA);
+    font: 750 10px/1.4 ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .casa-v7-confidence__size-compare-option[aria-pressed="true"] .casa-v7-confidence__size-compare-selected {
+    visibility: visible;
+  }
+
+  .casa-v7-confidence__size-compare-visual {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    flex-shrink: 0;
+    width: min(100%, 132px);
+    aspect-ratio: 1;
+  }
+
+  .casa-v7-confidence__size-compare-visual svg {
+    display: block;
+    width: var(--confidence-size-scale);
+    height: auto;
+    aspect-ratio: 1;
+    overflow: visible;
+  }
+
+  .casa-v7-confidence__size-compare-visual polygon {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .casa-v7-confidence__size-compare-visual .casa-v7-confidence__size-compare-glass {
+    fill: #111017;
+    stroke-width: 3;
+  }
+
+  .casa-v7-confidence__size-compare-visual polygon:not(.casa-v7-confidence__size-compare-glass) {
+    stroke: currentColor;
+    filter: drop-shadow(0 0 2px currentColor);
+  }
+
+  .casa-v7-confidence__size-compare-visual polygon:nth-child(2) {
+    color: var(--casa-purple, #B0C3FA);
+  }
+
+  .casa-v7-confidence__size-compare-visual polygon:nth-child(3) {
+    color: var(--casa-pink, #5E0A02);
+  }
+
+  .casa-v7-confidence__size-compare-visual polygon:nth-child(4) {
+    color: var(--casa-cyan, #F2FFA0);
+    opacity: 0.8;
+  }
+
+  .casa-v7-confidence__size-compare-copy {
+    position: relative;
+    display: grid;
+    gap: 3px;
+    width: 100%;
+    color: #24212a;
+    text-align: center;
+  }
+
+  .casa-v7-confidence__size-compare-copy strong {
+    font-size: 12px;
+    line-height: 1;
+  }
+
+  .casa-v7-confidence__size-compare-copy small {
+    overflow: hidden;
+    color: #77717d;
+    font: 650 7.5px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.025em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .casa-v7-confidence__size-compare-copy em {
+    position: absolute;
+    top: -29px;
+    left: 50%;
+    padding: 3px 6px;
+    border-radius: 999px;
+    color: #fff;
+    background: linear-gradient(100deg, #B0C3FA, #5E0A02);
+    font: normal 740 6px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transform: translateX(-50%);
+  }
+
+  @media (max-width: 520px) {
+    .casa-v7-confidence__size-compare-stage {
+      min-height: 180px;
+      padding-inline: 7px;
+    }
+
+    .casa-v7-confidence__size-compare-option {
+      gap: 8px;
+      padding-inline: 2px;
+    }
+
+    .casa-v7-confidence__size-compare-copy strong {
+      font-size: 10.5px;
+    }
+
+    .casa-v7-confidence__size-compare-copy small {
+      font-size: 6.5px;
+    }
+
+  }
+{% endstylesheet %}
+
+{% javascript %}
+  class CasaConfidenceSizeV7 extends HTMLElement {
+    connectedCallback() {
+      this.abortController?.abort();
+      this.abortController = new AbortController();
+      const { signal } = this.abortController;
+      this.options = Array.from(this.querySelectorAll('[data-confidence-size-option]'));
+      this.options.forEach((option) => option.addEventListener('click', () => this.select(option), { signal }));
+      this.onVariantUpdate = (event) => {
+        const variant = event.detail?.resource;
+        if (!variant?.id) return;
+        const option = this.options.find((item) => item.dataset.variantId === String(variant.id));
+        if (option) this.activate(option);
+      };
+      document.addEventListener('variant:update', this.onVariantUpdate, { signal });
+    }
+
+    disconnectedCallback() {
+      this.abortController?.abort();
+    }
+
+    select(option) {
+      if (option.disabled) return;
+      const purchase = document.querySelector(this.dataset.purchaseTarget || '#casa-octa-purchase');
+      const title = option.dataset.variantTitle;
+      const id = option.dataset.variantId;
+      const radio = Array.from(purchase?.querySelectorAll('input[type="radio"]') || []).find((input) => input.value === title);
+      const selectOption = Array.from(purchase?.querySelectorAll('select[name="id"] option') || []).find((item) => item.value === id);
+
+      if (radio && !radio.checked) {
+        radio.checked = true;
+        radio.dispatchEvent(new Event('change', { bubbles: true }));
+      } else if (!radio && selectOption) {
+        selectOption.parentElement.value = id;
+        selectOption.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      this.activate(option);
+      this.dispatchEvent(new CustomEvent('casa:size-guide-select', { bubbles: true, detail: { variantId: id, title } }));
+    }
+
+    activate(option) {
+      this.querySelectorAll('[data-size-readout]').forEach((item) => {
+        item.hidden = item.dataset.sizeReadout !== option.dataset.variantId;
+      });
+      this.options.forEach((item) => {
+        const active = item === option;
+        item.classList.toggle('is-selected', active);
+        item.setAttribute('aria-pressed', String(active));
+      });
+    }
+  }
+
+  if (!customElements.get('casa-confidence-size-v7')) {
+    customElements.define('casa-confidence-size-v7', CasaConfidenceSizeV7);
+  }
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "OctaMirror V7 sizing",
+  "tag": null,
+  "settings": [
+    {
+      "type": "text",
+      "id": "small_weight",
+      "label": "Small mirror weight",
+      "default": "11.9 lb / 5.4 kg"
+    },
+    {
+      "type": "text",
+      "id": "medium_weight",
+      "label": "Medium mirror weight",
+      "default": "29.1 lb / 13.2 kg"
+    },
+    {
+      "type": "text",
+      "id": "large_weight",
+      "label": "Large mirror weight",
+      "default": "49.8 lb / 22.6 kg"
+    }
+  ],
+  "presets": [
+    {
+      "name": "OctaMirror V7 sizing"
+    }
+  ]
+}
+{% endschema %}

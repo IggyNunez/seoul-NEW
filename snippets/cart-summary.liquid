@@ -6,13 +6,16 @@
 {%- enddoc -%}
 
 <div class="cart__summary-totals">
+  {% if cart.attributes._casa_free_gift_choice contains 'price:' %}
+    <p role="status">{{ 'content.free_gift_removed' | t }}</p>
+  {% endif %}
   {% # We need to keep this node in place to allow morphing to work properly # %}
   <div class="cart__original-total-container cart-primary-typography">
     {%- if cart.cart_level_discount_applications.size > 0 -%}
       <span class="cart__summary-item cart__original-total">
         <span class="cart__original-total-label">{{ 'content.cart_subtotal' | t }}</span>
         <span class="cart__original-total-value cart-secondary-typography">
-          {{- cart.original_total_price | money -}}
+          {{- cart.items_subtotal_price | money -}}
         </span>
       </span>
       <div class="cart__summary-discounts">
@@ -120,7 +123,10 @@
             {% endif %}
           >
             <summary class="cart-discount__summary">
-              <span class="cart-discount__label cart-primary-typography">{{ 'content.discount' | t }}</span>
+              <span class="cart-discount__label cart-primary-typography">
+                {{- 'icon-discount.svg' | inline_asset_content -}}
+                {{ 'content.discount' | t }}
+              </span>
 
               <span class="svg-wrapper icon-plus">
                 {{- 'icon-plus.svg' | inline_asset_content -}}
@@ -265,9 +271,11 @@
         {% endform %}
       </span>
     {% endif %}
+    {%- unless settings.cart_hide_tax_shipping_note -%}
     <div class="cart__summary-item tax-note cart-primary-typography">
       {% render 'tax-info', has_discounts_enabled: settings.show_add_discount_code %}
     </div>
+    {%- endunless -%}
   </div>
 </div>
 
@@ -300,6 +308,11 @@
 </div>
 
 {% stylesheet %}
+  /* Decorative descendants must not become the delegated click target. */
+  .cart-discount__pill-remove * {
+    pointer-events: none;
+  }
+
   .cart-actions {
     display: flex;
     flex-direction: column;
@@ -395,6 +408,45 @@
     @media screen and (max-width: 749px) {
       font-size: var(--font-size--lg);
     }
+  }
+
+  /* Subtotal row breathing room: give the row a real gap so "Subtotal" always
+     has clear air beside the prices block, and let the block wrap as a whole
+     under the label if the two genuinely can't share a line. */
+  .cart__total {
+    gap: 6px 12px;
+    flex-wrap: wrap;
+    /* Label aligns to the amount's baseline, not the centre of the
+       amount+compare stack (which would float "Subtotal" between the two). */
+    align-items: baseline;
+  }
+
+  /* Keep the compare-at strike INLINE beside the amount whenever it fits, and let
+     it drop onto its own line ONLY when the row is genuinely too narrow (small
+     phones, or wide currencies like VND). Content-driven wrap beats a viewport
+     breakpoint here: the same snippet powers both the fixed-width drawer and the
+     full-width /cart page, and whether it fits depends on the currency's digit
+     count, not the viewport width. Was an unconditional `column` (a46b723b), which
+     stacked it two-line on every screen regardless of available room. */
+  .cart__total-prices {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: flex-end;
+    align-items: baseline;
+    column-gap: 8px;
+    row-gap: 1px;
+    text-align: right;
+    min-width: 0;
+  }
+
+  .cart__total-compare {
+    /* 16px so the was-price doesn't read as a tiny afterthought beside the bold
+       subtotal — closer in weight, still clearly secondary. #6b7280 matches the
+       theme-wide was-price a11y standard (WCAG AA on Paper); opacity-faded
+       foreground would fail that contrast. */
+    font-size: 16px;
+    color: #6b7280;
+    text-decoration: line-through;
   }
 
   .cart__installments {
@@ -497,7 +549,15 @@
     height: 100%;
     flex-grow: 1;
     min-width: 0;
-    font-size: var(--font-size--sm);
+    /* 16px on mobile suppresses iOS Safari's focus auto-zoom
+       (which never zooms back out, leaving the drawer wider
+       than viewport and horizontally scrolling). Desktop keeps
+       the compact --font-size--sm so layout density is unchanged.
+       Mobile Pre-Flight #5. */
+    font-size: 16px;
+  }
+  @media (min-width: 750px) {
+    .cart-discount__input { font-size: var(--font-size--sm); }
   }
 
   .cart-discount__input::placeholder {
@@ -600,9 +660,88 @@
 
   .cart-discount__label {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: var(--gap-2xs);
     font-size: var(--font-size--2xs);
     font-weight: 500;
+  }
+
+  /* Trigger tag icon: mirrors the /cart summary's 14px tag beside its
+     "Discount code" label, so the collapsed row reads as the discount
+     feature, not a bare word. currentColor — stays in the trigger's
+     muted gray, going purple only in the APPLIED chip below. */
+  .cart-discount__label svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  /* ── Applied-discount visibility ──────────────────────────────────
+     The applied code rendered as two gray spans — same size and color
+     as every other summary row — so the saving read as "just more
+     text" (merchant flag 2026-08-25). Port the /cart page's approved
+     discount language (casa-cart-summary.liquid: purple label +
+     8%-tint pill; accent_primary #B0C3FA in templates/cart.json) onto
+     this shared summary so drawer and /cart speak one language.
+     Deliberately NOT var(--cart-drawer-accent): the merchant blacked
+     that token for CTA chrome (ink APPLY/CHECKOUT), and binding the
+     chip to it would render the coupon invisible-black. Contrast:
+     #B0C3FA is 4.78:1 on its 8% tint, 5.3:1 on the white summary — AA
+     for the 13px/600 text. (0,2,0) scoping beats the container
+     `* { font-size }` rule and cart-secondary-typography
+     deterministically instead of by source order. */
+  .cart__summary-item.cart__discount {
+    /* Wide currency (VND) or a sentence-length automatic-discount
+       title: the amount drops under the chip instead of pushing past
+       the viewport. */
+    flex-wrap: wrap;
+    row-gap: 4px;
+    column-gap: 8px;
+  }
+
+  .cart__discount .cart__discount-label {
+    background: color-mix(in srgb, var(--casa-purple, #B0C3FA) 8%, transparent);
+    color: var(--casa-purple, #B0C3FA);
+    border-radius: var(--style-border-radius-pills, 100px);
+    padding: 4px 12px 4px 9px;
+    font-size: var(--font-size--xs, 13px);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere; /* automatic-discount titles can be full sentences */
+  }
+
+  .cart__discount .cart__discount-label svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  .cart__discount .cart__discount-value {
+    color: var(--casa-purple, #B0C3FA);
+    font-weight: 600;
+  }
+
+  /* Applied-code pill under the input — same chip language. Scoped
+     under .cart-discount__codes, which only this stock drawer markup
+     carries — /cart's casa pills sit in
+     .casa-cart-summary__discount-codes and are styled by
+     casa-cart-summary's own re-assert rule, so these rules never
+     co-apply in either direction. */
+  .cart-discount__codes .cart-discount__pill {
+    background: color-mix(in srgb, var(--casa-purple, #B0C3FA) 8%, transparent);
+    color: var(--casa-purple, #B0C3FA);
+    text-transform: none; /* show the code as typed, matching /cart */
+    font-weight: 600;
+    font-size: var(--font-size--xs, 13px);
+  }
+
+  /* Full-strength purple ×: the base 0.4 close-icon opacity computed
+     ~2:1 on the tint — under the 3:1 UI-component minimum. inherit +
+     opacity 1 = 4.78:1. (0,3,0) beats the base :is() (0,2,0). */
+  .cart-discount__codes .cart-discount__pill .cart-discount__pill-remove {
+    --close-icon-opacity: 1;
+    color: inherit;
   }
 {% endstylesheet %}

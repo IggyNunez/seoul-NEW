@@ -1,0 +1,153 @@
+{%- comment -%}
+  Seoul Glow Lab — Curved surface sweep (divider)
+
+  The one curved element in an otherwise sharp system. Sits between two
+  sections and carries the surface change with a shallow arc instead of a
+  hard horizontal edge.
+
+  Per the Casa Design mirror-family PDP, which puts a sweep at every
+  Paper <-> Ink boundary. Purely decorative: aria-hidden, no text, no
+  interaction, nothing for a screen reader to announce.
+
+  HOW IT WORKS — the container is painted with the colour of the section
+  BELOW, and the SVG path is painted with the colour of the section ABOVE
+  and curves down into it. Set "from" to the section above and "to" to
+  the section below; if they are the wrong way round the arc bulges the
+  wrong way, which is the only way to get this wrong.
+
+  The 1px negative margins close the sub-pixel seam browsers leave
+  between a section background and an adjacent SVG fill at fractional
+  device pixel ratios.
+
+  Used by: templates/product.infinity-octamirror-v2.json
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign surfaces = 'paper:#FAFAF7|paper-2:#F2F2EE|ink:#0A0A0F' | split: '|'
+
+  assign from_hex = '#FAFAF7'
+  assign to_hex = '#0A0A0F'
+  for pair in surfaces
+    assign bits = pair | split: ':'
+    if bits[0] == s.surface_from
+      assign from_hex = bits[1]
+    endif
+    if bits[0] == s.surface_to
+      assign to_hex = bits[1]
+    endif
+  endfor
+
+  if s.custom_from != blank
+    assign from_hex = s.custom_from
+  endif
+  if s.custom_to != blank
+    assign to_hex = s.custom_to
+  endif
+-%}
+
+<div
+  class="casa-swp"
+  aria-hidden="true"
+  style="
+    --casa-swp-to: {{ to_hex }};
+    --casa-swp-h:  {{ s.height | default: 90 }}px;
+  "
+>
+  <svg viewBox="0 0 1440 90" preserveAspectRatio="none" focusable="false" role="presentation">
+    <path d="M0,0 H1440 V46 Q720,98 0,46 Z" fill="{{ from_hex }}" />
+  </svg>
+</div>
+
+{% stylesheet %}
+.casa-swp {
+  display: block;
+  width: 100%;
+  height: clamp(46px, 6vw, var(--casa-swp-h, 90px));
+  line-height: 0;
+  position: relative;
+  z-index: 1;
+  margin-top: -1px;
+  margin-bottom: -1px;
+  background: var(--casa-swp-to, #0A0A0F);
+  overflow: hidden;
+}
+.casa-swp svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Sweep Divider",
+  "tag": "div",
+  "class": "casa-sweep-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Surfaces",
+      "info": "\"From\" is the section ABOVE this divider, \"to\" is the section BELOW. Get them backwards and the arc curves the wrong way."
+    },
+    {
+      "type": "select",
+      "id": "surface_from",
+      "label": "From (section above)",
+      "options": [
+        { "value": "paper", "label": "Paper" },
+        { "value": "paper-2", "label": "Paper-2" },
+        { "value": "ink", "label": "Ink" }
+      ],
+      "default": "paper"
+    },
+    {
+      "type": "select",
+      "id": "surface_to",
+      "label": "To (section below)",
+      "options": [
+        { "value": "paper", "label": "Paper" },
+        { "value": "paper-2", "label": "Paper-2" },
+        { "value": "ink", "label": "Ink" }
+      ],
+      "default": "ink"
+    },
+    {
+      "type": "header",
+      "content": "Overrides",
+      "info": "Only needed when an adjacent section uses a non-standard background. Leave blank to use the surface choices above."
+    },
+    {
+      "type": "color",
+      "id": "custom_from",
+      "label": "Custom colour — section above"
+    },
+    {
+      "type": "color",
+      "id": "custom_to",
+      "label": "Custom colour — section below"
+    },
+    {
+      "type": "header",
+      "content": "Size"
+    },
+    {
+      "type": "range",
+      "id": "height",
+      "label": "Height at desktop",
+      "info": "Scales down on narrow screens.",
+      "min": 40,
+      "max": 140,
+      "step": 2,
+      "default": 90,
+      "unit": "px"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Sweep Divider",
+      "category": "Product"
+    }
+  ]
+}
+{% endschema %}

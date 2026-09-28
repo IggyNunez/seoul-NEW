@@ -1,0 +1,324 @@
+{%- comment -%}
+  casa-aurasphere-install.liquid
+  Used by: product.aurasphere-smart-wall-lamp.json
+  4-step install strip — Mark · Mount · Plug in · Pair.
+  Adds: time badge, 4-segment progress strip, per-step SVG icon.
+  Mobile: head + badge + progress on top, steps stack 1-col with tight padding.
+{%- endcomment -%}
+
+{%- liquid
+  assign cap = section.settings.container_max | default: 1440
+  assign py = section.settings.padding_y | default: 80
+  assign py_m = section.settings.padding_y_mobile | default: 48
+-%}
+
+<section
+  id="aurasphere-install-{{ section.id }}"
+  class="cdl-aurasphere-install"
+  data-section-id="{{ section.id }}"
+  style="
+    --cdl-cap: {{ cap }}px;
+    --cdl-py: {{ py }}px;
+    --cdl-py-m: {{ py_m }}px;
+  "
+>
+  <div class="cdl-as-install__cap">
+    <div class="cdl-as-install__head">
+      <div class="cdl-mono">{{ section.settings.kicker | default: '07 · INSTALL' }}</div>
+      <h2 class="cdl-as-install__h2">{{ section.settings.heading | default: 'Four steps. <em>About 10 minutes.</em>' }}</h2>
+      {%- if section.settings.badge_text != blank -%}
+        {%- comment -%}
+          Split the merchant's badge_text on the middle-dot separator into
+          one compact pill per segment. A single 50+ character pill wraps
+          and orphans the last word ("required") on mobile; small chips
+          flex-wrap to two cleanly-balanced rows instead.
+        {%- endcomment -%}
+        <div class="cdl-as-install__badges">
+          {%- assign badge_parts = section.settings.badge_text | split: '·' -%}
+          {%- for part in badge_parts -%}
+            {%- assign part_clean = part | strip -%}
+            {%- if part_clean != blank -%}
+              <span class="cdl-as-install__badge">
+                {%- if forloop.first -%}
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+                    <circle cx="5" cy="5" r="4" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                    <line x1="5" y1="3" x2="5" y2="5.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                    <circle cx="5" cy="6.8" r=".8" fill="currentColor"/>
+                  </svg>
+                {%- endif -%}
+                <span>{{ part_clean }}</span>
+              </span>
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+    </div>
+
+    <div class="cdl-as-install__progress" aria-hidden="true">
+      {%- assign step_count = 0 -%}
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'step' -%}
+          {%- assign step_count = step_count | plus: 1 -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {%- for i in (1..step_count) -%}
+        <div class="cdl-as-install__seg"></div>
+      {%- endfor -%}
+    </div>
+
+    <ol class="cdl-as-install__steps">
+      {%- assign idx = 0 -%}
+      {%- for block in section.blocks -%}
+        {%- if block.type == 'step' -%}
+          {%- assign idx = idx | plus: 1 -%}
+          {%- assign icon = block.settings.icon | default: 'mark' -%}
+          <li class="cdl-as-install__step" {{ block.shopify_attributes }}>
+            <span class="cdl-as-install__n">{{ block.settings.number | default: idx | prepend: '00' | slice: -2, 2 }}</span>
+            <span class="cdl-as-install__icon" aria-hidden="true">
+              {%- case icon -%}
+                {%- when 'mark' -%}
+                  {%- comment -%}Wall plane with 3 mark dots in a cleat pattern{%- endcomment -%}
+                  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor"><rect x="6" y="6" width="36" height="36" rx="3" stroke-width="1.2" opacity=".3"/><circle cx="24" cy="16" r="2.2" fill="currentColor"/><circle cx="18" cy="30" r="1.8" fill="currentColor"/><circle cx="30" cy="30" r="1.8" fill="currentColor"/></svg>
+                {%- when 'mount' -%}
+                  {%- comment -%}Sphere + cleat bracket on wall{%- endcomment -%}
+                  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor"><rect x="6" y="6" width="36" height="36" rx="3" stroke-width="1.2" opacity=".3"/><circle cx="24" cy="20" r="9" stroke-width="1.8"/><line x1="13" y1="33" x2="35" y2="33" stroke-width="2.2" stroke-linecap="round"/></svg>
+                {%- when 'plug' -%}
+                  {%- comment -%}Cord curving from sphere into wall outlet{%- endcomment -%}
+                  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor"><circle cx="14" cy="12" r="6" stroke-width="1.5"/><path d="M 14 18 C 14 28 30 30 30 38" stroke-width="1.5" stroke-linecap="round"/><rect x="24" y="32" width="14" height="10" rx="1.5" stroke-width="1.5"/><circle cx="29" cy="37" r="1" fill="currentColor"/><circle cx="33" cy="37" r="1" fill="currentColor"/></svg>
+                {%- when 'pair' -%}
+                  {%- comment -%}Phone with WiFi waves + sphere{%- endcomment -%}
+                  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor"><rect x="6" y="10" width="15" height="26" rx="2" stroke-width="1.5"/><line x1="11" y1="14" x2="16" y2="14" stroke-width="1.2" stroke-linecap="round"/><circle cx="13.5" cy="32" r="1" fill="currentColor"/><path d="M 25 18 q 5 0 5 5" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M 25 14 q 9 0 9 9" stroke-width="1.4" fill="none" stroke-linecap="round"/><circle cx="38" cy="32" r="6" stroke-width="1.6"/></svg>
+                {%- when 'check' -%}
+                  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="24" cy="24" r="18"/><path d="M16 24l6 6 11-13" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                {%- when 'stick' -%}
+                  {%- comment -%}
+                    Step 1 visualization: a wall corner (vertical seam where two walls meet),
+                    with two adhesive brackets stuck onto it. Tells the merchant "peel and
+                    stick these two brackets in the corner."
+                  {%- endcomment -%}
+                  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <rect x="6" y="6" width="36" height="36" rx="3" stroke-width="1.2" opacity=".3"/>
+                    <line x1="24" y1="9" x2="24" y2="39" stroke-width="1" opacity="0.5"/>
+                    <rect x="19" y="14" width="10" height="6" rx="1.2" fill="currentColor" stroke="none"/>
+                    <rect x="19" y="28" width="10" height="6" rx="1.2" fill="currentColor" stroke="none"/>
+                    <path d="M 12 17 H 17 M 15 15 L 17 17 L 15 19" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M 12 31 H 17 M 15 29 L 17 31 L 15 33" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                {%- when 'magnet' -%}
+                  {%- comment -%}
+                    Step 2 visualization: the same wall corner + brackets, now with the
+                    vertical bar attached on top via magnets. Tells the story of "step 1
+                    brackets are in place, now snap the bar onto them."
+                  {%- endcomment -%}
+                  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <rect x="6" y="6" width="36" height="36" rx="3" stroke-width="1.2" opacity=".3"/>
+                    <line x1="24" y1="9" x2="24" y2="39" stroke-width="1" opacity="0.25"/>
+                    <rect x="19" y="14" width="10" height="6" rx="1.2" fill="currentColor" opacity="0.35" stroke="none"/>
+                    <rect x="19" y="28" width="10" height="6" rx="1.2" fill="currentColor" opacity="0.35" stroke="none"/>
+                    <rect x="22" y="8" width="4" height="32" rx="1.5" fill="currentColor" stroke="none"/>
+                    <path d="M 11 24 H 19" stroke-dasharray="1.6 1.6" stroke-width="1.2"/>
+                    <path d="M 29 24 H 37" stroke-dasharray="1.6 1.6" stroke-width="1.2"/>
+                  </svg>
+                {%- else -%}
+                  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="24" cy="24" r="18"/></svg>
+              {%- endcase -%}
+            </span>
+            <p class="cdl-as-install__title">{{ block.settings.title | default: 'Step' }}</p>
+          </li>
+        {%- endif -%}
+      {%- endfor -%}
+    </ol>
+  </div>
+</section>
+
+{% stylesheet %}
+.cdl-aurasphere-install {
+  background: var(--casa-paper, #FAFAF7);
+  color: #0a0a0e;
+  padding: 36px 24px;
+  font-family: var(--font-body--family);
+  border-top: 1px solid rgba(10,10,15,0.06);
+}
+.cdl-as-install__cap {
+  max-width: var(--cdl-cap, 1440px);
+  margin: 0 auto;
+}
+.cdl-as-install__head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.cdl-as-install__head .cdl-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(10,10,15,0.4);
+}
+.cdl-as-install__h2 {
+  font-family: var(--font-body--family);
+  font-weight: 500;
+  font-size: clamp(24px, 3.6vw, 32px);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0;
+  color: #0a0a0e;
+  text-wrap: balance;
+}
+.cdl-as-install__h2 em {
+  font-style: italic;
+  font-weight: 800;
+  background: linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.cdl-as-install__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.cdl-as-install__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(10,10,15,0.05);
+  border: 1px solid rgba(10,10,15,0.1);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: rgba(10,10,15,0.55);
+  width: fit-content;
+  white-space: nowrap;
+}
+.cdl-as-install__progress {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 3px;
+  margin-bottom: 24px;
+}
+.cdl-as-install__seg {
+  height: 2px;
+  border-radius: 999px;
+  background: #0a0a0e;
+}
+.cdl-as-install__steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.cdl-as-install__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 6px 12px;
+  border-radius: 8px;
+  background: rgba(10,10,15,0.025);
+  border: 1px solid rgba(10,10,15,0.05);
+  text-align: center;
+}
+.cdl-as-install__n {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: rgba(10,10,15,0.35);
+}
+.cdl-as-install__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  color: rgba(10,10,15,0.85);
+}
+.cdl-as-install__icon svg {
+  width: 100%;
+  height: 100%;
+}
+.cdl-as-install__title {
+  font-family: var(--font-body--family);
+  font-weight: 500;
+  font-size: 13px;
+  color: #0a0a0e;
+  margin: 0;
+}
+@media (min-width: 700px) {
+  .cdl-aurasphere-install { padding: var(--cdl-py, 80px) 24px; }
+  .cdl-as-install__head { margin-bottom: 24px; }
+  .cdl-as-install__progress { margin-bottom: 24px; }
+  .cdl-as-install__steps { gap: 16px; }
+  .cdl-as-install__step { padding: 22px 14px 20px; gap: 10px; }
+  .cdl-as-install__icon { width: 64px; height: 64px; }
+  .cdl-as-install__title { font-size: 15px; }
+}
+
+@media (min-width: 1100px) {
+  .cdl-as-install__h2 { font-size: clamp(28px, 3vw, 36px); }
+  .cdl-as-install__icon { width: 72px; height: 72px; }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "AuraSphere · Install",
+  "tag": "section",
+  "class": "casa-aurasphere-install-wrapper",
+  "settings": [
+    { "type": "header", "content": "Header" },
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "07 · INSTALL" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "Four steps. <em>About 10 minutes.</em>" },
+    { "type": "text", "id": "badge_text", "label": "Time badge text", "default": "~10 min · Drywall anchors included" },
+    { "type": "header", "content": "Layout" },
+    { "type": "range", "id": "container_max", "label": "Container max width", "min": 1100, "max": 1600, "step": 20, "default": 1440, "unit": "px" },
+    { "type": "range", "id": "padding_y", "label": "Vertical padding (desktop)", "min": 24, "max": 160, "step": 8, "default": 80, "unit": "px" },
+    { "type": "range", "id": "padding_y_mobile", "label": "Vertical padding (mobile)", "min": 16, "max": 96, "step": 4, "default": 48, "unit": "px" }
+  ],
+  "blocks": [
+    {
+      "type": "step",
+      "name": "Step",
+      "settings": [
+        { "type": "text", "id": "number", "label": "Number", "default": "01" },
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icon",
+          "default": "mark",
+          "options": [
+            { "value": "mark",   "label": "Mark (pencil / wall dots)" },
+            { "value": "mount",  "label": "Mount (sphere + anchor)" },
+            { "value": "plug",   "label": "Plug (power)" },
+            { "value": "pair",   "label": "Pair (phone / QR)" },
+            { "value": "check",  "label": "Check (done)" },
+            { "value": "stick",  "label": "Stick (adhesive corner brackets)" },
+            { "value": "magnet", "label": "Magnet (horseshoe / snap-mount)" }
+          ]
+        },
+        { "type": "text", "id": "title", "label": "Title", "default": "Mark" },
+        { "type": "textarea", "id": "body", "label": "Body (not rendered — kept for merchant notes only)", "info": "Install section renders icon + step number + title only. Body text is intentionally not rendered — keeps the section glanceable. Leave blank or use as a private merchant note." }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "AuraSphere · Install",
+      "blocks": [
+        { "type": "step", "settings": { "number": "01", "icon": "mark",  "title": "Mark",    "body": "" } },
+        { "type": "step", "settings": { "number": "02", "icon": "mount", "title": "Mount",   "body": "" } },
+        { "type": "step", "settings": { "number": "03", "icon": "plug",  "title": "Plug in", "body": "" } },
+        { "type": "step", "settings": { "number": "04", "icon": "pair",  "title": "Pair",    "body": "" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

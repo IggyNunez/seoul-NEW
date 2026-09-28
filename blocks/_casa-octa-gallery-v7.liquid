@@ -1,0 +1,599 @@
+{% doc %}
+  Renders the isolated OctaMirror V7 conversion gallery.
+{% enddoc %}
+
+{% liquid
+  assign selected_product = closest.product
+  assign media_order = block.settings.media_order | split: ','
+  assign captions = block.settings.captions | newline_to_br | split: '<br />'
+  assign hero_on = block.settings.hero_on_image
+  assign hero_off = block.settings.hero_off_image
+
+  if hero_on == blank
+    assign hero_on = images['Scene_01_front_multicolor_2.webp']
+  endif
+
+  if hero_off == blank
+    assign hero_off = images['Scene_01_front_light-off-mirror.webp']
+  endif
+
+  assign valid_media_count = 0
+  for media_position_raw in media_order
+    assign media_position = media_position_raw | strip | plus: 0 | minus: 1
+    if selected_product.media[media_position] != blank
+      assign valid_media_count = valid_media_count | plus: 1
+    endif
+  endfor
+  assign total_slides = valid_media_count | plus: 1
+%}
+
+<casa-octa-gallery-v7
+  class="casa-v7-gallery sticky-content"
+  data-count="{{ total_slides }}"
+  data-gallery-build="20260910-video-swipe-1"
+  tabindex="0"
+  aria-label="{{ block.settings.gallery_label | escape }}"
+  {{ block.shopify_attributes }}
+>
+  <div class="casa-v7-gallery__stage" data-v7-stage>
+    <div id="casa-v7-gallery-slide-{{ block.id }}-split" class="casa-v7-gallery__slide is-active" data-v7-slide data-caption="{{ block.settings.split_caption | escape }}" role="tabpanel" aria-labelledby="casa-v7-gallery-thumb-{{ block.id }}-0">
+      <div class="casa-v7-gallery__split">
+        <figure>
+          <div class="casa-v7-gallery__split-media">
+            {% if hero_off != blank %}
+              {{ hero_off | image_url: width: 1200 | image_tag: widths: '360, 540, 720, 960, 1200', sizes: '(min-width: 750px) 27vw, 50vw', loading: 'eager', fetchpriority: 'high', class: 'casa-v7-gallery__image', alt: block.settings.hero_off_alt }}
+            {% endif %}
+          </div>
+          <figcaption>{{ block.settings.hero_off_label }}</figcaption>
+        </figure>
+        <figure>
+          <div class="casa-v7-gallery__split-media">
+            {% if hero_on != blank %}
+              {{ hero_on | image_url: width: 1200 | image_tag: widths: '360, 540, 720, 960, 1200', sizes: '(min-width: 750px) 27vw, 50vw', loading: 'eager', fetchpriority: 'high', class: 'casa-v7-gallery__image', alt: block.settings.hero_on_alt }}
+            {% endif %}
+          </div>
+          <figcaption>{{ block.settings.hero_on_label }}</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    {% assign slide_index = 0 %}
+    {% for media_position_raw in media_order %}
+      {% liquid
+        assign media_position = media_position_raw | strip | plus: 0 | minus: 1
+        assign media = selected_product.media[media_position]
+        assign caption = captions[forloop.index0] | strip
+        assign media_alt = caption | default: media.alt | default: selected_product.title
+      %}
+      {% if media != blank %}
+        {% assign slide_index = slide_index | plus: 1 %}
+        <div id="casa-v7-gallery-slide-{{ block.id }}-{{ forloop.index }}" class="casa-v7-gallery__slide" data-v7-slide data-caption="{{ caption | escape }}" role="tabpanel" aria-labelledby="casa-v7-gallery-thumb-{{ block.id }}-{{ slide_index }}" hidden>
+          <figure class="casa-v7-gallery__figure">
+            {% case media.media_type %}
+              {% when 'image' %}
+                {{ media | image_url: width: 1800 | image_tag: widths: '480, 720, 960, 1200, 1600, 1800', sizes: '(min-width: 750px) 54vw, 100vw', loading: 'lazy', class: 'casa-v7-gallery__image', alt: media_alt }}
+              {% when 'video' %}
+                {% capture video_markup %}{{ media | video_tag: image_size: '1600x', controls: true, autoplay: false, loop: true, muted: true, playsinline: true, preload: 'none', class: 'casa-v7-gallery__video' }}{% endcapture %}
+                {{ video_markup | replace: '<img ', '<img alt="" ' }}
+              {% when 'external_video' %}
+                {{ media | external_video_tag: class: 'casa-v7-gallery__video' }}
+              {% when 'model' %}
+                {{ media | model_viewer_tag: class: 'casa-v7-gallery__model' }}
+            {% endcase %}
+          </figure>
+        </div>
+      {% endif %}
+    {% endfor %}
+
+    <button class="casa-v7-gallery__arrow casa-v7-gallery__arrow--previous" type="button" data-v7-previous aria-label="{{ block.settings.previous_label | escape }}">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7"/></svg>
+    </button>
+    <button class="casa-v7-gallery__arrow casa-v7-gallery__arrow--next" type="button" data-v7-next aria-label="{{ block.settings.next_label | escape }}">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5 7 7-7 7"/></svg>
+    </button>
+  </div>
+
+  <div class="casa-v7-gallery__meta" aria-live="polite">
+    <span class="casa-v7-gallery__counter"><strong data-v7-current>1</strong><span>/</span><span>{{ total_slides }}</span></span>
+    <p data-v7-caption>{{ block.settings.split_caption }}</p>
+    <span class="casa-v7-gallery__swipe">{{ block.settings.swipe_label }}</span>
+  </div>
+
+  <div class="casa-v7-gallery__thumbs" role="tablist" aria-label="{{ block.settings.thumbnails_label | escape }}">
+    <button id="casa-v7-gallery-thumb-{{ block.id }}-0" class="casa-v7-gallery__thumb is-active" type="button" data-v7-thumb="0" role="tab" aria-selected="true" aria-controls="casa-v7-gallery-slide-{{ block.id }}-split" aria-label="{{ block.settings.split_caption | escape }}">
+      <span class="casa-v7-gallery__thumb-split">
+        {% if hero_off != blank %}{{ hero_off | image_url: width: 120 | image_tag: loading: 'eager', alt: '' }}{% endif %}
+        {% if hero_on != blank %}{{ hero_on | image_url: width: 120 | image_tag: loading: 'eager', alt: '' }}{% endif %}
+      </span>
+    </button>
+    {% assign thumb_index = 0 %}
+    {% for media_position_raw in media_order %}
+      {% liquid
+        assign media_position = media_position_raw | strip | plus: 0 | minus: 1
+        assign media = selected_product.media[media_position]
+        assign caption = captions[forloop.index0] | strip
+      %}
+      {% if media != blank %}
+        {% assign thumb_index = thumb_index | plus: 1 %}
+        <button id="casa-v7-gallery-thumb-{{ block.id }}-{{ thumb_index }}" class="casa-v7-gallery__thumb" type="button" data-v7-thumb="{{ thumb_index }}" role="tab" aria-selected="false" aria-controls="casa-v7-gallery-slide-{{ block.id }}-{{ forloop.index }}" aria-label="{{ caption | default: selected_product.title | escape }}">
+          {% if media.preview_image != blank %}
+            {{ media.preview_image | image_url: width: 160, height: 160, crop: 'center' | image_tag: loading: 'lazy', alt: '' }}
+          {% endif %}
+          {% if media.media_type == 'video' %}
+            <span class="casa-v7-gallery__play" aria-hidden="true">▶</span>
+          {% endif %}
+        </button>
+      {% endif %}
+    {% endfor %}
+  </div>
+</casa-octa-gallery-v7>
+
+{% stylesheet %}
+  .casa-v7-gallery {
+    --v7-gallery-meta-height: 40px;
+    --v7-gallery-thumbs-height: 60px;
+    display: block;
+    width: 100%;
+    color: #fff;
+    background: #0c0b12;
+    outline: none;
+  }
+
+  .casa-v7-gallery:focus-visible {
+    outline: 2px solid #B0C3FA;
+    outline-offset: -2px;
+  }
+
+  .casa-v7-gallery__stage {
+    position: relative;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 45%, #20172b 0, #100c17 58%, #09090d 100%);
+    touch-action: pan-y pinch-zoom;
+  }
+
+  .casa-v7-gallery__slide {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  .casa-v7-gallery__slide[hidden] {
+    display: none;
+  }
+
+  .casa-v7-gallery__slide.is-active {
+    animation: casa-v7-gallery-enter 240ms ease-out both;
+  }
+
+  .casa-v7-gallery__figure {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .casa-v7-gallery .casa-v7-gallery__image,
+  .casa-v7-gallery .casa-v7-gallery__video,
+  .casa-v7-gallery .casa-v7-gallery__model {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
+    /* Non-negotiable gallery rule: the source media itself fills the stage.
+       Never manufacture side fields, blurred extensions, masks or borders. */
+    object-fit: cover !important;
+    object-position: center !important;
+  }
+
+  .casa-v7-gallery__split {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .casa-v7-gallery__split figure {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    overflow: hidden;
+    background: #e9e9e6;
+  }
+
+  .casa-v7-gallery__split figure:last-child {
+    z-index: 1;
+    background: #100c17;
+    clip-path: inset(0 0 0 50%);
+  }
+
+  .casa-v7-gallery__split::after {
+    position: absolute;
+    inset: 0 auto 0 50%;
+    z-index: 2;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.72);
+    content: '';
+    pointer-events: none;
+  }
+
+  .casa-v7-gallery__split-media {
+    width: 100%;
+    height: 100%;
+  }
+
+  .casa-v7-gallery .casa-v7-gallery__split-media .casa-v7-gallery__image {
+    object-fit: cover !important;
+  }
+
+  .casa-v7-gallery__split figcaption {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    z-index: 2;
+    padding: 7px 10px;
+    border-radius: 999px;
+    color: #fff;
+    background: rgba(10, 10, 15, 0.86);
+    font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    backdrop-filter: blur(8px);
+  }
+
+  .casa-v7-gallery__split figure:last-child figcaption {
+    right: 12px;
+    left: auto;
+    background: #B0C3FA;
+  }
+
+  .casa-v7-gallery__arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 4;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    border-radius: 50%;
+    color: #fff;
+    background: rgba(10, 10, 15, 0.72);
+    transform: translateY(-50%);
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+  }
+
+  .casa-v7-gallery__arrow:hover {
+    color: #0a0a0f;
+    background: #fff;
+  }
+
+  .casa-v7-gallery__arrow:focus-visible {
+    outline: 3px solid #F2FFA0;
+    outline-offset: 3px;
+  }
+
+  .casa-v7-gallery__arrow svg {
+    width: 23px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .casa-v7-gallery__arrow--previous {
+    left: 16px;
+  }
+
+  .casa-v7-gallery__arrow--next {
+    right: 16px;
+  }
+
+  .casa-v7-gallery__meta {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    box-sizing: border-box;
+    height: var(--v7-gallery-meta-height);
+    min-height: var(--v7-gallery-meta-height);
+    padding: 5px 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .casa-v7-gallery__counter {
+    display: inline-flex;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.58);
+    font: 650 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  .casa-v7-gallery__counter strong {
+    color: #fff;
+  }
+
+  .casa-v7-gallery__meta p {
+    margin: 0;
+    overflow: hidden;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 12px;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .casa-v7-gallery__swipe {
+    color: #F2FFA0;
+    font: 700 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .casa-v7-gallery__thumbs {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    height: var(--v7-gallery-thumbs-height);
+    padding: 6px 12px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    overscroll-behavior-inline: contain;
+  }
+
+  .casa-v7-gallery__thumb {
+    position: relative;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: #18151f;
+    cursor: pointer;
+  }
+
+  .casa-v7-gallery__thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .casa-v7-gallery__thumb.is-active {
+    border-color: #fff;
+    box-shadow: 0 0 0 2px #B0C3FA;
+  }
+
+  .casa-v7-gallery__thumb:focus-visible {
+    outline: 3px solid #F2FFA0;
+    outline-offset: 2px;
+  }
+
+  .casa-v7-gallery__thumb-split {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    width: 100%;
+    height: 100%;
+  }
+
+  .casa-v7-gallery__play {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 16px;
+    filter: drop-shadow(0 1px 4px #000);
+  }
+
+  @keyframes casa-v7-gallery-enter {
+    from { opacity: 0.35; transform: scale(0.992); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @media screen and (max-width: 749px) {
+    .casa-v7-gallery__arrow {
+      width: 44px;
+      height: 44px;
+    }
+
+    .casa-v7-gallery__arrow--previous { left: 10px; }
+    .casa-v7-gallery__arrow--next { right: 10px; }
+
+    .casa-v7-gallery__split figcaption {
+      left: 8px;
+      bottom: 8px;
+      padding: 6px 8px;
+      font-size: 9px;
+    }
+
+    .casa-v7-gallery__split figure:last-child figcaption {
+      right: 8px;
+      left: auto;
+    }
+
+    .casa-v7-gallery__meta {
+      grid-template-columns: auto minmax(0, 1fr);
+      padding-inline: 12px;
+    }
+
+    .casa-v7-gallery__swipe {
+      display: none;
+    }
+
+    .casa-v7-gallery__thumbs {
+      padding-inline: 10px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .casa-v7-gallery__slide.is-active {
+      animation: none;
+    }
+  }
+{% endstylesheet %}
+
+{% javascript %}
+  class CasaOctaGalleryV7 extends HTMLElement {
+    connectedCallback() {
+      if (this.initialized) return;
+      this.initialized = true;
+      this.slides = Array.from(this.querySelectorAll('[data-v7-slide]'));
+      this.thumbs = Array.from(this.querySelectorAll('[data-v7-thumb]'));
+      this.caption = this.querySelector('[data-v7-caption]');
+      this.current = this.querySelector('[data-v7-current]');
+      this.stage = this.querySelector('[data-v7-stage]');
+      this.thumbRail = this.querySelector('.casa-v7-gallery__thumbs');
+      this.index = 0;
+      this.querySelector('[data-v7-previous]')?.addEventListener('click', () => this.activate(this.index - 1, false, true));
+      this.querySelector('[data-v7-next]')?.addEventListener('click', () => this.activate(this.index + 1, false, true));
+      this.thumbs.forEach((thumb) => thumb.addEventListener('click', () => this.activate(Number(thumb.dataset.v7Thumb), true, true)));
+      this.addEventListener('keydown', (event) => {
+        const fromGalleryControl = event.target === this || event.target?.matches?.('[data-v7-thumb]');
+        if (!fromGalleryControl) return;
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          this.activate(this.index - 1, true, true);
+        }
+        if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          this.activate(this.index + 1, true, true);
+        }
+      });
+      this.stage?.addEventListener('pointerdown', (event) => {
+        if (!event.isPrimary || event.button !== 0 || this.isInteractiveMediaPointer(event)) {
+          this.pointerStart = undefined;
+          return;
+        }
+        this.pointerStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
+      });
+      this.stage?.addEventListener('pointermove', (event) => {
+        const start = this.pointerStart;
+        if (!start || start.id !== event.pointerId) return;
+        const x = Math.abs(event.clientX - start.x);
+        const y = Math.abs(event.clientY - start.y);
+        if (y > 12 && y > x) this.pointerStart = undefined;
+      });
+      this.stage?.addEventListener('pointerup', (event) => {
+        const start = this.pointerStart;
+        this.pointerStart = undefined;
+        if (!start || start.id !== event.pointerId || this.isInteractiveMediaPointer(event)) return;
+        const distance = event.clientX - start.x;
+        const verticalDistance = Math.abs(event.clientY - start.y);
+        if (Math.abs(distance) < 44 || Math.abs(distance) < verticalDistance * 1.5) return;
+        this.ignoreClickUntil = performance.now() + 400;
+        this.activate(this.index + (distance < 0 ? 1 : -1), false, true);
+      });
+      this.stage?.addEventListener('click', (event) => {
+        if (event.detail === 0 || !(performance.now() < this.ignoreClickUntil)) return;
+        this.ignoreClickUntil = 0;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }, true);
+      this.stage?.addEventListener('pointercancel', () => {
+        this.pointerStart = undefined;
+      });
+      this.activate(0);
+    }
+
+    isInteractiveMediaPointer(event) {
+      const interactive = 'audio, iframe, model-viewer, button, a, input, select, textarea, [role="button"], [role="slider"], [data-media-interactive]';
+      const path = typeof event.composedPath === 'function' ? event.composedPath() : [event.target];
+      if (path.some((node) => node?.matches?.(interactive))) return true;
+      const video = path.find((node) => node?.matches?.('video'));
+      if (!video) return false;
+      if (event.pointerType !== 'touch') return true;
+      if (!video.controls) return false;
+      const bounds = video.getBoundingClientRect();
+      return event.clientY < bounds.top + 48 || event.clientY > bounds.bottom - 64;
+    }
+
+    activate(nextIndex, focusThumb = false, playMedia = false) {
+      if (!this.slides.length) return;
+      const count = this.slides.length;
+      this.index = (nextIndex + count) % count;
+      const activeSlide = this.slides[this.index];
+      this.slides.forEach((slide, index) => {
+        const active = index === this.index;
+        slide.hidden = !active;
+        slide.classList.toggle('is-active', active);
+        slide.setAttribute('aria-hidden', String(!active));
+        const video = slide.querySelector('video');
+        if (!active && typeof video?.pause === 'function') video.pause();
+      });
+      const activeVideo = activeSlide?.querySelector('video');
+      if (playMedia && activeVideo && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        activeVideo.autoplay = true;
+        activeVideo.muted = true;
+        activeVideo.playsInline = true;
+        activeVideo.setAttribute('autoplay', '');
+        activeVideo.setAttribute('muted', '');
+        if (typeof activeVideo.play === 'function') {
+          const playback = activeVideo.play();
+          if (playback?.catch) playback.catch(() => {});
+        }
+      }
+      this.thumbs.forEach((thumb, index) => {
+        const active = index === this.index;
+        thumb.classList.toggle('is-active', active);
+        thumb.setAttribute('aria-selected', String(active));
+        thumb.tabIndex = active ? 0 : -1;
+      });
+      if (this.current) this.current.textContent = String(this.index + 1);
+      if (this.caption) this.caption.textContent = activeSlide?.dataset.caption || '';
+      const activeThumb = this.thumbs[this.index];
+      if (this.thumbRail && activeThumb) {
+        const left = activeThumb.offsetLeft - (this.thumbRail.clientWidth - activeThumb.offsetWidth) / 2;
+        this.thumbRail.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+      }
+      if (focusThumb) activeThumb?.focus({ preventScroll: true });
+      this.dispatchEvent(new CustomEvent('casa:gallery-change', { bubbles: true, detail: { index: this.index } }));
+    }
+  }
+
+  if (!customElements.get('casa-octa-gallery-v7')) {
+    customElements.define('casa-octa-gallery-v7', CasaOctaGalleryV7);
+  }
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "OctaMirror V7 gallery",
+  "tag": null,
+  "settings": [
+    { "type": "text", "id": "gallery_label", "label": "Gallery label", "default": "Infinity OctaMirror product gallery" },
+    { "type": "text", "id": "media_order", "label": "Product media order", "default": "1,3,2,9,8,6,5" },
+    { "type": "textarea", "id": "captions", "label": "Captions, one per media item", "default": "The infinity effect, seen head-on.\nWatch the depth move.\nA statement piece in a lived-in room.\nAll three sizes together.\nThe same three sizes with the lights off.\nApproximately 5 in of physical depth.\nRemote, app and voice control." },
+    { "type": "image_picker", "id": "hero_off_image", "label": "Split hero off image" },
+    { "type": "image_picker", "id": "hero_on_image", "label": "Split hero on image" },
+    { "type": "text", "id": "hero_off_label", "label": "Off label", "default": "Off · mirror" },
+    { "type": "text", "id": "hero_on_label", "label": "On label", "default": "On · infinity" },
+    { "type": "text", "id": "hero_off_alt", "label": "Off image alt", "default": "Infinity OctaMirror switched off and used as a reflective wall mirror" },
+    { "type": "text", "id": "hero_on_alt", "label": "On image alt", "default": "Infinity OctaMirror switched on with its repeated multicolor light tunnel" },
+    { "type": "text", "id": "split_caption", "label": "Split hero caption", "default": "A real mirror by day. An infinity portal by night." },
+    { "type": "text", "id": "previous_label", "label": "Previous label", "default": "Previous gallery image" },
+    { "type": "text", "id": "next_label", "label": "Next label", "default": "Next gallery image" },
+    { "type": "text", "id": "thumbnails_label", "label": "Thumbnails label", "default": "Choose a gallery image" },
+    { "type": "text", "id": "swipe_label", "label": "Swipe label", "default": "Swipe or use arrows" }
+  ],
+  "presets": []
+}
+{% endschema %}

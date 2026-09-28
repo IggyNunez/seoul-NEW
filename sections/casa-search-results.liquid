@@ -1,0 +1,756 @@
+{%- comment -%}
+  casa-search-results.liquid
+  Used by: templates/search.json
+  Replaces: sections/search-results.liquid (Horizon default)
+
+  Brand v1 search results.
+  • Wraps the existing <results-list> web component so infinite scroll,
+    Section Rendering API, and Horizon facets all keep working.
+  • Branded empty-state (no query): editorial framing + curated
+    "Discover" doorway tiles + best-sellers rail (fallback collection).
+  • Branded no-results state (query, 0 hits): friendly copy + chips +
+    the same fallback collection as a soft-landing rail.
+  • Active results: standard Horizon product cards inside Casa chrome.
+{%- endcomment -%}
+
+{%- liquid
+  assign surface           = section.settings.surface | default: 'paper'
+  assign empty_eyebrow     = section.settings.empty_eyebrow | default: 'Discover'
+  assign empty_heading     = section.settings.empty_heading
+  assign empty_subline     = section.settings.empty_subline
+  assign zero_heading      = section.settings.zero_heading
+  assign zero_subline      = section.settings.zero_subline
+  assign fallback_label    = section.settings.fallback_collection_label | default: 'Best sellers'
+  assign fallback_collection = section.settings.fallback_collection
+  assign products_per_page = section.settings.products_per_page | default: 24
+  assign enable_infinite   = section.settings.enable_infinite_scroll
+
+  if fallback_collection == blank
+    assign fallback_collection = settings.empty_state_collection
+  endif
+  if fallback_collection == blank
+    assign fallback_collection = collections.all
+  endif
+
+  # Theme blocks (doorway) live in /blocks and render via content_for 'blocks'.
+  # Shopify only allows ONE content_for 'blocks' call per section file, so we
+  # capture it once here and reuse the captured HTML in both the idle and
+  # no-results branches below.
+  assign doorway_count = section.blocks.size
+-%}
+
+{%- capture doorway_grid -%}{% content_for 'blocks' %}{%- endcapture -%}
+
+<script
+  src="{{ 'results-list.js' | asset_url }}"
+  type="module"
+  fetchpriority="low"
+></script>
+
+<section
+  id="casa-search-results-{{ section.id }}"
+  class="casa-search-results casa-search-results--{{ surface }}"
+>
+
+  {%- if search.performed and search.results_count > 0 -%}
+    {%- comment -%} ═══ ACTIVE RESULTS ═══ {%- endcomment -%}
+
+    <results-list
+      class="section product-grid-container spacing-style casa-search-results__grid"
+      style="--padding-block-start: 16px; --padding-block-end: 48px;"
+      section-id="{{ section.id }}"
+      infinite-scroll="{{ enable_infinite }}"
+    >
+      {% render 'skip-to-content-link',
+        href: '#ResultsList',
+        text: 'accessibility.skip_to_results_list'
+      %}
+
+      <div class="collection-wrapper grid gap-style">
+        {%- assign per_page = products_per_page -%}
+        {%- if enable_infinite -%}
+          {%- assign per_page = 24 -%}
+        {%- endif -%}
+
+        {%- paginate search.results by per_page -%}
+          {%- comment -%}
+            TODO 2026-05-18: search-page filtering disabled until facets are
+            fixed. `enable_filtering` is set to false in templates/search.json
+            so the filter UI doesn't render, but sort + grid-density toggles
+            still ship from this same content_for call. Re-enable
+            `enable_filtering` in the JSON template once the facet logic is
+            repaired — no section-liquid change should be needed.
+          {%- endcomment -%}
+          {% content_for 'block',
+            type: 'filters',
+            id: 'filters',
+            results: search,
+            results_size: search.results_count
+          %}
+
+          {%- assign products = search.results | where: 'object_type', 'product' -%}
+
+          {%- capture children -%}
+            {%- for product in products -%}
+              <li
+                id="{{ section.id }}-{{ product.id }}"
+                class="product-grid__item product-grid__item--{{ forloop.index0 }}"
+                data-page="{{ paginate.current_page }}"
+                data-product-id="{{ product.id }}"
+                ref="cards[]"
+              >
+                {% content_for 'block',
+                  type: '_product-card',
+                  id: 'product-card',
+                  closest.product: product
+                %}
+              </li>
+            {%- endfor -%}
+          {%- endcapture -%}
+
+          {%- comment -%}
+            title: blank — the original Horizon search-results only
+            set this on the EMPTY branch (and we handle that branch
+            ourselves above, so it's never needed here).
+          {%- endcomment -%}
+          {% render 'product-grid',
+            section: section,
+            children: children,
+            products: products,
+            paginate: paginate,
+            enable_infinite_scroll: enable_infinite
+          %}
+        {%- endpaginate -%}
+      </div>
+    </results-list>
+
+  {%- elsif search.performed -%}
+    {%- comment -%} ═══ NO RESULTS ═══ {%- endcomment -%}
+
+    <div class="casa-search-results__empty">
+      <div class="casa-search-results__empty-inner">
+        <p class="casa-search-results__empty-eyebrow">No matches</p>
+        <h2 class="casa-search-results__empty-title">
+          {%- if zero_heading != blank -%}
+            {{ zero_heading }}
+          {%- else -%}
+            We don&rsquo;t carry that <em>yet.</em>
+          {%- endif -%}
+        </h2>
+        {%- if zero_subline != blank -%}
+          <p class="casa-search-results__empty-subline">{{ zero_subline }}</p>
+        {%- else -%}
+          <p class="casa-search-results__empty-subline">
+            Try a different word, browse a category below, or scroll for what most people end up with.
+          </p>
+        {%- endif -%}
+
+        {%- if doorway_count > 0 -%}
+          <div class="casa-search-results__doorways casa-search-results__doorways--zero">
+            {{ doorway_grid }}
+          </div>
+        {%- endif -%}
+      </div>
+
+      {%- if fallback_collection.products.size > 0 -%}
+        <div class="casa-search-results__fallback">
+          <div class="casa-search-results__fallback-head">
+            <span class="casa-search-results__fallback-eyebrow">{{ fallback_label }}</span>
+            <a class="casa-search-results__fallback-link" href="{{ fallback_collection.url }}">
+              See all
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </a>
+          </div>
+          <ul class="casa-search-results__rail">
+            {%- for product in fallback_collection.products limit: 8 -%}
+              {%- assign img = product.featured_media.preview_image -%}
+              <li class="casa-search-results__rail-item">
+                <a href="{{ product.url }}" class="casa-search-results__rail-card">
+                  <div class="casa-search-results__rail-media">
+                    {%- if img -%}
+                      <img
+                        src="{{ img | image_url: width: 480 }}"
+                        srcset="{{ img | image_url: width: 320 }} 320w, {{ img | image_url: width: 480 }} 480w, {{ img | image_url: width: 720 }} 720w"
+                        sizes="(max-width: 749px) 50vw, 240px"
+                        alt="{{ img.alt | escape | default: product.title }}"
+                        width="{{ img.width }}"
+                        height="{{ img.height }}"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    {%- endif -%}
+                  </div>
+                  <span class="casa-search-results__rail-title">{{ product.title }}</span>
+                  <span class="casa-search-results__rail-price">{{ product.price | money_with_currency }}</span>
+                </a>
+              </li>
+            {%- endfor -%}
+          </ul>
+        </div>
+      {%- endif -%}
+    </div>
+
+  {%- else -%}
+    {%- comment -%} ═══ IDLE — NO QUERY YET ═══ {%- endcomment -%}
+
+    <div class="casa-search-results__empty casa-search-results__empty--idle">
+      <div class="casa-search-results__empty-inner">
+        <p class="casa-search-results__empty-eyebrow">{{ empty_eyebrow }}</p>
+        <h2 class="casa-search-results__empty-title">
+          {%- if empty_heading != blank -%}
+            {{ empty_heading }}
+          {%- else -%}
+            Not sure where to <em>start?</em>
+          {%- endif -%}
+        </h2>
+        {%- if empty_subline != blank -%}
+          <p class="casa-search-results__empty-subline">{{ empty_subline }}</p>
+        {%- else -%}
+          <p class="casa-search-results__empty-subline">
+            Pick a doorway below, or scroll for what most people end up with.
+          </p>
+        {%- endif -%}
+
+        {%- if doorway_count > 0 -%}
+          <div class="casa-search-results__doorways">
+            {{ doorway_grid }}
+          </div>
+        {%- endif -%}
+      </div>
+
+      {%- if fallback_collection.products.size > 0 -%}
+        <div class="casa-search-results__fallback">
+          <div class="casa-search-results__fallback-head">
+            <span class="casa-search-results__fallback-eyebrow">{{ fallback_label }}</span>
+            <a class="casa-search-results__fallback-link" href="{{ fallback_collection.url }}">
+              See all
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </a>
+          </div>
+          <ul class="casa-search-results__rail">
+            {%- for product in fallback_collection.products limit: 8 -%}
+              {%- assign img = product.featured_media.preview_image -%}
+              <li class="casa-search-results__rail-item">
+                <a href="{{ product.url }}" class="casa-search-results__rail-card">
+                  <div class="casa-search-results__rail-media">
+                    {%- if img -%}
+                      <img
+                        src="{{ img | image_url: width: 480 }}"
+                        srcset="{{ img | image_url: width: 320 }} 320w, {{ img | image_url: width: 480 }} 480w, {{ img | image_url: width: 720 }} 720w"
+                        sizes="(max-width: 749px) 50vw, 240px"
+                        alt="{{ img.alt | escape | default: product.title }}"
+                        width="{{ img.width }}"
+                        height="{{ img.height }}"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    {%- endif -%}
+                  </div>
+                  <span class="casa-search-results__rail-title">{{ product.title }}</span>
+                  <span class="casa-search-results__rail-price">{{ product.price | money_with_currency }}</span>
+                </a>
+              </li>
+            {%- endfor -%}
+          </ul>
+        </div>
+      {%- endif -%}
+    </div>
+
+  {%- endif -%}
+</section>
+
+{% stylesheet %}
+  .casa-search-results {
+    position: relative;
+  }
+  .casa-search-results *,
+  .casa-search-results *::before,
+  .casa-search-results *::after { box-sizing: border-box; }
+
+  .casa-search-results--paper {
+    background: var(--casa-paper, #FAFAF7);
+    color: var(--casa-ink, #0A0A0F);
+  }
+  .casa-search-results--ink {
+    background: var(--casa-ink, #0A0A0F);
+    color: var(--casa-paper, #FAFAF7);
+  }
+
+  /* ── Empty / idle states share the same layout ── */
+  .casa-search-results__empty {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 16px 24px 72px;
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+  }
+  .casa-search-results__empty-inner {
+    max-width: 760px;
+    margin: 0 auto;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .casa-search-results__empty-eyebrow {
+    margin: 0;
+    font-family: var(--font-body--family, 'Inter', sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    opacity: 0.55;
+  }
+  .casa-search-results__empty-title {
+    margin: 0;
+    font-family: var(--casa-pdp-h2-family, var(--font-heading--family, 'Inter', sans-serif));
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: var(--casa-pdp-h2-weight, 500);
+    line-height: var(--casa-pdp-h2-line, 1.1);
+    letter-spacing: var(--casa-pdp-h2-tracking, -0.02em);
+    text-wrap: balance;
+  }
+  .casa-search-results__empty-title em {
+    font-style: italic;
+    background: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .casa-search-results__empty-subline {
+    margin: 0;
+    max-width: 560px;
+    font-family: var(--font-body--family, 'Inter', sans-serif);
+    font-size: 16px;
+    line-height: 1.55;
+    opacity: 0.7;
+  }
+
+  /* ── Doorway tiles (rendered by blocks/doorway.liquid) ── */
+  .casa-search-results__doorways {
+    width: 100%;
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  @media (min-width: 750px) {
+    .casa-search-results__doorways {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+    }
+  }
+
+  .casa-search-results__doorway {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+    background: rgba(10, 10, 15, 0.03);
+    border: 1px solid rgba(10, 10, 15, 0.08);
+    border-radius: 16px;
+    color: inherit;
+    text-decoration: none;
+    transition: transform .25s ease, border-color .25s ease, background .25s ease, box-shadow .25s ease;
+  }
+  .casa-search-results--ink .casa-search-results__doorway {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.10);
+  }
+  .casa-search-results__doorway:hover,
+  .casa-search-results__doorway:focus-visible {
+    transform: translateY(-3px);
+    border-color: transparent;
+    box-shadow: 0 12px 30px rgba(10, 10, 15, 0.10);
+    background: var(--casa-paper, #FAFAF7);
+  }
+  .casa-search-results--ink .casa-search-results__doorway:hover,
+  .casa-search-results--ink .casa-search-results__doorway:focus-visible {
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .casa-search-results__doorway-media {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(176, 195, 250,0.10), rgba(94, 10, 2,0.10) 55%, rgba(242, 255, 160,0.10));
+  }
+  .casa-search-results__doorway-media img {
+    /* height: auto + aspect-ratio instead of height: 100% — the media
+       wrapper's height comes from its own aspect-ratio, and Safari 26 can
+       fail to resolve a %-height against that (the /cart flat-thumbnail
+       class; immune pattern from .cart-items__media-image in
+       snippets/cart-products.liquid). */
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    display: block;
+    transition: transform .35s ease;
+  }
+  .casa-search-results__doorway:hover .casa-search-results__doorway-media img,
+  .casa-search-results__doorway:focus-visible .casa-search-results__doorway-media img {
+    transform: scale(1.04);
+  }
+  .casa-search-results__doorway-placeholder {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #B0C3FA, #5E0A02, #F2FFA0);
+    opacity: 0.45;
+  }
+  .casa-search-results__doorway-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+  }
+  .casa-search-results__doorway-title {
+    font-family: var(--font-body--family, 'Inter', sans-serif);
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.005em;
+  }
+  .casa-search-results__doorway-caption {
+    font-size: 12px;
+    line-height: 1.4;
+    opacity: 0.6;
+  }
+  .casa-search-results__doorway-arrow {
+    position: absolute;
+    top: 22px;
+    right: 22px;
+    opacity: 0.45;
+    transition: opacity .25s ease, transform .25s ease;
+  }
+  .casa-search-results__doorway:hover .casa-search-results__doorway-arrow,
+  .casa-search-results__doorway:focus-visible .casa-search-results__doorway-arrow {
+    opacity: 1;
+    transform: translateX(3px);
+  }
+
+  /* ── Fallback rail (best-sellers) ── */
+  .casa-search-results__fallback {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .casa-search-results__fallback-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .casa-search-results__fallback-eyebrow {
+    font-family: var(--font-body--family, 'Inter', sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+  .casa-search-results__fallback-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: inherit;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0.75;
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  .casa-search-results__fallback-link:hover {
+    opacity: 1;
+    transform: translateX(2px);
+  }
+
+  .casa-search-results__rail {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  @media (min-width: 750px) {
+    .casa-search-results__rail {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 20px;
+    }
+  }
+
+  .casa-search-results__rail-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: inherit;
+    text-decoration: none;
+  }
+  .casa-search-results__rail-media {
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 12px;
+    background: rgba(10, 10, 15, 0.04);
+  }
+  .casa-search-results--ink .casa-search-results__rail-media {
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .casa-search-results__rail-media img {
+    /* height: auto + aspect-ratio instead of height: 100% — the media
+       wrapper's height comes from its own aspect-ratio, and Safari 26 can
+       fail to resolve a %-height against that (the /cart flat-thumbnail
+       class; immune pattern from .cart-items__media-image in
+       snippets/cart-products.liquid). */
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    display: block;
+    transition: transform .35s ease;
+  }
+  .casa-search-results__rail-card:hover .casa-search-results__rail-media img,
+  .casa-search-results__rail-card:focus-visible .casa-search-results__rail-media img {
+    transform: scale(1.03);
+  }
+  .casa-search-results__rail-title {
+    font-family: var(--font-body--family, 'Inter', sans-serif);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+  }
+  .casa-search-results__rail-price {
+    font-size: 13px;
+    opacity: 0.75;
+  }
+
+  /* ── Active results grid wrap ── */
+  .casa-search-results__grid {
+    max-width: 1440px;
+    margin: 0 auto;
+  }
+
+  /* ── Reduced motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    .casa-search-results__doorway,
+    .casa-search-results__doorway-media img,
+    .casa-search-results__rail-media img,
+    .casa-search-results__chip,
+    .casa-search-results__fallback-link,
+    .casa-search-results__doorway-arrow {
+      transition: none;
+      transform: none !important;
+    }
+  }
+
+  /* ── Mobile tightening ── */
+  @media (max-width: 749px) {
+    .casa-search-results__empty {
+      padding: 12px 16px 56px;
+      gap: 36px;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Search Results",
+  "tag": "section",
+  "class": "casa-search-results-section",
+  "enabled_on": { "templates": ["search"] },
+  "settings": [
+    {
+      "type": "header",
+      "content": "Surface"
+    },
+    {
+      "type": "select",
+      "id": "surface",
+      "label": "Background",
+      "options": [
+        { "value": "paper", "label": "Paper (#FAFAF7)" },
+        { "value": "ink",   "label": "Ink (#0A0A0F)" }
+      ],
+      "default": "paper"
+    },
+    {
+      "type": "header",
+      "content": "Idle copy (no query)"
+    },
+    {
+      "type": "text",
+      "id": "empty_eyebrow",
+      "label": "Eyebrow",
+      "default": "Discover"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "empty_heading",
+      "label": "Heading",
+      "default": "Not sure where to <em>start?</em>"
+    },
+    {
+      "type": "text",
+      "id": "empty_subline",
+      "label": "Subline",
+      "default": "Pick a doorway below, or scroll for what most people end up with."
+    },
+    {
+      "type": "header",
+      "content": "No-results copy (query, 0 hits)"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "zero_heading",
+      "label": "Heading",
+      "default": "We don&rsquo;t carry that <em>yet.</em>"
+    },
+    {
+      "type": "text",
+      "id": "zero_subline",
+      "label": "Subline",
+      "default": "Try a different word, browse a category below, or scroll for what most people end up with."
+    },
+    {
+      "type": "header",
+      "content": "Fallback rail"
+    },
+    {
+      "type": "collection",
+      "id": "fallback_collection",
+      "label": "Fallback collection",
+      "info": "Shown as a rail under both idle and no-results states. Defaults to the theme-wide empty-state collection."
+    },
+    {
+      "type": "text",
+      "id": "fallback_collection_label",
+      "label": "Rail label",
+      "default": "Best sellers"
+    },
+    {
+      "type": "header",
+      "content": "Active results — layout"
+    },
+    {
+      "type": "select",
+      "id": "layout_type",
+      "label": "Layout",
+      "options": [
+        { "value": "grid",    "label": "Grid" },
+        { "value": "organic", "label": "Editorial" }
+      ],
+      "default": "grid"
+    },
+    {
+      "type": "select",
+      "id": "product_card_size",
+      "label": "Card size",
+      "options": [
+        { "value": "small",       "label": "Small" },
+        { "value": "medium",      "label": "Medium" },
+        { "value": "large",       "label": "Large" },
+        { "value": "extra-large", "label": "Extra large" }
+      ],
+      "default": "medium",
+      "visible_if": "{{ section.settings.layout_type == 'grid' }}"
+    },
+    {
+      "type": "select",
+      "id": "mobile_product_card_size",
+      "label": "Mobile card size",
+      "options": [
+        { "value": "small", "label": "Small (2 per row)" },
+        { "value": "large", "label": "Large (1 per row)" }
+      ],
+      "default": "small"
+    },
+    {
+      "type": "select",
+      "id": "product_grid_width",
+      "label": "Grid width",
+      "options": [
+        { "value": "centered",   "label": "Page (centered)" },
+        { "value": "full-width", "label": "Full width" }
+      ],
+      "default": "centered"
+    },
+    {
+      "type": "checkbox",
+      "id": "full_width_on_mobile",
+      "label": "Full width on mobile",
+      "default": true,
+      "visible_if": "{{ section.settings.product_grid_width != 'full-width' }}"
+    },
+    {
+      "type": "range",
+      "id": "columns_gap_horizontal",
+      "label": "Horizontal gap",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "columns_gap_vertical",
+      "label": "Vertical gap",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_infinite_scroll",
+      "label": "Infinite scroll",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "products_per_page",
+      "label": "Products per page",
+      "min": 8,
+      "max": 36,
+      "step": 4,
+      "default": 24,
+      "visible_if": "{{ section.settings.enable_infinite_scroll == false }}"
+    }
+  ],
+  "blocks": [
+    { "type": "doorway" }
+  ],
+  "presets": [
+    {
+      "name": "Casa Search Results",
+      "settings": {
+        "surface": "paper",
+        "enable_infinite_scroll": true
+      },
+      "blocks": [
+        { "type": "doorway", "settings": { "label": "Floor lamps",    "caption": "Sculptural · floor",    "query": "floor lamp" } },
+        { "type": "doorway", "settings": { "label": "Infinity mirrors","caption": "Wall · portal",         "query": "infinity mirror" } },
+        { "type": "doorway", "settings": { "label": "Smart RGB",       "caption": "Wall · color-changing", "query": "smart rgb" } },
+        { "type": "doorway", "settings": { "label": "Mushroom lamps",  "caption": "Table · ambient",       "query": "mushroom" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

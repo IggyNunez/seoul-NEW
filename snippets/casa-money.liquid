@@ -1,0 +1,37 @@
+{%- comment -%}
+  Casa Money — formats a price with a guaranteed space between the
+  currency symbol/code and the numeric amount.
+
+  @param amount {number} - Required. Price in cents (e.g. product.price).
+
+  Usage:
+    {% render 'casa-money', amount: product.price %}
+
+  Why: callers write "Save {% render 'casa-money' ... %}" and the
+  badge must never line-break between "Save" and the amount, in any
+  of the 110 enabled currencies. Compound dollar symbols (RD$, CA$,
+  US$, HK$, R$) are single tokens — a blanket '$' replace splits
+  them mid-symbol ("RD $ 6,500"), so symbols glued to letters are
+  never touched. Idempotent — if a space is already present, no
+  double-space is produced.
+{%- endcomment -%}
+{%- capture _casa_money_html -%}{{ amount | money_with_currency }}{%- endcapture -%}
+{%- comment -%}
+  Strategy: prepend one &nbsp; so the amount glues to the preceding
+  word ("Save&nbsp;RD$ 6,500.00 DOP"), and nbsp-join only
+  SPACE-preceded symbols (trailing-symbol locales like
+  "1 234,56 $ CAD"). The collapse rules merge the caller's own
+  space with the prepended entity.
+{%- endcomment -%}
+{%- assign _casa_money_html = '&nbsp;' | append: _casa_money_html -%}
+{%- assign _casa_money_html = _casa_money_html
+    | replace: ' $', '&nbsp;$'
+    | replace: ' €', '&nbsp;€'
+    | replace: ' £', '&nbsp;£'
+    | replace: ' ¥', '&nbsp;¥'
+    | replace: ' ₹', '&nbsp;₹'
+    | replace: '&nbsp;&nbsp;', '&nbsp;'
+    | replace: ' &nbsp;', '&nbsp;'
+    | replace: '&nbsp; ', '&nbsp;'
+    | strip
+-%}{{ _casa_money_html }}

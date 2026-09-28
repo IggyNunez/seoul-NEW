@@ -4,6 +4,11 @@
   Each hotspot links to a product with a smart-positioned popup card.
 {%- endcomment -%}
 
+{%- comment -%} Auto-hide when no image exists {%- endcomment -%}
+{%- if section.settings.image == blank and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
 {%- liquid
   assign s = section.settings
   assign sid = section.id
@@ -12,9 +17,9 @@
   assign description = s.description
   assign image       = s.image
   assign mobile_image = s.mobile_image
-  assign bg_color    = s.bg_color | default: '#0a0a0a'
-  assign text_color  = s.text_color | default: '#ffffff'
-  assign accent      = s.accent_color | default: '#9333ea'
+  assign bg_color    = s.bg_color | default: '#0A0A0F'
+  assign text_color  = s.text_color | default: '#FAFAF7'
+  assign accent      = s.accent_color | default: '#B0C3FA'
   assign collection  = s.collection_link
   assign show_count  = s.show_product_count
 
@@ -35,6 +40,15 @@
     --stl-pb: {{ pb }}px;
     --stl-mpt: {{ mpt }}px;
     --stl-mpb: {{ mpb }}px;
+    {%- comment -%}
+      Heading-scale dropdown: merchant picks H1-H6 from Theme Settings -> Typography.
+    {%- endcomment -%}
+    {%- assign _stl_title_h = section.settings.stl_heading_level | default: 'h1' -%}
+    --stl-title-fs:   var(--font-{{ _stl_title_h }}--size);
+    --stl-title-fw:   var(--font-{{ _stl_title_h }}--weight);
+    --stl-title-lh:   var(--font-{{ _stl_title_h }}--line-height);
+    --stl-title-ls:   var(--font-{{ _stl_title_h }}--letter-spacing);
+    --stl-title-case: var(--font-{{ _stl_title_h }}--case);
   "
 >
   <div class="casa-stl__container">
@@ -159,8 +173,9 @@
 
     {%- comment -%} Shop All CTA {%- endcomment -%}
     {%- if collection != blank -%}
+      {%- assign stl_btn_treatment = section.settings.stl_btn_treatment | default: 'featured' -%}
       <div class="casa-stl__cta">
-        <a href="{{ collection.url }}" class="casa-stl__cta-btn">
+        <a href="{{ collection.url }}" class="btn btn-{{ stl_btn_treatment }} casa-stl__cta-btn">
           Shop All {{ collection.title }}
         </a>
       </div>
@@ -170,10 +185,10 @@
 </section>
 
 {%- comment -%} ============  STYLES  ============ {%- endcomment -%}
-<style>
+{% stylesheet %}
   /* ---- Layout ---- */
   .casa-stl {
-    background: var(--stl-bg);
+  background: var(--stl-bg);
     color: var(--stl-text);
     padding: var(--stl-pt) 0 var(--stl-pb);
   }
@@ -192,10 +207,14 @@
     margin-bottom: 48px;
   }
   .casa-stl__title {
-    font-family: var(--font-heading-family, serif);
-    font-size: clamp(28px, 4vw, 48px);
-    font-weight: 400;
-    letter-spacing: 0.04em;
+    /* Heading scale comes from Theme Settings -> Typography via the
+       stl_heading_level dropdown; legacy clamp/weight preserved as fallback. */
+    font-family: var(--font-heading--family, 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif);
+    font-size: var(--stl-title-fs, clamp(28px, 4vw, 48px));
+    font-weight: var(--stl-title-fw, 400);
+    line-height: var(--stl-title-lh, normal);
+    letter-spacing: var(--stl-title-ls, 0.04em);
+    text-transform: var(--stl-title-case, none);
     margin: 0 0 16px;
     color: var(--stl-text);
   }
@@ -223,7 +242,7 @@
   }
   .casa-stl__placeholder {
     aspect-ratio: 16 / 9;
-    background: #1a1a1a;
+    background: var(--casa-border-on-ink);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -306,7 +325,7 @@
     border: none;
     border-radius: 50%;
     background: rgba(0,0,0,0.5);
-    color: #fff;
+    color: var(--casa-text-on-ink);
     font-size: 18px;
     line-height: 28px;
     text-align: center;
@@ -327,8 +346,8 @@
   }
   .casa-stl__popup-title {
     display: block;
-    font-family: var(--font-heading-family, serif);
-    font-size: 15px;
+    font-family: var(--font-heading--family, 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif);
+    font-size: var(--font-h5--size, 15px);
     font-weight: 500;
     color: var(--stl-text);
     text-decoration: none;
@@ -350,7 +369,7 @@
     color: var(--stl-text);
   }
   .casa-stl__popup-current--sale {
-    color: #ec4899;
+    color: #5E0A02;
   }
   .casa-stl__popup-compare {
     text-decoration: line-through;
@@ -374,7 +393,7 @@
   }
   .casa-stl__popup-btn:hover {
     background: var(--stl-accent);
-    color: #fff;
+    color: var(--casa-text-on-ink);
   }
 
   /* ---- Product Count ---- */
@@ -391,20 +410,10 @@
     text-align: center;
     margin-top: 32px;
   }
-  .casa-stl__cta-btn {
-    display: inline-block;
-    padding: 14px 40px;
-    background: var(--stl-accent);
-    color: #fff;
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    text-decoration: none;
-    border-radius: 8px;
-    transition: opacity 0.25s;
-  }
-  .casa-stl__cta-btn:hover { opacity: 0.85; }
+  /* Brand class .btn .btn-[treatment] provides display, padding,
+     radius, font, transition, text-transform, letter-spacing, hover.
+     casa-stl__cta-btn kept as a hook for future section-specific overrides
+     (intentionally minimal). */
 
   /* ---- Mobile ---- */
   @media (max-width: 749px) {
@@ -419,7 +428,7 @@
     .casa-stl__popup-img { height: 140px; }
     .casa-stl__popup-info { padding: 10px 12px 14px; }
   }
-</style>
+{% endstylesheet %}
 
 {%- comment -%} ============  SCRIPT  ============ {%- endcomment -%}
 <script>
@@ -544,6 +553,36 @@
       "default": "Shop the Look"
     },
     {
+      "type": "select",
+      "id": "stl_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "select",
+      "id": "stl_btn_treatment",
+      "label": "Button treatment",
+      "info": "Brand-book button style. Featured (gradient) is rare per brand book — reserved for hero/launch CTAs.",
+      "options": [
+        { "value": "primary",            "label": "Primary — solid ink (light surface)" },
+        { "value": "primary-on-dark",    "label": "Primary — solid white (dark surface)" },
+        { "value": "secondary",          "label": "Secondary — outline (light surface)" },
+        { "value": "secondary-on-dark",  "label": "Secondary — outline (dark surface)" },
+        { "value": "tertiary",           "label": "Tertiary — underlined link" },
+        { "value": "featured",           "label": "Featured — purple→pink gradient" }
+      ],
+      "default": "featured"
+    },
+    {
       "type": "textarea",
       "id": "description",
       "label": "Description",
@@ -564,24 +603,24 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background Color",
-      "default": "#0a0a0a"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
       "id": "text_color",
       "label": "Text Color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
       "id": "accent_color",
       "label": "Accent Color",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "collection",
       "id": "collection_link",
-      "label": "Shop All Collection"
+      "label": "Linked collection"
     },
     {
       "type": "checkbox",
@@ -692,6 +731,6 @@
       ]
     }
   ],
-  "templates": ["page"]
+  "enabled_on": { "templates": ["page"] }
 }
 {% endschema %}

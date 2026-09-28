@@ -1,0 +1,908 @@
+{%- comment -%}
+  casa-reviews-ugc-v3.liquid — OctaMirror v3 ONLY copy of casa-reviews-ugc.liquid.
+  The shared original is untouched; this copy carries the v3-specific settings.
+{%- endcomment -%}
+{%- comment -%}
+  Seoul Glow Lab — Reviews breakdown + community photo strip
+
+  Paper-2 section. Aggregate score + 5-bar star distribution, then three
+  quoted review cards, then a customer-photo strip.
+
+  Per the Casa Design mirror-family PDP §05. The Judge.me widget stays
+  where it is (bottom of the template) as the full, live review list —
+  this section is the editorial summary that sits mid-page where the
+  price objection actually lands.
+
+  The rating, count and distribution are merchant-entered so they can be
+  kept in sync with Judge.me by hand. They are NOT pulled live — if you
+  change them here, change them in the buy-box star row too.
+
+  The photo strip is product-scene imagery unless real customer photos
+  are supplied. Do not label a product scene "customer photo" in the alt
+  text — the per-block caption is the only claim made about it.
+
+  Used by: templates/product.infinity-octamirror-v2.json
+  Blocks:  review (quote, name, meta, stars) · photo (image, caption)
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+
+  assign reviews = section.blocks | where: 'type', 'review'
+  assign photos = section.blocks | where: 'type', 'photo'
+
+  comment
+    Live fallback (additive, 2026-09-03): when the rating / count settings
+    are left BLANK, read the store's review metafields instead — the same
+    reviews.rating / reviews.rating_count pair Judge.me syncs and the
+    JSON-LD already trusts — so the number can never drift from the widget
+    at the bottom of the page. Typed settings still win, so every template
+    that filled them in renders exactly as before.
+  endcomment
+  assign rating_src = s.rating
+  if rating_src == blank and product.metafields.reviews.rating.value != blank
+    assign rating_src = product.metafields.reviews.rating.value.rating | round: 1
+  endif
+  assign count_src = s.review_count
+  if count_src == blank and product.metafields.reviews.rating_count.value != blank
+    assign count_src = product.metafields.reviews.rating_count.value
+  endif
+
+  assign has_rating = false
+  if rating_src != blank
+    assign has_rating = true
+  endif
+
+  comment
+    Normalise before any maths: `rating` is a text setting, so a merchant
+    (or a localized admin) can type 4,7. "4,7" | round is 4 — one whole
+    star short. Comma to dot first, then plus: 0 to force a number.
+  endcomment
+  assign rating_num = rating_src | append: '' | replace: ',', '.' | plus: 0
+
+  comment
+    Star fill is a percentage width over a 5-glyph track, NOT a rounded
+    glyph count. `| round` turned 4.7 into five FULL stars next to the
+    numeral 4.7 — the section contradicted itself and overstated the
+    aggregate. Clamped so a typo'd 8 can't render eight stars.
+  endcomment
+  assign rating_clamped = rating_num
+  if rating_clamped > 5
+    assign rating_clamped = 5
+  endif
+  if rating_clamped < 0
+    assign rating_clamped = 0
+  endif
+  assign rating_pct = rating_clamped | times: 20
+-%}
+
+<section
+  id="casa-rug-{{ section.id }}"
+  class="casa-rug{% if s.layout_density == 'one_frame' %} casa-rug--compact{% endif %}"
+  style="
+    --casa-rug-paper:   {{ s.color_paper   | default: '#F2F2EE' }};
+    --casa-rug-card:    {{ s.color_card    | default: '#FAFAF7' }};
+    --casa-rug-ink:     {{ s.color_ink     | default: '#0A0A0F' }};
+    --casa-rug-purple:  {{ s.color_purple  | default: '#B0C3FA' }};
+    --casa-rug-pink:    {{ s.color_pink    | default: '#5E0A02' }};
+    --casa-rug-cyan:    {{ s.color_cyan    | default: '#F2FFA0' }};
+    --casa-rug-pt:      {{ s.padding_top    | default: 96 }}px;
+    --casa-rug-pb:      {{ s.padding_bottom | default: 96 }}px;
+  "
+>
+  <div class="casa-rug__cap">
+    <div class="casa-rug__head">
+      <div class="casa-rug__summary">
+        {%- if s.kicker != blank -%}
+          <p class="casa-rug__mono casa-rug__mono--accent">{{ s.kicker | escape }}</p>
+        {%- endif -%}
+        {%- if s.heading != blank -%}
+          <h2 class="casa-rug__h2" id="casa-rug-h2-{{ section.id }}">{{ s.heading }}</h2>
+        {%- endif -%}
+
+        {%- if has_rating -%}
+          <div class="casa-rug__score">
+            <span class="casa-rug__score-n">{{ rating_src }}</span>
+            <span class="casa-rug__score-side">
+              <span class="casa-rug__stars" aria-hidden="true">
+                <span class="casa-rug__stars-track">★★★★★</span>
+                <span class="casa-rug__stars-fill" style="width: {{ rating_pct }}%;">★★★★★</span>
+              </span>
+              <span class="casa-rug__count">{{ rating_src }} {{ s.out_of_label | default: 'out of 5' | escape }}{% if count_src != blank %} — {{ count_src }} {{ s.count_label | default: 'verified reviews' | escape }}{% endif %}</span>
+            </span>
+          </div>
+        {%- endif -%}
+      </div>
+
+      {%- if s.dist_5 > 0 or s.dist_4 > 0 or s.dist_3 > 0 or s.dist_2 > 0 or s.dist_1 > 0 -%}
+        <ul class="casa-rug__bars">
+          {%- assign dist = s.dist_5 | append: ',' | append: s.dist_4 | append: ',' | append: s.dist_3 | append: ',' | append: s.dist_2 | append: ',' | append: s.dist_1 | split: ',' -%}
+          {%- for pct in dist -%}
+            {%- assign star_n = 5 | minus: forloop.index0 -%}
+            <li class="casa-rug__bar">
+              <span class="casa-rug__bar-lbl">{{ star_n }} ★</span>
+              <span class="casa-rug__bar-track">
+                <span class="casa-rug__bar-fill" style="width: {{ pct }}%;"></span>
+              </span>
+              <span class="casa-rug__bar-pct">{{ pct }}%</span>
+            </li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%}
+      In one-frame mode the grid becomes a horizontal scroll rail on phones.
+      The cards hold no interactive content, so without a focusable region
+      a keyboard user can reach the first card and nothing else — the rail
+      scrolls only by pointer. Same fix, and same trade, as the rail in
+      casa-install-steps: the region is a labelled tab stop so arrow keys
+      scroll it. Only added in one-frame mode, since the comfortable layout
+      is a plain grid with nothing to scroll.
+    {%- endcomment -%}
+    {%- if reviews.size > 0 -%}
+      {%- comment -%}
+        The rail stays a real list: a role="group" on the <ul> stripped the
+        list semantics and orphaned every <li> (axe "listitem"). A focusable,
+        labelled <ul> is still keyboard-scrollable.
+      {%- endcomment -%}
+      <ul class="casa-rug__grid"{% if s.layout_density == 'one_frame' and s.heading != blank %} aria-labelledby="casa-rug-h2-{{ section.id }}" tabindex="0"{% endif %}>
+        {%- for block in reviews -%}
+          {%- assign b = block.settings -%}
+          {%- assign b_stars = b.stars | default: 5 -%}
+          <li class="casa-rug__card" {{ block.shopify_attributes }}>
+            <div class="casa-rug__card-top">
+              <span class="casa-rug__stars casa-rug__stars--sm">
+                <span class="visually-hidden">{{ b_stars }} {{ s.stars_sr_label | default: 'out of 5 stars' }}</span>
+                <span class="casa-rug__stars-track" aria-hidden="true">★★★★★</span>
+                <span class="casa-rug__stars-fill" aria-hidden="true" style="width: {{ b_stars | times: 20 }}%;">★★★★★</span>
+              </span>
+              {%- if b.badge != blank -%}
+                <span class="casa-rug__verified">{{ b.badge | escape }}</span>
+              {%- endif -%}
+            </div>
+            <blockquote class="casa-rug__quote">{{ b.quote | escape | newline_to_br }}</blockquote>
+            <div class="casa-rug__meta">
+              <strong>{{ b.name | escape }}</strong>
+              {%- if b.meta != blank -%}<span>{{ b.meta | escape }}</span>{%- endif -%}
+            </div>
+          </li>
+        {%- endfor -%}
+      </ul>
+    {%- endif -%}
+
+    {%- if photos.size > 0 -%}
+      <div class="casa-rug__ugc">
+        <div class="casa-rug__ugc-head">
+          {%- if s.ugc_kicker != blank -%}
+            <p class="casa-rug__mono casa-rug__mono--dim" id="casa-rug-ugc-lbl-{{ section.id }}">{{ s.ugc_kicker | escape }}</p>
+          {%- endif -%}
+          {%- if s.ugc_link_label != blank and s.ugc_link_url != blank -%}
+            <a class="casa-rug__ugc-link" href="{{ s.ugc_link_url }}">{{ s.ugc_link_label }}</a>
+          {%- endif -%}
+        </div>
+        <ul class="casa-rug__ugc-grid"{% if s.layout_density == 'one_frame' and s.ugc_kicker != blank %} aria-labelledby="casa-rug-ugc-lbl-{{ section.id }}" tabindex="0"{% endif %}>
+          {%- for block in photos -%}
+            {%- liquid
+              assign p = block.settings
+              assign p_alt = p.image.alt
+              if p_alt == blank
+                assign p_alt = p.caption
+              endif
+              if p_alt == blank
+                assign p_alt = product.title
+              endif
+            -%}
+            <li
+              class="casa-rug__ugc-cell"
+              style="--casa-rug-focus: {{ p.image_focus | default: 'center' }};"
+              {{ block.shopify_attributes }}
+            >
+              {%- if p.image != blank -%}
+                {{
+                  p.image
+                  | image_url: width: 800
+                  | image_tag:
+                    widths: '200, 300, 400, 600, 800',
+                    sizes: '(max-width: 900px) 33vw, 18vw',
+                    loading: 'lazy',
+                    decoding: 'async',
+                    alt: p_alt
+                }}
+              {%- endif -%}
+              {%- if p.caption != blank -%}
+                <span class="casa-rug__ugc-badge">{{ p.caption | escape }}</span>
+              {%- endif -%}
+            </li>
+          {%- endfor -%}
+        </ul>
+      </div>
+    {%- endif -%}
+  </div>
+</section>
+
+{% stylesheet %}
+.casa-rug {
+  background: var(--casa-rug-paper, #F2F2EE);
+  padding: var(--casa-rug-pt, 96px) 0 var(--casa-rug-pb, 96px);
+}
+.casa-rug__cap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px);
+}
+.casa-rug__mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0 0 16px;
+}
+.casa-rug__mono--accent { color: var(--casa-rug-purple, #B0C3FA); }
+.casa-rug__mono--dim { color: #525252; }
+
+.casa-rug__head {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(32px, 6vw, 80px);
+  align-items: center;
+  margin-bottom: clamp(36px, 4vw, 52px);
+}
+@media (max-width: 1023px) {
+  .casa-rug__head { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+}
+
+.casa-rug__h2 {
+  font-family: var(--casa-pdp-h2-family);
+  font-size: var(--casa-pdp-h2-size);
+  font-weight: var(--casa-pdp-h2-weight);
+  letter-spacing: var(--casa-pdp-h2-tracking);
+  line-height: var(--casa-pdp-h2-line);
+  color: var(--casa-rug-ink, #0A0A0F);
+  margin: 0 0 22px;
+  text-wrap: balance;
+}
+.casa-rug__h2 em {
+  font-style: italic;
+  font-weight: 800;
+  background: linear-gradient(90deg, var(--casa-rug-purple, #B0C3FA), var(--casa-rug-pink, #5E0A02), var(--casa-rug-cyan, #F2FFA0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+@media (max-width: 380px) {
+  .casa-rug__h2 em { font-size: 1.02em; }
+}
+
+.casa-rug__score {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.casa-rug__score-n {
+  font-family: var(--font-body--family);
+  font-size: clamp(40px, 7vw, 68px);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--casa-rug-ink, #0A0A0F);
+}
+.casa-rug__score-side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.casa-rug__stars {
+  position: relative;
+  display: inline-block;
+  /* MUST hug the glyph track. This span is a child of a column flex
+     container, so it gets blockified and stretched to the column width —
+     measured 268px against a 100px track, which made the percentage fill
+     resolve to 252px and cover all five stars at full opacity. The whole
+     point of the fill is defeated unless the containing block IS the
+     track. max-content survives any parent layout. */
+  width: max-content;
+  max-width: 100%;
+  color: var(--casa-rug-ink, #0A0A0F);
+  font-size: 18px;
+  letter-spacing: 2px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.casa-rug__stars--sm { font-size: 12px; letter-spacing: 0.5px; }
+/* A percentage-width fill over a full-opacity track, so 4.7 reads as 4.7
+   stars instead of being rounded up to five. Track and fill are the same
+   five glyphs, so they align at any font size or letter-spacing. */
+.casa-rug__stars-track { opacity: 0.22; }
+.casa-rug__stars-fill {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.casa-rug__count {
+  font-size: 14px;
+  color: #525252;
+  overflow-wrap: anywhere;
+}
+
+.casa-rug__bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.casa-rug__bar {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 12px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+}
+.casa-rug__bar-lbl { color: var(--casa-rug-ink, #0A0A0F); letter-spacing: 0.06em; }
+.casa-rug__bar-pct { color: #525252; text-align: end; }
+.casa-rug__bar-track {
+  height: 6px;
+  background: #E0E0DA;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.casa-rug__bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--casa-rug-ink, #0A0A0F);
+}
+
+.casa-rug__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 1023px) {
+  .casa-rug__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .casa-rug__grid { grid-template-columns: minmax(0, 1fr); }
+}
+.casa-rug__card {
+  border: 1px solid #E3E3DE;
+  border-radius: 12px;
+  padding: clamp(16px, 2.4vw, 24px);
+  background: var(--casa-rug-card, #FAFAF7);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.casa-rug__card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.casa-rug__verified {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: #525252;
+  border: 1px solid #E3E3DE;
+  border-radius: 999px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+.casa-rug__quote {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--casa-rug-ink, #0A0A0F);
+  margin: 0;
+  flex: 1;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+.casa-rug__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-top: 1px solid #E3E3DE;
+  padding-top: 14px;
+}
+.casa-rug__meta strong { font-size: 14px; font-weight: 600; color: var(--casa-rug-ink, #0A0A0F); }
+.casa-rug__meta span {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: #525252;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.casa-rug__ugc { margin-top: clamp(20px, 3vw, 32px); }
+.casa-rug__ugc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.casa-rug__ugc-head .casa-rug__mono { margin-bottom: 0; }
+.casa-rug__ugc-link {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--casa-rug-purple, #B0C3FA);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.casa-rug__ugc-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  /* auto-fit, not a fixed 5: six photos at 1440px wrapped one orphan tile
+     onto a second row. 160px floor keeps 5 or 6 tiles on one row. */
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+@media (max-width: 900px) {
+  .casa-rug__ugc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+}
+.casa-rug__ugc-cell {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--casa-rug-ink, #0A0A0F);
+  min-width: 0;
+}
+.casa-rug__ugc-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Square 1:1 crop of a wide scene photo will cut the product out of
+     frame on `center` — the "Three sizes" shot loses its outer two
+     mirrors. Per-block focal point, per the scene-crop rule. */
+  object-position: var(--casa-rug-focus, center);
+  display: block;
+  transition: transform 0.4s cubic-bezier(.2,.7,.2,1);
+}
+.casa-rug__ugc-cell:hover img { transform: scale(1.06); }
+@media (prefers-reduced-motion: reduce) {
+  .casa-rug__ugc-cell img { transition: none; }
+  .casa-rug__ugc-cell:hover img { transform: none; }
+}
+.casa-rug__ugc-badge {
+  position: absolute;
+  inset-inline-start: 8px;
+  inset-block-end: 8px;
+  max-width: calc(100% - 16px);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: #fff;
+  background: rgba(10,10,15,0.62);
+  border-radius: 999px;
+  padding: 3px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── One-frame density ───────────────────────────────────────────────
+   Opt-in via the "Section height" setting. The section is tuned to fit
+   a single viewport frame so the whole review argument is legible in
+   one look instead of across three scroll gestures.
+
+   The budget it is cut against is the USABLE frame, not innerHeight:
+   the header group is sticky (80px mobile / 100px desktop), so a 800px
+   desktop viewport only ever shows 700px of section.
+
+   On phones the three review cards are the dominant cost — stacked they
+   are ~600px on their own. Compact turns them into a scroll-snap rail so
+   N cards cost the height of one, which is also the pattern a thumb
+   already expects. The rail is a <ul>, so it stays a list for a screen
+   reader and Tab still reaches every card.                            */
+/* Keyboard focus ring for the focusable rail regions (keyboard-only). */
+.casa-rug--compact .casa-rug__grid:focus-visible,
+.casa-rug--compact .casa-rug__ugc-grid:focus-visible {
+  outline: 2px solid var(--casa-rug-purple, #B0C3FA);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+.casa-rug--compact .casa-rug__mono { margin-bottom: 10px; }
+.casa-rug--compact .casa-rug__head { margin-bottom: clamp(18px, 2vw, 26px); }
+.casa-rug--compact .casa-rug__h2 { margin-bottom: 12px; }
+.casa-rug--compact .casa-rug__score-n { font-size: clamp(28px, 4vw, 40px); }
+.casa-rug--compact .casa-rug__count { font-size: 13px; }
+.casa-rug--compact .casa-rug__bars { gap: 5px; }
+.casa-rug--compact .casa-rug__card { padding: clamp(13px, 1.6vw, 17px); gap: 10px; }
+.casa-rug--compact .casa-rug__quote { font-size: 14px; line-height: 1.45; }
+.casa-rug--compact .casa-rug__meta { padding-top: 10px; }
+.casa-rug--compact .casa-rug__ugc { margin-top: 16px; }
+.casa-rug--compact .casa-rug__ugc-head { margin-bottom: 10px; }
+/* Square cells are the single biggest block of desktop height in this
+   section (5 across a 1440px cap ≈ 250px tall each). A 3:2 crop keeps
+   the strip readable at roughly two-thirds the cost. */
+.casa-rug--compact .casa-rug__ugc-cell { aspect-ratio: 2.6 / 1; }
+/* Do NOT shrink this below 44px to buy height — it is a real link and the
+   only route to the full review list. An earlier compact pass dropped it
+   to 32px, which failed the tap-target minimum; the pixels come out of the
+   photo strip instead, which costs nothing but crop. */
+
+/* Short viewports: the summary block is the cost — an oversized score
+   numeral above five distribution bars. Both compress rather than
+   disappear; the bars still say what they said, quieter. Keyed off
+   HEIGHT, since the constraint is vertical room, not width. */
+
+
+@media (max-width: 1023px) {
+  /* The head stacks to one column here, so the summary and the five
+     distribution bars are additive rather than side by side — 266px
+     measured on a 390px phone. */
+  .casa-rug--compact .casa-rug__head { margin-bottom: 12px; gap: 18px; }
+  .casa-rug--compact .casa-rug__bars { gap: 3px; }
+  .casa-rug--compact .casa-rug__bar { font-size: 11px; }
+  .casa-rug--compact .casa-rug__h2 { margin-bottom: 8px; }
+}
+
+@media (max-width: 620px) {
+  .casa-rug--compact .casa-rug__grid {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 78%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* Full-bleed rail: cancel the cap padding so the first card starts at
+       the same optical margin as the heading and the last one can scroll
+       clear of the right edge. */
+    margin-inline: calc(-1 * clamp(20px, 5vw, 64px));
+    padding-inline: clamp(20px, 5vw, 64px);
+    padding-bottom: 4px;
+  }
+  .casa-rug--compact .casa-rug__grid::-webkit-scrollbar { display: none; }
+  .casa-rug--compact .casa-rug__card { scroll-snap-align: start; }
+  /* The tallest card sets the rail height, so quotes of uneven length do
+     not make the rail lurch as you swipe. */
+  .casa-rug--compact .casa-rug__ugc-grid {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 42%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    margin-inline: calc(-1 * clamp(20px, 5vw, 64px));
+    padding-inline: clamp(20px, 5vw, 64px);
+  }
+  .casa-rug--compact .casa-rug__ugc-grid::-webkit-scrollbar { display: none; }
+  .casa-rug--compact .casa-rug__ugc-cell { scroll-snap-align: start; }
+}
+
+/* 790px, not 800: it has to catch a 768-tall landscape tablet, which
+   the first attempt at 760 missed by eight pixels, without also firing
+   on an 800-tall laptop that already fits and would only get smaller
+   for nothing.
+
+   Height tiers live LAST. They share specificity with the width
+   queries above and only win on source order — placed earlier they
+   silently lost, which is exactly what happened on the first pass. */
+@media (max-height: 790px) {
+  .casa-rug--compact .casa-rug__score-n { font-size: clamp(24px, 3.4vw, 32px); }
+  .casa-rug--compact .casa-rug__bars { gap: 2px; }
+  .casa-rug--compact .casa-rug__bar { font-size: 10px; }
+  .casa-rug--compact .casa-rug__head { margin-bottom: 10px; gap: 12px; }
+  .casa-rug--compact .casa-rug__ugc { margin-top: 10px; }
+  .casa-rug--compact .casa-rug__ugc-cell { aspect-ratio: 2.8 / 1; }
+  .casa-rug--compact .casa-rug__card { padding: 11px; gap: 8px; }
+  .casa-rug--compact .casa-rug__quote { font-size: 13px; line-height: 1.4; }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Reviews + UGC v3",
+  "tag": "section",
+  "class": "casa-reviews-ugc-section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "layout_density",
+      "label": "Section height",
+      "info": "One frame tightens spacing and turns the review cards into a swipeable rail on phones, so the section fits a single screen.",
+      "options": [
+        { "value": "comfortable", "label": "Comfortable" },
+        { "value": "one_frame", "label": "Fit one frame" }
+      ],
+      "default": "comfortable"
+    },
+    {
+      "type": "header",
+      "content": "Heading"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker (mono)"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading (use <em>word</em> for italic gradient accent)"
+    },
+    {
+      "type": "header",
+      "content": "Aggregate score",
+      "info": "Entered by hand — not pulled live from Judge.me. Keep in sync with the Judge.me widget and the buy-box star row."
+    },
+    {
+      "type": "text",
+      "id": "rating",
+      "label": "Rating out of 5",
+      "default": "4.7"
+    },
+    {
+      "type": "text",
+      "id": "review_count",
+      "label": "Number of reviews",
+      "default": "355"
+    },
+    {
+      "type": "text",
+      "id": "count_label",
+      "label": "Wording after the number",
+      "default": "verified reviews"
+    },
+    {
+      "type": "text",
+      "id": "out_of_label",
+      "label": "\"out of 5\" wording",
+      "info": "Translate here for non-English markets — this string is baked into the page otherwise.",
+      "default": "out of 5"
+    },
+    {
+      "type": "text",
+      "id": "stars_sr_label",
+      "label": "Screen-reader wording after a card's star count",
+      "info": "Read as e.g. \"5 out of 5 stars\". Never shown visually.",
+      "default": "out of 5 stars"
+    },
+    {
+      "type": "header",
+      "content": "Star distribution",
+      "info": "Percentage of reviews at each star rating. Set all five to 0 to hide the bars."
+    },
+    {
+      "type": "range",
+      "id": "dist_5",
+      "label": "5 star",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 83,
+      "unit": "%"
+    },
+    {
+      "type": "range",
+      "id": "dist_4",
+      "label": "4 star",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 11,
+      "unit": "%"
+    },
+    {
+      "type": "range",
+      "id": "dist_3",
+      "label": "3 star",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 3,
+      "unit": "%"
+    },
+    {
+      "type": "range",
+      "id": "dist_2",
+      "label": "2 star",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 1,
+      "unit": "%"
+    },
+    {
+      "type": "range",
+      "id": "dist_1",
+      "label": "1 star",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 2,
+      "unit": "%"
+    },
+    {
+      "type": "header",
+      "content": "Photo strip"
+    },
+    {
+      "type": "text",
+      "id": "ugc_kicker",
+      "label": "Photo strip kicker (mono)",
+      "default": "From the community"
+    },
+    {
+      "type": "text",
+      "id": "ugc_link_label",
+      "label": "Link label"
+    },
+    {
+      "type": "url",
+      "id": "ugc_link_url",
+      "label": "Link URL",
+      "info": "To point at the Judge.me widget on this page use its section anchor (e.g. #shopify-section-judge_widget_XXXXXX). Note that ID is Shopify-generated — if the widget is removed and re-added, or the template is duplicated, re-copy it or the link goes nowhere."
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "color_paper",
+      "label": "Section background (Paper-2)",
+      "default": "#F2F2EE"
+    },
+    {
+      "type": "color",
+      "id": "color_card",
+      "label": "Card background (Paper)",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "color_ink",
+      "label": "Ink",
+      "default": "#0A0A0F"
+    },
+    {
+      "type": "color",
+      "id": "color_purple",
+      "label": "Accent purple",
+      "default": "#B0C3FA"
+    },
+    {
+      "type": "color",
+      "id": "color_pink",
+      "label": "Accent pink",
+      "default": "#5E0A02"
+    },
+    {
+      "type": "color",
+      "id": "color_cyan",
+      "label": "Accent cyan",
+      "default": "#F2FFA0"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 200,
+      "step": 8,
+      "default": 96,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 200,
+      "step": 8,
+      "default": 96,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "review",
+      "name": "Review card",
+      "settings": [
+        {
+          "type": "textarea",
+          "id": "quote",
+          "label": "Quote"
+        },
+        {
+          "type": "text",
+          "id": "name",
+          "label": "Reviewer name"
+        },
+        {
+          "type": "text",
+          "id": "meta",
+          "label": "Meta line",
+          "info": "Shown in mono under the name, e.g. \"Large · 4 mo ago\"."
+        },
+        {
+          "type": "range",
+          "id": "stars",
+          "label": "Stars",
+          "min": 1,
+          "max": 5,
+          "step": 1,
+          "default": 5
+        },
+        {
+          "type": "text",
+          "id": "badge",
+          "label": "Badge",
+          "info": "Leave blank to hide. Only use \"Verified\" for reviews Judge.me has actually verified.",
+          "default": "Verified"
+        }
+      ]
+    },
+    {
+      "type": "photo",
+      "name": "Photo",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Photo"
+        },
+        {
+          "type": "text",
+          "id": "caption",
+          "label": "Caption badge",
+          "info": "Short mono label, e.g. \"Magenta\". Leave blank to hide."
+        },
+        {
+          "type": "text",
+          "id": "image_focus",
+          "label": "Image focal point (object-position)",
+          "info": "CSS object-position. These cells are a square crop, so a wide scene shot needs steering — e.g. 'center bottom', or '50% 35%' to pull the product up.",
+          "default": "center"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 16,
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "presets": [
+    {
+      "name": "Casa Reviews + UGC v3",
+      "category": "Product",
+      "blocks": [
+        { "type": "review" },
+        { "type": "review" },
+        { "type": "review" },
+        { "type": "photo" },
+        { "type": "photo" },
+        { "type": "photo" }
+      ]
+    }
+  ]
+}
+{% endschema %}

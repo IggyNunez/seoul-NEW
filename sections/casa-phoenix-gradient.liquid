@@ -1,0 +1,148 @@
+{%- comment -%}
+  casa-phoenix-gradient.liquid
+  Used by: templates/product.phoenix-floor-lamp.json (Phoenix PDP ONLY)
+  A fixed, scroll-driven sunset gradient behind the whole editorial page.
+  Merchant-approved override of the locked Ink/Paper rule, Phoenix only
+  (2026-07-15 — memory project_phoenix_pdp_gradient_override). Scoped to
+  main[data-template="product.phoenix-floor-lamp"] so no other page is touched.
+
+  Perf: the colour shift is done by PANNING a tall static gradient with
+  translate3d (GPU-composited, no per-frame repaint) instead of recolouring a
+  full-screen layer every frame — smooth, not laggy. Editorial sections opt in
+  to transparency in their own CSS; the frozen buy box keeps its background.
+{%- endcomment -%}
+
+<div class="casa-phxg" aria-hidden="true" data-casa-phxg>
+  <div class="casa-phxg__pan"></div>
+</div>
+
+{% stylesheet %}
+  /* RETIRED 2026-07-16. This fixed bright layer was the original Phoenix
+     gradient. It has been superseded by the seamless backdrop that
+     casa-pdp-films-picker paints across §02→FAQ. Leaving it live was actively
+     harmful: it stayed BRIGHT (gold→pink) while the seamless layer was
+     deepened, so any moment the backdrop didn't perfectly cover — a few px of
+     drift, a re-layout mid-load — this flashed through as a garish pink band
+     behind the FAQ and made the muted copy on it unreadable. It is strictly a
+     landmine now; the seamless layer owns the gradient. */
+  .casa-phxg {
+    display: none;
+  }
+  /* A tall static BRIGHT sunset gradient that pans vertically on scroll. Every
+     stop is vibrant (no dark violet/indigo) so any slice §04 lands on reads as
+     the bright sunset from the approved preview. Loops so the pan has no edge. */
+  .casa-phxg__pan {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 240vh;
+    background: linear-gradient(180deg,
+      #F0BC6E 0%,
+      #F3A55E 13%,
+      #F49487 27%,
+      #EE7B8E 41%,
+      #E86FA0 55%,
+      #CE7DCF 69%,
+      #A98DE6 83%,
+      #F0BC6E 100%);
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+  }
+
+  /* Lift page content above the fixed gradient. Scoped to Phoenix. */
+  main[data-template="product.phoenix-floor-lamp"] .shopify-section {
+    position: relative;
+    z-index: 1;
+  }
+  main[data-template="product.phoenix-floor-lamp"] .shopify-section:has(.casa-phxg) {
+    z-index: 0;
+  }
+
+  /* ── Gradient runs from the editorial flow THROUGH the support/FAQ, then
+     ENDS (Phoenix, merchant 2026-07-16) ────────────────────────────────────
+     The editorial sections (films / stats / moods / arms / form) are already
+     transparent, so the fixed sunset flows through them. The FAQ is the LAST
+     section the gradient flows through — drop its own dark-plum background so
+     the sunset carries into it. Recommendations + reviews BELOW it keep their
+     normal Paper/white surfaces, so the gradient visibly ends after support. */
+  main[data-template="product.phoenix-floor-lamp"] .casa-faq2 {
+    background: transparent !important;
+    background-image: none !important;
+  }
+  /* FAQ keeps its own light-on-dark theme (light text). On the DEEP muted
+     sunset that reads well — same as the editorial sections above it, which
+     were all designed light-on-dark. (Earlier it was flipped to dark text for
+     a brighter palette; the deep palette favours light text, so that's
+     reverted 2026-07-16.) */
+{% endstylesheet %}
+
+<script>
+  (function () {
+    function initPhxGrad(host) {
+      if (!host || host.dataset.phxgInit === '1') return;
+      host.dataset.phxgInit = '1';
+      var pan = host.querySelector('.casa-phxg__pan');
+      if (!pan) return;
+
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      /* The pan is 240vh; the viewport shows a 100vh window, so there is
+         140vh of travel. Map scroll progress 0..1 to that travel, damped for
+         smoothness. transform only -> GPU composite, no repaint. */
+      var cur = 0, target = 0, raf = 0;
+      function travel() { return pan.offsetHeight - window.innerHeight; }
+      function readTarget() {
+        var h = document.documentElement.scrollHeight - window.innerHeight;
+        target = h > 0 ? (window.scrollY || window.pageYOffset) / h : 0;
+        if (target < 0) target = 0; else if (target > 1) target = 1;
+      }
+      function paint(p) { pan.style.transform = 'translate3d(0,' + (-(p * travel())).toFixed(1) + 'px,0)'; }
+      function frame() {
+        raf = 0;
+        cur += (target - cur) * 0.14;
+        if (Math.abs(target - cur) < 0.0004) cur = target;
+        paint(cur);
+        if (cur !== target) raf = requestAnimationFrame(frame);
+      }
+      function kick() { readTarget(); if (!raf) raf = requestAnimationFrame(frame); }
+
+      if (reduce) { readTarget(); paint(target); }
+      else {
+        window.addEventListener('scroll', kick, { passive: true });
+        window.addEventListener('resize', kick, { passive: true });
+        readTarget(); cur = target; paint(cur);
+      }
+
+      host.__phxgTeardown = function () {
+        window.removeEventListener('scroll', kick);
+        window.removeEventListener('resize', kick);
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        host.dataset.phxgInit = '';
+      };
+    }
+
+    initPhxGrad(document.querySelector('[data-casa-phxg]'));
+
+    if (!window.__casaPhxgBound) {
+      window.__casaPhxgBound = true;
+      document.addEventListener('shopify:section:load', function (e) {
+        var el = e.target.querySelector('[data-casa-phxg]');
+        if (el) initPhxGrad(el);
+      });
+      document.addEventListener('shopify:section:unload', function (e) {
+        var el = e.target.querySelector('[data-casa-phxg]');
+        if (el && el.__phxgTeardown) el.__phxgTeardown();
+      });
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Phoenix Gradient BG",
+  "tag": "section",
+  "settings": [],
+  "presets": [{ "name": "Phoenix Gradient BG" }]
+}
+{% endschema %}

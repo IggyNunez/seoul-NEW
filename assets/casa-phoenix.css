@@ -1,0 +1,1207 @@
+/* Seoul Glow Lab — Phoenix Floor Lamp PDP tokens
+   Loaded only when template contains 'phoenix'. Provides the 5 sunset-film
+   palette tokens + the .casa-sunset-em italic-gradient accent class used
+   on every Phoenix section H2.
+
+   Brand-book v1 §03 (locked 2026-05-15): H2 italic accents are Inter
+   500–600 weight. NEVER 800. */
+
+:root.is-phoenix {
+  --film-gold:   #E8B86A;
+  --film-amber:  #F59E0B;
+  --film-blush:  #F4A6A0;
+  --film-red:    #DC2626;
+  --film-violet: #A78BFA;
+  --grad-sunset: linear-gradient(
+    90deg,
+    var(--film-gold)   0%,
+    var(--film-amber) 25%,
+    var(--film-blush) 50%,
+    var(--film-red)   75%,
+    var(--film-violet) 100%
+  );
+
+  /* ════════════════════════════════════════════════════════════════
+     Seam-matched master gradient — replaces the per-section ink-feather
+     pattern (~19 prior attempts) with one continuous sunset gradient
+     sliced across §02–§06. Each section paints a single 180° linear-
+     gradient between its top + bottom seam vars. Adjacent sections
+     share the same var at their boundary, so the boundary pixel is
+     identical on both sides — seam invisible at any section height.
+
+     Mid-luminance dusk hues (~15–30% luminance — readable under paper
+     text + never pure black). Canon-aligned: derived from the sunset
+     palette darkened toward ink. Hue values are tunable in a follow-up
+     pass; the architecture is what matters.
+     ════════════════════════════════════════════════════════════════ */
+  /* Harmonious jewel-tone sunset (merchant 2026-05-21: "use the
+     psychology of colors … gradients that are very attuned to the UI
+     and look very good"). All hues are ANALOGOUS (deep indigo-violet →
+     royal violet → orchid magenta → rose → warm coral) so each step
+     blends into the next with no banding, and the warm end is a rich
+     CORAL rather than the previous dull brick-orange the merchant
+     rejected. The path is monotonic in lightness through §02→§06 (no
+     rose→orange→rose reversal that produced horizontal bands), then
+     eases to a deep plum-violet for §07 — closing the loop toward the
+     indigo at the top. All seams stay text-safe (white ≥4.5:1). */
+  --phx-seam-0: #2a1a48; /* top of §02     — deep indigo-violet (night sky) */
+  --phx-seam-1: #56225f; /* §02/§03        — royal violet                  */
+  --phx-seam-2: #832a5c; /* §03/§04        — orchid magenta                */
+  --phx-seam-3: #a4364f; /* §04/§05        — rose                          */
+  --phx-seam-4: #b04449; /* §05/§06        — warm coral (golden-hour glow)  */
+  --phx-seam-5: #8c3349; /* bottom of §06  — deep rose dusk                */
+  --phx-seam-6: #3a2046; /* bottom of §07  — deep plum-violet (loops to 0)  */
+}
+
+/* Sunset gradient on the italic accent — applied via selector instead of a
+   class, because Shopify's inline_richtext setting strips class attributes
+   from <em> tags. Any <em> inside a Phoenix section H2 gets the treatment
+   so the merchant can move the accent to any word in the theme editor.
+
+   On the §02 carousel the gradient cycles per active film: the section JS
+   computes a 3-stop slice (prev → current → next) of the sunset palette
+   anchored on the dominant film hex and sets `--films-em-grad` on the
+   section root. This rule falls back to the full sunset gradient when
+   the variable isn't set — so the §04/§06 H2s stay on the static palette
+   and the picture renders correctly on first paint of §02 before JS boots. */
+:root.is-phoenix .casa-films__h2 em {
+  background: var(--films-em-grad, var(--grad-sunset, linear-gradient(90deg, #E8B86A, #F59E0B, #F4A6A0, #DC2626, #A78BFA)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+:root.is-phoenix .casa-arms__h2 em,
+:root.is-phoenix .casa-form__h2 em,
+:root.is-phoenix .casa-included__title em,
+.casa-sunset-em {
+  background: var(--grad-sunset, linear-gradient(90deg, #E8B86A, #F59E0B, #F4A6A0, #DC2626, #A78BFA));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Phoenix §03 (casa-stats-grid) — sunset palette overrides
+   --------------------------------------------------------------------
+   The section ships brand purple/pink/cyan gradients on every stat
+   number, em accent, and halo. Phoenix's editorial throughline is
+   sunset (amber → blush → violet), so the RGB gradients clash. These
+   rules replace each hardcoded gradient with the sunset palette,
+   scoped to :root.is-phoenix so every other PDP using casa-stats-grid
+   keeps its brand RGB.
+   Specificity (6 class tokens) wins over the section's 3-token rules
+   without !important.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Default stat number — PALE sunset (2026-07-16). The old saturated amber →
+   red → violet started in the same warm family as the deep gradient ground,
+   so the numbers half-disappeared (the FILMS "5" was near-invisible). These
+   are the same film hues lifted toward light, so every stop sits well above
+   the background in luminance and the numbers read at a glance. */
+:root.is-phoenix .casa-st .casa-st__stat .num,
+:root.is-phoenix .casa-st--paper-2 .casa-st__stat .num {
+  background-image: linear-gradient(95deg, #FFD9A0 0%, #FFAFA6 50%, #CDBBFF 100%);
+}
+
+/* Hero card — 4-stop pale sunset shimmer, wrapping back to gold */
+:root.is-phoenix .casa-st .casa-st__card--hero .casa-st__stat .num,
+:root.is-phoenix .casa-st--paper-2 .casa-st__card--hero .casa-st__stat .num {
+  background-image: linear-gradient(95deg, #FFE0AE 0%, #FFAFA6 35%, #CDBBFF 65%, #FFE0AE 100%);
+}
+
+/* Compact 6-block desktop hero (≥1200px) — section uses higher-specificity
+   selector with [data-block-count="6"] (0,5,0) to override Paper-2 default.
+   We match that specificity tier (0,6,0) so the desktop 2-stop also lands
+   on sunset. */
+:root.is-phoenix .casa-st__grid[data-block-count="6"] .casa-st__card--hero .casa-st__stat .num,
+:root.is-phoenix .casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card--hero .casa-st__stat .num {
+  background-image: linear-gradient(95deg, #FFD9A0 0%, #CDBBFF 100%);
+}
+
+/* Section H2 — §03 accent RESTORED to the brand sunset gradient em
+   (merchant 2026-07-16: "title not on brand-book theme"). The earlier
+   "quiet white, no gradient" restraint made §03 the odd one out — every
+   other Phoenix heading (§02/§04/§06/FAQ) carries the italic-gradient
+   accent, so §03 now matches for a consistent on-brand heading. */
+:root.is-phoenix .casa-st .casa-st__h2 em,
+:root.is-phoenix .casa-st--paper-2 .casa-st__h2 em {
+  background: var(--grad-sunset, linear-gradient(90deg, #E8B86A, #F59E0B, #F4A6A0, #DC2626, #A78BFA));
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+          color: transparent;
+  font-style: italic;
+  font-weight: 600;
+}
+
+/* §03 mono kickers + per-card labels ("03 · WHAT IT DOES", "01 · FILMS") —
+   lift contrast so they read on the deep sunset. They were ~0.40–0.55 light
+   (tuned for the old dark bg) and washed out on the deeper gradient.
+   Merchant 2026-07-16 ("section titles can't be read quite clearly"). */
+:root.is-phoenix .casa-st .casa-st__mono {
+  color: rgba(250, 250, 247, 0.86);
+  -webkit-text-fill-color: rgba(250, 250, 247, 0.86);
+  opacity: 1;
+  text-shadow: 0 1px 6px rgba(40, 20, 8, 0.5), 0 0 14px rgba(40, 20, 8, 0.35);
+}
+
+/* Per-stat-card title em (italic accent inside the card title) */
+:root.is-phoenix .casa-st .casa-st__title em {
+  background-image: linear-gradient(95deg, #F59E0B 0%, #DC2626 50%, #A78BFA 100%);
+}
+
+/* ── Stat-number halos REMOVED entirely (merchant 2026-05-21: §03
+      "more minimalistic … no decorative halos"). The big sunset-gradient
+      numbers carry the colour; no radial blob behind them. One rule kills
+      the halo on every variant (generic, paper-2, 6-block compact). */
+:root.is-phoenix .casa-st .casa-st__stat::before,
+:root.is-phoenix .casa-st--paper-2 .casa-st__stat::before,
+:root.is-phoenix .casa-st__grid[data-block-count="6"] .casa-st__card--hero .casa-st__stat::before,
+:root.is-phoenix .casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card--hero .casa-st__stat::before {
+  background: none !important;
+}
+
+/* Phoenix §06 (casa-pdp-form-editorial) — zoom the lamp diagram so the
+   measurement labels (70.9 in / 7.9 in / 3 in) are readable. The base
+   section's figure is aspect-ratio 1/1 with object-fit: contain, leaving
+   big empty margins around the tall lamp diagram on phones. Bump the
+   inner SVG via transform: scale so the labels grow with the diagram.
+   Desktop gets a smaller bump because the figure column is already wide. */
+
+/* Desktop — v2 minimalist stage (merchant 2026-07-04: §06 "needs working
+   on", extending the 5397631 sign-off). The base figure was a full-width
+   1/1 square (~1200px), leaving a huge dead sunset field around a small
+   lamp. Two moves:
+     1. Cap the figure to a 620px-wide 4/5 portrait, centered — the stage
+        wraps the lamp column instead of framing empty gradient. Section
+        height drops ~350px on desktop.
+     2. Raise the zoom 1.22 → 1.6 with the origin on the lamp+ruler
+        content center (x≈56%, y≈58% of the viewBox once the ruler sits
+        at x=810), so the drawing fills the capped stage. The scaled
+        content stays inside the svg viewport (bottom edge lands ~754 of
+        775px), so nothing spills into the copy block; glow tails that
+        cross the figure edge are by-design (overflow: visible). */
+@media (min-width: 750px) {
+  :root.is-phoenix .casa-form__figure {
+    width: min(100%, 420px);   /* smaller diagram so §06 reads in ~one screen (2026-07-16) */
+    aspect-ratio: 4 / 5;
+    margin-inline: auto;
+  }
+  :root.is-phoenix .casa-form__svg {
+    transform: scale(1.5);
+    transform-origin: 56% 58%;
+  }
+  /* tighter figure -> copy gap so the section packs to one screen */
+  :root.is-phoenix .casa-form__stage { gap: clamp(14px, 1.8vw, 26px); }
+}
+
+/* §07 FAQ — tighten the hero + accordion so the whole section reads in
+   ~one screen (merchant 2026-07-16: "everything per section seen at once").
+   Content unchanged; only spacing shrinks. */
+:root.is-phoenix .casa-faq2__hero { padding: 22px 24px 12px; }
+:root.is-phoenix .casa-faq2__badge { margin-bottom: 10px; }
+:root.is-phoenix .casa-faq2__title { margin-bottom: 8px; }
+:root.is-phoenix .casa-faq2__subtitle { margin-bottom: 0; }
+:root.is-phoenix .casa-faq2__item { margin-bottom: 7px; }
+:root.is-phoenix .casa-faq2__q { padding: 12px 18px; }
+
+/* Mobile — bumped 1.35 → 1.45 to make the lamp fill more of the figure
+   box now that the dim labels are smaller. The bigger glow radii
+   (r=700-1000 per the section's gradient defs) bleed beyond the figure
+   boundary so the sunset wash continues uninterrupted. */
+@media (max-width: 749px) {
+  :root.is-phoenix .casa-form__figure {
+    aspect-ratio: 4 / 5;
+  }
+  :root.is-phoenix .casa-form__svg {
+    transform: scale(1.45);
+    transform-origin: 50% 55%;
+  }
+}
+
+/* Phoenix §06 copy block — text-left + stats-right on desktop.
+   --------------------------------------------------------------
+   Base section stacks H3 → body → 2×2 stats grid vertically inside a
+   640px column. On desktop that's ~140px of avoidable scroll between
+   the lamp diagram and the next section. Switching the copy block to a
+   2-col grid (text 1.3fr | stats 1fr) puts the stats beside the prose
+   so more of §06 fits one viewport. Mobile keeps the stack — at ≤749px
+   the 2×2 stats grid needs the full column width to read. */
+@media (min-width: 750px) {
+  :root.is-phoenix .casa-form__copy {
+    max-width: clamp(720px, 78vw, 1040px);
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    column-gap: clamp(32px, 4vw, 56px);
+    row-gap: 14px;
+    align-items: start;
+  }
+  /* H3 row 1 col 1; body row 2 col 1; meta spans both rows in col 2 so
+     the body slots in BESIDE the stat grid instead of being pushed
+     below it (default behavior — meta defined row 1 height and the
+     body got dropped to row 2 with empty col 2 next to it). */
+  :root.is-phoenix .casa-form__copy > .casa-form__h3 {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  :root.is-phoenix .casa-form__copy > .casa-form__body {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  :root.is-phoenix .casa-form__copy > .casa-form__meta {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    margin-top: 0;
+    align-self: start;
+  }
+}
+
+/* Phoenix §05 (casa-apollo-moods) — mobile padding override.
+   Merchant 2026-05-18 22nd pass: "cards look like they're in their own
+   section. They're meant to be part of the 3 ways to live section
+   where the gradients are meant to blend into the background. The
+   whole section including title text top of the section bottom — the
+   cards are not supposed to be segregated."
+   Previous behavior here was to honor merchant's padding_top/padding_bottom
+   (56px each) which created a big dark gap between heading and the card
+   row, segregating them visually. Now: drop to tight padding so the
+   heading + body + card row read as ONE block. */
+@media (max-width: 640px) {
+  :root.is-phoenix .casa-am--emit {
+    padding-top: 20px;
+    padding-bottom: 24px;
+  }
+  :root.is-phoenix .casa-am--emit .casa-am__head {
+    margin-bottom: 14px;
+  }
+}
+
+/* ── UNIFORM section headings across the Phoenix editorial zone
+   (merchant 2026-07-21: "all these kinds of heading uniform in gradient
+   colour and sizing and number of lines, mobile + desktop").
+   Every §02–§06 H2 is the same shape: a plain lead + an <em> accent
+   ("Wind down. Style." + "Cinematic.", "Five arms." + "Aim them anywhere.").
+   ONE size scale for all five, and the <em> always drops to its own line, so
+   every heading reads identically: line 1 = plain lead, line 2 = sunset
+   accent, same size — mobile and desktop. The accent's sunset gradient is
+   unified just below (ONE accent, one sunset). */
+:root.is-phoenix .casa-films__h2,
+:root.is-phoenix .casa-st__h2,
+:root.is-phoenix .casa-arms__h2,
+:root.is-phoenix .casa-am__h2,
+:root.is-phoenix .casa-form__h2 {
+  font-size: clamp(20px, 5.4vw, 26px);
+  line-height: 1.14;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+/* Accent flows INLINE so each heading collapses onto one line wherever the
+   copy fits, shortening the page (merchant 2026-07-21: "wherever possible put
+   the titles on one line to reduce the length of the page, on all devices").
+   This supersedes the earlier forced-two-line rule (which kept a uniform line
+   COUNT); size and the sunset gradient stay uniform, only the line count now
+   varies by copy length. Measured with inline ems, no horizontal overflow at
+   any width:
+     375px — films/arms/moods/form 1 line, stats ("Six features that earn
+             their place.", the longest) wraps to 2
+     320px — only films fits 1 line, the rest wrap (still no overflow)
+     >=1101 — all fit 1 line (side columns are wide) except §02 at ~1440. */
+:root.is-phoenix .casa-films__h2 em,
+:root.is-phoenix .casa-st__h2 em,
+:root.is-phoenix .casa-arms__h2 em,
+:root.is-phoenix .casa-am__h2 em,
+:root.is-phoenix .casa-am__h2 .grad,
+:root.is-phoenix .casa-form__h2 em {
+  display: inline;
+}
+@media (min-width: 750px) {
+  :root.is-phoenix .casa-films__h2,
+  :root.is-phoenix .casa-st__h2,
+  :root.is-phoenix .casa-arms__h2,
+  :root.is-phoenix .casa-am__h2,
+  :root.is-phoenix .casa-form__h2 {
+    font-size: clamp(28px, 3.4vw, 38px);
+  }
+}
+@media (min-width: 1101px) {
+  /* §02 must fit ONE screen on desktop (merchant 2026-07-21: "the carousel
+     image must fit on one screen page"). The section sizes itself with
+     height: calc(100svh - var(--films-bar-offset)), and that offset is 96px
+     — it budgets for the sticky CART BAR only and ignores the 100px sticky
+     HEADER above it. So at 1920x861 the section came out 861-96 = 765px while
+     the space between the two pieces of fixed chrome is only 861-184 = 677px:
+     an ~88px overshoot, which is exactly the scrolling the merchant saw.
+     Widening the offset to cover header + cart bar (+ a little slack) fits the
+     section in one screen. Note the stage is height-driven on desktop
+     (height:100%; width:auto), so it re-squares off the shorter row on its
+     own — measured 573x573 with the section at 671px vs 677px available. */
+  :root.is-phoenix .casa-films {
+    --films-bar-offset: 190px;
+    /* Breathing room at the top (merchant 2026-07-21: "push the carousel a
+       bit down, it's too close to the top edge"). The desktop grid puts the
+       stage in row 1 starting right under the sticky header — only 8px of
+       gap. With no slack at the bottom (6px to the cart bar), the push down
+       comes from the stage giving back a little height. 34px pad -> ~40px
+       top gap; the stage caps 12px short of its row so the section still
+       clears one screen (verified 660 and 1000 tall). */
+    padding-top: 34px;
+  }
+  :root.is-phoenix .casa-films__stage {
+    max-height: calc(100% - 12px);
+  }
+
+  /* ── Every editorial section fits ONE screen on desktop (merchant
+     2026-07-21: "each section should be able to fit on one page no need for
+     scrolling"). Same budget as §02: 100svh minus the 100px sticky header and
+     84px sticky cart bar, plus slack.
+     The trick is WHERE the height comes off. §02 already worked because its
+     stage is height-driven (height:100%; width:auto). Everywhere else the
+     dominant visual is width-driven via aspect-ratio, so it could not shrink
+     and the section just overflowed. So: budget the section, then make each
+     section's visual absorb the leftover instead of clipping. Measured at
+     1920x861 (usable 677) and 1440x760 (usable 576) — all five sections fit
+     with scrollHeight == clientHeight, i.e. nothing is cut off. */
+  :root.is-phoenix .casa-st,
+  :root.is-phoenix .casa-am,
+  :root.is-phoenix .casa-form {
+    height: calc(100svh - 190px);
+    max-height: calc(100svh - 190px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-sizing: border-box;
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+  /* The head keeps its natural height; the visual takes what's left. */
+  :root.is-phoenix .casa-st__cap,
+  :root.is-phoenix .casa-am__stage,
+  :root.is-phoenix .casa-form__stage {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  /* §03 exception (2026-08-25 QHD sweep): the one-screen budget above was
+     measured at 677/576px usable. §05/§06 absorb a taller budget with their
+     photo/diagram stages, but §03 is text and numbers — nothing absorbs, so a
+     1440p monitor (budget ~1150px) left a ~500px void under the grid. Cap the
+     frame instead; screens up to ~950px tall render exactly as before. */
+  :root.is-phoenix .casa-st {
+    max-height: 760px;
+  }
+  :root.is-phoenix .casa-am__head { margin-bottom: 12px; }
+
+  /* ── The LAMP is the centrepiece in §04 and §06 (merchant 2026-07-21: "the
+     lamp itself in section 4 and 6 are tiny they have to be the main center
+     piece"). Fitting one screen had squeezed the product hardest: the §04 lamp
+     was 122px against 344px of surrounding chrome. So compress the chrome and
+     let the lamp absorb everything freed. Measured after: at 1010px tall the
+     lamp is 64-65% of the section (§04 122->521, §06 146->532), and at 720px
+     tall it is still 44-46% (§04 122->235, §06 146->244), nothing clipped.
+
+     Both heads render their lede from a richtext setting inside a <p>, which
+     is invalid nesting — the browser hoists the inner <p> out, so it loses its
+     .casa-*__lede class (styling never applied) AND picks up 28px of default
+     UA margin. Re-style the hoisted <p> and kill that margin. */
+  :root.is-phoenix .casa-arms__head > p,
+  :root.is-phoenix .casa-form__head > p {
+    margin: 0 !important;
+    line-height: 1.45 !important;
+  }
+  :root.is-phoenix .casa-arms__head > p { font-size: 13px !important; }
+  :root.is-phoenix .casa-form__head > p { font-size: 14px !important; }
+  :root.is-phoenix .casa-arms__head { gap: 4px !important; }
+  :root.is-phoenix .casa-form__head {
+    gap: 5px !important;
+    margin-bottom: 8px !important;
+  }
+
+  /* §04 — caption + picker go compact; the stage takes the rest. Kept as a
+     single centred column (no side rails) per the locked no-sidebar rule.
+     justify-content: center (2026-08-25): the stage is height-capped at 500px
+     (see the section's own ≥1100px block) so on tall monitors the layout has
+     spare room — centre the lamp/caption/picker group in it instead of
+     letting the void pool under the picker. No-op on laptops, where the
+     stage's flex-grow absorbs all the space. */
+  :root.is-phoenix .casa-arms__pin .casa-arms__layout {
+    gap: 10px;
+    justify-content: center;
+  }
+  :root.is-phoenix .casa-arms__pin .casa-arms__stage {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  :root.is-phoenix .casa-arms__pin .casa-arms__svg {
+    height: 100%;
+    width: 100%;
+  }
+  :root.is-phoenix .casa-arms__pin .casa-arms__caption {
+    padding: 6px 12px !important;
+    gap: 2px !important;
+    font-size: 13px !important;
+  }
+  :root.is-phoenix .casa-arms__pin .casa-arms__cap-body {
+    font-size: 13px !important;
+    line-height: 1.38 !important;
+  }
+  :root.is-phoenix .casa-arms__pin .casa-arms__pick {
+    padding: 5px 8px !important;
+    min-height: 0 !important;
+    gap: 1px !important;
+  }
+  :root.is-phoenix .casa-arms__pin .casa-arms__pick-meta strong {
+    font-size: 12.5px !important;
+  }
+  :root.is-phoenix .casa-arms__head > p { font-size: 12.5px !important; }
+  /* Scale capped at 1.32: the lamp is height-limited by the stage, and the
+     ceiling is set by the SHORTEST viewport, not the tallest. At 870px tall,
+     1.4 already puts the glow box into the caption (gap -1px); 1.32 leaves
+     13px. (At 1010px tall 1.5 would fit, but a fixed scale has to survive the
+     tight case.) */
+  :root.is-phoenix .casa-arms__pin .casa-arms__svg {
+    transform: scale(1.32);
+  }
+
+  /* §06 — the diagram absorbs the stage (flex:1) instead of being capped at
+     height:100%, which had it losing to the spec copy: 146px of lamp against
+     182px of text. Copy goes compact so the lamp wins the frame. */
+  :root.is-phoenix .casa-form__figure {
+    flex: 1 1 auto !important;
+    height: auto !important;
+    max-height: none !important;
+    width: auto;
+    min-height: 0;
+  }
+  :root.is-phoenix .casa-form__svg {
+    height: 100%;
+    width: auto;
+    max-height: 100%;
+  }
+  :root.is-phoenix .casa-form__stage { gap: 12px !important; }
+  :root.is-phoenix .casa-form__copy {
+    flex: 0 0 auto;
+    gap: 8px 40px !important;
+  }
+  :root.is-phoenix .casa-form__h3 {
+    font-size: 17px !important;
+    line-height: 1.2 !important;
+  }
+  :root.is-phoenix .casa-form__body {
+    font-size: 13px !important;
+    line-height: 1.42 !important;
+  }
+  :root.is-phoenix .casa-form__metric {
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+    gap: 2px !important;
+  }
+  /* Ceiling here is the DIMENSION LABELS, not the pole: they hang below the
+     lamp, so past 1.75 the "7.9 in" label lands on the spec copy. 1.65 leaves
+     12px at both 870px and 1010px tall. */
+  :root.is-phoenix .casa-form__svg {
+    transform: scale(1.65);
+  }
+
+  /* §05 — the card sat inside two auto-height wrappers (viewport > grid), so
+     height:100% never resolved and the card overflowed the stage. Make the
+     chain definite, then let the PHOTO absorb the slack (flex:1) while the
+     title/body block keeps its natural height — otherwise the card's
+     overflow:hidden silently cut the mood copy. */
+  :root.is-phoenix .casa-am__viewport,
+  :root.is-phoenix .casa-am__grid,
+  :root.is-phoenix .casa-am__card {
+    height: 100%;
+    min-height: 0;
+  }
+  :root.is-phoenix .casa-am__scene {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  :root.is-phoenix .casa-am__scene img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+  }
+  :root.is-phoenix .casa-am__meta { flex: 0 0 auto; }
+
+  /* §04 — the pinned frame gets the same budget, and sticks BELOW the header
+     (top:0 would park the heading behind it). Verified stuck: pin 100->771,
+     header ends 100, cart bar starts 777, and the picker chips are the last
+     thing at 771 — so heading, lamp, caption and picker all share one screen. */
+  :root.is-phoenix .casa-arms__pin {
+    top: 100px;
+    height: calc(100svh - 190px);
+  }
+
+  /* §03 — pure text/numbers, so nothing can "absorb"; the height has to come
+     out of the spacing. !important because the section's own selectors are
+     more specific than this file's. */
+  :root.is-phoenix .casa-st__head { margin-bottom: 20px !important; }
+  :root.is-phoenix .casa-st__card {
+    padding-top: 18px !important;
+    padding-bottom: 18px !important;
+  }
+  :root.is-phoenix .casa-st .num { font-size: 78px !important; }
+}
+
+/* §05 heading accent — carry the Phoenix sunset like every other heading
+   (merchant 2026-07-16: "where's the gradient in this text?").
+   casa-apollo-moods is Apollo's section: it paints em:nth-of-type(1) in
+   Apollo's warm Calm mood (#F59E0B -> #F97316 -> #F59E0B) and (2) in its cool
+   Cool mood, then shimmers them by animating background-position across a
+   200-300% wide gradient. On Phoenix that meant "Cinematic." rendered as a
+   flat orange smear: all three stops sit in one warm family, AND the stretched
+   background meant only half the gradient was ever visible. Phoenix headings
+   (§02/§04/§06) all use the static full sunset, so match them exactly. */
+/* ── ONE accent, one sunset, across the whole gradient zone (merchant
+   2026-07-16: "too many colours"). Every gradient-accent text in §02→§06 had
+   drifted to its own palette — Apollo's per-mood warm/cool/trinity on the mood
+   titles + §05 heading, an amber-only 3-stop on the films heading, a 120°
+   variant on the §06 stat strongs. Force them all to the single static brand
+   sunset so the accent reads identically section to section.
+   NOT touched: the Paper-zone recs/reviews keep the brand purple-pink-cyan
+   (sunset gold washes out on Paper, and that accent matches the rest of the
+   store); the §03 display NUMBERS keep their lighter sunset tint for legibility
+   on the warm ground — same palette, one shade up.
+   background-size:100% turns the inherited shimmer keyframe into a no-op — a
+   100% tile repeats seamlessly, so animating background-position shows no
+   motion — matching the static headings without touching the animation
+   property (which would trip the reduced-motion lint). */
+:root.is-phoenix .casa-films__h2 em,
+:root.is-phoenix .casa-am__h2 em,
+:root.is-phoenix .casa-am__h2 .grad,
+:root.is-phoenix .casa-am__name,
+:root.is-phoenix .casa-form__metric strong {
+  background-image: linear-gradient(90deg, #E8B86A, #F59E0B, #F4A6A0, #DC2626, #A78BFA) !important;
+  background-size: 100% 100% !important;
+  background-position: 0 0 !important;
+}
+
+/* ── One surface language across every section (merchant 2026-07-16:
+   "parts throughout every section have a slight change in colour that
+   doesn't flow nicely into each other") ────────────────────────────────
+   A full-page scan showed the gradient itself IS continuous — one backdrop
+   spanning §02→FAQ. The colour jumps came from the CARDS sitting on it, each
+   still tuned for the old dark background:
+     §02 stage    opaque rgb(5,5,7)      -> a solid black hole in the sunset
+     §04 caption  rgba(10,10,15,0.60)    -> heavy dark block
+     §05 cards    rgba(14,12,22,0.55)    -> heavy dark band across the section
+     FAQ items    rgba(255,255,255,0.04) -> barely-there glass
+   So the top of the page blocked the gradient and the bottom let it through.
+   Normalise to one light-touch dark glass: enough to keep light text crisp,
+   sheer enough that the sunset reads continuously through every card.
+
+   §05 mood cards are deliberately NOT included. Their 0.55 body is a settled
+   merchant decision (2026-05-21): transparent cards were tried and rejected
+   for "blending in too much / not standing out" — see the
+   `.casa-am--emit .casa-am__card` rule further down, which owns that value.
+   Changing it here would silently reverse that call, so it stays with §05. */
+/* Stage: transparent AND no lift shadow. The shadow (0 30px 80px -30px
+   rgba(0,0,0,0.8)) existed to lift the stage when it was an opaque black
+   card. With the card gone it became an orphaned dark smear landing right
+   on the §02/§03 boundary — the horizontal "beam" the merchant spotted
+   2026-07-16. Nothing casts it now, so it goes. */
+:root.is-phoenix .casa-films__stage { background: transparent; box-shadow: none; }
+
+/* §06 lamp glows — stop the SVG clipping them mid-fade (the "beam", merchant
+   2026-07-16). The per-disc wall glows are r=700 radial gradients inside a
+   1200-unit viewBox, so they extend well past the SVG viewport. An <svg> clips
+   its viewport by default, which cut those glows off while they were still at
+   real opacity — and because they sit in a mix-blend-mode:screen group, that
+   hard edge showed as a bright horizontal line across the section (measured at
+   the group's top edge). Same root cause as the §04 lamp. Letting them spill
+   means each glow fades to zero on its own falloff instead of on a rectangle. */
+:root.is-phoenix .casa-form__svg { overflow: visible; }
+/* Light glass, not dark. A dark scrim separated this caption from the old
+   bright sunset ground; against the deep-ink backdrop (2026-07-21) dark-on-dark
+   would erase the card entirely. White at 6% lifts it off the ground instead,
+   which is the same treatment the FAQ items already use on this backdrop
+   (rgba(255,255,255,0.04)), so the two now read as one card language. */
+:root.is-phoenix .casa-arms__caption { background: rgba(255, 255, 255, 0.06); }
+
+/* Re-enable the §04 section-wide ambient wash (merchant 2026-07-21: "I liked
+   when the gradient in the background changed in the scroll animation"). This
+   layer is five colour blobs — one per arm's emitted-light hue — that the scrub
+   JS moves every frame to track the disc heads. As the arms morph between the
+   four arrangements, the blobs move and re-tint, so the whole section's
+   background visibly shifts colour through the scroll. It was hidden on
+   2026-07-15 because the THEN-bright page gradient already painted the sunset;
+   now that the backdrop is deep-ink, the wash reads as coloured light thrown
+   across a dark room, which is the drama the merchant is describing. Verified
+   on mobile: the wash concentrates around the lamp (mid/lower), so the heading
+   and lede up top stay on the calm ink and remain crisp. */
+:root.is-phoenix .casa-arms__ambient { display: block; }
+
+/* ════════════════════════════════════════════════════════════════════
+   Phoenix §05 — ambient blob layer: keep the glow OFF the heading
+   --------------------------------------------------------------------
+   The orbs ride on top of the seam-matched base (--phx-seam-3 rose →
+   --phx-seam-4 orange) with `lighten` blend. The base alone keeps
+   white text at ~6:1, BUT the orbs were blooming up into the heading
+   zone and washing out "Wind down. Style. Cinematic." + the lede
+   (merchant 2026-05-20: "too light that the text gets covered up").
+
+   Fix: mask the ORB layer (not the base) so the glow fades out of the
+   top ~26% of the section — the heading + lede sit on the calmer rose
+   base instead of the orb bloom. This is NOT the old ink-era edge mask:
+   fading the orb here reveals the sunset base gradient (rose), never
+   ink, so there is no dark band — just a calmer, readable heading zone.
+   The orbs stay at full strength through the card row below, so the
+   cards still glow.
+   ════════════════════════════════════════════════════════════════════ */
+:root.is-phoenix .casa-am__ambient {
+  /* Fade the orb glow out of the heading zone (top ~26%) AND the seam
+     zone (bottom ~10%) so it never washes §05's "Wind down. Style.
+     Cinematic." heading and never spills into §06's heading below.
+     Orbs stay full strength through the card row (26–90%). Revealing
+     the calm base in those zones shows the sunset gradient (rose/
+     orange), never ink — so no dark band. */
+  -webkit-mask-image: linear-gradient(180deg,
+    transparent 0%, rgba(0,0,0,0.12) 12%, #000 26%, #000 90%, transparent 100%);
+          mask-image: linear-gradient(180deg,
+    transparent 0%, rgba(0,0,0,0.12) 12%, #000 26%, #000 90%, transparent 100%);
+  -webkit-mask-mode: alpha;
+          mask-mode: alpha;
+  /* Per-orb opacity is JS-driven (carousel crossfade sets it inline),
+     so dim the CONTAINER instead — JS-proof. Dropped 0.58 → 0.20
+     (merchant 2026-05-20: the bright glow looked like a separate
+     "boxed" patch that didn't flow). At 0.20 the orbs are a faint
+     warm tint near the cards — the clean base gradient is the star
+     and flows uninterrupted around the cards. */
+  opacity: 0.20;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Phoenix §07 — FAQ sunset theme (cross-section continuity from §06)
+   --------------------------------------------------------------------
+   Merchant 2026-05-18 18th pass: "the common questions can be kind
+   of changed into a sunset theme below, with the background and the
+   RGB and the text of the sunset theme. It just goes into that as
+   well from section six, but it should go seamlessly as well."
+
+   The FAQ section ships generic with purple/pink brand accents and
+   a flat #0A0A0F bg. These overrides — scoped to :root.is-phoenix so
+   Apollo / Octa / other PDPs that use casa-faq-page-v2 stay on the
+   default theme — flip the FAQ to:
+
+     1. Same layered sunset bg as §02/§04/§06 — top feather to ink so
+        §06's bottom (pure #0A0A0F) meets FAQ's top (also #0A0A0F)
+        invisibly; sunset radial wash through the middle; bottom
+        feather to ink so FAQ's bottom meets §08 products-grid
+        cleanly.
+     2. Sunset accent palette — #F59E0B amber (was #B0C3FA purple)
+        and #DC2626 red (was #5E0A02 pink) on every accent slot
+        (badge, search focus border, tab underline, CTA gradient).
+     3. The H1 em gradient — already overridden by inline
+        background: linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0)
+        in the section CSS — we override it to the sunset stops.
+   ════════════════════════════════════════════════════════════════════ */
+:root.is-phoenix .casa-faq2 {
+  /* §07 CONTINUES the sunset instead of fading to black (merchant
+     2026-05-20: "it goes from brown to black, which looks really bad").
+     Top = --phx-seam-5 (same as §06's bottom → invisible seam), then
+     flows down to --phx-seam-6 twilight violet — the same deep dusk as
+     the very top of §02, closing the sunset→night loop. No pure #0A0A0F
+     anywhere, so §06→§07 reads as dusk settling into night, never a
+     brown-to-black cut. A faint warm radial keeps the centre alive. */
+  background:
+    linear-gradient(180deg,
+      var(--phx-seam-5) 0%,
+      var(--phx-seam-6) 55%,
+      var(--phx-seam-6) 100%
+    ),
+    radial-gradient(ellipse 90% 70% at 50% 22%,
+      rgba(245, 158, 11, 0.16) 0%,
+      rgba(220, 38, 38, 0.10) 35%,
+      rgba(167, 139, 250, 0.06) 65%,
+      rgba(30, 16, 40, 0) 100%
+    ),
+    var(--phx-seam-6);
+  /* Re-route the section's CSS variables to sunset palette so every
+     accent (badge bg, search focus, tab underline, CTA gradient) uses
+     amber + red instead of purple + pink. !important required because
+     the section sets these via inline style on the section element,
+     and inline-style specificity beats external CSS — !important on
+     a custom property declaration overrides inline custom properties
+     (per CSS Custom Properties spec §3.2). */
+  --faq2-accent1: #F59E0B !important;
+  --faq2-accent2: #DC2626 !important;
+}
+
+/* H1 italic em — the section hardcodes a purple→pink→cyan gradient via
+   inline background. Override with the sunset stops so the headline
+   accent matches the rest of the Phoenix palette. */
+:root.is-phoenix .casa-faq2__title em {
+  background: linear-gradient(90deg, #E8B86A, #F59E0B, #F4A6A0, #DC2626, #A78BFA);
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+          color: transparent;
+}
+
+/* Badge — uses --grad-primary fallback to accent1→accent2 linear
+   gradient. With accent1/2 swapped to sunset above, this lights up
+   amber→red automatically; this override forces a 5-stop sunset
+   sweep instead of a 2-color fade. */
+:root.is-phoenix .casa-faq2__badge {
+  background: linear-gradient(135deg, #E8B86A, #F59E0B, #DC2626, #A78BFA);
+  color: #0A0A0F;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Phoenix §03 — flip casa-st--paper-2 from paper to ink + sunset
+   --------------------------------------------------------------------
+   Merchant 2026-05-18 18th pass — the user wants every Phoenix
+   section §02 through §07 to read as one continuous sunset gradient.
+   Verification revealed §03 was the breaking the continuity: the
+   Phoenix template instance picks `card_style: paper-2` which
+   renders the section on #F2F2EE near-white paper, creating a hard
+   light→dark transition above (vs §02 ink+sunset) and below
+   (vs §04 ink+sunset).
+
+   These overrides flip the Phoenix instance of casa-st--paper-2 from
+   paper-bg + ink-text to ink-bg + sunset-wash + paper-text, so §03
+   now matches the visual treatment of §02/§04/§06/§07 and the
+   gradient flows continuously through the whole stack.
+
+   Apollo PDP also uses the paper-2 variant of casa-st (intentionally
+   — it sits between two Ink runs as a paper break). Apollo lives
+   under :root.is-apollo (or no scope at all), so these :root.is-phoenix
+   rules don't touch it.
+
+   The stat-number gradient + radial-halo rules ABOVE in this file
+   already overrode the paper-2 internals to sunset colors — those
+   rules continue to apply on top of the new ink bg.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Section bg — seam-1 (deep purple) at top → seam-2 (magenta-plum)
+   at bottom. §02's bottom is also seam-1 and §04's top is also seam-2
+   so both boundaries are mathematically invisible. !important needed
+   because the section file's `.casa-st--paper-2` rule (`background:
+   #F2F2EE`) lives in the compiled-sections bundle; ordering between
+   that bundle and casa-base.css is not guaranteed. */
+:root.is-phoenix .casa-st.casa-st--paper-2 {
+  background:
+    linear-gradient(180deg, var(--phx-seam-1) 0%, var(--phx-seam-2) 100%)
+    !important;
+  color: #FAFAF7;
+}
+
+/* Heading + lede + kicker text colors flipped to paper-on-ink. */
+:root.is-phoenix .casa-st.casa-st--paper-2 .casa-st__h2 {
+  color: #FAFAF7;
+}
+:root.is-phoenix .casa-st.casa-st--paper-2 .casa-st__lede {
+  color: rgba(250, 250, 247, 0.72);
+}
+:root.is-phoenix .casa-st.casa-st--paper-2 .casa-st__head .casa-st__mono--accent {
+  color: rgba(250, 250, 247, 0.55);
+}
+
+/* Cards — transparent (sunset bg shows through) with paper-toned
+   borders instead of ink-toned. Same treatment as the picker cards
+   in §04. */
+:root.is-phoenix .casa-st.casa-st--paper-2 .casa-st__card {
+  background: transparent;
+  border-color: rgba(250, 250, 247, 0.10);
+}
+:root.is-phoenix .casa-st.casa-st--paper-2 .casa-st__card:hover {
+  background: rgba(250, 250, 247, 0.04);
+  border-color: rgba(250, 250, 247, 0.20);
+}
+
+/* 6-block continuous-datasheet hairlines + hover bg flipped to paper-tone.
+   OUTER top/bottom frame borders → transparent: on mobile the grid's
+   bottom border sat right at the §03/§04 boundary and read as a white
+   line cutting the gradient flow (merchant 2026-05-21). The internal
+   per-card dividers (border-right/bottom on .casa-st__card below) stay,
+   so the datasheet keeps its structure — only the outer frame that
+   crossed the section seam is removed. */
+:root.is-phoenix .casa-st.casa-st--paper-2 .casa-st__grid[data-block-count="6"] {
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+:root.is-phoenix .casa-st.casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card {
+  border-right-color: rgba(250, 250, 247, 0.10);
+  border-bottom-color: rgba(250, 250, 247, 0.10);
+}
+:root.is-phoenix .casa-st.casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card--hero {
+  border-bottom-color: rgba(250, 250, 247, 0.10);
+}
+:root.is-phoenix .casa-st.casa-st--paper-2 .casa-st__grid[data-block-count="6"] .casa-st__card:hover {
+  background: rgba(250, 250, 247, 0.04);
+}
+
+/* Card sub-text colors — flip the dim mono color + stat unit + title +
+   body paragraphs from ink-tone to paper-tone. Body paragraphs were
+   the load-bearing miss in the first §03 flip pass: the paper-2 rule
+   `.casa-st--paper-2 .casa-st__body { color: rgba(10,10,15,0.65) }`
+   in the section file was rendering body copy 0.65-alpha ink ON the
+   new dark bg — visible contrast ratio 1.00, completely invisible
+   (audit 2026-05-18 19th pass caught it). Override below sets body
+   to 0.78-alpha paper instead. */
+:root.is-phoenix .casa-st.casa-st--paper-2 .casa-st__card .casa-st__mono--dim {
+  color: rgba(250, 250, 247, 0.55);
+}
+:root.is-phoenix .casa-st.casa-st--paper-2 .casa-st__stat .unit {
+  color: rgba(250, 250, 247, 0.65);
+}
+:root.is-phoenix .casa-st.casa-st--paper-2 .casa-st__title {
+  color: #FAFAF7;
+}
+:root.is-phoenix .casa-st.casa-st--paper-2 .casa-st__body {
+  color: rgba(250, 250, 247, 0.78);
+}
+
+/* Stat halo — `lighten`, NOT `screen`. Screen sums channels toward
+   white, so an amber halo over the seam-1/2 base bloomed into a
+   near-white peach patch that washed out the hero card's body copy
+   (merchant 2026-05-19: "too light that the text gets covered up").
+   `lighten` takes the per-channel MAX — amber over purple stays a
+   warm glow, never blows to white. multiply (the paper-2 default)
+   would make it invisible on the dark base, so lighten it is. */
+:root.is-phoenix .casa-st.casa-st--paper-2 .casa-st__stat::before {
+  mix-blend-mode: lighten;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Phoenix §02 / §04 / §05 / §06 — seam-matched section backgrounds
+   --------------------------------------------------------------------
+   Each section paints a single 180° linear-gradient between its top +
+   bottom seam vars. Adjacent sections share the same var at their
+   shared boundary, so the boundary pixel is identical on both sides —
+   seam invisible at any section height. No ink feather, no fade-to-
+   black, no compensating bleed overlays.
+
+   !important is required: the section files' `{% stylesheet %}` blocks
+   define `.casa-films`, `.casa-arms`, `.casa-am`, `.casa-form`
+   backgrounds at specificity (0,1,0). Our (0,2,0) is higher, but the
+   compiled-sections bundle and casa-base.css have non-deterministic
+   ordering when both define same-level rules. !important on the
+   `background` shorthand wins unambiguously.
+
+   Other section properties (padding, color, position, z-index, font)
+   are left to the section files — we override the background only.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* §02 — casa-pdp-films-picker (seam-0 → seam-1, indigo → deep purple) */
+:root.is-phoenix .casa-films {
+  background:
+    linear-gradient(180deg, var(--phx-seam-0) 0%, var(--phx-seam-1) 100%)
+    !important;
+}
+
+/* §04 — casa-pdp-arms-showcase (seam-2 → seam-3, magenta → rose-red) */
+:root.is-phoenix .casa-arms {
+  background:
+    linear-gradient(180deg, var(--phx-seam-2) 0%, var(--phx-seam-3) 100%)
+    !important;
+}
+
+/* §05 — casa-apollo-moods (seam-3 → seam-4, rose-red → burnt orange).
+   Photo cards remain opaque and discrete; the gradient flows around
+   them, never on top of the photos or mood-name text. */
+:root.is-phoenix .casa-am {
+  background:
+    linear-gradient(180deg, var(--phx-seam-3) 0%, var(--phx-seam-4) 100%)
+    !important;
+}
+
+/* §06 — casa-pdp-form-editorial (seam-4 → seam-5, burnt orange →
+   cooled dusk). Section bottom eases into §07 FAQ's matching top. */
+:root.is-phoenix .casa-form {
+  background:
+    linear-gradient(180deg, var(--phx-seam-4) 0%, var(--phx-seam-5) 100%)
+    !important;
+}
+
+/* §04 ambient layer — contain to the section under seam-matched arch.
+   The section file's `.casa-arms__ambient` rule sets `inset: -340px 0
+   -340px 0` to bleed Apollo's per-arm sunset gradient into §03 above
+   and §05 below — that was a compensation for the ink-feather seams.
+   Under Phoenix's seam-matched bg, neighbours already meet §04 at
+   matching colours, so the bleed is unnecessary AND introduces its
+   own hard edge at exactly -340px (the same root cause as §05's
+   clip-path bug). Contain to the section. Apollo is unaffected
+   (not scoped under :root.is-phoenix). */
+:root.is-phoenix .casa-arms__ambient {
+  /* REMOVED entirely (merchant 2026-05-21: even dialled to 0.18 the
+     section-level arm glow still read as a "boxed picture frame" around
+     the lamp — "the gradient is cut … it should look like the lamp was
+     just inserted into the gradient, not placed within a text box").
+     With the big section blobs gone, §04's background is the SAME clean
+     base gradient as every other section, flowing uninterrupted, and
+     the lamp sits in it. The lamp's own SVG disc heads + internal wall-
+     wash still glow, so it still reads as a lit lamp — just no section
+     box. */
+  display: none !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   True text colour — NO shadow filter (merchant 2026-05-20)
+   --------------------------------------------------------------------
+   "the text looks like there's a filter over them. Their true colors
+   aren't really showing. It looks very ugly." The earlier ink
+   text-shadow safety net read as a muddy filter over the headings.
+   Removed. Readability is now handled by the calm base gradient (the
+   orb glows are dialled to 0.18–0.20, so headings sit on the clean
+   seam colours: white H2 = 5.3–8:1) plus slightly more-opaque body
+   copy below — no shadow needed. §05's section-file text-shadow is
+   also neutralised here so its heading shows true colour too. */
+:root.is-phoenix .casa-arms__h2,
+:root.is-phoenix .casa-form__h2,
+:root.is-phoenix .casa-am__h2,
+:root.is-phoenix .casa-am__lede,
+:root.is-phoenix .casa-am__mono {
+  text-shadow: none !important;
+}
+/* Bump body / lede / mono to near-opaque white so they clear AA on the
+   warm seams WITHOUT a shadow (white at ~0.95 over seam-4 #a64f2d ≈
+   5:1). Replaces the old 0.78–0.82 alphas that needed the shadow. */
+:root.is-phoenix .casa-arms__lede,
+:root.is-phoenix .casa-arms__mono,
+:root.is-phoenix .casa-form__lede,
+:root.is-phoenix .casa-form__h3,
+:root.is-phoenix .casa-form__body,
+:root.is-phoenix .casa-form__mono,
+:root.is-phoenix .casa-am__lede {
+  color: rgba(250, 250, 247, 0.95);
+  text-shadow: none !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   §02 — kill the film-tinted side-glow so the base gradient flows
+   --------------------------------------------------------------------
+   Merchant 2026-05-20: "when the image changes in the carousel, the
+   background color also changes, which makes it hard to flow into
+   section 3 … on the edges of section 2, left and right, as they seep
+   into section 3, it doesn't blend well — a very obvious cut."
+
+   `.casa-films__bg-glow` paints a JS-tinted (--film-c) blurred wash on
+   §02's left + right edges that (a) changes colour every time you scrub
+   films and (b) brightens §02's edges so they no longer match §03's top
+   at the seam. Hide it on Phoenix — §02's bg is now purely the seam-0→
+   seam-1 base gradient, identical regardless of the active film, and its
+   edges meet §03 at the exact same colour. The active film still shows
+   in the scene photo + the scrubber bar, just not in the section bg. */
+:root.is-phoenix .casa-films__bg-glow {
+  display: none !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   §05 — cards stand out as defined panels floating on the gradient
+   --------------------------------------------------------------------
+   Two-stage history: first the cards threw 3 big coloured halos that
+   read as "cut off" patches (merchant 2026-05-20), so they were dropped
+   to transparent. That over-corrected — the cards then "blended in too
+   much" and stopped standing out (merchant 2026-05-21). Final balance:
+   give each card a defined dark glassy BODY + a soft NEUTRAL lift
+   shadow + a hairline edge, so it reads as a floating panel. No coloured
+   halo rings (those were the cut-off problem), and the base gradient
+   still flows in the gutters around the cards. */
+:root.is-phoenix .casa-am--emit .casa-am__card {
+  background: rgba(14, 12, 22, 0.55) !important;
+  border: 1px solid rgba(250, 250, 247, 0.12) !important;
+  border-radius: 16px;
+  /* Single, WARM-tinted lift shadow (merchant 2026-05-21: the old shadow
+     "gives a chopped look, no gradient to it") — a low-alpha plum shadow in
+     the gradient's own family so it reads as a soft lift, not a hard patch.
+
+     TIGHTENED 2026-07-16. At 0 28px 90px -34px it reached 84px below the card,
+     and because all six cards sit in ONE ROW their shadows merged into a
+     single continuous dark bar across the full page width — which also spilled
+     30px past the section edge into §06. So the effect meant to make each card
+     float was instead drawing a horizontal "beam" between the sections, the
+     opposite of the intent above. Pulled in to ~30px reach at lower alpha:
+     each card still lifts, but the shadows no longer touch each other or
+     cross the boundary. */
+  box-shadow: 0 14px 44px -28px rgba(34, 14, 30, 0.38) !important;
+}
+/* Meta block transparent so it shows the card's own dark body (above),
+   giving the card a unified panel surface below the photo. */
+:root.is-phoenix .casa-am--emit .casa-am__meta {
+  background: transparent !important;
+}
+/* Keep the photo's rounded top corners clipped to the card radius. */
+:root.is-phoenix .casa-am--emit .casa-am__scene {
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  overflow: hidden;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   §05 — restore the mobile rotating carousel (merchant 2026-05-21:
+   "on mobile the cards are meant to be rotating in a carousel, on
+   desktop just levitating up and down")
+   --------------------------------------------------------------------
+   The section's ≤640 rules set up a swipeable, auto-rotating carousel
+   (overflow-x:auto + JS rAF scrollLeft + clones). But the emit-mode
+   rule `.casa-am--emit .casa-am__viewport { overflow: visible }` —
+   originally there so the big COLOURED card halos wouldn't get clipped
+   — also killed the horizontal scroll container, so on Phoenix mobile
+   the cards just overflowed off-screen with no rotation/swipe.
+
+   Now that the cards use a contained neutral lift shadow (not big
+   coloured halos), the viewport can be a scroll container again.
+   Restore overflow-x:auto on Phoenix mobile so the carousel rotates +
+   swipes; vertical padding gives the card lift shadow room so it isn't
+   clipped by the now-required overflow-y:hidden. Desktop (≥641px) is
+   untouched — static 3-up grid with the levitate animation. */
+@media (max-width: 640px) {
+  :root.is-phoenix .casa-am--emit .casa-am__viewport {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    /* pan-x pan-y (not pan-x) so a finger that starts on the Phoenix mood
+       carousel can still scroll the page vertically. This selector
+       (specificity 0,0,4,0) wins over the section's own .casa-am__viewport
+       rule, so the section fix alone does NOT reach the Phoenix emit skin —
+       it must be corrected here too. See sections/casa-apollo-moods.liquid.
+       Fixed 2026-07-09 — do NOT revert to bare pan-x (vertical-scroll trap). */
+    touch-action: pan-x pan-y;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-block: 30px;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   §04 — make the lamp diagram slightly bigger (merchant 2026-05-20)
+   --------------------------------------------------------------------
+   The stage is transparent (no box); scale the SVG up so the lamp reads
+   as the section's hero. transform only — no layout shift. */
+@media (min-width: 750px) {
+  :root.is-phoenix .casa-arms__svg {
+    transform: scale(1.16);
+    transform-origin: 50% 50%;
+  }
+}
+@media (max-width: 749px) {
+  :root.is-phoenix .casa-arms__svg {
+    transform: scale(1.12);
+    transform-origin: 50% 50%;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   §03 — extra breathing room (merchant 2026-05-21: "more minimalistic").
+   Keeps all 6 features but gives the heading block + the grid more air so
+   the section reads calm, not dense. Heading→grid gap widened; grid gets
+   a touch more internal padding. Phoenix-only. */
+:root.is-phoenix .casa-st .casa-st__head {
+  margin-bottom: clamp(36px, 5vw, 60px);
+}
+:root.is-phoenix .casa-st .casa-st__grid[data-block-count="6"] .casa-st__card {
+  padding: clamp(20px, 2.6vw, 32px);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   §05 — subtle warm grade on the mood-card photos (artistic move ⑤) so
+   the scenes read richer and consistent with the sunset palette. Matches
+   the preview's saturate/contrast lift. Phoenix-only (--emit). */
+:root.is-phoenix .casa-am--emit .casa-am__photo {
+  filter: saturate(1.08) contrast(1.03);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   §02 films-picker — MINIMAL chrome (merchant 2026-05-21: "section 2
+   more minimalistic", matching the v2 preview = photo + caption pill +
+   dots only).
+   --------------------------------------------------------------------
+   Hide the two busy chrome elements the preview dropped:
+     • .casa-films__hud  — the FILM/COLOR/INDEX lab-card overlay
+     • .casa-films__ctrl — the labeled scrubber bar (GOLD/AMBER/… ticks),
+       the play/pause button, and the "5 sunset films included" tagline
+   Autoplay is on by default (schema), so the films still auto-crossfade;
+   the dots (each wearing its film hex) handle manual navigation and the
+   caption pill names the active film. Photography now dominates the frame.
+   casa-pdp-films-picker is Phoenix-only, but scoping to :root.is-phoenix
+   keeps all Phoenix styling in one file + leaves the section reusable. */
+:root.is-phoenix .casa-films__hud,
+:root.is-phoenix .casa-films__ctrl {
+  display: none !important;
+}
+/* Reclaim the room for the photo — widen the desktop stage column now
+   that the HUD column is empty, and give the dots a little breathing
+   space below the bigger stage. */
+@media (min-width: 1101px) {
+  :root.is-phoenix .casa-films {
+    grid-template-columns: 1fr min(82svh, 880px) 1fr;
+  }
+}
+:root.is-phoenix .casa-films__dots {
+  margin-top: clamp(18px, 2.6vw, 30px);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   §04 arms-showcase — single-centerline desktop (merchant 2026-07-04:
+   §04 "needs working on"; chose "single centerline, like §02" over
+   keeping the 3-col). The base section's ≥1100px layout is
+   `200px picker | stage | 320px caption` — two floating sidebars, the
+   composition canon Rule 2 forbids. Re-flow to the same top-to-bottom
+   spine mobile already uses:
+
+     stage (dominant, centered)
+       ↓
+     caption (the active pattern's description, centered)
+       ↓
+     picker (all 4 arrangements in one compact centered row)
+
+   Nothing overlays the stage image (the 2026-05-18 "caption covered the
+   image" correction stays honored — caption sits BELOW, not on it).
+   Flex + order beats the section's grid-column assignments without
+   touching the shared markup. Applied from 750px up so tablet shares
+   the same spine as desktop (mobile ≤749 already flows this way); the
+   tablet picker keeps its 2×2 grid (merchant 2026-05-21: all four
+   arrangements visible without scrolling) and desktop runs 4-across.
+   Phoenix-only via :root.is-phoenix. */
+@media (min-width: 750px) {
+  :root.is-phoenix .casa-arms__layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(18px, 2.2vw, 26px);
+  }
+  :root.is-phoenix .casa-arms__stage {
+    order: 1;
+    width: min(100%, 820px);
+  }
+  :root.is-phoenix .casa-arms__caption {
+    order: 2;
+    width: min(100%, 500px);   /* slimmer caption card (merchant 2026-07-16) */
+    padding: 14px 20px;
+  }
+  :root.is-phoenix .casa-arms__picker {
+    order: 3;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: min(100%, 820px);
+    align-self: center;
+  }
+  /* Cards read as a control row, not a sidebar list — trim the
+     min-height the vertical list needed. */
+  :root.is-phoenix .casa-arms__pick {
+    min-height: 0;
+    padding: 12px 14px;
+  }
+}
+@media (min-width: 1100px) {
+  :root.is-phoenix .casa-arms__picker {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+/* The in-stage dots pill duplicated the picker when the picker was a
+   left sidebar you might scroll past. With the picker as a visible row
+   directly under the stage, the dots are redundant chrome — hide them,
+   same move as §02's hidden scrubber (v2 minimalism: one control, not
+   two). Keyboard/AT users get the picker's full role="tab" contract. */
+:root.is-phoenix .casa-arms__dots {
+  display: none !important;
+}
+

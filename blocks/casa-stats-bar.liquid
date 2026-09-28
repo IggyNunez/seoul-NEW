@@ -1,0 +1,57 @@
+{%- comment -%}
+  Casa Stats Bar — standalone block for Horizon product-information
+
+  Source-of-truth resolution (in order):
+    1. Product metafield (custom.stat_N_value / custom.stat_N_label, N=1..3)
+    2. Block setting (per-template fallback)
+    3. Blank → that stat card is skipped
+
+  Pre-2026-05-17 schema defaulted to "98% LOVE IT / 50K HOUR LIFE / 2 Yr
+  WARRANTY" — the 50K hour life claim was LED-specific and bled onto every
+  non-LED product (Aurelius Side Table, Calini Coffee Table, vases, etc.).
+  Defaults removed; metafield reads added.
+{%- endcomment -%}
+
+{%- liquid
+  assign p = closest.product
+  assign stat_1_value = p.metafields.custom.stat_1_value | default: block.settings.stat_1_value
+  assign stat_1_label = p.metafields.custom.stat_1_label | default: block.settings.stat_1_label
+  assign stat_2_value = p.metafields.custom.stat_2_value | default: block.settings.stat_2_value
+  assign stat_2_label = p.metafields.custom.stat_2_label | default: block.settings.stat_2_label
+  assign stat_3_value = p.metafields.custom.stat_3_value | default: block.settings.stat_3_value
+  assign stat_3_label = p.metafields.custom.stat_3_label | default: block.settings.stat_3_label
+-%}
+
+{% render 'casa-pdp-stats-bar',
+  block: block,
+  stat_1_value: stat_1_value,
+  stat_1_label: stat_1_label,
+  stat_2_value: stat_2_value,
+  stat_2_label: stat_2_label,
+  stat_3_value: stat_3_value,
+  stat_3_label: stat_3_label
+%}
+
+{% schema %}
+{
+  "name": "Casa Stats Bar",
+  "tag": null,
+  "settings": [
+    { "type": "header", "content": "Stat 1", "info": "Per-product source is metafield custom.stat_1_value + custom.stat_1_label. Fields below are per-template fallback — leave blank to hide this stat." },
+    { "type": "text", "id": "stat_1_value", "label": "Value" },
+    { "type": "text", "id": "stat_1_label", "label": "Label" },
+    { "type": "header", "content": "Stat 2", "info": "Metafields: custom.stat_2_value, custom.stat_2_label." },
+    { "type": "text", "id": "stat_2_value", "label": "Value" },
+    { "type": "text", "id": "stat_2_label", "label": "Label" },
+    { "type": "header", "content": "Stat 3", "info": "Metafields: custom.stat_3_value, custom.stat_3_label." },
+    { "type": "text", "id": "stat_3_value", "label": "Value" },
+    { "type": "text", "id": "stat_3_label", "label": "Label" }
+  ],
+  "presets": [
+    {
+      "name": "Casa Stats Bar",
+      "category": "t:categories.product"
+    }
+  ]
+}
+{% endschema %}

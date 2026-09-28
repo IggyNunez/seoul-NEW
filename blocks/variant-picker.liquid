@@ -32,7 +32,7 @@
       {%- if vp_inner_padding > 0 %}padding: {{ vp_inner_padding }}px;{% endif -%}
       {%- if vp_shadow == 'subtle' %}box-shadow: 0 2px 8px rgba(0,0,0,0.1);{% endif -%}
       {%- if vp_shadow == 'medium' %}box-shadow: 0 4px 16px rgba(0,0,0,0.15);{% endif -%}
-      {%- if vp_shadow == 'glow' %}box-shadow: 0 4px 24px rgba(147,51,234,0.15);{% endif -%}
+      {%- if vp_shadow == 'glow' %}box-shadow: 0 4px 24px rgba(176, 195, 250,0.15);{% endif -%}
     ">
     {%- if vp_title != blank -%}
       <div class="casa-vp-title" style="font-size: {{ vp_title_size }}px;{%- if vp_title_color != blank %}color: {{ vp_title_color }};{% endif -%}">{{ vp_title }}</div>
@@ -42,31 +42,37 @@
     product_resource: product_resource,
     card_font_size: block.settings.card_font_size,
     card_price_font_size: block.settings.card_price_font_size,
-    border_animation: block.settings.border_animation,
+    card_font_size_mobile: block.settings.card_font_size_mobile,
+    card_price_font_size_mobile: block.settings.card_price_font_size_mobile,
     info_layout: block.settings.info_layout,
     cards_per_row: block.settings.cards_per_row,
+    cards_per_row_4k: block.settings.cards_per_row_4k,
+    cards_per_row_laptop: block.settings.cards_per_row_laptop,
+    cards_per_row_tablet: block.settings.cards_per_row_tablet,
+    cards_per_row_mobile_md: block.settings.cards_per_row_mobile_md,
+    cards_per_row_mobile_sm: block.settings.cards_per_row_mobile_sm,
     image_width: block.settings.image_width,
     image_ratio: block.settings.image_ratio,
     image_height: block.settings.image_height,
     card_min_height: block.settings.card_min_height,
     hide_text: block.settings.hide_text,
     hide_price: block.settings.hide_price,
+    hide_compare_price: block.settings.hide_compare_price,
     card_padding: block.settings.card_padding,
+    cards_gap: block.settings.cards_gap,
+    title_gap: block.settings.title_gap,
+    title_gap_mobile: block.settings.title_gap_mobile,
     cards_per_row_mobile: block.settings.cards_per_row_mobile,
     image_width_mobile: block.settings.image_width_mobile,
     image_ratio_mobile: block.settings.image_ratio_mobile,
-    image_height_mobile: block.settings.image_height_mobile,
     card_min_height_mobile: block.settings.card_min_height_mobile,
     hide_text_mobile: block.settings.hide_text_mobile,
     hide_price_mobile: block.settings.hide_price_mobile,
     card_padding_mobile: block.settings.card_padding_mobile,
-    badge_default_bg: block.settings.badge_default_bg,
-    badge_text_color: block.settings.badge_text_color,
-    badge_font_size: block.settings.badge_font_size,
-    selected_border_color: block.settings.selected_border_color,
-    selected_glow_color: block.settings.selected_glow_color,
-    hover_border_color: block.settings.hover_border_color,
-    unselected_border_color: block.settings.unselected_border_color
+    cards_gap_mobile: block.settings.cards_gap_mobile,
+    full_width: block.settings.full_width,
+    show_divider: block.settings.show_divider,
+    divider_color: block.settings.divider_color
   %}
   {%- if has_container -%}</div>{%- endif -%}
 {% endunless %}
@@ -141,20 +147,20 @@
       "id": "selected_border_color",
       "label": "Selected border color",
       "info": "Border color of the active/selected variant card",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "selected_glow_color",
       "label": "Selected glow color",
       "info": "Glow/shadow color around selected card. Set transparent to disable.",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "hover_border_color",
       "label": "Hover border color",
-      "default": "#7c3aed"
+      "default": "#B0C3FA"
     },
     {
       "type": "header",
@@ -165,7 +171,7 @@
       "id": "badge_default_bg",
       "label": "Default badge color",
       "info": "Fallback when no per-variant color is set",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
@@ -185,10 +191,38 @@
     },
     {
       "type": "color",
+      "id": "featured_border_color",
+      "label": "Featured card border color",
+      "info": "Border color for variant cards with badges",
+      "default": "#F2FFA0"
+    },
+    {
+      "type": "color",
       "id": "unselected_border_color",
       "label": "Unselected border color",
       "info": "Border color for non-selected variant cards",
       "default": "#e5e7eb"
+    },
+    {
+      "type": "header",
+      "content": "Add to Cart button"
+    },
+    {
+      "type": "color",
+      "id": "atc_bg_1",
+      "label": "ATC button gradient start",
+      "info": "Leave blank to use theme default"
+    },
+    {
+      "type": "color",
+      "id": "atc_bg_2",
+      "label": "ATC button gradient end"
+    },
+    {
+      "type": "color",
+      "id": "atc_text_color",
+      "label": "ATC button text color",
+      "default": "#ffffff"
     },
     {
       "type": "select",
@@ -220,25 +254,127 @@
     {
       "type": "range",
       "id": "card_price_font_size",
-      "label": "Price font size",
+      "label": "Price font size (desktop)",
       "min": 8,
       "max": 16,
       "step": 1,
       "unit": "px",
-      "default": 11
+      "default": 13
+    },
+    {
+      "type": "range",
+      "id": "card_font_size_mobile",
+      "label": "Option name font size (mobile)",
+      "min": 8,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "card_price_font_size_mobile",
+      "label": "Price font size (mobile)",
+      "min": 8,
+      "max": 16,
+      "step": 1,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "checkbox",
+      "id": "show_divider",
+      "label": "Show frosted divider",
+      "info": "Subtle glassmorphic line between option name and price",
+      "default": true
+    },
+    {
+      "type": "color",
+      "id": "divider_color",
+      "label": "Divider color",
+      "info": "Leave blank for subtle auto (frosted)"
+    },
+    {
+      "type": "checkbox",
+      "id": "full_width",
+      "label": "Full width",
+      "info": "Cards stretch evenly to fill the full width of their container. Useful for text-only variants without images.",
+      "default": false
     },
     {
       "type": "header",
-      "content": "Desktop layout"
+      "content": "Cards per row by breakpoint"
+    },
+    {
+      "type": "paragraph",
+      "content": "Set how many variant cards appear on each screen size. All ranges 2–12."
+    },
+    {
+      "type": "range",
+      "id": "cards_per_row_4k",
+      "label": "4K (≥ 1921px)",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 4
     },
     {
       "type": "range",
       "id": "cards_per_row",
-      "label": "Cards per row",
+      "label": "Desktop (1441–1920px)",
       "min": 2,
-      "max": 5,
+      "max": 12,
       "step": 1,
       "default": 3
+    },
+    {
+      "type": "range",
+      "id": "cards_per_row_laptop",
+      "label": "Laptop (1201–1440px)",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "cards_per_row_tablet",
+      "label": "Tablet (769–1200px)",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "range",
+      "id": "cards_per_row_mobile",
+      "label": "Mobile large (422–768px)",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 2
+    },
+    {
+      "type": "range",
+      "id": "cards_per_row_mobile_md",
+      "label": "Mobile medium (376–421px)",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 2
+    },
+    {
+      "type": "range",
+      "id": "cards_per_row_mobile_sm",
+      "label": "Mobile small (≤ 375px)",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 2
+    },
+    {
+      "type": "header",
+      "content": "Desktop layout"
     },
     {
       "type": "range",
@@ -301,6 +437,13 @@
       "default": false
     },
     {
+      "type": "checkbox",
+      "id": "hide_compare_price",
+      "label": "Hide strikethrough price",
+      "info": "Hides the compare-at (was) price in variant cards and dropdown",
+      "default": false
+    },
+    {
       "type": "range",
       "id": "card_padding",
       "label": "Card padding",
@@ -311,17 +454,29 @@
       "default": 9
     },
     {
-      "type": "header",
-      "content": "Mobile layout"
+      "type": "range",
+      "id": "cards_gap",
+      "label": "Gap between cards",
+      "min": 0,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "default": 6
     },
     {
       "type": "range",
-      "id": "cards_per_row_mobile",
-      "label": "Cards per row",
-      "min": 1,
-      "max": 5,
+      "id": "title_gap",
+      "label": "Gap below option title",
+      "info": "Space between the option name (e.g. \"Size\") and the cards",
+      "min": -20,
+      "max": 40,
       "step": 1,
-      "default": 2
+      "unit": "px",
+      "default": 14
+    },
+    {
+      "type": "header",
+      "content": "Mobile layout"
     },
     {
       "type": "range",
@@ -392,6 +547,27 @@
       "step": 1,
       "unit": "px",
       "default": 4
+    },
+    {
+      "type": "range",
+      "id": "cards_gap_mobile",
+      "label": "Gap between cards",
+      "min": 0,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "title_gap_mobile",
+      "label": "Gap below option title",
+      "info": "Space between the option name (e.g. \"Size\") and the cards",
+      "min": -20,
+      "max": 40,
+      "step": 1,
+      "unit": "px",
+      "default": 10
     },
     {
       "type": "header",
@@ -517,6 +693,72 @@
       "step": 1,
       "unit": "px",
       "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Free gift (per-variant)"
+    },
+    {
+      "type": "paragraph",
+      "content": "Drive the gift from per-variant metafields in the custom namespace: custom.free_gift_enabled (boolean), custom.free_gift_name, custom.free_gift_value, custom.free_gift_image, custom.free_gift_description. Variants where free_gift_enabled = true get a gift dot + hover popover."
+    },
+    {
+      "type": "checkbox",
+      "id": "free_gift_enabled",
+      "label": "Enable free-gift UI on this picker",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "free_gift_strip_qualifying",
+      "label": "Strip text — qualifying variant selected",
+      "info": "Shown when the currently selected variant qualifies. Placeholders: {gift} = gift name, {size} = the qualifying variant's name.",
+      "default": "Your free {gift} is included"
+    },
+    {
+      "type": "text",
+      "id": "free_gift_strip_locked",
+      "label": "Strip text — non-qualifying variant selected",
+      "info": "Shown above the picker when the current variant does not qualify. Click jumps to the first qualifying one. Placeholders: {gift} = gift name, {size} = the qualifying variant's name (drops out cleanly if there is none).",
+      "default": "Free {gift} with the {size}"
+    },
+    {
+      "type": "text",
+      "id": "free_gift_pop_eyebrow",
+      "label": "Popover eyebrow",
+      "default": "Free with this size"
+    },
+    {
+      "type": "text",
+      "id": "free_gift_pop_footer",
+      "label": "Popover footer line",
+      "default": "Added free at checkout"
+    },
+    {
+      "type": "text",
+      "id": "free_gift_value_note",
+      "label": "Qualifier beside the gift value",
+      "info": "Shown in small muted type next to the struck value, e.g. \"US shipping only\". Sits with the promise so a shopper reads it without opening the popover. Leave blank for no qualifier — do not state a restriction the fulfilment rule does not actually enforce."
+    },
+    {
+      "type": "checkbox",
+      "id": "free_gift_hide_strip_when_none",
+      "label": "Hide strip when no variant qualifies",
+      "info": "If no variant on this product has free_gift_enabled set, hide the eyebrow strip entirely.",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "free_gift_country_allowlist",
+      "label": "Show gift UI only in these countries",
+      "info": "Two-letter ISO country codes, comma-separated. Example: US, CA, GB, AU. NOTE: United Kingdom is GB (not UK). Leave blank to show in all countries. Matched case-insensitively against the buyer's selected storefront country."
+    },
+    {
+      "type": "checkbox",
+      "id": "free_gift_debug",
+      "label": "[Debug] Show metafield inspector",
+      "info": "Renders a yellow panel above the picker listing what Liquid reads from each variant's custom.free_gift_* metafields. Use only while wiring up data; turn off before going live.",
+      "default": false
     }
   ],
   "presets": [
@@ -531,6 +773,32 @@
 <style>
 .casa-vp-container {
   transition: border-color 0.2s, box-shadow 0.2s;
+  /* Fill the buy-box column. The product-info group is a flex column with
+     align-items: flex-start, which content-sizes this container and leaves a
+     right-side gap on narrow (icon-pill) pickers — e.g. Infinity Cube's three
+     Size pills stopping ~280px short of the ADD TO CART row. align-self:
+     stretch overrides the flex-start cross-axis so the container spans the
+     full column; wide styles (buttons / swatch / dropdown) already fill, so
+     this is a no-op for them.
+
+     KEEP THIS GLOBAL — do NOT scope it to a single block.id. .casa-vp-container
+     is emitted for ANY product that enables a picker background / border /
+     radius / padding (see has_container above). Today only Infinity Cube does,
+     but any future product that turns one on would hit the identical gap; this
+     global rule immunises all of them automatically. */
+  width: 100%;
+  align-self: stretch;
+}
+/* The <variant-picker> custom element defaults to display:inline, so inside a
+   .casa-vp-container (a plain block, not a flex parent) it collapses to its
+   content width even after the container is stretched above. Promote it to a
+   filling block. width:100% + align-self:stretch are also a harmless no-op for
+   the no-container products, where <variant-picker> is already a filling flex
+   item — so this covers every current and future picker style. */
+variant-picker.variant-picker {
+  display: block;
+  width: 100%;
+  align-self: stretch;
 }
 .casa-vp-title {
   font-weight: 600;
@@ -541,35 +809,75 @@
 </style>
 
 {%- comment -%} Variant card border color overrides {%- endcomment -%}
-{%- assign _sel_border = block.settings.selected_border_color | default: '#9333ea' -%}
-{%- assign _sel_glow = block.settings.selected_glow_color | default: '#9333ea' -%}
-{%- assign _hover_border = block.settings.hover_border_color | default: '#7c3aed' -%}
+{%- assign _sel_border = block.settings.selected_border_color | default: '#B0C3FA' -%}
+{%- assign _sel_glow = block.settings.selected_glow_color | default: '#B0C3FA' -%}
+{%- assign _hover_border = block.settings.hover_border_color | default: '#B0C3FA' -%}
 {%- assign _unsel_border = block.settings.unselected_border_color | default: '#e5e7eb' -%}
-{%- assign _badge_bg = block.settings.badge_default_bg | default: '#9333ea' -%}
+{%- assign _badge_bg = block.settings.badge_default_bg | default: '#B0C3FA' -%}
 {%- assign _badge_text = block.settings.badge_text_color | default: '#ffffff' -%}
 {%- assign _badge_fs = block.settings.badge_font_size | default: 10 -%}
+{%- assign _feat_border = block.settings.featured_border_color | default: '#F2FFA0' -%}
+{%- assign _atc_bg1 = block.settings.atc_bg_1 -%}
+{%- assign _atc_bg2 = block.settings.atc_bg_2 -%}
+{%- assign _atc_text = block.settings.atc_text_color | default: '#ffffff' -%}
 <style>
   /* Unselected variant cards — Horizon uses .variant-option__button-label */
   .cdl-vp-{{ block.id }} .variant-option__button-label {
     border-color: {{ _unsel_border }} !important;
   }
 
-  /* Hover state */
-  .cdl-vp-{{ block.id }} .variant-option__button-label:hover {
-    border-color: {{ _hover_border }} !important;
+  /* Casa: separate hover and selected states by category — hover is
+     MOTION (subtle lift + neutral shadow), selected is COLOR (purple
+     border + purple wash + glow). Previous version used a similar
+     purple on both hover and selected, making hovered cards look
+     pre-selected. Now they're visually distinct: motion vs color.
+
+     Selection-state COLORS are intentionally NOT transitioned. When
+     the user clicks, the previously-selected card fades to gray over
+     200ms while the newly-selected card fades to purple over 200ms —
+     for those 200ms both cards sit in a mid-purple state and read as
+     'both selected'. Color must flip in one frame so selection is
+     unambiguous. Hover MOTION (transform + box-shadow) keeps its
+     200ms transition — only one card is hovered at a time so there's
+     no competing crossfade. */
+  .cdl-vp-{{ block.id }} .variant-option__button-label {
+    transition:
+      transform 0.2s ease-out,
+      box-shadow 0.2s ease-out;
   }
 
-  /* Selected/checked variant card — Horizon uses :has(input:checked) */
+  /* Hover (only when NOT selected) — lifts up with neutral shadow.
+     No purple, no background tint. Pure motion feedback. */
+  .cdl-vp-{{ block.id }} .variant-option__button-label:hover:not(:has(input:checked)) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08) !important;
+    border-color: #d1d5db !important;
+  }
+
+  /* Selected/checked variant card — purple border + subtle purple
+     background wash. No glow / box-shadow — kept too loud against
+     the colorful product imagery and pulled focus from the product.
+     The merchant-facing "selected_glow_color" setting still exists
+     in the schema so a per-PDP override can re-enable a glow if
+     ever needed; default is no shadow. */
   .cdl-vp-{{ block.id }} .variant-option__button-label:has(input:checked) {
     border-color: {{ _sel_border }} !important;
-    box-shadow: 0 0 0 1px {{ _sel_border }}, 0 4px 16px {{ _sel_glow }}40 !important;
+    background-color: {{ _sel_border }}10 !important;
   }
 
   /* Fallback for browsers without :has() — uses sibling selector */
   .cdl-vp-{{ block.id }} input:checked + .variant-option__button-label,
   .cdl-vp-{{ block.id }} input:checked + label {
     border-color: {{ _sel_border }} !important;
-    box-shadow: 0 0 0 1px {{ _sel_border }}, 0 4px 16px {{ _sel_glow }}40 !important;
+    background-color: {{ _sel_border }}10 !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cdl-vp-{{ block.id }} .variant-option__button-label,
+    .cdl-vp-{{ block.id }} .variant-option__button-label:hover {
+      transition: none;
+      transform: none;
+    }
   }
 
   /* Swatch variant style */
@@ -580,11 +888,9 @@
     box-shadow: 0 0 0 2px {{ _hover_border }} !important;
   }
 
-  /* Casa VDD (custom dropdown) selected state */
-  .cdl-vp-{{ block.id }} .casa-vdd__option--selected {
-    border-color: {{ _sel_border }} !important;
-    background: {{ _sel_border }}10 !important;
-  }
+  /* Casa VDD (custom dropdown) — selected-state gradient border is set
+     in the snippet's style block; merchant border-color picker only
+     applies to the trigger + check icon below, not the selected option. */
   .cdl-vp-{{ block.id }} .casa-vdd__trigger {
     border-color: {{ _unsel_border }} !important;
   }
@@ -601,4 +907,1146 @@
     color: {{ _badge_text }} !important;
     font-size: {{ _badge_fs }}px !important;
   }
+
+  /* Variant featured-badge — DISABLED 2026-05-17 at merchant request
+     ("we don't need it remove on both"). The badge feature is kept
+     in markup and styling for future use, but `display: none` hides
+     it everywhere. Re-enable by removing the display rule. */
+  .casa-vp-btn-badge {
+    display: none !important;
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    left: auto;
+    transform: none;
+    z-index: 2;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0;
+    width: 18px;
+    height: 18px;
+    background: {{ _badge_bg }};
+    color: {{ _badge_text }};
+    font-size: 0;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-radius: 100px;
+    white-space: nowrap;
+    line-height: 1;
+    pointer-events: none;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+  }
+  .casa-vp-btn-badge::before {
+    content: "★";
+    font-size: 11px;
+    line-height: 1;
+    color: inherit;
+  }
+  /* On image-card variants (wider, ≥120px effective) show the FULL
+     text badge. Image cards have the .--has-img modifier; restore
+     proper pill sizing + font-size for them, and hide the star.
+     2026-05-17: this rule was over-firing on mobile where small
+     swatch+image variant cards (Apollo Onyx, ~76px wide) carry
+     BOTH --has-swatch and --has-img — and the 86px text badge
+     overflowed the 76px card. Below the mobile override forces
+     the star-icon rendering back for narrow viewports. */
+  .variant-option__button-label--has-img .casa-vp-btn-badge {
+    width: auto;
+    height: auto;
+    padding: 2px 7px;
+    font-size: 8.5px;
+    line-height: 1.3;
+  }
+  .variant-option__button-label--has-img .casa-vp-btn-badge::before {
+    display: none;
+  }
+  /* MOBILE OVERRIDE: small swatch+image cards (Apollo Onyx, etc.)
+     are too narrow for the text badge — force star-icon rendering
+     regardless of --has-img. Desktop keeps the text version. */
+  @media (max-width: 640px) {
+    .variant-option__button-label--has-img .casa-vp-btn-badge {
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      font-size: 0;
+    }
+    .variant-option__button-label--has-img .casa-vp-btn-badge::before {
+      display: inline-block;
+      content: "★";
+      font-size: 11px;
+      line-height: 1;
+    }
+  }
+  .variant-option__button-label {
+    position: relative !important;
+    /* overflow: hidden so the badge clips at the card edge as a
+       safety net if specificity ever fails — combined with the
+       corner-pinned position above, badge always stays inside. */
+    overflow: hidden !important;
+  }
+
+  /* Casa: featured cards are signaled by their badge ("MOST POPULAR",
+     etc.) and a subtle elevation glow — NOT a competing border. The
+     previous 2px cyan border created a UX bug: when the user picked a
+     different variant, the featured card kept its border so both
+     cards looked selected. With the border gone, the selected state's
+     purple border becomes the only "active" indicator — unambiguous.
+     Featured cards get just enough elevation to feel slightly elevated
+     when not selected. When selected, the selected state styling
+     (border + glow from the rules above) takes over cleanly via
+     :has(input:checked) — no conflict. */
+  .variant-option__button-label.casa-vp-featured:not(:has(input:checked)) {
+    box-shadow: 0 4px 16px {{ _feat_border }}25 !important;
+  }
+
+  {%- if _atc_bg1 != blank and _atc_bg2 != blank -%}
+  /* ATC button gradient */
+  .add-to-cart-button,
+  button[name="add"],
+  .product-form__submit,
+  [data-testid="add-to-cart-button"] {
+    background: linear-gradient(135deg, {{ _atc_bg1 }}, {{ _atc_bg2 }}) !important;
+    border: none !important;
+    color: {{ _atc_text }} !important;
+  }
+  {%- endif -%}
 </style>
+
+{%- comment -%}
+  ────────────────────────────────────────────────────────────────
+  Free-gift UI (Variant D — hover popover)
+  Source mockup: mockups/free-gift/all.html (panel #d)
+  Driven by per-variant metafields under namespace 'custom'
+  (matches the rest of the theme — variant_badge, variant_description,
+  dimensions, etc. all live under custom.*):
+    custom.free_gift_enabled       (boolean)
+    custom.free_gift_name          (single_line_text)
+    custom.free_gift_value         (single_line_text — e.g. "$29.99")
+    custom.free_gift_image         (file_reference — image)
+    custom.free_gift_description   (multi_line_text)
+  ────────────────────────────────────────────────────────────────
+{%- endcomment -%}
+{%- assign _fg_enabled = block.settings.free_gift_enabled -%}
+{%- if _fg_enabled == nil -%}{%- assign _fg_enabled = true -%}{%- endif -%}
+
+{%- comment -%}
+  Country allowlist gate (server-side, region-locked gift offers).
+  Empty / blank input → no gate (gift renders in every country —
+  backwards-compatible). One or more codes → gift hidden unless
+  localization.country.iso_code matches one of them. Codes must be
+  2-letter ISO 3166-1 alpha-2 (US, CA, GB, AU). Anything not exactly
+  2 letters is silently ignored, so "USA" / "United States" /
+  empty entries from sloppy input fail-closed (gift hidden, safer
+  default than accidentally matching). Case-insensitive, whitespace-
+  tolerant. NOTE: UK uses ISO code GB, not UK.
+{%- endcomment -%}
+{%- assign _fg_allowlist_raw = block.settings.free_gift_country_allowlist | default: '' | strip -%}
+{%- assign _fg_codes = '' | split: '' -%}
+{%- assign _fg_allowed = true -%}
+{%- if _fg_allowlist_raw != '' -%}
+  {%- assign _fg_country = localization.country.iso_code | upcase -%}
+  {%- assign _fg_allowed = false -%}
+  {%- assign _fg_codes = _fg_allowlist_raw | upcase | replace: ' ', '' | split: ',' -%}
+  {%- for _code in _fg_codes -%}
+    {%- assign _code_clean = _code | strip -%}
+    {%- if _code_clean.size == 2 and _code_clean == _fg_country -%}
+      {%- assign _fg_allowed = true -%}
+      {%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {%- unless _fg_allowed -%}
+    {%- assign _fg_enabled = false -%}
+  {%- endunless -%}
+{%- endif -%}
+
+{%- assign _fg_product = closest.product -%}
+{%- if _fg_enabled and _fg_product != blank -%}
+  {%- assign _fg_any = false -%}
+  {%- for v in _fg_product.variants -%}
+    {%- if v.metafields.custom.free_gift_enabled.value -%}
+      {%- comment -%} A referenced gift that is sold out suspends the promise. {%- endcomment -%}
+      {%- assign _fg_v_ref = v.metafields.custom.free_gift_variant.value -%}
+      {%- if _fg_v_ref and _fg_v_ref.available == false -%}
+        {%- continue -%}
+      {%- endif -%}
+      {%- assign _fg_any = true -%}
+      {%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+
+  {%- if block.settings.free_gift_debug -%}
+    <div style="background:#fff8c4;border:2px solid #f59e0b;border-radius:8px;padding:12px;margin:0 0 12px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;color:#3a2700;">
+      <div style="font-weight:700;font-size:13px;margin-bottom:6px;">Free-gift metafield inspector</div>
+      <div>block.id: <code>{{ block.id }}</code></div>
+      <div>block.settings.free_gift_enabled: <code>{{ block.settings.free_gift_enabled | json }}</code></div>
+      <div>_fg_enabled (resolved): <code>{{ _fg_enabled | json }}</code></div>
+      <div>closest.product handle: <code>{{ _fg_product.handle }}</code></div>
+      <div>variants count: <code>{{ _fg_product.variants.size }}</code></div>
+      <div>_fg_any (any qualifying): <code>{{ _fg_any | json }}</code></div>
+      <div style="margin-top:6px;padding-top:6px;border-top:1px dashed #f59e0b;">
+        <div style="font-weight:700;margin-bottom:2px;">Country gate:</div>
+        <div>localization.country.iso_code: <code>{{ localization.country.iso_code | json }}</code></div>
+        <div>free_gift_country_allowlist (raw): <code>{{ block.settings.free_gift_country_allowlist | json }}</code></div>
+        <div>Parsed codes (normalized): <code>{{ _fg_codes | join: ',' | json }}</code></div>
+        <div>Country match (_fg_allowed): <code>{{ _fg_allowed | json }}</code></div>
+      </div>
+      <div style="margin-top:8px;font-weight:700;">Per-variant read of metafields.custom.free_gift_*:</div>
+      <table style="width:100%;border-collapse:collapse;margin-top:4px;font-size:11px;">
+        <thead>
+          <tr style="background:#fde68a;">
+            <th style="text-align:left;padding:4px 6px;border:1px solid #f59e0b;">title</th>
+            <th style="text-align:left;padding:4px 6px;border:1px solid #f59e0b;">id</th>
+            <th style="text-align:left;padding:4px 6px;border:1px solid #f59e0b;">enabled</th>
+            <th style="text-align:left;padding:4px 6px;border:1px solid #f59e0b;">name</th>
+            <th style="text-align:left;padding:4px 6px;border:1px solid #f59e0b;">value</th>
+            <th style="text-align:left;padding:4px 6px;border:1px solid #f59e0b;">image</th>
+            <th style="text-align:left;padding:4px 6px;border:1px solid #f59e0b;">desc</th>
+          </tr>
+        </thead>
+        <tbody>
+          {%- for v in _fg_product.variants -%}
+            <tr style="background:{% cycle '#fffce8','#fff8c4' %};">
+              <td style="padding:4px 6px;border:1px solid #fde68a;">{{ v.title }}</td>
+              <td style="padding:4px 6px;border:1px solid #fde68a;"><code>{{ v.id }}</code></td>
+              <td style="padding:4px 6px;border:1px solid #fde68a;"><code>{{ v.metafields.custom.free_gift_enabled.value | json }}</code></td>
+              <td style="padding:4px 6px;border:1px solid #fde68a;"><code>{{ v.metafields.custom.free_gift_name.value | json }}</code></td>
+              <td style="padding:4px 6px;border:1px solid #fde68a;"><code>{{ v.metafields.custom.free_gift_value.value | json }}</code></td>
+              <td style="padding:4px 6px;border:1px solid #fde68a;"><code>{{ v.metafields.custom.free_gift_image | json | truncate: 50 }}</code></td>
+              <td style="padding:4px 6px;border:1px solid #fde68a;"><code>{{ v.metafields.custom.free_gift_description.value | json | truncate: 50 }}</code></td>
+            </tr>
+          {%- endfor -%}
+        </tbody>
+      </table>
+      <div style="margin-top:8px;color:#7a5500;">
+        If "enabled" shows <code>null</code> for every variant: the metafield definition is missing, or it isn't exposed to the storefront (Settings → Custom data → Variants → Storefronts toggle). If "enabled" shows <code>false</code> on a row you set to true: the value didn't save, or this isn't the variant you set. If it shows <code>true</code> but you still don't see the dot/popover, check the browser console for <code>[casa-fg]</code> errors.
+      </div>
+    </div>
+  {%- endif -%}
+
+  {%- if _fg_any -%}
+    <style>
+      /* Eyebrow strip — sits above the variant picker.
+         Locked state (no qualifying variant selected): inline pill-icon
+         + text + arrow, tappable to jump to first qualifying variant.
+         Qualifying state: rich card with thumbnail, gift name, FREE
+         pill — replaces the popover on mobile and complements it on
+         desktop. */
+      .casa-fg-strip--{{ block.id }} {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 12px;
+        padding: 8px 12px;
+        font-size: 12px;
+        color: var(--t-on-light-muted, #54545C);
+        background: linear-gradient(90deg, rgba(176, 195, 250,0.04), rgba(94, 10, 2,0.04));
+        border: 1px solid var(--border-on-light, #E8E8E4);
+        border-radius: 12px;
+        text-align: left;
+        font-family: inherit;
+        cursor: pointer;
+        line-height: 1.35;
+        transition:
+          color var(--d-fast, 150ms) var(--ease-out, ease-out),
+          background var(--d-fast, 150ms) var(--ease-out, ease-out),
+          border-color var(--d-fast, 150ms) var(--ease-out, ease-out);
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .casa-fg-strip--{{ block.id }}:hover {
+        border-color: var(--casa-purple, #B0C3FA);
+        background: linear-gradient(90deg, rgba(176, 195, 250,0.08), rgba(94, 10, 2,0.08));
+      }
+      .casa-fg-strip--{{ block.id }}[data-state="qualifying"] {
+        cursor: default;
+        background: linear-gradient(90deg, #fdf2f8, #faf5ff);
+        border-color: rgba(94, 10, 2,0.35);
+      }
+      .casa-fg-strip--{{ block.id }}[data-state="qualifying"]:hover {
+        background: linear-gradient(90deg, #fdf2f8, #faf5ff);
+        border-color: rgba(94, 10, 2,0.35);
+      }
+
+      /* Icon (locked state default) — gradient circle with gift glyph */
+      .casa-fg-strip--{{ block.id }} .casa-fg-strip__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(176, 195, 250,0.12), rgba(94, 10, 2,0.12));
+        font-size: 14px;
+        flex-shrink: 0;
+      }
+      .casa-fg-strip--{{ block.id }}[data-state="qualifying"] .casa-fg-strip__icon {
+        background: var(--casa-gradient-primary, linear-gradient(135deg, #B0C3FA, #5E0A02));
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(94, 10, 2,0.35);
+      }
+      /* Hide the round gift icon when we have a real product image */
+      .casa-fg-strip--{{ block.id }}[data-has-image="true"] .casa-fg-strip__icon { display: none; }
+      /* SVG gift glyph — sized in CSS (not only the width attr) so the
+         base theme's svg resets can't stretch it; 1em tracks each host's
+         former emoji font-size (14px strip, 11/15px dot, 32px popover).
+         position:static is load-bearing: Horizon's base.css has
+         `.variant-option__button-label svg { position:absolute; left/top:
+         var(--options-border-width) }` for the selected-state outline, and
+         it also catches our gift glyphs, which live inside a variant card.
+         Absolute + explicit inset takes them out of their host's flex
+         centring and pins them to its top-left corner. */
+      .casa-fg-strip--{{ block.id }} .casa-fg-strip__icon svg,
+      .cdl-vp-{{ block.id }} .casa-fg-pop__img svg,
+      .cdl-vp-{{ block.id }} .casa-fg-dot svg { display: block; position: static; width: 1em; height: 1em; }
+      .cdl-vp-{{ block.id }} .casa-fg-dot svg { color: #fff; }
+
+      /* Product thumbnail (qualifying state, when image metafield is set) */
+      .casa-fg-strip--{{ block.id }} .casa-fg-strip__thumb {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        overflow: hidden;
+        flex-shrink: 0;
+        background: #fff;
+        border: 1px solid #fbcfe8;
+        display: none;
+      }
+      .casa-fg-strip--{{ block.id }}[data-has-image="true"] .casa-fg-strip__thumb {
+        display: block;
+      }
+      .casa-fg-strip--{{ block.id }} .casa-fg-strip__thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      /* Body — text + value */
+      .casa-fg-strip--{{ block.id }} .casa-fg-strip__body {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .casa-fg-strip--{{ block.id }} .casa-fg-strip__text {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .casa-fg-strip--{{ block.id }} .casa-fg-strip__text strong {
+        color: var(--t-on-light, #0a0a0f);
+        font-weight: 700;
+      }
+      .casa-fg-strip--{{ block.id }}[data-state="qualifying"] .casa-fg-strip__text {
+        color: var(--t-on-light, #0a0a0f);
+        font-weight: 600;
+      }
+      .casa-fg-strip--{{ block.id }} .casa-fg-strip__value {
+        font-size: 11px;
+        color: var(--t-on-light-muted, #54545C);
+        display: none;
+      }
+      /* No [data-state] qualifier on purpose. The struck value is the whole
+         argument for sizing up, so it has to be visible in the LOCKED state —
+         gating it on "qualifying" showed the number only after the shopper had
+         already made the decision it was meant to influence. */
+      .casa-fg-strip--{{ block.id }}[data-has-value="true"] .casa-fg-strip__value {
+        display: block;
+      }
+      .casa-fg-strip--{{ block.id }} .casa-fg-strip__value-strike {
+        text-decoration: line-through;
+        font-weight: 500;
+      }
+      /* Qualifier on the offer (e.g. "US shipping only"). Deliberately in the
+         value row rather than the popover: it qualifies the promise, so it has
+         to be readable without opening anything. Measured at 320px — it stays
+         on one line and does not change the strip height. */
+      .casa-fg-strip--{{ block.id }} .casa-fg-strip__value-note {
+        margin-left: 6px;
+        color: var(--t-on-light-muted, #54545C);
+        font-weight: 500;
+      }
+      .casa-fg-strip--{{ block.id }} .casa-fg-strip__value-free {
+        color: var(--casa-pink, #5E0A02);
+        font-weight: 700;
+        margin-left: 4px;
+      }
+
+      /* Arrow (locked state only) */
+      .casa-fg-strip--{{ block.id }} .casa-fg-strip__arrow {
+        font-size: 13px;
+        flex-shrink: 0;
+        transition: transform var(--d-fast, 150ms) var(--ease-out, ease-out);
+      }
+      .casa-fg-strip--{{ block.id }}:hover:not([data-state="qualifying"]) .casa-fg-strip__arrow {
+        transform: translateX(2px);
+      }
+      .casa-fg-strip--{{ block.id }}[data-state="qualifying"] .casa-fg-strip__arrow {
+        display: none;
+      }
+
+      /* "FREE" pill (qualifying state only) */
+      .casa-fg-strip--{{ block.id }} .casa-fg-strip__free {
+        display: none;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: var(--casa-purple, #B0C3FA);
+        color: #fff;
+        text-transform: uppercase;
+        flex-shrink: 0;
+        line-height: 1.3;
+      }
+      .casa-fg-strip--{{ block.id }}[data-state="qualifying"] .casa-fg-strip__free {
+        display: inline-flex;
+        align-items: center;
+      }
+      /* Below the desktop breakpoint the pill is the THIRD "free" in one row
+         (sentence, struck value, pill) and it costs ~51px of the text column —
+         at 320px that is the difference between a one-line and a two-line
+         sentence, and 12px of strip height. Desktop has the room, so it keeps
+         the pill as a visual anchor. */
+      @media (max-width: 768px) {
+        .casa-fg-strip--{{ block.id }}[data-state="qualifying"] .casa-fg-strip__free {
+          display: none;
+        }
+      }
+
+      /* Variant picker — let the popover escape the card bounds */
+      .cdl-vp-{{ block.id }} .variant-option--buttons { overflow: visible; }
+      .cdl-vp-{{ block.id }} .variant-option__button-label[data-fg-has-gift] {
+        overflow: visible !important;
+      }
+
+      /* Gift dot on qualifying button cards.
+         Mobile: 22px. Desktop (≥769px): 30px — easier to spot from
+         further away on larger screens. Keeps the brand gradient: the dot
+         holds a glyph, not text, so WCAG 1.4.11's 3:1 for graphics applies
+         (3.53:1 at the pink stop). The two pills that carry the word FREE
+         are flat purple instead — text needs 4.5:1 and a gradient can only
+         guarantee its worst stop. */
+      .cdl-vp-{{ block.id }} .casa-fg-dot {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--casa-gradient-primary, linear-gradient(135deg, #B0C3FA, #5E0A02));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        line-height: 1;
+        box-shadow: 0 2px 8px rgba(94, 10, 2, 0.4);
+        z-index: 3;
+        pointer-events: none;
+        transition: transform var(--d-fast, 150ms) var(--ease-out, ease-out);
+      }
+      @media (min-width: 769px) {
+        .cdl-vp-{{ block.id }} .casa-fg-dot {
+          top: -10px;
+          right: -10px;
+          width: 30px;
+          height: 30px;
+          font-size: 15px;
+          box-shadow: 0 3px 10px rgba(94, 10, 2, 0.45);
+        }
+      }
+      .cdl-vp-{{ block.id }} .variant-option__button-label[data-fg-has-gift]:hover .casa-fg-dot {
+        transform: scale(1.15);
+      }
+      /* Pink border tint on qualifying cards (additive — selected purple still wins) */
+      .cdl-vp-{{ block.id }} .variant-option__button-label[data-fg-has-gift]:not(:has(input:checked)):hover {
+        border-color: var(--casa-pink, #5E0A02) !important;
+      }
+      .cdl-vp-{{ block.id }} .variant-option__button-label[data-fg-has-gift]:has(input:checked) {
+        box-shadow: 0 0 0 3px rgba(94, 10, 2, 0.12);
+      }
+
+      /* Popover */
+      .cdl-vp-{{ block.id }} .casa-fg-pop {
+        position: absolute;
+        bottom: calc(100% + 14px);
+        left: 50%;
+        transform: translateX(-50%) translateY(4px);
+        width: 280px;
+        max-width: calc(100vw - 32px);
+        box-sizing: border-box;
+        background: #fff;
+        border: 1px solid var(--border-on-light, #E8E8E4);
+        border-radius: 14px;
+        padding: 14px;
+        box-shadow: 0 16px 40px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.04);
+        pointer-events: none;
+        opacity: 0;
+        visibility: hidden;
+        transition:
+          opacity var(--d-fast, 150ms) var(--ease-out, ease-out),
+          transform var(--d-fast, 150ms) var(--ease-out, ease-out),
+          visibility var(--d-fast, 150ms);
+        z-index: 50;
+        text-align: left;
+        color: var(--t-on-light, #0a0a0f);
+        overflow: hidden;
+      }
+      .cdl-vp-{{ block.id }} .variant-option__button-label[data-fg-has-gift]:hover .casa-fg-pop,
+      .cdl-vp-{{ block.id }} .variant-option__button-label[data-fg-has-gift][data-fg-revealed] .casa-fg-pop {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
+        pointer-events: auto;
+      }
+      .cdl-vp-{{ block.id }} .casa-fg-pop::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 8px solid transparent;
+        border-top-color: #fff;
+        filter: drop-shadow(0 2px 1px rgba(0,0,0,0.06));
+      }
+      .cdl-vp-{{ block.id }} .casa-fg-pop__head {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        margin-bottom: 10px;
+      }
+      .cdl-vp-{{ block.id }} .casa-fg-pop__img {
+        width: 64px;
+        height: 64px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #fdf2f8, #faf5ff);
+        border: 1px solid #fbcfe8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+      .cdl-vp-{{ block.id }} .casa-fg-pop__img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .cdl-vp-{{ block.id }} .casa-fg-pop__head-text {
+        flex: 1;
+        min-width: 0;
+        padding-top: 2px;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .cdl-vp-{{ block.id }} .casa-fg-pop__eyebrow {
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--casa-pink, #5E0A02);
+        margin-bottom: 2px;
+      }
+      .cdl-vp-{{ block.id }} .casa-fg-pop__name {
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.3;
+        margin-bottom: 2px;
+      }
+      .cdl-vp-{{ block.id }} .casa-fg-pop__value { font-size: 12px; color: var(--t-on-light-muted, #54545C); }
+      .cdl-vp-{{ block.id }} .casa-fg-pop__value strong {
+        color: var(--t-on-light, #0a0a0f);
+        text-decoration: line-through;
+        font-weight: 500;
+      }
+      .cdl-vp-{{ block.id }} .casa-fg-pop__value em {
+        font-style: normal;
+        color: var(--casa-pink, #5E0A02);
+        font-weight: 700;
+        margin-left: 4px;
+      }
+      .cdl-vp-{{ block.id }} .casa-fg-pop__desc {
+        font-size: 12px;
+        color: var(--t-on-light-muted, #54545C);
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        white-space: normal;
+        max-width: 100%;
+      }
+      .cdl-vp-{{ block.id }} .casa-fg-pop__foot {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed var(--border-on-light, #E8E8E4);
+        font-size: 11px;
+        color: var(--t-on-light-muted, #54545C);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .cdl-vp-{{ block.id }} .casa-fg-pop__foot::before {
+        content: '✓';
+        color: var(--casa-pink, #5E0A02);
+        font-weight: 700;
+      }
+
+      /* Mobile / no-hover: hide the card-anchored popover entirely.
+         The popover is too tall (~180px) and too narrow vs. the card
+         to position cleanly on small screens — anchored to a corner
+         card it either clips off-screen, lands offset under the
+         header, or covers the rest of the picker. Instead, the
+         eyebrow strip absorbs the gift detail (image thumb + value
+         + free pill) on mobile, see .casa-fg-strip rules below. */
+      @media (hover: none) {
+        .cdl-vp-{{ block.id }} .casa-fg-pop {
+          display: none !important;
+        }
+      }
+
+      /* Dropdown — gift pill next to qualifying option name */
+      .cdl-vp-{{ block.id }} .casa-fg-vdd-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        padding: 2px 7px;
+        margin-left: 6px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        background: var(--casa-purple, #B0C3FA);
+        color: #fff;
+        white-space: nowrap;
+        line-height: 1.3;
+      }
+      .cdl-vp-{{ block.id }} .casa-fg-vdd-pill--trigger { vertical-align: middle; }
+      .cdl-vp-{{ block.id }} .casa-vdd__option[data-fg-has-gift] {
+        background: linear-gradient(90deg, #fef3f8, transparent);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .cdl-vp-{{ block.id }} .casa-fg-pop,
+        .casa-fg-strip--{{ block.id }},
+        .casa-fg-strip--{{ block.id }} .casa-fg-strip__arrow,
+        .cdl-vp-{{ block.id }} .casa-fg-dot {
+          transition: none;
+        }
+      }
+    </style>
+
+    {%- comment -%}
+      Note: don't use {gift} inside Liquid `default:` filter strings — Liquid
+      reads the curly braces as the start of an interpolation. Pass the raw
+      setting (which may be empty) and let the JS apply the fallback.
+    {%- endcomment -%}
+    {%- assign _fg_strip_qual = block.settings.free_gift_strip_qualifying -%}
+    {%- assign _fg_strip_lock = block.settings.free_gift_strip_locked -%}
+    {%- assign _fg_pop_eyebrow = block.settings.free_gift_pop_eyebrow | default: 'Free with this size' -%}
+    {%- assign _fg_pop_footer = block.settings.free_gift_pop_footer | default: 'Added free at checkout' -%}
+    <script type="application/json" id="casa-fg-data-{{ block.id }}">
+    {
+      "stripQualifying": {{ _fg_strip_qual | json }},
+      "stripLocked": {{ _fg_strip_lock | json }},
+      "popEyebrow": {{ _fg_pop_eyebrow | json }},
+      "popFooter": {{ _fg_pop_footer | json }},
+      "valueNote": {{ block.settings.free_gift_value_note | default: '' | json }},
+      "hideStripWhenNone": {{ block.settings.free_gift_hide_strip_when_none | default: true | json }},
+      "variants": {
+        {%- assign _fg_first = true -%}
+        {%- for variant in _fg_product.variants -%}
+          {%- if variant.metafields.custom.free_gift_enabled.value -%}
+            {%- comment -%} Sold-out referenced gift suspends this variant's promise entirely
+                (no dot, no popover, no payload entry) — same rule as the strip gate above. {%- endcomment -%}
+            {%- assign _fg_v_ref2 = variant.metafields.custom.free_gift_variant.value -%}
+            {%- if _fg_v_ref2 and _fg_v_ref2.available == false -%}
+              {%- continue -%}
+            {%- endif -%}
+            {%- unless _fg_first -%},{%- endunless -%}
+            {%- assign _fg_first = false -%}
+            {%- assign _fg_img = variant.metafields.custom.free_gift_image.value -%}
+            {%- assign _fg_img_url = '' -%}
+            {%- if _fg_img -%}
+              {%- assign _fg_img_url = _fg_img | image_url: width: 160 -%}
+            {%- endif -%}
+            {%- assign _fg_gift_ref = variant.metafields.custom.free_gift_variant.value -%}
+            {{ variant.id | append: '' | json }}: {
+              "title": {{ variant.title | json }},
+              "name": {{ variant.metafields.custom.free_gift_name.value | default: '' | json }},
+              "value": {{ variant.metafields.custom.free_gift_value.value | default: '' | json }},
+              "image": {{ _fg_img_url | json }},
+              "description": {{ variant.metafields.custom.free_gift_description.value | default: '' | json }},
+              "giftVariantId": {% if _fg_gift_ref %}{{ _fg_gift_ref.id | json }}{% else %}null{% endif %},
+              "giftAvailable": {% if _fg_gift_ref %}{{ _fg_gift_ref.available | json }}{% else %}false{% endif %}
+            }
+          {%- endif -%}
+        {%- endfor -%}
+      }
+    }
+    </script>
+
+    <script>
+    (function(){
+      var dataEl = document.getElementById('casa-fg-data-{{ block.id }}');
+      if (!dataEl) return;
+      var data;
+      try { data = JSON.parse(dataEl.textContent); } catch(e) { console.error('[casa-fg] bad json', e); return; }
+      // JS-side defaults — kept here (not in Liquid) because the {gift}
+      // placeholder collides with Liquid's {{ }} interpolation syntax.
+      if (!data.stripQualifying) data.stripQualifying = 'Your free {gift} is included';
+      if (!data.stripLocked)     data.stripLocked     = 'Free {gift} with the {size}';
+      // valueNote gets NO fallback on purpose. The other two are phrasing, and a
+      // sensible default is harmless; valueNote is a claim about where the gift
+      // ships. Defaulting it would state a restriction on a product nobody
+      // configured it for, so blank stays blank.
+      if (!data.popEyebrow)      data.popEyebrow      = 'Free with this size';
+      if (!data.popFooter)       data.popFooter       = 'Added free at checkout';
+      var variants = data.variants || {};
+      var pickerSelector = '.cdl-vp-{{ block.id }}';
+      // Inline gift icon (outline, currentColor) — replaces the former
+      // wrapped-present emoji, which read off-brand next to the quiet chrome.
+      var GIFT_SVG = '<svg viewBox="0 0 16 16" width="1em" height="1em" focusable="false" aria-hidden="true"><path d="M2.2 5.6h11.6v2.6H2.2zM3.1 8.2h9.8v5.6H3.1zM8 5.6v8.2M8 5.6S5.6 5.5 4.6 4.3C3.9 3.5 4.4 2.2 5.5 2.2 7.1 2.2 8 5.6 8 5.6zM8 5.6s2.4-.1 3.4-1.3c.7-.8.2-2.1-.9-2.1C8.9 2.2 8 5.6 8 5.6z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+      function escapeHtml(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      }
+
+      // Build the popover HTML for a variant entry
+      function popHtml(entry) {
+        var imgHtml;
+        if (entry.image) {
+          imgHtml = '<img src="' + escapeHtml(entry.image) + '" alt="' + escapeHtml(entry.name || 'Free gift') + '" loading="lazy" width="64" height="64">';
+        } else {
+          imgHtml = GIFT_SVG;
+        }
+        var valueHtml = '';
+        if (entry.value) {
+          valueHtml = '<div class="casa-fg-pop__value"><strong>' + escapeHtml(entry.value) + '</strong> <em>FREE</em></div>';
+        }
+        var descHtml = '';
+        if (entry.description) {
+          descHtml = '<div class="casa-fg-pop__desc">' + escapeHtml(entry.description) + '</div>';
+        }
+        return (
+          '<div class="casa-fg-pop" role="tooltip">' +
+            '<div class="casa-fg-pop__head">' +
+              '<div class="casa-fg-pop__img">' + imgHtml + '</div>' +
+              '<div class="casa-fg-pop__head-text">' +
+                '<div class="casa-fg-pop__eyebrow">' + escapeHtml(data.popEyebrow || 'Free with this size') + '</div>' +
+                '<div class="casa-fg-pop__name">' + escapeHtml(entry.name || 'Free gift') + '</div>' +
+                valueHtml +
+              '</div>' +
+            '</div>' +
+            descHtml +
+            '<div class="casa-fg-pop__foot">' + escapeHtml(data.popFooter || 'Added free at checkout') + '</div>' +
+          '</div>'
+        );
+      }
+
+      // Inject a gift dot + popover into qualifying button-style cards.
+      // The variant input has data-variant-id, so we can match exactly.
+      function injectButtonGifts(picker) {
+        var labels = picker.querySelectorAll('.variant-option__button-label');
+        labels.forEach(function(label) {
+          var input = label.querySelector('input[data-variant-id]');
+          if (!input) return;
+          var vid = input.getAttribute('data-variant-id');
+          var entry = variants[vid];
+          if (!entry) return;
+          if (label.hasAttribute('data-fg-has-gift')) return; // idempotent
+
+          label.setAttribute('data-fg-has-gift', '');
+
+          var dot = document.createElement('span');
+          dot.className = 'casa-fg-dot';
+          dot.setAttribute('aria-hidden', 'true');
+          dot.innerHTML = GIFT_SVG;
+          label.appendChild(dot);
+
+          var popWrap = document.createElement('div');
+          popWrap.innerHTML = popHtml(entry);
+          var pop = popWrap.firstChild;
+          if (pop) label.appendChild(pop);
+        });
+      }
+
+      // Inject "FREE" pill on qualifying casa-vdd dropdown options + trigger.
+      function injectDropdownGifts(picker) {
+        // List options
+        var opts = picker.querySelectorAll('.casa-vdd__option');
+        opts.forEach(function(opt) {
+          var vid = opt.getAttribute('data-variant-id');
+          var entry = vid ? variants[vid] : null;
+          if (!entry) return;
+          if (opt.hasAttribute('data-fg-has-gift')) return;
+          opt.setAttribute('data-fg-has-gift', '');
+          var nameEl = opt.querySelector('.casa-vdd__option-name');
+          if (!nameEl) return;
+          if (nameEl.querySelector('.casa-fg-vdd-pill')) return;
+          var pill = document.createElement('span');
+          pill.className = 'casa-fg-vdd-pill';
+          pill.textContent = 'FREE';
+          nameEl.appendChild(pill);
+        });
+
+        // Trigger (only if currently-selected option qualifies)
+        picker.querySelectorAll('.casa-vdd').forEach(function(vdd) {
+          var trigger = vdd.querySelector('.casa-vdd__trigger');
+          if (!trigger) return;
+          var existing = trigger.querySelector('.casa-fg-vdd-pill--trigger');
+          var selected = vdd.querySelector('.casa-vdd__option--selected');
+          var vid = selected ? selected.getAttribute('data-variant-id') : null;
+          var entry = vid ? variants[vid] : null;
+          if (entry && !existing) {
+            var pill = document.createElement('span');
+            pill.className = 'casa-fg-vdd-pill casa-fg-vdd-pill--trigger';
+            pill.textContent = 'FREE';
+            // Insert after the trigger text so it sits next to the name
+            var triggerText = trigger.querySelector('.casa-vdd__trigger-text');
+            if (triggerText && triggerText.nextSibling) {
+              trigger.insertBefore(pill, triggerText.nextSibling);
+            } else {
+              trigger.appendChild(pill);
+            }
+          } else if (!entry && existing) {
+            existing.remove();
+          }
+        });
+      }
+
+      // Insert / update the eyebrow strip above the picker form.
+      // Structure: [thumb OR icon] [body: text + value] [free pill] [arrow]
+      // The strip absorbs the popover's role on mobile, so it carries
+      // the gift image, value-strike, and FREE pill in qualifying state.
+      // Insert strip OUTSIDE the <variant-picker> element. When a variant
+      // is selected, the theme's variant-picker fetches updated section
+      // HTML and morphs its OWN subtree — anything inside <variant-picker>
+      // is wiped. Putting the strip as a sibling before the picker means
+      // the morph doesn't touch it; we just update its text/state.
+      function ensureStrip(picker) {
+        // Find an existing strip — first as a sibling (the canonical
+        // location), and only fall back to a descendant for the rare
+        // case where a previous version of this code stuck it inside.
+        var prev = picker.previousElementSibling;
+        var strip = (prev && prev.classList && prev.classList.contains('casa-fg-strip')) ? prev : null;
+        if (!strip) strip = picker.querySelector('.casa-fg-strip');
+        // If we found a stale descendant strip from an older render, drop it.
+        if (strip && strip.parentElement === picker) {
+          strip.remove();
+          strip = null;
+        }
+        if (!strip) {
+          strip = document.createElement('button');
+          strip.type = 'button';
+          strip.className = 'casa-fg-strip casa-fg-strip--{{ block.id }}';
+          strip.innerHTML =
+            '<span class="casa-fg-strip__thumb" aria-hidden="true"><img alt="" loading="lazy" width="36" height="36"></span>' +
+            '<span class="casa-fg-strip__icon" aria-hidden="true">' + GIFT_SVG + '</span>' +
+            '<span class="casa-fg-strip__body">' +
+              '<span class="casa-fg-strip__text"></span>' +
+              '<span class="casa-fg-strip__value"></span>' +
+            '</span>' +
+            '<span class="casa-fg-strip__free" aria-hidden="true">FREE</span>' +
+            '<span class="casa-fg-strip__arrow" aria-hidden="true">→</span>';
+          picker.parentNode.insertBefore(strip, picker);
+          strip.addEventListener('click', function() {
+            if (strip.getAttribute('data-state') === 'qualifying') return;
+            // Jump to the first qualifying variant
+            var firstQualLabel = picker.querySelector('.variant-option__button-label[data-fg-has-gift] input');
+            if (firstQualLabel) {
+              firstQualLabel.click();
+            } else {
+              // Try dropdown — click the first qualifying option
+              var firstOpt = picker.querySelector('.casa-vdd__option[data-fg-has-gift]');
+              if (firstOpt) firstOpt.click();
+            }
+          });
+        }
+        return strip;
+      }
+
+      function getSelectedVariantId(picker) {
+        // Button picker: checked radio
+        var radio = picker.querySelector('input[type="radio"][data-variant-id]:checked');
+        if (radio) return radio.getAttribute('data-variant-id');
+        // Dropdown picker: selected option
+        var sel = picker.querySelector('.casa-vdd__option--selected[data-variant-id]');
+        if (sel) return sel.getAttribute('data-variant-id');
+        return null;
+      }
+
+      function formatStrip(template, giftName, sizeLabel) {
+        var safeName = '<strong>' + escapeHtml(giftName || 'free gift') + '</strong>';
+        var raw = String(template == null ? '' : template);
+        // Escape the raw template, then swap the placeholders for safe html.
+        var out = escapeHtml(raw).replace(/\{gift\}/g, safeName);
+        // {size} names the qualifying variant so the locked copy can say WHICH
+        // size earns the gift instead of "select sizes", which makes the
+        // shopper go hunting. Empty when we have no qualifying variant to name.
+        if (sizeLabel) out = out.replace(/\{size\}/g, '<strong>' + escapeHtml(sizeLabel) + '</strong>');
+        else out = out.replace(/\s*\{size\}/g, '');
+        return out;
+      }
+
+      // The offer to advertise while nothing qualifying is selected: the first
+      // qualifying variant, which is also the one the strip's click jumps to.
+      function pickFirstQualifying() {
+        var first = null;
+        for (var k in variants) {
+          if (!variants.hasOwnProperty(k)) continue;
+          if (!first) first = variants[k];
+          if (variants[k].name) return variants[k];
+        }
+        return first;
+      }
+
+      // Thumbnail + struck-value row. Shared by both states so the locked strip
+      // advertises exactly what the qualifying one confirms.
+      function paintOffer(strip, valueEl, thumb, offer) {
+        if (offer && offer.image && thumb) {
+          thumb.src = offer.image;
+          thumb.alt = offer.name || '';
+          strip.setAttribute('data-has-image', 'true');
+        } else {
+          strip.removeAttribute('data-has-image');
+        }
+        if (offer && offer.value && valueEl) {
+          valueEl.innerHTML =
+            '<span class="casa-fg-strip__value-strike">' + escapeHtml(offer.value) + '</span>' +
+            '<span class="casa-fg-strip__value-free">FREE</span>' +
+            (data.valueNote
+              ? '<span class="casa-fg-strip__value-note">\u00b7 ' + escapeHtml(data.valueNote) + '</span>'
+              : '');
+          strip.setAttribute('data-has-value', 'true');
+        } else {
+          if (valueEl) valueEl.innerHTML = '';
+          strip.removeAttribute('data-has-value');
+        }
+      }
+
+      function paintStripState(strip, state, offer) {
+        var textEl = strip.querySelector('.casa-fg-strip__text');
+        var valueEl = strip.querySelector('.casa-fg-strip__value');
+        var thumb = strip.querySelector('.casa-fg-strip__thumb img');
+        if (!textEl) return;
+
+        strip.setAttribute('data-state', state);
+        if (state === 'qualifying') {
+          textEl.innerHTML = formatStrip(data.stripQualifying, offer && offer.name, offer && offer.title);
+        } else {
+          textEl.innerHTML = formatStrip(data.stripLocked, offer && offer.name, offer && offer.title);
+        }
+        paintOffer(strip, valueEl, thumb, offer);
+      }
+
+      function reserveStripHeight(strip) {
+        var width = strip.getBoundingClientRect().width;
+        if (!width) return;
+        var widthKey = width.toFixed(2);
+        if (strip.dataset.fgReserveWidth === widthKey && strip.style.minHeight) return;
+
+        var probe = strip.cloneNode(true);
+        probe.removeAttribute('style');
+        probe.setAttribute('aria-hidden', 'true');
+        probe.style.position = 'absolute';
+        probe.style.visibility = 'hidden';
+        probe.style.pointerEvents = 'none';
+        probe.style.width = widthKey + 'px';
+        probe.style.height = 'auto';
+        probe.style.minHeight = '0';
+        probe.style.margin = '0';
+        strip.parentNode.insertBefore(probe, strip.nextSibling);
+
+        var heights = [];
+        var lockedOffer = pickFirstQualifying();
+        paintStripState(probe, 'locked', lockedOffer);
+        heights.push(probe.getBoundingClientRect().height);
+        for (var variantId in variants) {
+          if (!variants.hasOwnProperty(variantId)) continue;
+          paintStripState(probe, 'qualifying', variants[variantId]);
+          heights.push(probe.getBoundingClientRect().height);
+        }
+        probe.remove();
+
+        strip.style.minHeight = Math.ceil(Math.max.apply(null, heights)) + 'px';
+        strip.dataset.fgReserveWidth = widthKey;
+      }
+
+      function updateStrip(picker) {
+        var strip = ensureStrip(picker);
+        if (!strip) return;
+        var hasAnyQualifying = picker.querySelector('.variant-option__button-label[data-fg-has-gift], .casa-vdd__option[data-fg-has-gift]');
+        if (!hasAnyQualifying && data.hideStripWhenNone) {
+          strip.style.display = 'none';
+          return;
+        }
+        strip.style.display = '';
+        var vid = getSelectedVariantId(picker);
+        var entry = vid ? variants[vid] : null;
+
+        if (entry) {
+          paintStripState(strip, 'qualifying', entry);
+        } else {
+          paintStripState(strip, 'locked', pickFirstQualifying());
+        }
+        reserveStripHeight(strip);
+      }
+
+      function refresh(picker) {
+        injectButtonGifts(picker);
+        injectDropdownGifts(picker);
+        updateStrip(picker);
+      }
+
+      function refreshAll() {
+        document.querySelectorAll(pickerSelector).forEach(refresh);
+      }
+
+      // Initial pass — picker is rendered server-side so a single sync
+      // run is enough; no need for staggered retries.
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', refreshAll, { once: true });
+      } else {
+        refreshAll();
+      }
+
+      // Re-bind after variant changes. The theme's variant-picker fetches
+      // the updated section HTML and morphs the picker subtree, which
+      // wipes our injected dots/popovers. We re-inject after each morph.
+      //
+      // We DO NOT use a MutationObserver — inject* mutates the picker
+      // DOM, which would re-trigger the observer and cause an infinite
+      // loop that freezes the page. variant:update fires once per morph
+      // (not per child mutation), so it's safe to call refresh() inside it.
+      // inject* functions are idempotent (skip labels/options that
+      // already have data-fg-has-gift), and updateStrip() only mutates
+      // the existing strip element, not its container.
+      var refreshDebounce;
+      function scheduleRefresh(delay) {
+        clearTimeout(refreshDebounce);
+        refreshDebounce = setTimeout(refreshAll, delay);
+      }
+      // variant:selected fires immediately on radio change, BEFORE the
+      // morph completes. variant:update fires AFTER the morph. We listen
+      // to both — the first updates the strip text quickly for snappy
+      // feedback, the second re-injects dots/popovers onto the new DOM.
+      document.addEventListener('variant:selected', function() {
+        // Strip-only update is cheap and the cards aren't morphed yet.
+        document.querySelectorAll(pickerSelector).forEach(updateStrip);
+      });
+      document.addEventListener('variant:update', function() { scheduleRefresh(80); });
+      var resizeDebounce;
+      window.addEventListener('resize', function() {
+        clearTimeout(resizeDebounce);
+        resizeDebounce = setTimeout(function() {
+          document.querySelectorAll('.casa-fg-strip--{{ block.id }}').forEach(function(strip) {
+            delete strip.dataset.fgReserveWidth;
+          });
+          refreshAll();
+        }, 120);
+      }, { passive: true });
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function() {
+          document.querySelectorAll('.casa-fg-strip--{{ block.id }}').forEach(function(strip) {
+            delete strip.dataset.fgReserveWidth;
+          });
+          refreshAll();
+        });
+      }
+    })();
+    </script>
+  {%- endif -%}
+{%- endif -%}
+
+{%- comment -%} Inject badges into button-style variant cards via JS {%- endcomment -%}
+{%- assign _product = closest.product -%}
+{%- if _product != blank -%}
+<script type="application/json" id="casa-vp-badges-{{ block.id }}">
+{
+  {%- for variant in _product.variants -%}
+    {{ variant.title | json }}: {
+      "badge": {{ variant.metafields.custom.variant_badge.value | default: "" | json }},
+      "colors": {{ variant.metafields.custom.variant_badge_colors.value | default: "" | json }}
+    }{%- unless forloop.last -%},{%- endunless -%}
+  {%- endfor -%}
+}
+</script>
+<script>
+(function(){
+  var dataEl = document.getElementById('casa-vp-badges-{{ block.id }}');
+  if (!dataEl) return;
+  try {
+    var badges = JSON.parse(dataEl.textContent);
+
+    function injectBadges() {
+      // Find ALL variant option labels/buttons on the page
+      var labels = document.querySelectorAll('.variant-option__button-label, .variant-option label');
+      labels.forEach(function(label) {
+        if (label.querySelector('.casa-vp-btn-badge')) return; // already has badge
+
+        // Get the option value text from the label
+        var textEl = label.querySelector('[data-key="variant-option-text"]') || label.querySelector('.variant-option__button-label__text');
+        var optText = textEl ? textEl.textContent.trim() : '';
+
+        // Also check input value
+        var input = label.querySelector('input[type="radio"]');
+        if (!input) input = label.previousElementSibling;
+        var inputVal = input ? (input.value || '').trim() : '';
+
+        // Match by EXACT variant title or exact per-option segment only.
+        // Substring matching leaked badges onto any variant whose name is
+        // contained in another's ("Gold" in "Rose Gold", "Small" in
+        // "Full Set (Small + Large)").
+        var matched = null;
+        for (var vTitle in badges) {
+          if (!badges.hasOwnProperty(vTitle)) continue;
+          var t = vTitle.trim();
+          if ((optText && t === optText) || (inputVal && t === inputVal)) { matched = badges[vTitle]; break; }
+          // Multi-option titles ("Medium / Blue"): match one whole segment
+          var parts = vTitle.split(' / ');
+          for (var p = 0; p < parts.length; p++) {
+            if (parts[p].trim() === optText || parts[p].trim() === inputVal) { matched = badges[vTitle]; break; }
+          }
+          if (matched) break;
+        }
+
+        if (!matched || !matched.badge || matched.badge === '') return;
+
+        var badgeTexts = matched.badge.split(',');
+        var badgeColors = (matched.colors || '').split(',');
+
+        // Add featured class to the label for special border
+        label.classList.add('casa-vp-featured');
+        label.style.position = 'relative';
+        label.style.overflow = 'visible';
+
+        badgeTexts.forEach(function(text, i) {
+          text = text.trim();
+          if (!text) return;
+          var span = document.createElement('span');
+          span.className = 'casa-vp-btn-badge';
+          var color = (badgeColors[i] || '').trim();
+          if (color) span.style.background = color;
+          span.textContent = text;
+          label.appendChild(span);
+        });
+      });
+    }
+
+    // Run after a short delay and also on variant picker updates
+    setTimeout(injectBadges, 300);
+    setTimeout(injectBadges, 800);
+    // Re-run when variant picker re-renders
+    var observer = new MutationObserver(function() { setTimeout(injectBadges, 100); });
+    var picker = document.querySelector('variant-picker');
+    if (picker) observer.observe(picker, { childList: true, subtree: true });
+  } catch(e) { console.error('Badge inject error:', e); }
+})();
+</script>
+{%- endif -%}

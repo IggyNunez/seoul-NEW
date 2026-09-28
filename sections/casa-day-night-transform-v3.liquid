@@ -1,0 +1,1762 @@
+{%- comment -%}
+  casa-day-night-transform-v3.liquid — OctaMirror v3 ONLY copy of casa-day-night-transform.liquid.
+  The shared original is untouched; this copy carries the v3-specific settings.
+{%- endcomment -%}
+{%- comment -%}
+  Seoul Glow Lab — Day → Night Transform (PDP centerpiece) · v1
+
+  Animated SVG mirror that morphs from "mirror by day" to "portal by night"
+  as the user scrubs a clock or as the section enters viewport. Same single
+  `t` value 0→1 drives every layer:
+    • sky gradient    — paper → twilight → ink
+    • sun/moon arc    — warm hue daytime, cool hue past dusk
+    • stars + motes   — twinkle + drift, day/night cross-fade
+    • OFF state       — synthetic neutral room reflection (NOT product photo)
+    • ON state        — continuous RGB LED ring + 32-deep nested octagons
+                        (real infinity-mirror physics, not abstract glow)
+    • LED chase       — gradient rotates around the perimeter
+    • HUD             — TIME · PHASE · LED %
+    • Caption         — copy swaps at 3 thresholds
+
+  Designed to live in the casa-split-feature slot on PDPs (replaces the
+  static day/night diptych with the animated cinematic).
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign autoplay = s.autoplay
+  assign cycle_seconds = s.cycle_seconds | default: 6
+  assign mirror_off_image = s.mirror_off_image
+  assign mirror_shape = s.mirror_shape | default: 'octagon'
+
+  case mirror_shape
+    when 'hexagon-flat'
+      assign poly_outer = '100,8 300,8 392,173 300,338 100,338 8,173'
+      assign poly_inner = '108,16 292,16 384,173 292,330 108,330 16,173'
+      assign svg_viewbox = '0 0 400 346.4'
+      assign rect_inner_w = 368
+      assign rect_inner_h = 314.4
+      assign vp_x = 200
+      assign vp_y = 173.2
+    when 'quadrilateral'
+      assign poly_outer = '8,8 392,8 392,392 8,392'
+      assign poly_inner = '16,16 384,16 384,384 16,384'
+      assign svg_viewbox = '0 0 400 400'
+      assign rect_inner_w = 368
+      assign rect_inner_h = 368
+      assign vp_x = 200
+      assign vp_y = 200
+    when 'triangle'
+      assign poly_outer = '200,8 392,338 8,338'
+      assign poly_inner = '200,17 384,334 16,334'
+      assign svg_viewbox = '0 0 400 346.4'
+      assign rect_inner_w = 368
+      assign rect_inner_h = 314.4
+      assign vp_x = 200
+      assign vp_y = 228
+    when 'circle'
+      assign is_circle = true
+      assign circle_cx = 200
+      assign circle_cy = 200
+      assign circle_r_outer = 192
+      assign circle_r_inner = 184
+      assign svg_viewbox = '0 0 400 400'
+      assign rect_inner_w = 368
+      assign rect_inner_h = 368
+      assign vp_x = 200
+      assign vp_y = 200
+    else
+      assign poly_outer = '117,8 283,8 392,117 392,283 283,392 117,392 8,283 8,117'
+      assign poly_inner = '125,16 275,16 384,125 384,275 275,384 125,384 16,275 16,125'
+      assign svg_viewbox = '0 0 400 400'
+      assign rect_inner_w = 368
+      assign rect_inner_h = 368
+      assign vp_x = 200
+      assign vp_y = 200
+  endcase
+
+  assign should_hide = false
+  if s.auto_hide and request.design_mode == false
+    if s.heading == blank and s.subheading == blank
+      assign should_hide = true
+    endif
+  endif
+-%}
+
+{%- if should_hide -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
+{%- unless should_hide -%}
+<section
+  id="casa-dn-{{ section.id }}"
+  class="casa-dn{% if s.layout_density == 'one_frame' %} casa-dn--compact{% endif %}{% if s.stage_mode == 'photo' and s.stage_off_image != blank and s.stage_on_image != blank %} casa-dn--photo{% endif %}{% if s.stage_mode == 'video' and s.stage_video != blank or s.stage_mode == 'video' and s.stage_video_url != blank %} casa-dn--video{% endif %}"
+  data-casa-anim-gate
+  data-autoplay="{{ autoplay }}"
+  data-cycle-seconds="{{ cycle_seconds }}"
+  data-section-id="{{ section.id }}"
+  data-poly-inner="{{ poly_inner }}"
+  data-mirror-shape="{{ mirror_shape }}"
+  data-circle-cx="{{ circle_cx }}"
+  data-circle-cy="{{ circle_cy }}"
+  data-circle-r-inner="{{ circle_r_inner }}"
+  data-vp-x="{{ vp_x }}"
+  data-vp-y="{{ vp_y }}"
+  data-cap-a-title="{{ s.caption_a_title | escape }}"
+  data-cap-a-body="{{ s.caption_a_body | escape }}"
+  data-cap-b-title="{{ s.caption_b_title | escape }}"
+  data-cap-b-body="{{ s.caption_b_body | escape }}"
+  data-cap-c-title="{{ s.caption_c_title | escape }}"
+  data-cap-c-body="{{ s.caption_c_body | escape }}"
+  style="
+    --casa-dn-paper: {{ s.color_paper | default: '#FAFAF7' }};
+    --casa-dn-ink:   {{ s.color_ink   | default: '#0A0A0F' }};
+    --casa-dn-pink:  {{ s.color_pink  | default: '#5E0A02' }};
+    --casa-dn-purple:{{ s.color_purple| default: '#B0C3FA' }};
+    --casa-dn-cyan:  {{ s.color_cyan  | default: '#F2FFA0' }};
+    --casa-dn-pt:    {{ s.padding_top    | default: 96 }}px;
+    --casa-dn-pb:    {{ s.padding_bottom | default: 64 }}px;
+    --casa-dn-zoom:  {{ s.stage_zoom     | default: 152 }}%;
+    --casa-dn-fx:    {{ s.stage_focus_x  | default: 35 }}%;
+    --casa-dn-fy:    {{ s.stage_focus_y  | default: 10 }}%;
+  "
+>
+  {%- if s.kicker != blank or s.heading != blank or s.subheading != blank -%}
+    <header class="casa-dn__head casa-dn__cap">
+      {%- if s.kicker != blank -%}
+        <p class="casa-dn__mono">{{ s.kicker }}</p>
+      {%- endif -%}
+      {%- if s.heading != blank -%}
+        <h2 class="casa-dn__h2">{{ s.heading }}</h2>
+      {%- endif -%}
+      {%- if s.subheading != blank -%}
+        <p class="casa-dn__lede">{{ s.subheading }}</p>
+      {%- endif -%}
+    </header>
+  {%- endif -%}
+
+  <div class="casa-dn__cap">
+    {%- comment -%}
+      Positioning context for the caption, which lives outside the stage but
+      is lifted back over it in drawn mode. Wrapping both means the overlay
+      is anchored to the stage's box rather than to the whole column, which
+      also holds the control bar.
+    {%- endcomment -%}
+    <div class="casa-dn__stagewrap">
+    <div class="casa-dn__stage" data-casa-dn-stage>
+      {%- comment -%}
+        PHOTO STAGE — two real frames of one scene, crossfaded by the scrubber.
+
+        The drawn stage below (sun, stars, motes, SVG mirror) is a synthetic
+        rendering of the transformation. Photography of the SAME framing lit
+        and unlit makes the argument without asking anyone to believe a
+        vector octagon is a mirror.
+
+        Both layers ride --casa-dn-t, the same 0→1 the JS already computes
+        for the drawn stage, so there is one source of truth for "how far
+        through the day are we" and nothing to keep in sync.
+
+        The zoom/focus pair crops the wide scene down to the single large
+        mirror, so this reads as its own composition rather than a repeat of
+        the three-up scale shot in §02. They are settings because the right
+        crop belongs to the photograph, not to the code.
+      {%- endcomment -%}
+      {%- comment -%}
+        VIDEO STAGE — the scrubber drives real footage.
+
+        Nothing drawn can survive comparison with the product actually
+        running, so in this mode the control bar stops animating an
+        illustration and starts seeking a video: t maps to currentTime.
+        Playing hands the clock to the video (it becomes the source of
+        truth and reports its position back); scrubbing takes it away.
+
+        perf-justified: playback is owned by this section's own JS —
+        play/pause and seek — so there is deliberately no autoplay
+        attribute for a native controller to fight, and the existing
+        IntersectionObserver pauses it off-screen.
+
+        Prefers the ~720p rendition: the stage is ~680px wide, so 1080p
+        costs bandwidth no one can see, and seeking a smaller file is
+        markedly faster on a phone.
+      {%- endcomment -%}
+      {%- liquid
+        comment
+          Two ways in. A picked Shopify video gives renditions, so prefer it
+          and take ~720p. A pasted CDN URL is the fallback: product-media
+          videos are not always reachable as a Files reference, and this
+          theme already carries working direct URLs.
+        endcomment
+        assign v_url = blank
+        assign v_poster = blank
+        if s.stage_video != blank
+          for src in s.stage_video.sources
+            if src.format == 'mp4' and src.height <= 720
+              assign v_url = src.url
+            endif
+          endfor
+          if v_url == blank
+            for src in s.stage_video.sources
+              if src.format == 'mp4'
+                assign v_url = src.url
+                break
+              endif
+            endfor
+          endif
+          assign v_poster = s.stage_video.preview_image
+        elsif s.stage_video_url != blank
+          assign v_url = s.stage_video_url
+        endif
+      -%}
+      {%- if s.stage_mode == 'video' and v_url != blank -%}
+        <video class="casa-dn__video" data-casa-dn-video
+          muted playsinline loop preload="auto"
+          {% if v_poster != blank %}poster="{{ v_poster | image_url: width: 1000 }}"{% elsif s.stage_poster != blank %}poster="{{ s.stage_poster | image_url: width: 1000 }}"{% endif %}
+          aria-label="{{ s.video_sr_label | default: 'The mirror cycling through its colour range' | escape }}">
+          <source src="{{ v_url }}" type="video/mp4">
+        </video>
+      {%- endif -%}
+
+      {%- if s.stage_mode == 'photo' and s.stage_off_image != blank and s.stage_on_image != blank -%}
+        <div class="casa-dn__photo casa-dn__photo--off" aria-hidden="true"
+          style="background-image:url({{ s.stage_off_image | image_url: width: 1600 }});"></div>
+        <div class="casa-dn__photo casa-dn__photo--on" aria-hidden="true"
+          style="background-image:url({{ s.stage_on_image | image_url: width: 1600 }});"></div>
+      {%- endif -%}
+
+      {%- comment -%} Sun / moon {%- endcomment -%}
+      <div class="casa-dn__sun" data-casa-dn-sun></div>
+
+      {%- comment -%} Stars (visible at night) — 40 pseudo-random {%- endcomment -%}
+      <div class="casa-dn__stars" data-casa-dn-stars>
+        {%- for i in (0..39) -%}
+          {%- liquid
+            assign x = i | times: 137 | modulo: 100
+            assign y = i | times: 53 | modulo: 100
+            assign sz = i | modulo: 3 | plus: 1
+            assign delay_int = i | times: 13 | modulo: 30
+            assign delay = delay_int | divided_by: 10.0
+          -%}
+          <span style="left:{{ x }}%;top:{{ y }}%;width:{{ sz }}px;height:{{ sz }}px;animation-delay:{{ delay }}s;"></span>
+        {%- endfor -%}
+      </div>
+
+      {%- comment -%} Dust motes (day) {%- endcomment -%}
+      <div class="casa-dn__motes casa-dn__motes--dust" data-casa-dn-dust>
+        {%- for i in (0..13) -%}
+          {%- liquid
+            assign x = i | times: 71 | modulo: 100
+            assign delay = i | times: 7 | modulo: 40 | divided_by: 10.0
+            assign dur = i | modulo: 4 | plus: 6
+          -%}
+          <span style="left:{{ x }}%;animation-delay:{{ delay }}s;animation-duration:{{ dur }}s;"></span>
+        {%- endfor -%}
+      </div>
+
+      {%- comment -%} Light motes (night) {%- endcomment -%}
+      <div class="casa-dn__motes casa-dn__motes--light" data-casa-dn-light>
+        {%- for i in (0..17) -%}
+          {%- liquid
+            assign x = i | times: 43 | modulo: 100
+            assign delay = i | times: 5 | modulo: 50 | divided_by: 10.0
+            assign dur = i | modulo: 5 | plus: 5
+          -%}
+          <span style="left:{{ x }}%;animation-delay:{{ delay }}s;animation-duration:{{ dur }}s;"></span>
+        {%- endfor -%}
+      </div>
+
+      {%- comment -%} Mirror — SVG infinity-mirror tunnel + frame {%- endcomment -%}
+      <div class="casa-dn__mirror">
+        <svg viewBox="{{ svg_viewbox }}" class="casa-dn__mirror-svg" data-casa-dn-mirror aria-label="Animated mirror transition">
+          <defs>
+            <clipPath id="casa-dn-glass-{{ section.id }}">
+              {%- if is_circle -%}
+                <circle cx="{{ circle_cx }}" cy="{{ circle_cy }}" r="{{ circle_r_inner }}" />
+              {%- else -%}
+                <polygon points="{{ poly_inner }}" />
+              {%- endif -%}
+            </clipPath>
+            <radialGradient id="casa-dn-room-{{ section.id }}" cx="50%" cy="38%" r="75%">
+              <stop offset="0%"  stop-color="#FBFAF6" />
+              <stop offset="55%" stop-color="#E8E4DA" />
+              <stop offset="100%" stop-color="#B8B2A4" />
+            </radialGradient>
+            <linearGradient id="casa-dn-fall-{{ section.id }}" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%"  stop-color="rgba(255,250,240,0.55)" />
+              <stop offset="50%" stop-color="rgba(255,250,240,0)" />
+              <stop offset="100%" stop-color="rgba(60,55,45,0.25)" />
+            </linearGradient>
+            <radialGradient id="casa-dn-haze-{{ section.id }}" cx="50%" cy="49%" r="50%">
+              <stop offset="0%"   stop-color="#1A0E2E" stop-opacity="0.9" />
+              <stop offset="70%"  stop-color="#05050A" stop-opacity="1" />
+              <stop offset="100%" stop-color="#000"     stop-opacity="1" />
+            </radialGradient>
+            <filter id="casa-dn-bloom-{{ section.id }}" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="3" result="b" />
+              <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+          </defs>
+
+          {%- comment -%} Frame shadow on wall {%- endcomment -%}
+          {%- if is_circle -%}
+            <circle cx="{{ circle_cx }}" cy="{{ circle_cy }}" r="{{ circle_r_outer }}"
+              fill="none" stroke="rgba(0,0,0,0.25)" stroke-width="2" transform="translate(2 4)" />
+          {%- else -%}
+            <polygon points="{{ poly_outer }}"
+              fill="none" stroke="rgba(0,0,0,0.25)" stroke-width="2" transform="translate(2 4)" />
+          {%- endif -%}
+
+          {%- comment -%} Brushed black aluminum frame {%- endcomment -%}
+          {%- if is_circle -%}
+            <circle cx="{{ circle_cx }}" cy="{{ circle_cy }}" r="{{ circle_r_outer }}" fill="#0F0F12" />
+            <circle cx="{{ circle_cx }}" cy="{{ circle_cy }}" r="{{ circle_r_outer }}"
+              fill="none" stroke="#000" stroke-width="1" />
+          {%- else -%}
+            <polygon points="{{ poly_outer }}" fill="#0F0F12" />
+            <polygon points="{{ poly_outer }}"
+              fill="none" stroke="#000" stroke-width="1" />
+          {%- endif -%}
+
+          {%- comment -%} Glass — clipped to inner octagon {%- endcomment -%}
+          <g clip-path="url(#casa-dn-glass-{{ section.id }})">
+            {%- comment -%} OFF state — synthetic room reflection {%- endcomment -%}
+            <g data-casa-dn-off>
+              {%- if mirror_off_image != blank -%}
+                <image x="16" y="16" width="{{ rect_inner_w }}" height="{{ rect_inner_h }}" preserveAspectRatio="xMidYMid slice"
+                  href="{{ mirror_off_image | image_url: width: 800 }}" />
+              {%- else -%}
+                <rect x="16" y="16" width="{{ rect_inner_w }}" height="{{ rect_inner_h }}" fill="url(#casa-dn-room-{{ section.id }})" />
+                <rect x="16" y="16" width="{{ rect_inner_w }}" height="{{ rect_inner_h }}" fill="url(#casa-dn-fall-{{ section.id }})" />
+                <rect x="80" y="60" width="80" height="120" fill="rgba(255,250,235,0.35)" transform="skewX(-6)" />
+              {%- endif -%}
+            </g>
+
+            {%- comment -%} ON state — RGB tunnel built at runtime by JS for clean perf {%- endcomment -%}
+            <g data-casa-dn-on>
+              <rect x="16" y="16" width="{{ rect_inner_w }}" height="{{ rect_inner_h }}" fill="url(#casa-dn-haze-{{ section.id }})" />
+              <g data-casa-dn-rings></g>
+              {%- if is_circle -%}
+                <circle cx="{{ circle_cx }}" cy="{{ circle_cy }}" r="{{ circle_r_inner }}"
+                  fill="none" stroke-width="18"
+                  data-casa-dn-led-halo style="filter:blur(14px);" />
+                <circle cx="{{ circle_cx }}" cy="{{ circle_cy }}" r="{{ circle_r_inner }}"
+                  fill="none" stroke-width="5"
+                  data-casa-dn-led-core
+                  style="filter:drop-shadow(0 0 8px rgba(255,255,255,0.7)) drop-shadow(0 0 18px rgba(180,100,255,0.6));" />
+              {%- else -%}
+                <polygon points="{{ poly_inner }}"
+                  fill="none" stroke-width="18" stroke-linejoin="miter"
+                  data-casa-dn-led-halo style="filter:blur(14px);" />
+                <polygon points="{{ poly_inner }}"
+                  fill="none" stroke-width="5" stroke-linejoin="miter"
+                  data-casa-dn-led-core
+                  style="filter:drop-shadow(0 0 8px rgba(255,255,255,0.7)) drop-shadow(0 0 18px rgba(180,100,255,0.6));" />
+              {%- endif -%}
+            </g>
+          </g>
+
+          {%- comment -%} Bezel highlight — top of glass {%- endcomment -%}
+          {%- if is_circle -%}
+            <circle cx="{{ circle_cx }}" cy="{{ circle_cy }}" r="{{ circle_r_inner }}"
+              fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
+          {%- else -%}
+            <polygon points="{{ poly_inner }}"
+              fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
+          {%- endif -%}
+        </svg>
+
+        <div class="casa-dn__pip" data-casa-dn-pip>
+          <span class="dot" data-casa-dn-pip-dot></span>
+          <span class="lbl" data-casa-dn-pip-lbl>{{ s.pip_off_label | default: 'OFF · MIRROR' }}</span>
+        </div>
+      </div>
+
+      {%- comment -%} HUD — top-right {%- endcomment -%}
+      <div class="casa-dn__hud" aria-hidden="true">
+        <div class="casa-dn__hud-row"><span class="k">TIME</span><span class="v" data-casa-dn-hud-time>14:00</span></div>
+        <div class="casa-dn__hud-row"><span class="k">PHASE</span><span class="v" data-casa-dn-hud-phase>AFTERNOON</span></div>
+        <div class="casa-dn__hud-row"><span class="k">LED</span><span class="v" data-casa-dn-hud-led>0%</span></div>
+      </div>
+
+    </div>
+
+    {%- comment -%}
+      Caption sits AFTER the stage, not inside it. In drawn mode CSS lifts it
+      back over the stage, which is where it has always been. In photo mode
+      it stays put and reads below, because the stage is then a real product
+      photograph and the standing rule keeps editorial copy beside or below
+      one — the instrument chip is the deliberate exception, being a readout
+      rather than a claim.
+    {%- endcomment -%}
+    <div class="casa-dn__caption" data-casa-dn-caption>
+      <h3 data-casa-dn-cap-title>{{ s.caption_a_title | default: 'A mirror, first.' }}</h3>
+      {%- comment -%}
+        No `default:` filter here. A merchant clearing this field means they
+        want the line gone, but `default` treats empty as "unset" and puts
+        the old copy back — which is exactly what happened. The element
+        still renders so the drawn-mode JS always has something to write
+        into; CSS hides it while it is empty.
+      {%- endcomment -%}
+      <p data-casa-dn-cap-body>{{ s.caption_a_body }}</p>
+    </div>
+    </div>{%- comment -%} /stagewrap {%- endcomment -%}
+
+    {%- comment -%} Control bar {%- endcomment -%}
+    <div class="casa-dn__ctrl">
+      <button class="casa-dn__btn{% if autoplay %} is-on{% endif %}" data-casa-dn-toggle type="button">
+        <span class="ico" aria-hidden="true">
+          <svg class="ico-play" viewBox="0 0 12 12" width="10" height="10" focusable="false"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg>
+          <svg class="ico-pause" viewBox="0 0 12 12" width="10" height="10" focusable="false"><path d="M2.5 1.5h2.6v9H2.5zM6.9 1.5h2.6v9H6.9z" fill="currentColor"/></svg>
+        </span>
+        <span data-casa-dn-toggle-lbl>{% if autoplay %}Pause{% else %}Auto{% endif %}</span>
+      </button>
+
+      <div class="casa-dn__track-wrap">
+        <div class="casa-dn__ticks" aria-hidden="true">
+          <span>14:00 · NOON</span>
+          <span>17:00 · DUSK</span>
+          <span>20:00 · TWILIGHT</span>
+          <span>22:00 · NIGHT</span>
+        </div>
+        <input type="range" min="0" max="1000" value="0" class="casa-dn__track" data-casa-dn-scrub
+          aria-label="Scrub time of day" />
+      </div>
+
+      <button class="casa-dn__btn casa-dn__btn--reset" data-casa-dn-reset type="button">Reset</button>
+    </div>
+  </div>
+</section>
+{%- endunless -%}
+
+{% stylesheet %}
+/* Tunnel ring opacity = global tunnel-opacity × per-ring static decay.
+   Replaces a per-frame setAttribute('opacity', …) on every ring with
+   one root setProperty('--tunnel-opacity', …) per frame. */
+.casa-dn__ring {
+  opacity: calc(var(--tunnel-opacity, 0) * var(--ring-decay, 1));
+}
+.casa-dn {
+  background: var(--casa-dn-paper, var(--casa-paper));
+  padding: var(--casa-dn-pt, 96px) 0 var(--casa-dn-pb, 64px);
+  overflow: hidden;
+}
+.casa-dn__cap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px);
+}
+.casa-dn__head {
+  max-width: 720px;
+  margin: 0 auto clamp(28px, 5vw, 48px);
+  padding: 0 clamp(20px, 5vw, 64px);
+}
+.casa-dn__mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--casa-dn-pink);
+  margin: 0 0 18px;
+}
+.casa-dn__h2 {
+  font-family: var(--casa-pdp-h2-family);
+  font-size: var(--casa-pdp-h2-size);
+  font-weight: var(--casa-pdp-h2-weight);
+  letter-spacing: var(--casa-pdp-h2-tracking);
+  line-height: var(--casa-pdp-h2-line);
+  margin: 0;
+  color: var(--casa-dn-ink);
+  text-wrap: balance;
+}
+.casa-dn__h2 em {
+  font-style: italic;
+  font-weight: 800;
+  background: linear-gradient(90deg, var(--casa-dn-purple), var(--casa-dn-pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.casa-dn__lede {
+  margin: 16px 0 0;
+  font-size: clamp(15px, 1.4vw, 18px);
+  line-height: 1.55;
+  color: #54545C;
+  max-width: 60ch;
+}
+
+/* Stage */
+.casa-dn__stage {
+  position: relative;
+  /* Pre-svh engines (Safari <15.4) keep this plain clamp — the token
+     declaration lives in the @supports block below, because a var()
+     substitution containing an unsupported unit is invalid at
+     computed-value time (resolves to auto, NOT to an earlier
+     declaration — every stage child is absolutely positioned, so auto
+     would collapse the stage to 0). */
+  height: clamp(360px, 70vh, 760px);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: background 0.05s linear;
+  background: linear-gradient(180deg, #FAFAF7 0%, #F2F2EE 100%);
+}
+/* Viewport-fit: stage + the scrubber row below it must fit the window
+   left by the sticky header group and cart bar (--casa-vh-fit,
+   assets/casa-base.css). The old clamp(520px, 70vh, 760px) sized
+   against the RAW viewport with a 520px floor — taller than the whole
+   456px window at 1280×640, so no scroll position could ever show the
+   stage uncut. 96px = ctrl row (41) + its 28px margin + breathing.
+   Must sit ABOVE the (max-width: 640px) stage rule so phones keep
+   winning on order. */
+@supports (height: 100svh) {
+  .casa-dn__stage { height: clamp(360px, calc(var(--casa-vh-fit, 70vh) - 96px), 760px); }
+}
+
+/* Sun / moon */
+.casa-dn__sun {
+  position: absolute;
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.1s linear, background 0.2s linear, box-shadow 0.2s linear;
+  opacity: 0;
+}
+
+/* Stars */
+.casa-dn__stars { position: absolute; inset: 0; pointer-events: none; transition: opacity 0.2s linear; opacity: 0; }
+.casa-dn__stars span {
+  position: absolute;
+  background: var(--casa-paper);
+  border-radius: 50%;
+  /* perf-justified: paused off-screen by data-casa-anim-gate on .casa-dn (casa-anim-gate.js sets data-casa-anim="paused" → casa-base.css animation-play-state:paused); animation:none under prefers-reduced-motion */
+  animation: casa-dn-twinkle 2.5s ease-in-out infinite;
+}
+@keyframes casa-dn-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50%      { opacity: 1;   transform: scale(1.2); }
+}
+
+/* Motes */
+.casa-dn__motes { position: absolute; inset: 0; pointer-events: none; transition: opacity 0.2s linear; opacity: 0; }
+.casa-dn__motes span {
+  position: absolute;
+  bottom: -10px;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  /* perf-justified: paused off-screen by data-casa-anim-gate on .casa-dn (casa-anim-gate.js → casa-base.css animation-play-state:paused); reduced-motion → animation:none */
+  animation: casa-dn-mote-rise linear infinite;
+}
+.casa-dn__motes--dust span {
+  background: rgba(255, 230, 180, 0.5);
+  box-shadow: 0 0 4px rgba(255, 230, 180, 0.4);
+}
+.casa-dn__motes--light span {
+  background: rgba(220, 200, 255, 0.9);
+  box-shadow: 0 0 8px rgba(180, 160, 255, 0.7);
+  width: 2px; height: 2px;
+}
+@keyframes casa-dn-mote-rise {
+  0%   { transform: translateY(0)        translateX(0); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(-110vh) translateX(40px); opacity: 0; }
+}
+
+/* Mirror */
+.casa-dn__mirror {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: clamp(280px, 38vw, 440px);
+  /* The stage is viewport-fit now and can be shorter than this column's
+     natural ~494px stack (440px SVG + pip + gap) — width-driven sizing
+     alone let the octagon get guillotined by the stage's overflow:hidden
+     on short windows (merchant report, 2026-08-12). Cap the stack to the
+     stage box (% resolves against the absolute containing block) and let
+     the SVG give up the difference — the viewBox scales the drawing, so
+     the mirror recomposes smaller instead of cropping. 40px keeps the
+     frame off the stage edges. */
+  max-height: calc(100% - 40px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+.casa-dn__mirror-svg {
+  width: 100%;
+  height: auto;
+  /* Shrinkable inside the capped column: the SVG absorbs any deficit
+     (min-height: 0 unlocks flex shrink below the aspect-derived height);
+     the pip below keeps its size. */
+  flex: 0 1 auto;
+  min-height: 0;
+  filter: drop-shadow(0 30px 60px rgba(0,0,0,0.35));
+}
+.casa-dn__pip {
+  flex-shrink: 0; /* the SVG shrinks on short stages — the readout pill never does */
+  display: inline-flex; align-items: center; gap: 10px;
+  background: rgba(10,10,15,0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
+  padding: 8px 14px;
+  border-radius: 100px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--casa-paper);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.casa-dn__pip .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--casa-dn-ink);
+  transition: background 0.1s linear, box-shadow 0.1s linear;
+}
+
+/* HUD */
+.casa-dn__hud {
+  position: absolute;
+  top: 24px; right: 24px;
+  background: rgba(10,10,15,0.55);
+  /* Backdrop blur 14px → 10px + will-change (2026-05-17).
+     HUD sits absolute over animated day-night transform; same flicker
+     fix pattern as 2e7e8e4 (header). */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--casa-paper);
+  letter-spacing: 0.08em;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+}
+.casa-dn__hud-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.casa-dn__hud-row .k { color: rgba(255,255,255,0.5); }
+.casa-dn__hud-row .v { color: #fff; font-weight: 500; }
+
+/* Caption */
+.casa-dn__caption {
+  position: absolute;
+  left: 24px; bottom: 24px;
+  max-width: 320px;
+  background: rgba(10,10,15,0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 16px 18px;
+  color: var(--casa-paper);
+}
+.casa-dn__caption h3 {
+  font-family: var(--font-body--family);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px;
+  color: #fff;
+}
+.casa-dn__caption p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.75);
+}
+
+/* Control bar */
+.casa-dn__ctrl {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+}
+.casa-dn__btn {
+  background: var(--casa-dn-ink);
+  color: var(--casa-paper);
+  font-family: var(--font-body--family);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 100px;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s cubic-bezier(.2,.7,.2,1);
+}
+.casa-dn__btn:hover { background: #2A2A30; }
+.casa-dn__btn.is-on { background: var(--casa-dn-purple); }
+.casa-dn__btn .ico { display: inline-flex; align-items: center; }
+/* Both icons ship in the DOM; .is-on (which JS already toggles for the
+   active state) picks one — the U+25B6 text glyph fell through Inter to
+   the iOS emoji font. Same pattern as the Scene Player toggle. All four
+   state rules share a shape so source order (not specificity) decides. */
+.casa-dn__btn .ico-play { display: block; }
+.casa-dn__btn .ico-pause { display: none; }
+.casa-dn__btn.is-on .ico-play { display: none; }
+.casa-dn__btn.is-on .ico-pause { display: block; }
+.casa-dn__btn--reset {
+  background: transparent;
+  border: 1px solid #E1E1DC;
+  color: #54545C;
+}
+.casa-dn__btn--reset:hover { background: #F2F2EE; color: var(--casa-dn-ink); }
+
+.casa-dn__track-wrap {
+  display: flex; flex-direction: column; gap: 6px;
+  min-width: 0;
+}
+.casa-dn__ticks {
+  display: flex; justify-content: space-between;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: #8A8A92;
+}
+.casa-dn__track {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 100px;
+  outline: none;
+  cursor: pointer;
+  border: 1px solid #E1E1DC;
+  background: linear-gradient(90deg, #FAFAF7 0%, #F4D9C8 25%, #EBA6B5 50%, #1A1B3A 75%, #0A0A0F 100%);
+}
+.casa-dn__track:focus-visible {
+  outline: 2px solid #B0C3FA;
+  outline-offset: 2px;
+}
+.casa-dn__track::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--casa-dn-ink);
+  border: 3px solid var(--casa-dn-paper);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  cursor: pointer;
+}
+.casa-dn__track::-moz-range-thumb {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--casa-dn-ink);
+  border: 3px solid var(--casa-dn-paper);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  /* Pre-svh fallback = the old fixed height; the fit-aware phone rule
+     is in the @supports block below. */
+  .casa-dn__stage { height: 480px; }
+  .casa-dn__hud { top: 12px; right: 12px; padding: 8px 10px; min-width: 140px; font-size: 10px; }
+  .casa-dn__caption { left: 12px; right: 12px; bottom: 12px; max-width: none; padding: 12px 14px; }
+  .casa-dn__ctrl { grid-template-columns: 1fr; gap: 12px; }
+}
+/* Fixed 480px left no room for the stacked ctrl column (135px) inside an
+   iPhone-SE window (667 − 76 header − 64 bar = 527px). 176px = ctrl 135 +
+   margins. Modern-phone windows (≥672px) still get 480. The 300px max()
+   floor keeps landscape phones (640×360 → 220px window) from collapsing
+   the stage to a sliver — below the floor the section simply scrolls,
+   like it always did. Placed after the plain 640px block so it wins on
+   order inside supporting engines. */
+@supports (height: 100svh) {
+  @media (max-width: 640px) {
+    .casa-dn__stage { height: min(480px, max(300px, calc(var(--casa-vh-fit, 100svh) - 176px))); }
+  }
+}
+
+/* Short laptops: compress section padding and the heading gap FIRST
+   (Rule 8 lever order — padding before anything else) so heading, stage
+   and scrubber approach one frame. min() keeps the merchant's padding
+   sliders in charge on taller screens. */
+@media (max-height: 800px) {
+  .casa-dn { padding: min(var(--casa-dn-pt, 96px), 48px) 0 min(var(--casa-dn-pb, 64px), 40px); }
+  .casa-dn__head { margin-bottom: clamp(20px, 3vh, 32px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .casa-dn__stars span,
+  .casa-dn__motes span { animation: none; }
+}
+
+/* ── One-frame density ───────────────────────────────────────────────
+   Opt-in via the "Section height" setting; the other four mirror PDPs
+   on this section are unaffected.
+
+   The stage is sized in vh, so it scales with the viewport it has to fit
+   inside — the one place in this section where a fixed px height would
+   fight the goal. 50vh leaves room for the heading, the control bar and
+   the section padding inside a single frame at both 800px desktop and
+   844px phone heights. Stage children are positioned in percentages, so
+   the scene recomposes rather than cropping.                            */
+/* One line on a phone. Measured at 390px: the heading needs 372px against
+   350px available, so it broke to two lines and cost 31px. 6.6vw lands
+   ~25.7px there, just under the ~26.3px it needs to fit.
+
+   This is a deliberate divergence from the brand-book H2 floor of 28px,
+   on phones only, and the same one casa-stats-grid already carries with a
+   merchant directive attached. Desktop still picks the locked spec. */
+.casa-dn--compact .casa-dn__h2 { font-size: clamp(23px, 6.6vw, 28px); }
+.casa-dn--compact .casa-dn__head { margin-bottom: clamp(16px, 2vw, 26px); }
+.casa-dn--compact .casa-dn__mono { margin-bottom: 10px; }
+.casa-dn--compact .casa-dn__stage { height: clamp(300px, 46vh, 430px); }
+.casa-dn--compact .casa-dn__ctrl { margin-top: 16px; }
+.casa-dn--compact .casa-dn__caption { padding: 12px 14px; }
+.casa-dn--compact .casa-dn__caption h3 { font-size: 16px; margin-bottom: 4px; }
+.casa-dn--compact .casa-dn__caption p { font-size: 12px; }
+
+/* Base rule at this width pins the stage to a fixed 480px, which would
+   otherwise win on specificity and undo the vh sizing on phones. */
+@media (max-width: 640px) {
+  .casa-dn--compact .casa-dn__stage { height: clamp(280px, 42vh, 400px); }
+  .casa-dn--compact .casa-dn__ctrl { margin-top: 10px; gap: 8px; }
+}
+
+/* ── Video stage ─────────────────────────────────────────────────────
+   Real footage of the mirror running, seeked by the scrubber. */
+.casa-dn__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+.casa-dn--video .casa-dn__sun,
+.casa-dn--video .casa-dn__stars,
+.casa-dn--video .casa-dn__motes,
+.casa-dn--video .casa-dn__mirror { display: none; }
+/* The footage is 1:1. Left at the full column width the stage is 1.85:1,
+   and object-fit: cover then discards 46% of the frame's height —
+   measured — which is why it read as a zoomed band of tunnel rather than
+   an octagon. Matching the stage to the source aspect means cover crops
+   nothing. Height still drives the size, so the one-frame budget is
+   unchanged; the box just stops being wider than the picture inside it. */
+.casa-dn--video .casa-dn__stage {
+  --dn-stage-size: clamp(280px, 46vh, 420px);
+  height: var(--dn-stage-size);
+  max-width: var(--dn-stage-size);
+  aspect-ratio: 1 / 1;
+  margin-inline: auto;
+  background: #05070A;
+}
+/* The instrument chip reads TIME / PHASE / LED against a clock. This mode
+   has no hours — it is a colour cycle — so a readout of the wrong quantity
+   is worse than none. Same reasoning for the named hour marks. */
+.casa-dn--video .casa-dn__hud,
+.casa-dn--video .casa-dn__ticks { display: none; }
+/* Footage is a real product shot, so the caption sits below it, as in
+   photo mode. */
+.casa-dn--video .casa-dn__caption {
+  position: static;
+  max-width: 62ch;
+  margin-top: 14px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  will-change: auto;
+}
+/* Out of the stage, the caption is no longer on a dark surface — it sits
+   on Paper. The white it inherits from the overlay treatment measured
+   #FFF on rgb(250,250,247), which is invisible rather than merely
+   low-contrast. Ink on Paper both here and in photo mode. */
+.casa-dn--video .casa-dn__caption h3 { color: var(--casa-dn-ink, #0A0A0F); }
+.casa-dn--video .casa-dn__caption p { color: #525252; }
+/* Kept in the DOM for the drawn-mode JS to write into, but it should not
+   occupy a line while it holds nothing. */
+.casa-dn__caption p:empty { display: none; }
+.casa-dn--video .casa-dn__cap:not(.casa-dn__head) { max-width: 810px; }
+
+/* ── Video controls: an instrument, not a call to action ─────────────
+   Measured on a 390px phone before this: the play button rendered 350px
+   wide — wider than the video it controls (321px) and wider than ADD TO
+   CART (308px) — filled saturated brand purple, while the page's actual
+   money button is quiet ink on paper. A transport control was out-
+   shouting the only button that earns anything, and the control bar came
+   to 107px of chrome against a 321px picture.
+
+   So: one row instead of three stacked full-width pills, ink instead of
+   purple, and the buttons sized to the hand rather than the column.
+   Colour moves to the one place it carries meaning — the track. */
+.casa-dn--video .casa-dn__ctrl {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+/* No fills. A filled disc and an outlined pill are two heavy shapes for
+   two utility actions; the glyph alone carries them. Hit areas stay 44px
+   — only the paint is removed, not the target. */
+.casa-dn--video .casa-dn__btn,
+.casa-dn--video .casa-dn__btn.is-on {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+  gap: 0;
+  background: transparent;
+  border: 0;
+  color: var(--casa-dn-ink, #0A0A0F);
+}
+.casa-dn--video .casa-dn__btn:hover,
+.casa-dn--video .casa-dn__btn.is-on:hover { background: rgba(10,10,15,0.06); }
+.casa-dn--video .casa-dn__btn .ico svg { width: 12px; height: 12px; }
+.casa-dn--video .casa-dn__btn--reset {
+  width: auto;
+  padding: 0 4px;
+  border-radius: 0;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: #8A8A92;
+}
+.casa-dn--video .casa-dn__btn--reset:hover {
+  background: transparent;
+  color: var(--casa-dn-ink, #0A0A0F);
+}
+/* Labels stay for screen readers — clipped, never display:none, or the
+   icon-only buttons would have no accessible name. */
+.casa-dn--video .casa-dn__btn > span:not(.ico) {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* A hairline, not a bar. Nine saturated stops across a 10px track read as
+   a gaming RGB slider — the opposite of this brand. The element keeps a
+   24px hit area; only the paint is 2px, drawn with background-size so the
+   target never shrinks to the line.
+
+   Progress is ink filling the rule from the left. The colour idea is
+   gone: on a scrubber this small it was decoration pretending to be
+   information. */
+.casa-dn--video .casa-dn__track {
+  height: 24px;
+  border: 0;
+  border-radius: 0;
+  background-image: linear-gradient(90deg,
+    var(--casa-dn-ink, #0A0A0F) 0 var(--p, 0%),
+    rgba(10,10,15,0.16) var(--p, 0%) 100%);
+  background-size: 100% 2px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.casa-dn--video .casa-dn__track::-webkit-slider-thumb {
+  width: 12px; height: 12px;
+  background: var(--casa-dn-ink, #0A0A0F);
+  border: 0;
+  box-shadow: none;
+}
+.casa-dn--video .casa-dn__track::-moz-range-thumb {
+  width: 12px; height: 12px;
+  background: var(--casa-dn-ink, #0A0A0F);
+  border: 0;
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  /* Stays one row on phones. The base layout drops to a single column
+     here, which is what produced three full-width pills. */
+  .casa-dn--video .casa-dn__ctrl,
+  .casa-dn--video.casa-dn--compact .casa-dn__ctrl {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .casa-dn--video .casa-dn__btn--reset { padding: 0 14px; font-size: 11px; }
+}
+
+/* ── Photo stage ─────────────────────────────────────────────────────
+   Two frames of one scene, lit and unlit, crossfaded by the scrubber.
+   The OFF frame sits underneath at full opacity and the ON frame fades in
+   over it, so there is never a gap where the stage shows through. */
+.casa-dn__photo {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  /* Zoom + focus crop the wide scene to the single large mirror. Sized in
+     custom properties so the crop is a merchant setting: it belongs to the
+     photograph, and a different product's scene will want different
+     numbers. */
+  background-size: var(--casa-dn-zoom, 152%) auto;
+  background-position: var(--casa-dn-fx, 35%) var(--casa-dn-fy, 10%);
+  pointer-events: none;
+}
+.casa-dn__photo--off { opacity: 1; }
+/* --casa-dn-t is the same 0→1 the JS computes for the drawn stage, so the
+   photograph and the instrument readout can never disagree about the hour. */
+.casa-dn__photo--on { opacity: var(--casa-dn-t, 0); }
+
+/* In photo mode the drawn scenery is redundant and, worse, fights the
+   photograph — a CSS sun rising over a real room reads as a mistake. */
+.casa-dn--photo .casa-dn__sun,
+.casa-dn--photo .casa-dn__stars,
+.casa-dn--photo .casa-dn__motes,
+.casa-dn--photo .casa-dn__mirror { display: none; }
+/* The JS paints a sky gradient onto the stage inline; the photos cover it,
+   but the radius still needs to clip them. */
+.casa-dn--photo .casa-dn__stage { background: #0A0A0F; }
+
+@media (prefers-reduced-motion: reduce) {
+  .casa-dn__photo { transition: none; }
+}
+
+/* The caption now follows the stage in the markup. Drawn mode lifts it back
+   over the stage — unchanged behaviour for the four sibling PDPs — while
+   photo mode leaves it in normal flow beneath the photograph. */
+.casa-dn__stagewrap { position: relative; }
+
+/* The stage runs the full column width, which at desktop is a 3.13:1 band.
+   Covering that width with a square photograph forces the visible slice of
+   the source down to ~230px of 1100 — measured, and it cut the mirror off
+   below the frame. No zoom fixes that: covering the width sets the image
+   height, so the wider the box, the less of the picture's height survives.
+   Narrowing the stage is the lever. Constrains the caption and controls to
+   match, so the three read as one plate; :not(__head) keeps the heading at
+   full width. */
+.casa-dn--photo .casa-dn__cap:not(.casa-dn__head) {
+  max-width: 810px;
+}
+.casa-dn:not(.casa-dn--photo):not(.casa-dn--video) .casa-dn__caption {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  max-width: 320px;
+}
+.casa-dn--photo .casa-dn__caption {
+  position: static;
+  max-width: 62ch;
+  margin-top: 14px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  will-change: auto;
+}
+.casa-dn--photo .casa-dn__caption h3 { color: var(--casa-dn-ink, #0A0A0F); }
+.casa-dn--photo .casa-dn__caption p { color: #525252; }
+
+@media (max-width: 640px) {
+  .casa-dn:not(.casa-dn--photo):not(.casa-dn--video) .casa-dn__caption {
+    left: 12px; right: 12px; bottom: 12px; max-width: none;
+  }
+  /* Moving the caption out from over the photo costs its height back in
+     flow — measured 780px against a 764px frame. The stage gives it up:
+     the mobile box is nearly square, so it has far more vertical source
+     than the mirror needs and can lose a slice without cropping it. */
+  .casa-dn--photo.casa-dn--compact .casa-dn__stage { height: clamp(260px, 38vh, 360px); }
+  /* Video mode sizes a square from one custom property, so the override
+     sets the property rather than the height — otherwise width and height
+     would disagree and the aspect-ratio would letterbox. */
+  .casa-dn--video.casa-dn--compact .casa-dn__stage { --dn-stage-size: clamp(240px, 38vh, 340px); }
+  .casa-dn--photo .casa-dn__caption,
+  .casa-dn--video .casa-dn__caption { margin-top: 10px; }
+}
+{% endstylesheet %}
+
+{% javascript %}
+function casaDnInit(ROOT) {
+  if (!ROOT || ROOT.dataset.casaDnInit === '1') return;
+  ROOT.dataset.casaDnInit = '1';
+  var SECTION_ID = ROOT.dataset.sectionId;
+
+  var $ = function (sel) { return ROOT.querySelector(sel); };
+
+  var stage   = $('[data-casa-dn-stage]');
+  var sun     = $('[data-casa-dn-sun]');
+  var stars   = $('[data-casa-dn-stars]');
+  var dust    = $('[data-casa-dn-dust]');
+  var light   = $('[data-casa-dn-light]');
+  var off     = $('[data-casa-dn-off]');
+  var on      = $('[data-casa-dn-on]');
+  var ringsG  = $('[data-casa-dn-rings]');
+  var ledHalo = $('[data-casa-dn-led-halo]');
+  var ledCore = $('[data-casa-dn-led-core]');
+  var pipDot  = $('[data-casa-dn-pip-dot]');
+  var pipLbl  = $('[data-casa-dn-pip-lbl]');
+  var hudTime  = $('[data-casa-dn-hud-time]');
+  var hudPhase = $('[data-casa-dn-hud-phase]');
+  var hudLed   = $('[data-casa-dn-hud-led]');
+  var capTitle = $('[data-casa-dn-cap-title]');
+  var capBody  = $('[data-casa-dn-cap-body]');
+  var CAP = {
+    aTitle: (ROOT.dataset.capATitle || '').trim(), aBody: (ROOT.dataset.capABody || '').trim(),
+    bTitle: (ROOT.dataset.capBTitle || '').trim(), bBody: (ROOT.dataset.capBBody || '').trim(),
+    cTitle: (ROOT.dataset.capCTitle || '').trim(), cBody: (ROOT.dataset.capCBody || '').trim()
+  };
+  var scrub    = $('[data-casa-dn-scrub]');
+  var toggle   = $('[data-casa-dn-toggle]');
+  var toggleLbl = $('[data-casa-dn-toggle-lbl]');
+  var resetBtn = $('[data-casa-dn-reset]');
+
+  if (!stage || !ringsG || !scrub) return;
+
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var POLY_IN = ROOT.dataset.polyInner || '125,16 275,16 384,125 384,275 275,384 125,384 16,275 16,125';
+  var IS_CIRCLE = ROOT.dataset.mirrorShape === 'circle';
+  var CIRCLE_CX = parseFloat(ROOT.dataset.circleCx) || 200;
+  var CIRCLE_CY = parseFloat(ROOT.dataset.circleCy) || 200;
+  var CIRCLE_R_INNER = parseFloat(ROOT.dataset.circleRInner) || 184;
+  var VPX = parseFloat(ROOT.dataset.vpX) || 200;
+  var VPY = parseFloat(ROOT.dataset.vpY) || 200;
+
+  // Build the 32 nested octagonal rings once. Each gets its own gradient defs.
+  var defs = ROOT.querySelector('svg defs');
+  var N = 32;
+  var ringEls = [];
+  for (var i = N - 1; i >= 0; i--) {
+    var g = document.createElementNS(SVG_NS, 'g');
+    var grad = document.createElementNS(SVG_NS, 'linearGradient');
+    var gid = 'casa-dn-r' + SECTION_ID + '-' + i;
+    grad.setAttribute('id', gid);
+    grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0');
+    grad.setAttribute('x2', '1'); grad.setAttribute('y2', '1');
+    var stops = [
+      ['0%', '#FF2D75'],
+      ['16%', '#B0C3FA'],
+      ['33%', '#3B82F6'],
+      ['50%', '#F2FFA0'],
+      ['66%', '#22C55E'],
+      ['83%', '#F59E0B'],
+      ['100%', '#FF2D75']
+    ];
+    for (var k = 0; k < stops.length; k++) {
+      var st = document.createElementNS(SVG_NS, 'stop');
+      st.setAttribute('offset', stops[k][0]);
+      st.setAttribute('stop-color', stops[k][1]);
+      grad.appendChild(st);
+    }
+    defs.appendChild(grad);
+
+    var poly;
+    if (IS_CIRCLE) {
+      poly = document.createElementNS(SVG_NS, 'circle');
+      poly.setAttribute('cx', CIRCLE_CX);
+      poly.setAttribute('cy', CIRCLE_CY);
+      poly.setAttribute('r', CIRCLE_R_INNER);
+    } else {
+      poly = document.createElementNS(SVG_NS, 'polygon');
+      poly.setAttribute('points', POLY_IN);
+      poly.setAttribute('stroke-linejoin', 'miter');
+    }
+    poly.setAttribute('fill', 'none');
+    poly.setAttribute('stroke', 'url(#' + gid + ')');
+
+    // Bake static per-ring values at init — avoid setAttribute storms inside rAF.
+    // scale, sat, sw, drop-shadow, ring-decay all depend ONLY on i (never change per frame).
+    var staticScale = Math.pow(0.90, i);
+    var staticSat   = Math.max(55, 100 - i * 1.6);
+    var staticSw    = Math.max(0.7, 4.2 * Math.pow(0.95, i));
+    var staticDecay = Math.pow(0.93, i);
+    g.setAttribute('transform',
+      'translate(' + VPX + ' ' + VPY + ') scale(' + staticScale + ') translate(' + (-VPX) + ' ' + (-VPY) + ')');
+    g.style.filter = 'saturate(' + staticSat + '%)' + (i < 4 ? ' drop-shadow(0 0 ' + (4-i) + 'px rgba(180,100,255,0.6))' : '');
+    g.style.setProperty('--ring-decay', staticDecay);
+    g.classList.add('casa-dn__ring');
+    poly.setAttribute('stroke-width', staticSw);
+
+    g.appendChild(poly);
+    ringsG.appendChild(g);
+
+    ringEls.push({ g: g, poly: poly, grad: grad, i: i });
+  }
+
+  // Helpers
+  function smoothstep(a, b, x) {
+    var t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  }
+  function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+  function hexToRgb(h) {
+    return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+  }
+  function mix(stops, t) {
+    t = clamp(t, 0, 1);
+    var n = stops.length - 1;
+    var idx = clamp(Math.floor(t * n), 0, n - 1);
+    var local = t * n - idx;
+    var a = hexToRgb(stops[idx]);
+    var b = hexToRgb(stops[idx + 1]);
+    return 'rgb(' + Math.round(a[0] + (b[0]-a[0])*local) + ','
+                  + Math.round(a[1] + (b[1]-a[1])*local) + ','
+                  + Math.round(a[2] + (b[2]-a[2])*local) + ')';
+  }
+
+  // Settings
+  var autoplay = ROOT.dataset.autoplay === 'true';
+  var cycleSeconds = parseFloat(ROOT.dataset.cycleSeconds) || 6;
+  var prefersReduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReduce) { autoplay = false; }
+
+  // State
+  var t = 0;
+  var auto = autoplay;
+  var userOverride = false;
+  var rafId = null;
+
+  // Dirty-check helpers — render() runs per frame during the scroll scrub;
+  // skip textContent/attribute writes whose value hasn't changed so WebKit
+  // doesn't invalidate layout/paint for identical strings.
+  var lastWrites = {};
+  function setTextDirty(el, key, v) {
+    if (lastWrites[key] !== v) { lastWrites[key] = v; el.textContent = v; }
+  }
+  function setAttrDirty(el, key, name, v) {
+    if (lastWrites[key] !== v) { lastWrites[key] = v; el.setAttribute(name, v); }
+  }
+
+  // Render — derive every layer from t
+  function render() {
+    /* Video stage: the footage IS the render. Everything below animates a
+       drawing that is hidden in this mode — a sky gradient, a sun arc, 40
+       stars, and a per-ring walk of the SVG tunnel, every frame. Skipping
+       it is the difference between one property write and several hundred.
+       The HUD and phase captions are skipped too: they report hours, and a
+       colour cycle has none. */
+    if (videoEl) {
+      ROOT.style.setProperty('--casa-dn-t', t.toFixed(3));
+      // Fills the hairline from the left. A range input cannot paint its
+      // own progress cross-browser, so the position rides a custom
+      // property the CSS gradient reads.
+      scrub.style.setProperty('--p', (t * 100).toFixed(1) + '%');
+      if (document.activeElement !== scrub) {
+        var vsv = String(Math.round(t * 1000));
+        if (scrub.value !== vsv) scrub.value = vsv;
+      }
+      return;
+    }
+
+    var skyTop    = mix(['var(--casa-paper)','#F4D9C8','#1A1B3A','var(--casa-ink)'], t);
+    var skyBottom = mix(['#F2F2EE','#EBA6B5','#241B45','var(--casa-ink)'], t);
+    stage.style.background = 'linear-gradient(180deg,' + skyTop + ' 0%,' + skyBottom + ' 100%)';
+
+    // Sun arc
+    var sunX = 50 + (t - 0.5) * 70;
+    var sunY = 8 + Math.sin(t * Math.PI) * -20 + t * 80;
+    var sunOpacity = t < 0.5 ? 1 - t * 0.6 : 1 - (1 - t) * 0.6;
+    var sunHue = t < 0.5 ? 'rgba(255,220,140,1)' : 'rgba(220,230,255,0.9)';
+    var sunGlow = t < 0.5 ? 'rgba(255,200,100,0.5)' : 'rgba(180,200,255,0.4)';
+    sun.style.left = sunX + '%';
+    sun.style.top = sunY + '%';
+    sun.style.opacity = sunOpacity;
+    sun.style.background = 'radial-gradient(circle,' + sunHue + ' 0%,' + sunHue + ' 30%, transparent 70%)';
+    sun.style.boxShadow = '0 0 80px 20px ' + sunGlow;
+
+    // Stars + motes
+    if (stars) stars.style.opacity = smoothstep(0.55, 0.85, t);
+    if (dust)  dust.style.opacity  = (1 - smoothstep(0.2, 0.5, t)) * 0.8;
+    if (light) light.style.opacity = smoothstep(0.6, 0.9, t);
+
+    // Publish the clock as a CSS variable so non-SVG stage layers (the
+    // photo crossfade) can ride the same 0→1 without a second code path.
+    ROOT.style.setProperty('--casa-dn-t', smoothstep(0.35, 0.72, t).toFixed(3));
+
+    // OFF state — fade + desaturate
+    var offOpacity = 1 - smoothstep(0.35, 0.65, t);
+    off.style.opacity = offOpacity;
+    off.style.filter = 'brightness(' + (1 - t * 0.5) + ') saturate(' + (1 - t * 0.7) + ')';
+
+    // ON state
+    var onOpacity = smoothstep(0.4, 0.7, t);
+    on.style.opacity = onOpacity;
+
+    // Tunnel rings — only `tunnelOpacity` (global) + `phaseRot` (per-ring gradient)
+    // change per frame. Static per-ring values (scale/transform/saturate/stroke-width/
+    // ring-decay) were baked at init. Opacity is now CSS calc(--tunnel-opacity * --ring-decay).
+    var tunnelOpacity = smoothstep(0.55, 0.95, t);
+    ringsG.style.setProperty('--tunnel-opacity', tunnelOpacity);
+    for (var r = 0; r < ringEls.length; r++) {
+      var i = ringEls[r].i;
+      var phaseRot = (t * 720 + i * 20) % 360;
+      var ringXf = 'rotate(' + phaseRot + ' 0.5 0.5)';
+      if (ringEls[r].lastXf !== ringXf) {
+        ringEls[r].lastXf = ringXf;
+        ringEls[r].grad.setAttribute('gradientTransform', ringXf);
+      }
+    }
+
+    // Front LED ring (foreground bloom + sharp core)
+    var ledRingRot = (t * 720) % 360;
+    if (ledHalo) {
+      setAttrDirty(ledHalo, 'haloStroke', 'stroke', 'url(#casa-dn-r' + SECTION_ID + '-0)');
+      setAttrDirty(ledHalo, 'haloOp', 'opacity', smoothstep(0.45, 0.7, t) * 0.45);
+    }
+    if (ledCore) {
+      setAttrDirty(ledCore, 'coreStroke', 'stroke', 'url(#casa-dn-r' + SECTION_ID + '-0)');
+      setAttrDirty(ledCore, 'coreOp', 'opacity', smoothstep(0.42, 0.6, t));
+    }
+
+    // Pip
+    var pipLit = t >= 0.5;
+    var pipColor = pipLit ? 'hsl(' + (280 + t * 80) + ' 80% 60%)' : 'var(--casa-ink)';
+    pipDot.style.background = pipColor;
+    pipDot.style.boxShadow = pipLit ? ('0 0 12px ' + pipColor) : 'none';
+    setTextDirty(pipLbl, 'pipLbl', pipLit ? 'ON · PORTAL' : 'OFF · MIRROR');
+
+    // HUD
+    var totalMins = Math.round(14 * 60 + t * 8 * 60);
+    var hh = String(Math.floor(totalMins / 60)).padStart(2, '0');
+    var mm = String(totalMins % 60).padStart(2, '0');
+    var phase = 'AFTERNOON';
+    if (t > 0.25) phase = 'GOLDEN HOUR';
+    if (t > 0.5)  phase = 'DUSK';
+    if (t > 0.7)  phase = 'TWILIGHT';
+    if (t > 0.85) phase = 'NIGHT · PORTAL ENGAGED';
+    setTextDirty(hudTime, 'hudTime', hh + ':' + mm);
+    setTextDirty(hudPhase, 'hudPhase', phase);
+    setTextDirty(hudLed, 'hudLed', Math.round(smoothstep(0.45, 0.85, t) * 100) + '%');
+
+    // Caption thresholds. Copy comes from the section settings (data-cap-*
+    // on the root) when the merchant filled them in; the literals below are
+    // the pre-2026-09-03 defaults and only apply where a setting is blank.
+    if (t < 0.4) {
+      setTextDirty(capTitle, 'capTitle', CAP.aTitle || 'A mirror, first.');
+      setTextDirty(capBody, 'capBody', CAP.aBody || "Hand-crafted glass. Functional, calm. The way a mirror should be.");
+    } else if (t < 0.7) {
+      setTextDirty(capTitle, 'capTitle', CAP.bTitle || 'The room dims.');
+      setTextDirty(capBody, 'capBody', CAP.bBody || 'One tap on the remote. The reflection fades, the LEDs ignite.');
+    } else {
+      setTextDirty(capTitle, 'capTitle', CAP.cTitle || 'A vault to elsewhere.');
+      setTextDirty(capBody, 'capBody', CAP.cBody || '1M+ colors. Music sync. Your scene, your room, your mood.');
+    }
+
+    // Sync the scrubber if not currently being dragged
+    if (document.activeElement !== scrub) {
+      var scrubVal = String(Math.round(t * 1000));
+      if (scrub.value !== scrubVal) scrub.value = scrubVal;
+    }
+  }
+
+  /* Video stage. When present the section stops animating a drawing and
+     starts driving real footage. Ownership of the clock flips with play
+     state: playing, the video advances itself and reports its position
+     back; paused or scrubbing, t seeks it. Two directions, never at once
+     — seeking a playing video fights its own decoder. */
+  var videoEl = $('[data-casa-dn-video]');
+
+  function videoDuration() {
+    // A video with no metadata yet reports NaN/0; guard so a seek during
+    // load cannot write NaN into currentTime and wedge playback.
+    return (videoEl && isFinite(videoEl.duration) && videoEl.duration > 0)
+      ? videoEl.duration : 0;
+  }
+  function seekVideo(v) {
+    var d = videoDuration();
+    if (!d) return;
+    // Stop just shy of the end: seeking exactly to duration lands past the
+    // last frame and some browsers show black.
+    videoEl.currentTime = clamp(v, 0, 0.999) * d;
+  }
+
+  function setT(v) {
+    t = clamp(v, 0, 1);
+    if (videoEl) seekVideo(t);
+    render();
+  }
+
+  // Auto loop
+  function startAuto() {
+    if (rafId) cancelAnimationFrame(rafId);
+
+    if (videoEl) {
+      var p = videoEl.play();
+      if (p && p.catch) p.catch(function () { /* autoplay refused; scrub still works */ });
+      // The video is now the clock — read from it rather than integrating
+      // our own elapsed time, so the scrubber can never drift from what is
+      // actually on screen.
+      var vtick = function () {
+        var d = videoDuration();
+        if (d) { t = clamp(videoEl.currentTime / d, 0, 1); render(); }
+        rafId = requestAnimationFrame(vtick);
+      };
+      rafId = requestAnimationFrame(vtick);
+      return;
+    }
+
+    var last = performance.now();
+    function tick(now) {
+      var dt = (now - last) / 1000;
+      last = now;
+      var next = t + dt / cycleSeconds;
+      if (next > 1) next = 0;
+      t = next;
+      render();
+      rafId = requestAnimationFrame(tick);
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+  function stopAuto() {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = null;
+    if (videoEl) videoEl.pause();
+  }
+
+  // Scroll progress (only when user not overriding AND auto off).
+  // rAF ticking pattern (see casa-pdp-features): WebKit delivers several
+  // scroll events per frame during momentum scroll — coalesce them so the
+  // getBoundingClientRect read + render() writes run at most once per frame.
+  // Scroll-linked motion is still motion: bail under prefers-reduced-motion
+  // (the CSS kill-switch doesn't cover JS-driven writes).
+  var scrollTicking = false;
+  var onScroll = function () {
+    // Self-clean: theme-editor re-renders replace the section but the old
+    // window listener survives — first scroll after removal unhooks it.
+    if (!stage.isConnected) { window.removeEventListener('scroll', onScroll); return; }
+    if (auto || userOverride || prefersReduce) return;
+    if (scrollTicking) return;
+    scrollTicking = true;
+    requestAnimationFrame(function () {
+      scrollTicking = false;
+      if (auto || userOverride) return;
+      var rect = stage.getBoundingClientRect();
+      var vh = window.innerHeight;
+      var raw = (vh - rect.top) / (vh - vh * 0.25);
+      setT(clamp(raw, 0, 1));
+    });
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // Toggle auto
+  toggle.addEventListener('click', function () {
+    auto = !auto;
+    userOverride = false;
+    toggle.classList.toggle('is-on', auto);
+    toggleLbl.textContent = auto ? 'Pause' : 'Auto';
+    if (auto) startAuto(); else stopAuto();
+  });
+
+  // Manual scrub
+  scrub.addEventListener('input', function () {
+    userOverride = true;
+    if (auto) {
+      auto = false;
+      toggle.classList.remove('is-on');
+      toggleLbl.textContent = 'Auto';
+      stopAuto();
+    }
+    setT(parseInt(scrub.value, 10) / 1000);
+  });
+
+  // Reset
+  resetBtn.addEventListener('click', function () {
+    userOverride = false;
+    auto = false;
+    toggle.classList.remove('is-on');
+    toggleLbl.textContent = 'Auto';
+    stopAuto();
+    setT(0);
+  });
+
+  // First paint
+  render();
+
+  // Pause the rAF loop when the section scrolls offscreen. The
+  // 32-ring tunnel + LED rotation is GPU-cheap but rAF still wakes
+  // the main thread every frame; on phones that's measurable
+  // battery + scroll-jank cost.
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting && auto && !rafId) {
+          startAuto();
+        } else if (!entry.isIntersecting && rafId) {
+          stopAuto();
+        }
+      });
+    }, { threshold: 0.01 });
+    io.observe(stage);
+  } else if (auto) {
+    startAuto();
+  }
+}
+
+function casaDnInitAll(scope) {
+  (scope || document).querySelectorAll('.casa-dn').forEach(casaDnInit);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function () { casaDnInitAll(); });
+} else {
+  casaDnInitAll();
+}
+document.addEventListener('shopify:section:load', function (e) {
+  if (e.target) casaDnInitAll(e.target);
+});
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "Casa Day/Night v3",
+  "tag": "section",
+  "class": "casa-day-night-transform-section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "layout_density",
+      "label": "Section height",
+      "info": "One frame sizes the stage to the viewport and tightens spacing so the section fits a single screen.",
+      "options": [
+        { "value": "comfortable", "label": "Comfortable" },
+        { "value": "one_frame", "label": "Fit one frame" }
+      ],
+      "default": "comfortable"
+    },
+    {
+      "type": "checkbox",
+      "id": "auto_hide",
+      "label": "Auto-hide if heading + subheading are blank",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Heading"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker (mono)"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading (use <em>word</em> for italic gradient accent)",
+      "info": "Product-specific — enter per template. Pre-2026-05-17 defaulted to 'Mirror by day. Portal by night.' which bled onto non-mirror products."
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading"
+    },
+    {
+      "type": "header",
+      "content": "Behaviour"
+    },
+    {
+      "type": "checkbox",
+      "id": "autoplay",
+      "label": "Auto-loop on load",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "cycle_seconds",
+      "label": "Auto-loop cycle",
+      "min": 3,
+      "max": 20,
+      "step": 1,
+      "default": 6,
+      "unit": "s"
+    },
+    {
+      "type": "image_picker",
+      "id": "mirror_off_image",
+      "label": "OFF-state image (optional)",
+      "info": "Falls back to a synthetic room-reflection gradient if blank."
+    },
+    {
+      "type": "select",
+      "id": "stage_mode",
+      "label": "Stage",
+      "info": "Photo crossfades two real frames of one scene. Needs both images below; falls back to Drawn if either is missing.",
+      "options": [
+        { "value": "drawn", "label": "Drawn (illustrated)" },
+        { "value": "photo", "label": "Photo crossfade" },
+        { "value": "video", "label": "Video scrub (real footage)" }
+      ],
+      "default": "drawn"
+    },
+    {
+      "type": "video",
+      "id": "stage_video",
+      "label": "Stage video",
+      "info": "The scrubber seeks this footage. Play hands the clock to the video; dragging takes it back. Hour marks and the time readout hide in this mode."
+    },
+    {
+      "type": "text",
+      "id": "pip_off_label",
+      "label": "Stage badge — off state",
+      "default": "OFF · MIRROR"
+    },
+    {
+      "type": "text",
+      "id": "caption_a_title",
+      "label": "Caption title",
+      "info": "Drawn and photo modes overwrite this per phase as the scrubber moves. Video mode leaves it as written.",
+      "default": "A mirror, first."
+    },
+    {
+      "type": "textarea",
+      "id": "caption_a_body",
+      "label": "Caption body",
+      "default": "Hand-crafted glass. Functional, calm. The way a mirror should be."
+    },
+    { "type": "text", "id": "caption_b_title", "label": "Caption title — dusk phase", "info": "Blank keeps the built-in copy. Photo and drawn modes swap captions as the clock passes dusk and night." },
+    { "type": "textarea", "id": "caption_b_body", "label": "Caption body — dusk phase" },
+    { "type": "text", "id": "caption_c_title", "label": "Caption title — night phase" },
+    { "type": "textarea", "id": "caption_c_body", "label": "Caption body — night phase" },
+    {
+      "type": "text",
+      "id": "stage_video_url",
+      "label": "Stage video — direct CDN URL",
+      "info": "Used only when no video is picked above. Paste a direct .mp4 link."
+    },
+    {
+      "type": "image_picker",
+      "id": "stage_poster",
+      "label": "Stage video poster",
+      "info": "First frame shown before the video loads. Only needed with a pasted URL."
+    },
+    {
+      "type": "text",
+      "id": "video_sr_label",
+      "label": "Video description for screen readers",
+      "default": "The mirror cycling through its colour range"
+    },
+    {
+      "type": "image_picker",
+      "id": "stage_off_image",
+      "label": "Stage photo — daylight, mirror off"
+    },
+    {
+      "type": "image_picker",
+      "id": "stage_on_image",
+      "label": "Stage photo — night, mirror lit",
+      "info": "Must be the SAME framing as the daylight frame, or the crossfade will slide."
+    },
+    {
+      "type": "range",
+      "id": "stage_zoom",
+      "label": "Stage photo zoom",
+      "min": 100,
+      "max": 260,
+      "step": 4,
+      "default": 152,
+      "unit": "%"
+    },
+    {
+      "type": "range",
+      "id": "stage_focus_x",
+      "label": "Stage photo focus — horizontal",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 35,
+      "unit": "%"
+    },
+    {
+      "type": "range",
+      "id": "stage_focus_y",
+      "label": "Stage photo focus — vertical",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 10,
+      "unit": "%"
+    },
+    {
+      "type": "select",
+      "id": "mirror_shape",
+      "label": "Mirror shape",
+      "info": "Match the actual mirror geometry. Octagon for OctaMirror, flat-top hexagon for HexaMirror, etc.",
+      "options": [
+        { "value": "octagon", "label": "Octagon (8-sided)" },
+        { "value": "hexagon-flat", "label": "Hexagon — flat top (6-sided)" },
+        { "value": "quadrilateral", "label": "Square (QuadraMirror)" },
+        { "value": "triangle", "label": "Triangle (TriMirror)" },
+        { "value": "circle", "label": "Circle (360 Mirror)" }
+      ],
+      "default": "octagon"
+    },
+    {
+      "type": "header",
+      "content": "Colors (locked to brand palette by default)"
+    },
+    {
+      "type": "color",
+      "id": "color_paper",
+      "label": "Paper",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "color_ink",
+      "label": "Ink",
+      "default": "#0A0A0F"
+    },
+    {
+      "type": "color",
+      "id": "color_purple",
+      "label": "Accent purple",
+      "default": "#B0C3FA"
+    },
+    {
+      "type": "color",
+      "id": "color_pink",
+      "label": "Accent pink",
+      "default": "#5E0A02"
+    },
+    {
+      "type": "color",
+      "id": "color_cyan",
+      "label": "Accent cyan",
+      "default": "#F2FFA0"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 200,
+      "step": 8,
+      "default": 96,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 200,
+      "step": 8,
+      "default": 64,
+      "unit": "px"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Day/Night v3",
+      "category": "Product"
+    }
+  ]
+}
+{% endschema %}

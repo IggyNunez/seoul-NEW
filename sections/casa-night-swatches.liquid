@@ -1,0 +1,587 @@
+{%- comment -%}
+  Seoul Glow Lab — At-night colour swatch row
+
+  Paper section. A single real photo of the product lit in ONE colour,
+  recoloured live with CSS filter: hue-rotate() as the visitor taps a
+  swatch. The dark room barely shifts; the lit tunnel takes the hue.
+
+  Per the Casa Design mirror-family PDP §04 "the colour story" — the
+  companion to casa-day-night-transform. Where the transform sells
+  "mirror OR portal", this sells "which portal".
+
+  IMPORTANT — the base photo must be a SINGLE-COLOUR lit shot. Rotating
+  a multicolour/rainbow photo just re-scrambles the rainbow and reads as
+  broken. Each swatch block stores the rotation FROM that base hue, so
+  swapping the base image means re-deriving every rotation.
+
+  Used by: templates/product.infinity-octamirror-v2.json
+  Blocks:  swatch (name, hex, rotate, saturate, brightness)
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign base = s.base_image
+  if base == blank
+    assign base = product.featured_image
+  endif
+
+  assign active_index = 0
+  for block in section.blocks
+    if block.settings.is_default
+      assign active_index = forloop.index0
+    endif
+  endfor
+
+  assign base_alt = base.alt
+  if base_alt == blank
+    assign base_alt = product.title
+  endif
+-%}
+
+{%- if base != blank and section.blocks.size > 0 -%}
+  {%- assign active = section.blocks[active_index] -%}
+
+  <section
+    id="casa-nsw-{{ section.id }}"
+    class="casa-nsw"
+    style="
+      --casa-nsw-paper:  {{ s.color_paper  | default: '#FAFAF7' }};
+      --casa-nsw-ink:    {{ s.color_ink    | default: '#0A0A0F' }};
+      --casa-nsw-purple: {{ s.color_purple | default: '#B0C3FA' }};
+      --casa-nsw-pink:   {{ s.color_pink   | default: '#5E0A02' }};
+      --casa-nsw-cyan:   {{ s.color_cyan   | default: '#F2FFA0' }};
+      --casa-nsw-pt:     {{ s.padding_top    | default: 0 }}px;
+      --casa-nsw-pb:     {{ s.padding_bottom | default: 96 }}px;
+    "
+  >
+    <div class="casa-nsw__cap">
+      <div class="casa-nsw__stage">
+        {{
+          base
+          | image_url: width: 1600
+          | image_tag:
+            widths: '400, 600, 800, 1200, 1600',
+            sizes: '(max-width: 1023px) 100vw, 55vw',
+            loading: 'lazy',
+            decoding: 'async',
+            class: 'casa-nsw__img',
+            alt: base_alt
+        }}
+        <span
+          class="casa-nsw__glow"
+          aria-hidden="true"
+          data-casa-nsw-glow
+          style="background: radial-gradient(circle at 50% 46%, {{ active.settings.hex | default: '#5E0A02' }}55, transparent 60%);"
+        ></span>
+      </div>
+
+      <div class="casa-nsw__panel">
+        {%- if s.kicker != blank -%}
+          <p class="casa-nsw__mono casa-nsw__mono--accent">{{ s.kicker | escape }}</p>
+        {%- endif -%}
+        {%- if s.heading != blank -%}
+          <h2 class="casa-nsw__h2" id="casa-nsw-h2-{{ section.id }}">{{ s.heading }}</h2>
+        {%- endif -%}
+        {%- if s.body != blank -%}
+          <p class="casa-nsw__lede">{{ s.body | escape | newline_to_br }}</p>
+        {%- endif -%}
+
+        <p class="casa-nsw__active" aria-live="polite">
+          <span
+            class="casa-nsw__active-dot"
+            aria-hidden="true"
+            data-casa-nsw-dot
+            style="background: {{ active.settings.hex | default: '#5E0A02' }};"
+          ></span>
+          <span class="casa-nsw__active-label">
+            {{ s.active_prefix | default: 'At night' | escape }} —
+            <strong data-casa-nsw-name>{{ active.settings.name | escape }}</strong>
+          </span>
+        </p>
+
+        <div
+          class="casa-nsw__swatches"
+          role="group"
+          {% if s.heading != blank %}aria-labelledby="casa-nsw-h2-{{ section.id }}"{% else %}aria-label="{{ s.group_label | default: 'Choose a light colour' | escape }}"{% endif %}
+        >
+          {%- for block in section.blocks -%}
+            {%- liquid
+              assign sat = block.settings.saturate | default: 100
+              assign bri = block.settings.brightness | default: 100
+              assign filt = 'hue-rotate(' | append: block.settings.rotate | append: 'deg) saturate(' | append: sat | append: '%) brightness(' | append: bri | append: '%)'
+              assign is_on = false
+              if forloop.index0 == active_index
+                assign is_on = true
+              endif
+            -%}
+            <button
+              type="button"
+              class="casa-nsw__sw{% if is_on %} is-on{% endif %}"
+              aria-pressed="{% if is_on %}true{% else %}false{% endif %}"
+              data-casa-nsw-btn
+              data-filter="{{ filt | escape }}"
+              data-hex="{{ block.settings.hex | escape }}"
+              data-name="{{ block.settings.name | escape }}"
+              {{ block.shopify_attributes }}
+            >
+              <span class="casa-nsw__sw-dot" aria-hidden="true" style="background: {{ block.settings.hex }};"></span>
+              <span class="casa-nsw__sw-name">{{ block.settings.name | escape }}</span>
+            </button>
+          {%- endfor -%}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    (function () {
+      var ROOT = document.getElementById('casa-nsw-{{ section.id }}');
+      if (!ROOT || ROOT.dataset.casaNswInit === '1') return;
+      ROOT.dataset.casaNswInit = '1';
+
+      var img = ROOT.querySelector('.casa-nsw__img');
+      var glow = ROOT.querySelector('[data-casa-nsw-glow]');
+      var dot = ROOT.querySelector('[data-casa-nsw-dot]');
+      var name = ROOT.querySelector('[data-casa-nsw-name]');
+      var btns = ROOT.querySelectorAll('[data-casa-nsw-btn]');
+      if (!img || !btns.length) return;
+
+      function apply(btn) {
+        img.style.filter = btn.dataset.filter;
+        var hex = btn.dataset.hex;
+        if (glow) glow.style.background = 'radial-gradient(circle at 50% 46%, ' + hex + '55, transparent 60%)';
+        if (dot) dot.style.background = hex;
+        if (name) name.textContent = btn.dataset.name;
+        for (var i = 0; i < btns.length; i++) {
+          var on = btns[i] === btn;
+          btns[i].classList.toggle('is-on', on);
+          btns[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+        }
+      }
+
+      var onClick = function (e) { apply(e.currentTarget); };
+      for (var i = 0; i < btns.length; i++) btns[i].addEventListener('click', onClick);
+
+      // Paint the default swatch's filter on load so the photo and the
+      // active readout agree before any tap.
+      var initial = ROOT.querySelector('[data-casa-nsw-btn].is-on') || btns[0];
+      if (initial) img.style.filter = initial.dataset.filter;
+
+      // Theme editor: selecting a Swatch block in the sidebar must preview
+      // that colour. Without this the merchant drags a hue slider and sees
+      // no change at all — the re-render just re-applies the default — which
+      // makes calibrating a rotation against the base photo impossible.
+      var onBlockSelect = function (e) {
+        if (!ROOT.contains(e.target)) return;
+        var btn = e.target.matches('[data-casa-nsw-btn]')
+          ? e.target
+          : e.target.querySelector('[data-casa-nsw-btn]');
+        if (btn) apply(btn);
+      };
+      document.addEventListener('shopify:block:select', onBlockSelect);
+
+      // The element listeners above are garbage-collected with their nodes,
+      // so the ONLY thing that needs removing is what we put on `document`.
+      // Each editor re-render re-runs this IIFE against fresh DOM, so a
+      // non-self-removing document listener accumulates one stale closure per
+      // setting change, each retaining a detached 1600px image.
+      var onUnload = function (e) {
+        if (e.detail && e.detail.sectionId !== '{{ section.id }}') return;
+        document.removeEventListener('shopify:block:select', onBlockSelect);
+        document.removeEventListener('shopify:section:unload', onUnload);
+      };
+      document.addEventListener('shopify:section:unload', onUnload);
+    })();
+  </script>
+{%- elsif request.design_mode -%}
+  {%- comment -%}
+    Without this the section renders NOTHING when it has no swatch blocks
+    or no base photo — the merchant adds it from the sidebar, sees an empty
+    preview, and concludes it is broken. Storefront visitors still get
+    nothing (correct); only the editor gets the hint.
+  {%- endcomment -%}
+  <section class="casa-nsw casa-nsw--empty">
+    <div class="casa-nsw__cap casa-nsw__cap--empty">
+      <p class="casa-nsw__mono casa-nsw__mono--accent">Casa Night Swatches</p>
+      <p class="casa-nsw__empty-body">
+        {%- if base == blank -%}
+          Pick a base photo — a shot of the product lit in ONE colour. Every swatch
+          hue-rotates from that photo, so a multicolour shot will not work.
+        {%- else -%}
+          Add at least one Swatch block to show a colour.
+        {%- endif -%}
+      </p>
+    </div>
+  </section>
+{%- endif -%}
+
+{% stylesheet %}
+.casa-nsw {
+  background: var(--casa-nsw-paper, #FAFAF7);
+  padding: var(--casa-nsw-pt, 0) 0 var(--casa-nsw-pb, 96px);
+}
+.casa-nsw__cap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: clamp(20px, 3vw, 40px);
+  align-items: stretch;
+}
+@media (max-width: 1023px) {
+  .casa-nsw__cap { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+}
+
+.casa-nsw__stage {
+  position: relative;
+  background: var(--casa-nsw-ink, #0A0A0F);
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  min-height: 0;
+}
+@media (max-width: 1023px) {
+  .casa-nsw__stage { aspect-ratio: 16 / 10; }
+}
+.casa-nsw__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: filter 0.6s cubic-bezier(.2,.7,.2,1);
+}
+.casa-nsw__glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  transition: background 0.6s cubic-bezier(.2,.7,.2,1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .casa-nsw__img,
+  .casa-nsw__glow { transition: none; }
+}
+
+.casa-nsw__cap--empty {
+  grid-template-columns: minmax(0, 1fr);
+  padding-block: 48px;
+}
+.casa-nsw__empty-body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #525252;
+  margin: 0;
+  max-width: 52ch;
+}
+
+.casa-nsw__panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+.casa-nsw__mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0 0 14px;
+}
+.casa-nsw__mono--accent { color: var(--casa-nsw-purple, #B0C3FA); }
+
+.casa-nsw__h2 {
+  font-family: var(--casa-pdp-h2-family);
+  font-size: var(--casa-pdp-h2-size);
+  font-weight: var(--casa-pdp-h2-weight);
+  letter-spacing: var(--casa-pdp-h2-tracking);
+  line-height: var(--casa-pdp-h2-line);
+  color: var(--casa-nsw-ink, #0A0A0F);
+  margin: 0 0 12px;
+  text-wrap: balance;
+}
+.casa-nsw__h2 em {
+  font-style: italic;
+  font-weight: 800;
+  background: linear-gradient(90deg, var(--casa-nsw-purple, #B0C3FA), var(--casa-nsw-pink, #5E0A02), var(--casa-nsw-cyan, #F2FFA0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+/* Cap the italic accent at narrow widths — the 800-weight italic runs
+   ~1.25x wider than the 500 roman around it and is the usual culprit
+   when a two-word heading breaks the 280px viewport. */
+@media (max-width: 380px) {
+  .casa-nsw__h2 em { font-size: 1.02em; }
+}
+
+.casa-nsw__lede {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #525252;
+  margin: 0 0 18px;
+  max-width: 46ch;
+  text-wrap: pretty;
+}
+
+.casa-nsw__active {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #525252;
+  margin: 0 0 16px;
+  flex-wrap: wrap;
+}
+.casa-nsw__active strong { color: var(--casa-nsw-ink, #0A0A0F); font-weight: 600; }
+.casa-nsw__active-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
+}
+
+.casa-nsw__swatches {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 380px) {
+  .casa-nsw__swatches { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.casa-nsw__sw {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 12px;
+  border: 1.5px solid #E3E3DE;
+  border-radius: 12px;
+  background: var(--casa-nsw-paper, #FAFAF7);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+  transition: border-color 0.2s cubic-bezier(.2,.7,.2,1), transform 0.15s cubic-bezier(.2,.7,.2,1);
+}
+.casa-nsw__sw:hover { border-color: #525252; transform: translateY(-2px); }
+.casa-nsw__sw:focus-visible {
+  outline: 2px solid var(--casa-nsw-purple, #B0C3FA);
+  outline-offset: 3px;
+}
+.casa-nsw__sw.is-on { border-color: var(--casa-nsw-ink, #0A0A0F); }
+@media (prefers-reduced-motion: reduce) {
+  .casa-nsw__sw { transition: none; }
+  .casa-nsw__sw:hover { transform: none; }
+}
+.casa-nsw__sw-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
+}
+.casa-nsw__sw.is-on .casa-nsw__sw-dot {
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15), 0 0 0 3px var(--casa-nsw-paper, #FAFAF7), 0 0 0 4.5px var(--casa-nsw-ink, #0A0A0F);
+}
+.casa-nsw__sw-name {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Night Swatches",
+  "tag": "section",
+  "class": "casa-night-swatches-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Heading"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker (mono)"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading (use <em>word</em> for italic gradient accent)"
+    },
+    {
+      "type": "textarea",
+      "id": "body",
+      "label": "Body"
+    },
+    {
+      "type": "text",
+      "id": "group_label",
+      "label": "Swatch group label (screen readers)",
+      "info": "Only used when the heading is blank. Never shown visually.",
+      "default": "Choose a light colour"
+    },
+    {
+      "type": "text",
+      "id": "active_prefix",
+      "label": "Active-colour readout prefix",
+      "info": "Shown before the selected colour name, e.g. \"At night — Magenta\".",
+      "default": "At night"
+    },
+    {
+      "type": "header",
+      "content": "Base photo",
+      "info": "Must be a SINGLE-COLOUR lit shot. Hue-rotating a multicolour photo just re-scrambles the rainbow. Falls back to the product's featured image."
+    },
+    {
+      "type": "image_picker",
+      "id": "base_image",
+      "label": "Base photo"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "color_paper",
+      "label": "Paper",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "color_ink",
+      "label": "Ink",
+      "default": "#0A0A0F"
+    },
+    {
+      "type": "color",
+      "id": "color_purple",
+      "label": "Accent purple",
+      "default": "#B0C3FA"
+    },
+    {
+      "type": "color",
+      "id": "color_pink",
+      "label": "Accent pink",
+      "default": "#5E0A02"
+    },
+    {
+      "type": "color",
+      "id": "color_cyan",
+      "label": "Accent cyan",
+      "default": "#F2FFA0"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 200,
+      "step": 8,
+      "default": 0,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 200,
+      "step": 8,
+      "default": 96,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "swatch",
+      "name": "Swatch",
+      "settings": [
+        {
+          "type": "text",
+          "id": "name",
+          "label": "Colour name",
+          "default": "Magenta"
+        },
+        {
+          "type": "color",
+          "id": "hex",
+          "label": "Swatch dot + glow colour",
+          "default": "#5E0A02"
+        },
+        {
+          "type": "range",
+          "id": "rotate",
+          "label": "Hue rotation from the base photo",
+          "info": "Degrees to rotate the base photo's hue to land on this colour. 0 = the base photo untouched.",
+          "min": -180,
+          "max": 180,
+          "step": 5,
+          "default": 0,
+          "unit": "deg"
+        },
+        {
+          "type": "range",
+          "id": "saturate",
+          "label": "Saturation",
+          "min": 50,
+          "max": 200,
+          "step": 5,
+          "default": 100,
+          "unit": "%"
+        },
+        {
+          "type": "range",
+          "id": "brightness",
+          "label": "Brightness",
+          "min": 50,
+          "max": 150,
+          "step": 1,
+          "default": 100,
+          "unit": "%"
+        },
+        {
+          "type": "checkbox",
+          "id": "is_default",
+          "label": "Selected on page load",
+          "info": "If more than one is ticked, the last one wins.",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "max_blocks": 8,
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "presets": [
+    {
+      "name": "Casa Night Swatches",
+      "category": "Product",
+      "blocks": [
+        { "type": "swatch" },
+        { "type": "swatch" },
+        { "type": "swatch" }
+      ]
+    }
+  ]
+}
+{% endschema %}

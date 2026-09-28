@@ -1,0 +1,162 @@
+{%- comment -%}
+  casa-mirror-wall-v4.liquid
+  Seoul Glow Lab — Chapter 07 "From crate to wall" (OctaMirror v4 PDP)
+
+  One ownership-confidence chapter: what arrives, how it hangs, what it
+  plugs into, what is in the box. Text-led and typographic on purpose:
+  the photographs this chapter deserves (rear of the mirror, bracket and
+  hook, hardware, cable exit, the crate, the finished wall) do not exist
+  yet, and a bad substitute would cost more trust than no image. Where a
+  photo belongs, a quiet marked panel reserves the space (show_pending),
+  so the preview is honest about what is production media and what is not.
+
+  Every line is documented: installation manual, custom.installation,
+  product description, merchant-locked hardware count, and one Judge.me
+  review for the crate.
+
+  Used by: templates/product.infinity-octamirror-v4.json
+  Blocks:  none
+  Settings: kicker, heading, lede, step_N_title/body (1..3), box_title,
+            box_list (one per line), facts (3 pairs), crate_quote, crate_by,
+            manual_url/label, show_pending, pending_text, padding.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign box_lines = s.box_list | newline_to_br | split: '<br />'
+-%}
+
+<section
+  id="casa-mw-{{ section.id }}"
+  class="casa-mw"
+  data-casa-section="wall"
+  style="--casa-mw-pt: {{ s.padding_top | default: 72 }}px; --casa-mw-pb: {{ s.padding_bottom | default: 64 }}px;"
+>
+  <div class="casa-mw__cap">
+    <header class="casa-mw__head">
+      {%- if s.kicker != blank -%}<p class="casa-mw__mono">{{ s.kicker | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="casa-mw__h2">{{ s.heading }}</h2>{%- endif -%}
+      {%- if s.lede != blank -%}<p class="casa-mw__lede">{{ s.lede | escape }}</p>{%- endif -%}
+    </header>
+
+    <div class="casa-mw__grid">
+      <div class="casa-mw__col">
+        {%- if s.show_pending -%}
+          <div class="casa-mw__pending" role="note">
+            <span class="casa-mw__mono">{{ s.pending_label | default: 'Production photography pending' | escape }}</span>
+            <p>{{ s.pending_text | escape }}</p>
+          </div>
+        {%- endif -%}
+        <ol class="casa-mw__steps">
+          {%- for i in (1..3) -%}
+            {%- assign tk = 'step_' | append: i | append: '_title' -%}
+            {%- assign bk = 'step_' | append: i | append: '_body' -%}
+            {%- if s[tk] != blank -%}
+              <li>
+                <span class="casa-mw__num" aria-hidden="true">0{{ i }}</span>
+                <div>
+                  <h3 class="casa-mw__h3">{{ s[tk] | escape }}</h3>
+                  {%- if s[bk] != blank -%}<p class="casa-mw__p">{{ s[bk] | escape }}</p>{%- endif -%}
+                </div>
+              </li>
+            {%- endif -%}
+          {%- endfor -%}
+        </ol>
+        {%- if s.crate_quote != blank -%}
+          <blockquote class="casa-mw__quote"><p>“{{ s.crate_quote | strip | escape }}”</p>{%- if s.crate_by != blank -%}<footer>{{ s.crate_by | escape }}</footer>{%- endif -%}</blockquote>
+        {%- endif -%}
+      </div>
+
+      <div class="casa-mw__col">
+        <p class="casa-mw__mono">{{ s.box_title | default: 'In the box' | escape }}</p>
+        <ul class="casa-mw__list" role="list">
+          {%- for line in box_lines -%}
+            {%- assign l = line | strip -%}
+            {%- if l != blank -%}<li>{{ l }}</li>{%- endif -%}
+          {%- endfor -%}
+        </ul>
+        <dl class="casa-mw__facts">
+          {%- for i in (1..3) -%}
+            {%- assign fk = 'fact_' | append: i | append: '_k' -%}
+            {%- assign fv = 'fact_' | append: i | append: '_v' -%}
+            {%- if s[fk] != blank -%}<div><dt>{{ s[fk] | escape }}</dt><dd>{{ s[fv] | escape }}</dd></div>{%- endif -%}
+          {%- endfor -%}
+        </dl>
+        {%- if s.manual_url != blank -%}
+          <a class="btn btn-tertiary casa-mw__manual" href="{{ s.manual_url | escape }}" target="_blank" rel="noopener">{{ s.manual_label | default: 'Installation manual (PDF)' | escape }}<span class="visually-hidden"> (opens in a new tab)</span></a>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% stylesheet %}
+  .casa-mw { background: var(--bg-paper, #FAFAF7); color: var(--t-on-light, #0A0A0F); padding-block: var(--casa-mw-pt) var(--casa-mw-pb); }
+  .casa-mw__cap { max-width: 1280px; margin-inline: auto; padding-inline: clamp(20px, 5vw, 48px); }
+  .casa-mw__head { max-width: 42ch; margin-bottom: clamp(24px, 4vw, 40px); }
+  .casa-mw__mono { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--t-on-light-muted, #54545C); margin: 0 0 12px; display: block; }
+  .casa-mw__h2 { font-family: var(--casa-pdp-h2-family); font-weight: var(--casa-pdp-h2-weight); font-size: var(--casa-pdp-h2-size); letter-spacing: var(--casa-pdp-h2-tracking); line-height: var(--casa-pdp-h2-line); margin: 0; text-wrap: balance; }
+  .casa-mw__h2 em { font-style: italic; font-weight: 800; background-image: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; padding-right: 0.05em; }
+  .casa-mw__lede { font-family: var(--font-body--family); font-size: 16px; line-height: 1.5; color: var(--t-on-light-muted, #54545C); margin: 12px 0 0; max-width: 46ch; }
+
+  .casa-mw__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 36px; }
+  .casa-mw__pending { border: 1px dashed rgba(10,10,15,0.28); padding: 16px 18px 14px; margin: 0 0 28px; min-height: 150px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .casa-mw__pending p { font-family: var(--font-body--family); font-size: 13px; line-height: 1.5; color: var(--t-on-light-muted, #54545C); margin: 0; max-width: 40ch; }
+  .casa-mw__steps { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border-on-light, rgba(10,10,15,0.14)); }
+  .casa-mw__steps li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 12px; padding: 18px 0; border-bottom: 1px solid var(--border-on-light, rgba(10,10,15,0.14)); }
+  .casa-mw__num { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.12em; color: var(--t-on-light-muted, #54545C); padding-top: 5px; }
+  .casa-mw__h3 { font-family: var(--font-body--family); font-size: 18px; font-weight: 500; line-height: 1.25; margin: 0 0 4px; text-wrap: balance; }
+  .casa-mw__p { font-family: var(--font-body--family); font-size: 15px; line-height: 1.5; color: var(--t-on-light-muted, #54545C); margin: 0; max-width: 46ch; text-wrap: pretty; }
+  .casa-mw__quote { margin: 24px 0 0; font-family: var(--font-body--family); }
+  .casa-mw__quote p { font-size: 17px; line-height: 1.42; margin: 0 0 6px; max-width: 40ch; text-wrap: pretty; }
+  .casa-mw__quote footer { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--t-on-light-muted, #54545C); }
+  .casa-mw__list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border-on-light, rgba(10,10,15,0.14)); }
+  .casa-mw__list li { font-family: var(--font-body--family); font-size: 15px; line-height: 1.4; padding: 10px 0; border-bottom: 1px solid var(--border-on-light, rgba(10,10,15,0.14)); }
+  .casa-mw__facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 22px 0 0; }
+  .casa-mw__facts div { display: flex; flex-direction: column; gap: 4px; }
+  .casa-mw__facts dt { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--t-on-light-muted, #54545C); }
+  .casa-mw__facts dd { margin: 0; font-family: var(--font-body--family); font-size: 19px; font-weight: 500; letter-spacing: -0.01em; }
+  .casa-mw__manual { margin-top: 18px; }
+
+  @media (min-width: 990px) {
+    .casa-mw__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; align-items: start; }
+    .casa-mw__pending { min-height: 260px; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Mirror Wall v4",
+  "tag": "section",
+  "class": "casa-mirror-wall-section",
+  "settings": [
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "07 · From crate to wall" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "Two people, a bracket, a hook. <em>About fifteen minutes.</em>" },
+    { "type": "textarea", "id": "lede", "label": "Lede", "default": "What arrives, how it hangs, what it plugs into." },
+    { "type": "header", "content": "Production media placeholder" },
+    { "type": "checkbox", "id": "show_pending", "label": "Show the pending-photography panel", "default": true },
+    { "type": "text", "id": "pending_label", "label": "Panel label", "default": "Production photography pending" },
+    { "type": "textarea", "id": "pending_text", "label": "Panel text", "default": "Rear of the mirror, the wall bracket and hook, the two anchors and screws, the cable exit, the crate, and the finished wall. Nothing stands in for them until they are shot." },
+    { "type": "header", "content": "Steps (from the installation manual)" },
+    { "type": "text", "id": "step_1_title", "label": "Step 1", "default": "Fix the bracket flat and level" },
+    { "type": "textarea", "id": "step_1_body", "label": "Step 1 body", "default": "Two drywall anchors and two screws hold the wall bracket." },
+    { "type": "text", "id": "step_2_title", "label": "Step 2", "default": "Lower the hook into the bracket" },
+    { "type": "textarea", "id": "step_2_body", "label": "Step 2 body", "default": "The hook on the back of the frame drops into the bracket. One person lifts, one guides." },
+    { "type": "text", "id": "step_3_title", "label": "Step 3", "default": "Plug in" },
+    { "type": "textarea", "id": "step_3_body", "label": "Step 3 body", "default": "Clip the plug for your country onto the 100–240V adapter and connect the cord." },
+    { "type": "header", "content": "In the box" },
+    { "type": "text", "id": "box_title", "label": "Title", "default": "In the box" },
+    { "type": "textarea", "id": "box_list", "label": "One item per line", "default": "Infinity OctaMirror\nWall mounting bracket\n2 drywall anchors + 2 mounting screws\nUniversal power adapter, 100–240V, with US / EU / UK / AU plugs\nWireless remote\nInstallation and instruction manual" },
+    { "type": "text", "id": "fact_1_k", "label": "Fact 1 label", "default": "Depth" }, { "type": "text", "id": "fact_1_v", "label": "Fact 1 value", "default": "5 in" },
+    { "type": "text", "id": "fact_2_k", "label": "Fact 2 label", "default": "Cord" }, { "type": "text", "id": "fact_2_v", "label": "Fact 2 value", "default": "98 in" },
+    { "type": "text", "id": "fact_3_k", "label": "Fact 3 label", "default": "Hanging" }, { "type": "text", "id": "fact_3_v", "label": "Fact 3 value", "default": "2 people · ~15 min" },
+    { "type": "textarea", "id": "crate_quote", "label": "A review about arrival" },
+    { "type": "text", "id": "crate_by", "label": "Attribution" },
+    { "type": "text", "id": "manual_url", "label": "Manual URL" },
+    { "type": "text", "id": "manual_label", "label": "Manual link label", "default": "Installation manual (PDF)" },
+    { "type": "range", "id": "padding_top", "label": "Top padding", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 72 },
+    { "type": "range", "id": "padding_bottom", "label": "Bottom padding", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 64 }
+  ],
+  "presets": [ { "name": "Casa Mirror Wall v4", "category": "Product" } ]
+}
+{% endschema %}

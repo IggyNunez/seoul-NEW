@@ -1,0 +1,50 @@
+{%- comment -%}
+  Casa Judge.me Rating Badge
+
+  Renders the Judge.me preview badge using the server-side metafield
+  pattern from Judge.me's official OS 2.0 install docs:
+  https://judge.me/help/en/articles/8263435
+
+  The metafield {{ product.metafields.judgeme.badge }} contains the
+  pre-rendered stars + count HTML. No AJAX reload required — Liquid
+  prints it server-side. data-auto-install='false' tells Judge.me's
+  loader to leave it alone (the metafield already filled it).
+
+  Parameters:
+  - product: The product object (required)
+  - link: Optional boolean (default false). Judge.me bakes
+    role='button' + tabindex='0' into its stars span so the stars act
+    as a "scroll to the reviews widget" control. Keep that ONLY where a
+    reviews widget lives on the same page — the PDP buy-box, which
+    passes link: true.
+
+    Default (every card surface: product cards, cart drawer, comparison
+    table, lookbook) is PRESENTATIONAL: the stars are swapped to
+    role='img' + tabindex='-1'. On those surfaces the whole card is
+    already an <a> to the PDP, so Judge.me's focusable "button" nested
+    inside that link is a dead keyboard tab stop (one per card) and an
+    axe `nested-interactive` (WCAG 2.2 AA 4.1.2) violation. role='img'
+    keeps the existing aria-label="N stars" as the text alternative —
+    the same "a rating is a labelled image" pattern used by
+    blocks/mini-reviews.liquid. Pairs with the pointer-events:none card
+    rule in assets/casa-base.css (that kills the mouse affordance; this
+    kills the keyboard/AT affordance).
+
+  Prerequisites:
+  - Judge.me App Embed enabled in theme editor (Online Store > Themes
+    > Edit theme > App embeds > Judge.me)
+{%- endcomment -%}
+
+{%- if product != blank -%}
+  <div
+    class="jdgm-widget jdgm-preview-badge"
+    data-id="{{ product.id }}"
+    data-auto-install="false"
+  >
+    {%- if link -%}
+      {{ product.metafields.judgeme.badge }}
+    {%- else -%}
+      {{ product.metafields.judgeme.badge | replace: "role='button'", "role='img'" | replace: "tabindex='0'", "tabindex='-1'" }}
+    {%- endif -%}
+  </div>
+{%- endif -%}

@@ -5,6 +5,18 @@
   Layout modes: fullscreen, contained, split.
 {%- endcomment -%}
 
+{%- comment -%} Auto-hide when no mode blocks have images {%- endcomment -%}
+{%- assign _has_content = false -%}
+{%- for block in section.blocks -%}
+  {%- if block.settings.image != blank -%}
+    {%- assign _has_content = true -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if _has_content == false and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
 {%- liquid
   assign layout = section.settings.layout_style | default: 'fullscreen'
   assign heading_pos = section.settings.heading_position | default: 'top-left'
@@ -14,9 +26,9 @@
   assign use_vh = section.settings.fullscreen_height
   assign overlay_opacity = section.settings.overlay_opacity | default: 30
   assign radius = section.settings.border_radius | default: 16
-  assign bg_color = section.settings.bg_color | default: '#0a0a0f'
-  assign text_color = section.settings.text_color | default: '#ffffff'
-  assign accent = section.settings.accent_color | default: '#9333ea'
+  assign bg_color = section.settings.bg_color | default: '#0A0A0F'
+  assign text_color = section.settings.text_color | default: '#FAFAF7'
+  assign accent = section.settings.accent_color | default: '#B0C3FA'
   assign accent_r = accent | color_extract: 'red'
   assign accent_g = accent | color_extract: 'green'
   assign accent_b = accent | color_extract: 'blue'
@@ -64,10 +76,10 @@
             {% unless forloop.first %}aria-hidden="true"{% endunless %}
           >
             {%- if block.settings.video_url != blank -%}
+              {%- comment -%} perf-justified: playback owned by the mode-switch JS + section IntersectionObserver {%- endcomment -%}
               <video
                 class="casa-pprev__video" style="object-position: {{ block.settings.focal_point | default: 'center center' }}; --pprev-mobile-focal: {{ block.settings.mobile_focal_point | default: block.settings.focal_point | default: 'center center' }};"
                 src="{{ block.settings.video_url }}"
-                {% if forloop.first %}autoplay{% endif %}
                 loop muted playsinline
                 {%- if block.settings.image != blank %} poster="{{ block.settings.image | image_url: width: 1920 }}"{% endif %}
               ></video>
@@ -204,10 +216,10 @@
               {{ block.shopify_attributes }}
             >
               {%- if block.settings.video_url != blank -%}
+                {%- comment -%} perf-justified: playback owned by the mode-switch JS + section IntersectionObserver {%- endcomment -%}
                 <video
                   class="casa-pprev__video" style="object-position: {{ block.settings.focal_point | default: 'center center' }}; --pprev-mobile-focal: {{ block.settings.mobile_focal_point | default: block.settings.focal_point | default: 'center center' }};"
                   src="{{ block.settings.video_url }}"
-                  {% if forloop.first %}autoplay{% endif %}
                   loop muted playsinline
                   {%- if block.settings.image != blank %} poster="{{ block.settings.image | image_url: width: 1200 }}"{% endif %}
                 ></video>
@@ -302,13 +314,13 @@
 </section>
 
 {%- comment -%} ====================== STYLES ====================== {%- endcomment -%}
-<style>
+{% stylesheet %}
   /* ---- Base ---- */
   .casa-pprev {
-    --_accent: var(--pprev-accent, #9333ea);
-    --_accent-rgb: var(--pprev-accent-rgb, 147, 51, 234);
+    --_accent: var(--pprev-accent, #B0C3FA);
+    --_accent-rgb: var(--pprev-accent-rgb, 176, 195, 250);
     --_text: var(--pprev-text, #fff);
-    --_bg: var(--pprev-bg, #0a0a0f);
+    --_bg: var(--pprev-bg, var(--casa-ink));
     --_transition: 0.6s cubic-bezier(.4, 0, .2, 1);
 
     position: relative;
@@ -361,6 +373,28 @@
     object-fit: cover;
     object-position: var(--pprev-focal, center center);
   }
+  /* Belt-and-suspenders: if a device blocks muted autoplay (Low Power Mode,
+     reduced-data) the video stays paused and iOS would paint its native centre
+     play button on this decorative preview. Suppress the WebKit media-control
+     pseudo-elements so the poster image is the clean fallback, never a stray
+     button. ONE RULE PER PSEUDO-ELEMENT — a comma-grouped list is dropped in
+     its entirety by any selector the engine doesn't recognise, and
+     `-overlay-play-button` (Chromium-only) would otherwise poison the iOS-only
+     `-start-playback-button` rule. */
+  .casa-pprev__video::-webkit-media-controls {
+    display: none !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .casa-pprev__video::-webkit-media-controls-enclosure { display: none !important; }
+  .casa-pprev__video::-webkit-media-controls-panel { display: none !important; }
+  .casa-pprev__video::-webkit-media-controls-play-button { display: none !important; }
+  .casa-pprev__video::-webkit-media-controls-start-playback-button {
+    display: none !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .casa-pprev__video::-webkit-media-controls-overlay-play-button { display: none !important; }
   @media (max-width: 749px) {
     .casa-pprev__image {
       object-position: var(--pprev-mobile-focal, center center);
@@ -539,12 +573,12 @@
   .casa-pprev--tabs-pills .casa-pprev__tab:hover {
     border-color: rgba(var(--_accent-rgb),.5);
     background: rgba(var(--_accent-rgb),.12);
-    color: #fff;
+    color: var(--casa-text-on-ink);
   }
   .casa-pprev--tabs-pills .casa-pprev__tab--active {
-    background: linear-gradient(135deg, var(--_accent), color-mix(in srgb, var(--_accent) 60%, #ec4899));
+    background: linear-gradient(135deg, var(--_accent), color-mix(in srgb, var(--_accent) 60%, #5E0A02));
     border-color: transparent;
-    color: #fff;
+    color: var(--casa-text-on-ink);
     font-weight: 600;
     box-shadow: 0 2px 16px rgba(var(--_accent-rgb),.4);
   }
@@ -556,11 +590,11 @@
     border-radius: 0;
   }
   .casa-pprev--tabs-underline .casa-pprev__tab:hover {
-    color: #fff;
+    color: var(--casa-text-on-ink);
     border-bottom-color: rgba(var(--_accent-rgb),.4);
   }
   .casa-pprev--tabs-underline .casa-pprev__tab--active {
-    color: #fff;
+    color: var(--casa-text-on-ink);
     border-bottom-color: var(--_accent);
     font-weight: 600;
   }
@@ -570,19 +604,19 @@
     padding: .6rem 1.25rem;
     border-radius: 12px;
     background: rgba(255,255,255,.07);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255,255,255,.08);
   }
   .casa-pprev--tabs-glassmorphic .casa-pprev__tab:hover {
     background: rgba(255,255,255,.13);
     border-color: rgba(255,255,255,.15);
-    color: #fff;
+    color: var(--casa-text-on-ink);
   }
   .casa-pprev--tabs-glassmorphic .casa-pprev__tab--active {
     background: rgba(var(--_accent-rgb),.22);
     border-color: rgba(var(--_accent-rgb),.35);
-    color: #fff;
+    color: var(--casa-text-on-ink);
     font-weight: 600;
     box-shadow: 0 0 20px rgba(var(--_accent-rgb),.2), inset 0 0 20px rgba(var(--_accent-rgb),.06);
   }
@@ -617,17 +651,19 @@
   }
   .casa-pprev__progress-bar {
     height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--_accent), #ec4899);
+    width: 100%;
+    transform: scaleX(0);
+    transform-origin: left;
+    background: linear-gradient(90deg, var(--_accent), #5E0A02);
     border-radius: 2px;
-    transition: width .1s linear;
+    transition: transform .1s linear;
   }
   .casa-pprev__progress-bar--running {
     animation: pprevProgress var(--pprev-auto-speed, 5s) linear forwards;
   }
   @keyframes pprevProgress {
-    from { width: 0%; }
-    to { width: 100%; }
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
   }
 
   /* ---- SPLIT LAYOUT ---- */
@@ -782,7 +818,7 @@
       grid-template-columns: 1fr 1fr;
     }
   }
-</style>
+{% endstylesheet %}
 
 {%- comment -%} ====================== JAVASCRIPT ====================== {%- endcomment -%}
 <script>
@@ -803,6 +839,39 @@
     let activeIndex = 0;
     let autoTimer = null;
     let isPaused = false;
+    let inView = false; /* owned by the IntersectionObserver (bottom of this IIFE); gates video decode + auto-advance */
+
+    /* iOS Safari rejects programmatic muted autoplay unless the muted/inline
+       PROPERTIES (not just the HTML attributes) are set before play() — the
+       videos shown on mode-switch otherwise stay paused until tapped. These
+       are all decorative muted+loop previews, safe to force-mute. Re-assert
+       at play time; some iOS builds drop the muted flag. */
+    function tryPlay(video) {
+      video.muted = true;
+      video.playsInline = true;
+      var p = video.play();
+      if (p && p.catch) p.catch(function() {});
+    }
+
+    /* Only decode the active mode's video while the section is on screen AND
+       the tab is visible. `inView` is owned by the IntersectionObserver at the
+       bottom of this IIFE; document.hidden covers the backgrounded-tab case. */
+    function shouldPlay() {
+      return inView && !document.hidden;
+    }
+    function activeVideo() {
+      var activeLayer = section.querySelector('.casa-pprev__media-layer--active');
+      return activeLayer ? activeLayer.querySelector('video') : null;
+    }
+    function syncActiveVideo() {
+      var video = activeVideo();
+      if (!video) return;
+      if (shouldPlay()) {
+        tryPlay(video);
+      } else {
+        video.pause();
+      }
+    }
 
     function activateMode(index) {
       if (index < 0 || index >= modeCount || index === activeIndex) return;
@@ -825,11 +894,11 @@
         if (layer.hasAttribute('aria-hidden')) {
           layer.setAttribute('aria-hidden', isActive ? 'false' : 'true');
         }
-        /* Video play/pause */
+        /* Video play/pause — only decode the active video while on screen */
         var video = layer.querySelector('video');
         if (video) {
-          if (isActive) {
-            video.play().catch(function() {});
+          if (isActive && shouldPlay()) {
+            tryPlay(video);
           } else {
             video.pause();
           }
@@ -913,7 +982,7 @@
     function resetProgress() {
       if (!progressBar) return;
       progressBar.classList.remove('casa-pprev__progress-bar--running');
-      progressBar.style.width = '0%';
+      progressBar.style.transform = 'scaleX(0)';
       void progressBar.offsetWidth; /* reflow */
       progressBar.style.setProperty('--pprev-auto-speed', (autoSpeed / 1000) + 's');
       if (autoPlay && !isPaused) {
@@ -928,6 +997,10 @@
       stopAutoPlay();
       resetProgress();
       autoTimer = setInterval(function() {
+        /* Skip advancing while the tab is hidden or the section is off-screen —
+           no unseen crossfades, video swaps or progress-bar restarts. The
+           interval stays armed and resumes on the next tick once back in view. */
+        if (document.hidden || !inView) return;
         var next = (activeIndex + 1) % modeCount;
         activateMode(next);
       }, autoSpeed);
@@ -956,6 +1029,25 @@
     });
 
     /* Init */
+    /* The active mode's video is started by JS — the raw `autoplay` attribute
+       was removed so an off-screen section never decodes on load. An
+       IntersectionObserver owns `inView`: it plays the active video when the
+       section scrolls on screen and pauses it when it leaves, so Safari isn't
+       decoding a preview the user has scrolled past. tryPlay() re-asserts the
+       muted PROPERTY, which iOS needs before it will honour muted autoplay. */
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function(entries) {
+        inView = entries[entries.length - 1].isIntersecting;
+        syncActiveVideo();
+      }, { threshold: 0 });
+      io.observe(section);
+    } else {
+      /* No IntersectionObserver support: assume visible, preserve legacy play. */
+      inView = true;
+      syncActiveVideo();
+    }
+    /* Pause/resume the active video as the tab is backgrounded/foregrounded. */
+    document.addEventListener('visibilitychange', syncActiveVideo);
     if (autoPlay && modeCount > 1) startAutoPlay();
   })();
 </script>
@@ -1108,19 +1200,19 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background color",
-      "default": "#0a0a0f"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
       "id": "text_color",
       "label": "Text color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
       "id": "accent_color",
       "label": "Accent color",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "header",
@@ -1206,7 +1298,8 @@
         {
           "type": "text",
           "id": "icon",
-          "label": "Icon (emoji)"
+          "label": "Icon (optional short text)",
+          "info": "Leave blank for a text-only tab."
         }
       ]
     }
@@ -1220,7 +1313,7 @@
           "settings": {
             "title": "Animated Scenes",
             "description": "Dynamic color-shifting scenes that transform any room into an immersive experience.",
-            "icon": "🌈"
+            "icon": ""
           }
         },
         {
@@ -1228,7 +1321,7 @@
           "settings": {
             "title": "Warm Whites",
             "description": "Soft, inviting tones for relaxation and everyday ambiance.",
-            "icon": "🕯️"
+            "icon": ""
           }
         },
         {
@@ -1236,7 +1329,7 @@
           "settings": {
             "title": "Cool Whites",
             "description": "Crisp daylight tones for focus and productivity.",
-            "icon": "💡"
+            "icon": ""
           }
         },
         {
@@ -1244,7 +1337,7 @@
           "settings": {
             "title": "Solid RGBs",
             "description": "Bold, vibrant colors to match any mood or moment.",
-            "icon": "🎨"
+            "icon": ""
           }
         }
       ]

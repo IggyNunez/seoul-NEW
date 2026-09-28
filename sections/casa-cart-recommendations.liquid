@@ -1,0 +1,321 @@
+{% comment %}
+  casa-cart-recommendations.liquid
+
+  Cart-page wrapper around Horizon's <product-recommendations>
+  custom element. The element itself fetches via the Section
+  Rendering API (data-url + data-product-id), so the only thing
+  this section has to do is:
+
+    1. seed data-product-id from the cart's first item (when the
+       page first renders), or from `recommendations.products` on
+       the SRA reload.
+    2. render brand chrome (eyebrow + italic-gradient H2) above
+       the carousel.
+
+  Kept brand-aligned and dependency-free: same casa-product-card
+  used everywhere else, mobile-first grid, no external CSS.
+
+  Used by: templates/cart.json
+  Blocks: none (recs come from Shopify's recommendations endpoint)
+  Settings: heading, kicker, max_products, columns, mobile_columns, padding
+{% endcomment %}
+
+{%- liquid
+  # Seed from the most recently added item — newer adds are
+  # more relevant for "what else might pair with this." Falls
+  # back to the first item if the last one resolves blank
+  # (deleted product, malformed line item).
+  assign last_item = cart.items | last
+  assign seed_id = last_item.product.id
+  if seed_id == blank
+    assign first_item = cart.items | first
+    assign seed_id = first_item.product.id
+  endif
+-%}
+
+{%- if cart.empty? -%}
+  {%- comment -%} Empty cart already renders its own recs row in casa-cart-empty. {%- endcomment -%}
+{%- elsif seed_id == blank -%}
+  {%- comment -%} Defensive: if cart has items but no product (impossible in practice), render nothing. {%- endcomment -%}
+{%- else -%}
+  {%- comment -%} Only load the recs JS when the section will actually render. Saves a request on empty-cart loads. {%- endcomment -%}
+  <script
+    src="{{ 'product-recommendations.js' | asset_url }}"
+    type="module"
+    fetchpriority="low"
+  ></script>
+  <product-recommendations
+    id="casa-cart-recommendations-{{ section.id }}"
+    class="casa-cart-recommendations"
+    data-url="{{ routes.product_recommendations_url }}?limit={{ section.settings.max_products }}&intent=complementary"
+    data-section-id="{{ section.id }}"
+    data-product-id="{{ seed_id }}"
+    data-intent="complementary"
+    data-recommendations-performed="{{ recommendations.performed }}"
+    style="
+      --casa-rec-cols: {{ section.settings.columns | default: 4 }};
+      --casa-rec-cols-m: {{ section.settings.mobile_columns | default: 2 }};
+      --casa-rec-pt: {{ section.settings.padding_top | default: 64 }}px;
+      --casa-rec-pb: {{ section.settings.padding_bottom | default: 64 }}px;
+    "
+    {{ section.shopify_attributes }}
+  >
+    <div class="casa-cart-recommendations__inner">
+      <header class="casa-cart-recommendations__head">
+        {%- if section.settings.kicker != blank -%}
+          <span class="casa-cart-recommendations__kicker">{{ section.settings.kicker }}</span>
+        {%- endif -%}
+        {%- if section.settings.heading != blank -%}
+          <h2 class="casa-cart-recommendations__heading">{{ section.settings.heading }}</h2>
+        {%- endif -%}
+      </header>
+
+      {%- comment -%}
+        Card grid. On first render `recommendations.performed` is
+        false, so we render placeholder cards (skeletons). When the
+        web component fetches the SRA endpoint with our section_id +
+        product_id, this section re-renders server-side with
+        `recommendations.products` populated and the JS swaps the
+        innerHTML in place. Same pattern Horizon's stock section
+        uses — just brand-wrapped.
+      {%- endcomment -%}
+      {%- comment -%}
+        Three render branches:
+        1. SRA returned recs → render those.
+        2. SRA returned 0 recs (niche product, sparse catalog) →
+           fall back to settings.cart_upsell_collection. Avoids
+           the "stuck on skeletons" failure mode the side-cart
+           drawer also handles via the same setting.
+        3. Initial page render before the web component fetches →
+           render skeletons to reserve layout space (no CLS).
+      {%- endcomment -%}
+      {%- liquid
+        assign rec_products = null
+        if recommendations.performed and recommendations.products.size > 0
+          assign rec_products = recommendations.products
+        elsif recommendations.performed and settings.cart_upsell_collection != blank
+          assign upsell_col = collections[settings.cart_upsell_collection]
+          if upsell_col != blank and upsell_col.products.size > 0
+            assign cart_pids = cart.items | map: 'product_id'
+            assign rec_products = upsell_col.products | reject: 'id', seed_id
+          endif
+        endif
+      -%}
+      <div class="casa-cart-recommendations__grid" role="list">
+        {%- if rec_products != null and rec_products.size > 0 -%}
+          {%- for product in rec_products limit: section.settings.max_products -%}
+            <div class="casa-cart-recommendations__card" role="listitem">
+              {%- render 'casa-product-card',
+                product: product,
+                index: forloop.index0,
+                show_quick_add: true,
+                show_variant_swatches: settings.card_show_swatches,
+                show_wishlist: false,
+                show_stock_urgency: false,
+                show_installment: false,
+                show_quick_view: false,
+                show_hover_video: false,
+                card_variant: 'minimal'
+              -%}
+            </div>
+          {%- endfor -%}
+        {%- else -%}
+          {%- for i in (1..section.settings.max_products) -%}
+            <div class="casa-cart-recommendations__skeleton" aria-hidden="true">
+              <div class="casa-cart-recommendations__skeleton-image"></div>
+              <div class="casa-cart-recommendations__skeleton-line casa-cart-recommendations__skeleton-line--title"></div>
+              <div class="casa-cart-recommendations__skeleton-line casa-cart-recommendations__skeleton-line--price"></div>
+            </div>
+          {%- endfor -%}
+        {%- endif -%}
+      </div>
+    </div>
+  </product-recommendations>
+{%- endif -%}
+
+{% stylesheet %}
+  .casa-cart-recommendations {
+    display: block;
+    background: var(--bg-paper, #FAFAF7);
+    color: var(--bg-dark, #0A0A0F);
+    padding-top: var(--casa-rec-pt, 64px);
+    padding-bottom: var(--casa-rec-pb, 64px);
+  }
+
+  .casa-cart-recommendations__inner {
+    max-width: var(--page-width, 1200px);
+    margin: 0 auto;
+    padding: 0 var(--casa-section-px, 24px);
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .casa-cart-recommendations__head {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .casa-cart-recommendations__kicker {
+    font-family: var(--font-body--family, 'Inter', system-ui, sans-serif);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #525252;
+  }
+
+  .casa-cart-recommendations__heading {
+    font-family: var(--casa-pdp-h2-family, 'Inter', system-ui, sans-serif);
+    font-size: clamp(28px, 3.5vw, 40px);
+    font-weight: var(--casa-pdp-h2-weight, 600);
+    letter-spacing: var(--casa-pdp-h2-tracking, -0.02em);
+    line-height: 1.1;
+    color: var(--bg-dark, #0A0A0F);
+    margin: 0;
+    text-wrap: balance;
+  }
+  .casa-cart-recommendations__heading em {
+    font-style: italic;
+    background: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .casa-cart-recommendations__grid {
+    display: grid;
+    grid-template-columns: repeat(var(--casa-rec-cols, 4), minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  @media (max-width: 749px) {
+    .casa-cart-recommendations__grid {
+      grid-template-columns: repeat(var(--casa-rec-cols-m, 2), minmax(0, 1fr));
+      gap: 14px;
+    }
+  }
+
+  .casa-cart-recommendations__card { min-width: 0; }
+
+  /* Skeleton placeholders shown until <product-recommendations>
+     fetches and morphs in the real cards. Avoids CLS. */
+  .casa-cart-recommendations__skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .casa-cart-recommendations__skeleton-image {
+    aspect-ratio: 1;
+    background: rgba(0,0,0,0.04);
+    border-radius: 12px;
+  }
+  .casa-cart-recommendations__skeleton-line {
+    height: 14px;
+    background: rgba(0,0,0,0.04);
+    border-radius: 4px;
+  }
+  .casa-cart-recommendations__skeleton-line--title { width: 70%; }
+  .casa-cart-recommendations__skeleton-line--price { width: 35%; height: 12px; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .casa-cart-recommendations__skeleton-image,
+    .casa-cart-recommendations__skeleton-line {
+      animation: casa-cart-rec-pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes casa-cart-rec-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.55; }
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Cart Recommendations",
+  "tag": "section",
+  "class": "casa-cart-recommendations-section",
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  },
+  "settings": [
+    { "type": "header", "content": "Header" },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Eyebrow tag",
+      "info": "UPPERCASE label above the heading",
+      "default": "PAIR WITH"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading",
+      "info": "Wrap one word in <em></em> for the brand italic-gradient accent",
+      "default": "You may also <em>like.</em>"
+    },
+    { "type": "header", "content": "Layout" },
+    {
+      "type": "range",
+      "id": "max_products",
+      "label": "Number of products",
+      "min": 4,
+      "max": 12,
+      "step": 1,
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "columns",
+      "label": "Columns (desktop)",
+      "min": 2,
+      "max": 6,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "range",
+      "id": "mobile_columns",
+      "label": "Columns (mobile)",
+      "min": 1,
+      "max": 3,
+      "step": 1,
+      "default": 2
+    },
+    { "type": "header", "content": "Spacing" },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Top padding",
+      "min": 0,
+      "max": 160,
+      "step": 4,
+      "unit": "px",
+      "default": 64
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Bottom padding",
+      "min": 0,
+      "max": 160,
+      "step": 4,
+      "unit": "px",
+      "default": 64
+    }
+  ],
+  "presets": [
+    {
+      "name": "Cart Recommendations",
+      "settings": {
+        "kicker": "PAIR WITH",
+        "heading": "You may also <em>like.</em>",
+        "max_products": 8,
+        "columns": 4,
+        "mobile_columns": 2
+      }
+    }
+  ]
+}
+{% endschema %}

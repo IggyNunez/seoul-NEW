@@ -1,0 +1,1071 @@
+{%- comment -%}
+  Casa Product Comparison Table
+  Side-by-side product comparison with specs, pricing, images.
+  Supports manual product selection (blocks) or auto-populate from collection.
+{%- endcomment -%}
+
+{%- liquid
+  assign mode = section.settings.mode | default: 'manual'
+  assign cta_text = section.settings.cta_text | default: 'View Product'
+  assign bg_style = section.settings.background_style | default: 'light'
+
+  comment
+    Build products_list from blocks (manual) or collection (auto)
+  endcomment
+
+  if mode == 'manual'
+    assign col_count = 0
+    for block in section.blocks
+      if block.type == 'product_column' and block.settings.product != blank
+        assign col_count = col_count | plus: 1
+      endif
+    endfor
+  else
+    assign coll = collections[section.settings.collection]
+    assign plimit = section.settings.product_limit | default: 3
+    assign col_count = 0
+    if coll != blank
+      for p in coll.products limit: plimit
+        assign col_count = col_count | plus: 1
+      endfor
+    endif
+  endif
+-%}
+
+{%- if col_count == 0 and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
+<section
+  class="casa-compare casa-compare--{{ bg_style }}"
+  id="casa-compare-{{ section.id }}"
+  style="
+    --ccomp-accent: {{ section.settings.accent_color | default: '#B0C3FA' }};
+    --ccomp-padding-top: {{ section.settings.padding_top | default: 100 }}px;
+    --ccomp-padding-bottom: {{ section.settings.padding_bottom | default: 100 }}px;
+    --ccomp-padding-mobile-top: {{ section.settings.padding_mobile_top | default: 60 }}px;
+    --ccomp-padding-mobile-bottom: {{ section.settings.padding_mobile_bottom | default: 60 }}px;
+    --ccomp-cols: {{ col_count | default: 3 }};
+    {%- if section.settings.bg_color != blank %}--ccomp-bg: {{ section.settings.bg_color }};{% endif %}
+    {%- if section.settings.text_color != blank %}--ccomp-text: {{ section.settings.text_color }};{% endif %}
+    {%- if section.settings.title_color != blank %}--ccomp-title-color: {{ section.settings.title_color }};{% endif %}
+    {%- comment -%}
+      Heading-scale dropdown: merchant picks H1-H6 from Theme Settings -> Typography.
+    {%- endcomment -%}
+    {%- assign _ccomp_title_h = section.settings.ccomp_heading_level | default: 'h1' -%}
+    --ccomp-title-fs:   var(--font-{{ _ccomp_title_h }}--size);
+    --ccomp-title-fw:   var(--font-{{ _ccomp_title_h }}--weight);
+    --ccomp-title-lh:   var(--font-{{ _ccomp_title_h }}--line-height);
+    --ccomp-title-ls:   var(--font-{{ _ccomp_title_h }}--letter-spacing);
+    --ccomp-title-case: var(--font-{{ _ccomp_title_h }}--case);
+  "
+>
+  <div class="casa-compare__container">
+
+    {%- comment -%} ── Header ── {%- endcomment -%}
+    {%- if section.settings.title != blank or section.settings.subtitle != blank -%}
+    <div class="casa-compare__header">
+      {%- if section.settings.tag_text != blank -%}
+        <span class="casa-compare__tag">{{ section.settings.tag_text }}</span>
+      {%- endif -%}
+      {%- if section.settings.title != blank -%}
+        <h2 class="casa-compare__title">{{ section.settings.title }}</h2>
+      {%- endif -%}
+      {%- if section.settings.subtitle != blank -%}
+        <p class="casa-compare__subtitle">{{ section.settings.subtitle }}</p>
+      {%- endif -%}
+    </div>
+    {%- endif -%}
+
+    {%- comment -%} ── Customer Product Picker ── {%- endcomment -%}
+    {%- if section.settings.show_picker -%}
+    <div class="casa-compare__picker" id="casa-compare-picker-{{ section.id }}">
+      <div class="casa-compare__picker-slots" id="casa-compare-slots-{{ section.id }}"></div>
+      <div class="casa-compare__picker-search">
+        <input
+          type="text"
+          class="casa-compare__search-input"
+          id="casa-compare-search-{{ section.id }}"
+          placeholder="{{ section.settings.picker_placeholder | default: 'Search products to compare...' }}"
+          autocomplete="off"
+        >
+        <div class="casa-compare__search-results" id="casa-compare-results-{{ section.id }}"></div>
+      </div>
+    </div>
+    {%- endif -%}
+
+    {%- if col_count > 0 and section.settings.show_picker != true -%}
+    {%- comment -%} ── Scroll Wrapper ── {%- endcomment -%}
+    <div class="casa-compare__scroll-wrap">
+      <div class="casa-compare__grid">
+
+        {%- comment -%} ── HEADER ROW: product cards ── {%- endcomment -%}
+        <div class="casa-compare__cell casa-compare__cell--label casa-compare__cell--head"></div>
+
+        {%- if mode == 'manual' -%}
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'product_column' and block.settings.product != blank -%}
+              {%- assign p = block.settings.product -%}
+              {%- assign is_rec = block.settings.recommended -%}
+              <div class="casa-compare__cell casa-compare__cell--head{% if is_rec %} casa-compare__cell--rec{% endif %}" {{ block.shopify_attributes }}>
+                {%- if block.settings.badge != blank -%}
+                  <span class="casa-compare__badge">{{ block.settings.badge }}</span>
+                {%- endif -%}
+                {%- if section.settings.show_image -%}
+                  <div class="casa-compare__img">
+                    {%- if p.featured_image != blank -%}
+                      <img src="{{ p.featured_image | image_url: width: 400 }}" alt="{{ p.title | escape }}" loading="lazy" width="400" height="400">
+                    {%- endif -%}
+                  </div>
+                {%- endif -%}
+                <h3 class="casa-compare__product-title">{{ p.title }}</h3>
+                {%- if section.settings.show_price -%}
+                  <div class="casa-compare__price">
+                    {%- if p.price_varies -%}
+                      From {{ p.price_min | money }}
+                    {%- else -%}
+                      {{ p.price | money }}
+                    {%- endif -%}
+                    {%- if p.compare_at_price > p.price -%}
+                      <span class="casa-compare__price--was">{{ p.compare_at_price | money }}</span>
+                    {%- endif -%}
+                  </div>
+                {%- endif -%}
+                {%- if section.settings.show_rating -%}
+                  <div class="casa-compare__rating">
+                    {% render 'casa-judgeme-rating', product: p %}
+                  </div>
+                {%- endif -%}
+              </div>
+            {%- endif -%}
+          {%- endfor -%}
+        {%- else -%}
+          {%- for p in coll.products limit: plimit -%}
+            <div class="casa-compare__cell casa-compare__cell--head">
+              {%- if section.settings.show_image -%}
+                <div class="casa-compare__img">
+                  {%- if p.featured_image != blank -%}
+                    <img src="{{ p.featured_image | image_url: width: 400 }}" alt="{{ p.title | escape }}" loading="lazy" width="400" height="400">
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
+              <h3 class="casa-compare__product-title">{{ p.title }}</h3>
+              {%- if section.settings.show_price -%}
+                <div class="casa-compare__price">
+                  {%- if p.price_varies -%}
+                    From {{ p.price_min | money }}
+                  {%- else -%}
+                    {{ p.price | money }}
+                  {%- endif -%}
+                  {%- if p.compare_at_price > p.price -%}
+                    <span class="casa-compare__price--was">{{ p.compare_at_price | money }}</span>
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
+              {%- if section.settings.show_rating -%}
+                <div class="casa-compare__rating">
+                  {% render 'casa-judgeme-rating', product: p %}
+                </div>
+              {%- endif -%}
+            </div>
+          {%- endfor -%}
+        {%- endif -%}
+
+        {%- comment -%} ── AUTO-PARSED SPEC ROWS (injected by JS) ── {%- endcomment -%}
+        <div class="casa-compare__auto-specs" id="casa-compare-specs-{{ section.id }}"></div>
+
+        {%- comment -%} ── CTA ROW ── {%- endcomment -%}
+        {%- if section.settings.show_cta -%}
+          <div class="casa-compare__cell casa-compare__cell--label"></div>
+          {%- if mode == 'manual' -%}
+            {%- for block in section.blocks -%}
+              {%- if block.type == 'product_column' and block.settings.product != blank -%}
+                {%- assign p = block.settings.product -%}
+                {%- assign btn_text = block.settings.cta_text_override | default: cta_text -%}
+                {%- assign ccomp_btn_treatment = section.settings.ccomp_btn_treatment | default: 'primary' -%}
+                <div class="casa-compare__cell casa-compare__cell--cta{% if block.settings.recommended %} casa-compare__cell--rec{% endif %}">
+                  <a href="{{ p.url }}" class="btn btn-{{ ccomp_btn_treatment }} casa-compare__btn{% if block.settings.recommended %} casa-compare__btn--rec{% endif %}">
+                    {{ btn_text }}
+                  </a>
+                </div>
+              {%- endif -%}
+            {%- endfor -%}
+          {%- else -%}
+            {%- assign ccomp_btn_treatment = section.settings.ccomp_btn_treatment | default: 'primary' -%}
+            {%- for p in coll.products limit: plimit -%}
+              <div class="casa-compare__cell casa-compare__cell--cta">
+                <a href="{{ p.url }}" class="btn btn-{{ ccomp_btn_treatment }} casa-compare__btn">{{ cta_text }}</a>
+              </div>
+            {%- endfor -%}
+          {%- endif -%}
+        {%- endif -%}
+
+      </div>
+    </div>
+
+    {%- comment -%} Hidden spec data — JS parses this to build table rows ── {%- endcomment -%}
+    <div class="casa-compare__spec-data" style="display:none" id="casa-compare-data-{{ section.id }}">
+      {%- if mode == 'manual' -%}
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'product_column' and block.settings.product != blank -%}
+            {%- assign p = block.settings.product -%}
+            {%- assign meta_specs = p.metafields.custom.product_page_specifications -%}
+            <div class="casa-compare__spec-product" data-rec="{{ block.settings.recommended }}">
+              {%- if meta_specs != blank -%}{{ meta_specs | metafield_tag }}{%- endif -%}
+            </div>
+          {%- endif -%}
+        {%- endfor -%}
+      {%- else -%}
+        {%- for p in coll.products limit: plimit -%}
+          {%- assign meta_specs = p.metafields.custom.product_page_specifications -%}
+          <div class="casa-compare__spec-product" data-rec="false">
+            {%- if meta_specs != blank -%}{{ meta_specs | metafield_tag }}{%- endif -%}
+          </div>
+        {%- endfor -%}
+      {%- endif -%}
+    </div>
+
+    {%- else -%}
+      {%- if request.design_mode -%}
+        <p style="text-align:center;padding:40px;color:#999;">Add product blocks or select a collection to populate the comparison table.</p>
+      {%- endif -%}
+    {%- endif -%}
+
+  </div>
+</section>
+
+<script>
+(function(){
+  var ROOT = document.getElementById('casa-compare-{{ section.id }}');
+  if (!ROOT || ROOT.dataset.init) return;
+  ROOT.dataset.init = '1';
+  var sectionId = '{{ section.id }}';
+  var MAX_COMPARE = {{ section.settings.max_compare | default: 3 }};
+
+  /* ── Spec parser (shared) ── */
+  function parseSpecsFromHtml(html) {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html || '';
+    var specs = {};
+    var items = tmp.querySelectorAll('li');
+    if (items.length === 0) items = tmp.querySelectorAll('p');
+    items.forEach(function(item) {
+      var strong = item.querySelector('strong, b');
+      var label = '', value = '';
+      if (strong) {
+        label = strong.textContent.replace(/:\s*$/, '').trim();
+        value = item.textContent.replace(strong.textContent, '').replace(/^\s*:\s*/, '').trim();
+      } else {
+        var text = item.textContent, ci = text.indexOf(':');
+        if (ci > 0 && ci < 40) { label = text.substring(0, ci).trim(); value = text.substring(ci + 1).trim(); }
+      }
+      if (label && value) specs[label] = value;
+    });
+    return specs;
+  }
+
+  /* ── Scroll indicator ── */
+  var wrap = ROOT.querySelector('.casa-compare__scroll-wrap');
+  if (wrap) {
+    wrap.addEventListener('scroll', function() {
+      var atEnd = wrap.scrollLeft + wrap.clientWidth >= wrap.scrollWidth - 10;
+      wrap.classList.toggle('casa-compare__scroll-wrap--end', atEnd);
+    });
+  }
+
+  /* ── Auto-parse spec metafields into table rows (only when merchant grid exists) ── */
+  var dataEl = document.getElementById('casa-compare-data-' + sectionId);
+  var specsEl = document.getElementById('casa-compare-specs-' + sectionId);
+
+  var productDivs = dataEl ? dataEl.querySelectorAll('.casa-compare__spec-product') : [];
+  /* (no return here — picker code must still run below) */
+
+  /* Parse each product's specs — only when merchant grid is present */
+  var allProducts = [];
+  var allLabels = [];
+
+  if (productDivs.length > 0) productDivs.forEach(function(div) {
+    var specs = {};
+    var isRec = div.getAttribute('data-rec') === 'true';
+
+    /* Try <li> items first (most common for rich text metafields + descriptions) */
+    var items = div.querySelectorAll('li');
+    if (items.length === 0) {
+      /* Fallback: try <p> tags */
+      items = div.querySelectorAll('p');
+    }
+
+    items.forEach(function(item) {
+      var strong = item.querySelector('strong, b');
+      var label = '';
+      var value = '';
+
+      if (strong) {
+        label = strong.textContent.replace(/:\s*$/, '').trim();
+        var full = item.textContent;
+        var labelInFull = strong.textContent;
+        value = full.replace(labelInFull, '').replace(/^\s*:\s*/, '').trim();
+      } else {
+        var text = item.textContent;
+        var colonIdx = text.indexOf(':');
+        if (colonIdx > 0 && colonIdx < 40) {
+          label = text.substring(0, colonIdx).trim();
+          value = text.substring(colonIdx + 1).trim();
+        }
+      }
+
+      if (label && value) {
+        specs[label] = value;
+        if (allLabels.indexOf(label) === -1) {
+          allLabels.push(label);
+        }
+      }
+    });
+
+    allProducts.push({ specs: specs, rec: isRec });
+  });
+
+  /* Build grid rows (only when merchant grid present and has data) */
+  if (allLabels.length > 0 && specsEl) {
+  var colCount = allProducts.length;
+  var grid = specsEl.closest('.casa-compare__grid');
+
+  if (grid) {
+  /* Insert rows before the CTA row (or at end of grid) */
+  var ctaCells = grid.querySelectorAll('.casa-compare__cell--cta');
+  var insertBefore = ctaCells.length > 0 ? ctaCells[0].previousElementSibling : null;
+  /* Actually find the label cell before the first CTA */
+  if (ctaCells.length > 0) {
+    var prev = ctaCells[0];
+    while (prev.previousElementSibling && !prev.previousElementSibling.classList.contains('casa-compare__cell--head')) {
+      prev = prev.previousElementSibling;
+    }
+    insertBefore = prev;
+  }
+
+  allLabels.forEach(function(label, idx) {
+    var alt = idx % 2 === 1;
+
+    /* Label cell */
+    var labelCell = document.createElement('div');
+    labelCell.className = 'casa-compare__cell casa-compare__cell--label' + (alt ? ' casa-compare__cell--alt' : '');
+    labelCell.textContent = label;
+
+    if (insertBefore) {
+      grid.insertBefore(labelCell, insertBefore);
+    } else {
+      grid.appendChild(labelCell);
+    }
+
+    /* Value cells per product */
+    allProducts.forEach(function(prod) {
+      var valCell = document.createElement('div');
+      valCell.className = 'casa-compare__cell casa-compare__cell--val' +
+        (prod.rec ? ' casa-compare__cell--rec' : '') +
+        (alt ? ' casa-compare__cell--alt' : '');
+      valCell.textContent = prod.specs[label] || '—';
+
+      if (insertBefore) {
+        grid.insertBefore(valCell, insertBefore);
+      } else {
+        grid.appendChild(valCell);
+      }
+    });
+  });
+
+  /* Remove the placeholder auto-specs div */
+  specsEl.remove();
+  } /* end if grid */
+  } /* end if allLabels */
+
+  /* ══════════════════════════════════════════════════════════════
+     INTERACTIVE PICKER — customer searches & adds products
+     ══════════════════════════════════════════════════════════════ */
+  var searchInput = document.getElementById('casa-compare-search-' + sectionId);
+  var resultsEl = document.getElementById('casa-compare-results-' + sectionId);
+  var slotsEl = document.getElementById('casa-compare-slots-' + sectionId);
+
+  if (searchInput && resultsEl && slotsEl) {
+    var pickedProducts = [];
+    var searchTimer = null;
+    var abortCtrl = null;
+
+    /* ── Search ── */
+    searchInput.addEventListener('input', function() {
+      var q = searchInput.value.trim();
+      if (q.length < 2) { resultsEl.innerHTML = ''; resultsEl.classList.remove('is-open'); return; }
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function() {
+        if (abortCtrl) abortCtrl.abort();
+        abortCtrl = new AbortController();
+        fetch('/search/suggest.json?q=' + encodeURIComponent(q) +
+          '&resources[type]=product&resources[limit]=6', { signal: abortCtrl.signal })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            var products = (data.resources && data.resources.results && data.resources.results.products) || [];
+            if (products.length === 0) {
+              resultsEl.innerHTML = '<div class="casa-compare__search-empty">No products found</div>';
+            } else {
+              resultsEl.innerHTML = products.map(function(p) {
+                var picked = pickedProducts.some(function(pp) { return pp.handle === p.handle; });
+                return '<button class="casa-compare__search-item' + (picked ? ' is-picked' : '') +
+                  '" data-handle="' + p.handle + '" data-title="' + (p.title || '').replace(/"/g, '&quot;') +
+                  '" data-image="' + (p.image || '') + '" data-price="' + (p.price || '') +
+                  '"' + (picked ? ' disabled' : '') + '>' +
+                  (p.image ? '<img src="' + p.image + '" alt="" width="40" height="40">' : '') +
+                  '<span class="casa-compare__search-name">' + p.title + '</span>' +
+                  '<span class="casa-compare__search-price">' + p.price + '</span>' +
+                  (picked ? '<span class="casa-compare__search-check">✓</span>' : '') +
+                  '</button>';
+              }).join('');
+            }
+            resultsEl.classList.add('is-open');
+          })
+          .catch(function(e) { if (e.name !== 'AbortError') console.warn(e); });
+      }, 250);
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.casa-compare__picker-search')) resultsEl.classList.remove('is-open');
+    });
+
+    /* ── Select product ── */
+    resultsEl.addEventListener('click', function(e) {
+      var btn = e.target.closest('.casa-compare__search-item');
+      if (!btn || btn.disabled) return;
+      if (pickedProducts.length >= MAX_COMPARE) { alert('Max ' + MAX_COMPARE + ' products. Remove one first.'); return; }
+
+      var product = { handle: btn.dataset.handle, title: btn.dataset.title, image: btn.dataset.image,
+        price_formatted: btn.dataset.price, specs: {}, rec: false, url: '/products/' + btn.dataset.handle };
+      pickedProducts.push(product);
+      searchInput.value = '';
+      resultsEl.innerHTML = '';
+      resultsEl.classList.remove('is-open');
+      renderSlots();
+      rebuildPickerGrid();
+
+      /* Fetch specs via Section Rendering API */
+      fetch('/products/' + product.handle + '?sections=casa-compare-fetch')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var html = data['casa-compare-fetch'] || '';
+          var tmp = document.createElement('div');
+          tmp.innerHTML = html;
+          var script = tmp.querySelector('[data-casa-compare-product]');
+          if (script) {
+            try {
+              var pd = JSON.parse(script.textContent);
+              var idx = pickedProducts.findIndex(function(pp) { return pp.handle === product.handle; });
+              if (idx > -1) {
+                pickedProducts[idx].title = pd.title;
+                pickedProducts[idx].image = pd.image;
+                pickedProducts[idx].price_formatted = pd.price_varies ? 'From ' + pd.price_min_formatted : pd.price_formatted;
+                pickedProducts[idx].compare_at = pd.compare_at_price > 0 ? pd.compare_at_price_formatted : '';
+                pickedProducts[idx].rating = pd.rating;
+                pickedProducts[idx].rating_count = pd.rating_count;
+                pickedProducts[idx].url = pd.url;
+                pickedProducts[idx].specs = parseSpecsFromHtml(pd.specs_html);
+                rebuildPickerGrid();
+              }
+            } catch(err) { console.warn('Compare parse error:', err); }
+          }
+        }).catch(function(err) { console.warn('Compare fetch error:', err); });
+    });
+
+    /* ── Slots ── */
+    function renderSlots() {
+      slotsEl.innerHTML = pickedProducts.map(function(p, i) {
+        return '<div class="casa-compare__slot">' +
+          (p.image ? '<img src="' + p.image + '" alt="" width="24" height="24">' : '') +
+          '<span>' + p.title + '</span>' +
+          '<button class="casa-compare__slot-x" data-idx="' + i + '">&times;</button></div>';
+      }).join('') + (pickedProducts.length < MAX_COMPARE ?
+        '<div class="casa-compare__slot casa-compare__slot--add">+ Add (' + pickedProducts.length + '/' + MAX_COMPARE + ')</div>' : '');
+    }
+
+    slotsEl.addEventListener('click', function(e) {
+      var btn = e.target.closest('.casa-compare__slot-x');
+      if (!btn) return;
+      pickedProducts.splice(parseInt(btn.dataset.idx, 10), 1);
+      renderSlots();
+      rebuildPickerGrid();
+    });
+
+    /* ── Rebuild grid from picked products ── */
+    function rebuildPickerGrid() {
+      var existingWrap = ROOT.querySelector('.casa-compare__scroll-wrap--picker');
+      if (existingWrap) existingWrap.remove();
+
+      if (pickedProducts.length === 0) return;
+
+      var scrollWrap = document.createElement('div');
+      scrollWrap.className = 'casa-compare__scroll-wrap casa-compare__scroll-wrap--picker';
+      var grid = document.createElement('div');
+      grid.className = 'casa-compare__grid';
+      grid.style.setProperty('--ccomp-cols', pickedProducts.length);
+      scrollWrap.appendChild(grid);
+
+      var h = '';
+      /* Header */
+      h += '<div class="casa-compare__cell casa-compare__cell--label casa-compare__cell--head"></div>';
+      pickedProducts.forEach(function(p) {
+        h += '<div class="casa-compare__cell casa-compare__cell--head">' +
+          '<div class="casa-compare__img"><img src="' + (p.image || '') + '" alt="" width="400" height="400"></div>' +
+          '<h3 class="casa-compare__product-title">' + (p.title || '') + '</h3>' +
+          '<div class="casa-compare__price">' + (p.price_formatted || '') +
+            (p.compare_at ? ' <span class="casa-compare__price--was">' + p.compare_at + '</span>' : '') + '</div>' +
+          (p.rating > 0 ? '<div class="casa-compare__rating"><span class="casa-compare__stars">★ ' + Math.round(p.rating) +
+            '</span><span class="casa-compare__count">(' + (p.rating_count || 0) + ')</span></div>' : '') +
+          '</div>';
+      });
+
+      /* Spec rows */
+      var labels = [];
+      pickedProducts.forEach(function(p) { Object.keys(p.specs || {}).forEach(function(k) { if (labels.indexOf(k) === -1) labels.push(k); }); });
+      labels.forEach(function(label, idx) {
+        var alt = idx % 2 === 1;
+        h += '<div class="casa-compare__cell casa-compare__cell--label' + (alt ? ' casa-compare__cell--alt' : '') + '">' + label + '</div>';
+        pickedProducts.forEach(function(p) {
+          h += '<div class="casa-compare__cell casa-compare__cell--val' + (alt ? ' casa-compare__cell--alt' : '') + '">' + ((p.specs && p.specs[label]) || '—') + '</div>';
+        });
+      });
+
+      /* CTA */
+      h += '<div class="casa-compare__cell casa-compare__cell--label"></div>';
+      pickedProducts.forEach(function(p) {
+        h += '<div class="casa-compare__cell casa-compare__cell--cta"><a href="' + (p.url || '/products/' + p.handle) +
+          '" class="btn btn-primary casa-compare__btn">View Product</a></div>';
+      });
+
+      grid.innerHTML = h;
+
+      /* Insert after picker, before any existing merchant grid */
+      var picker = ROOT.querySelector('.casa-compare__picker');
+      var existingGrid = ROOT.querySelector('.casa-compare__scroll-wrap:not(.casa-compare__scroll-wrap--picker)');
+      if (existingGrid) existingGrid.parentNode.insertBefore(scrollWrap, existingGrid);
+      else if (picker) picker.parentNode.insertBefore(scrollWrap, picker.nextSibling);
+      else ROOT.querySelector('.casa-compare__container').appendChild(scrollWrap);
+    }
+
+    renderSlots();
+  }
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Casa Product Comparison",
+  "tag": "section",
+  "class": "casa-compare-section",
+  "settings": [
+    { "type": "header", "content": "Content" },
+    { "type": "text", "id": "tag_text", "label": "Tag text", "default": "COMPARE" },
+    { "type": "text", "id": "title", "label": "Title", "default": "Compare Our Products" },
+    {
+      "type": "select",
+      "id": "ccomp_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
+    },
+    { "type": "textarea", "id": "subtitle", "label": "Subtitle", "default": "Find the perfect fit for your space" },
+    { "type": "text", "id": "cta_text", "label": "CTA button text", "default": "VIEW PRODUCT" },
+    {
+      "type": "select",
+      "id": "ccomp_btn_treatment",
+      "label": "Button treatment",
+      "info": "Brand-book button style for the per-product CTA buttons. Featured (gradient) is rare per brand book — reserved for hero/launch CTAs.",
+      "options": [
+        { "value": "primary",            "label": "Primary — solid ink (light surface)" },
+        { "value": "primary-on-dark",    "label": "Primary — solid white (dark surface)" },
+        { "value": "secondary",          "label": "Secondary — outline (light surface)" },
+        { "value": "secondary-on-dark",  "label": "Secondary — outline (dark surface)" },
+        { "value": "tertiary",           "label": "Tertiary — underlined link" },
+        { "value": "featured",           "label": "Featured — purple→pink gradient" }
+      ],
+      "default": "primary"
+    },
+
+    { "type": "header", "content": "Customer Picker" },
+    { "type": "checkbox", "id": "show_picker", "label": "Allow customers to search & compare", "default": true, "info": "Shows a search bar so customers can pick their own products to compare" },
+    { "type": "text", "id": "picker_placeholder", "label": "Search placeholder", "default": "Search products to compare..." },
+    { "type": "range", "id": "max_compare", "label": "Max products to compare", "min": 2, "max": 5, "step": 1, "default": 3 },
+
+    { "type": "header", "content": "Default Products" },
+    {
+      "type": "select", "id": "mode", "label": "Product source",
+      "options": [
+        { "value": "manual", "label": "Manual (use blocks)" },
+        { "value": "collection", "label": "Auto from collection" }
+      ],
+      "default": "manual"
+    },
+    { "type": "collection", "id": "collection", "label": "Collection (auto mode)" },
+    { "type": "range", "id": "product_limit", "label": "Max products (auto mode)", "min": 2, "max": 5, "step": 1, "default": 3 },
+
+    { "type": "header", "content": "Spec Row Labels" },
+    { "type": "text", "id": "spec_1_label", "label": "Row 1", "default": "Dimensions" },
+    { "type": "text", "id": "spec_2_label", "label": "Row 2", "default": "Weight" },
+    { "type": "text", "id": "spec_3_label", "label": "Row 3", "default": "Colors" },
+    { "type": "text", "id": "spec_4_label", "label": "Row 4", "default": "Control" },
+    { "type": "text", "id": "spec_5_label", "label": "Row 5" },
+    { "type": "text", "id": "spec_6_label", "label": "Row 6" },
+
+    { "type": "header", "content": "Visibility" },
+    { "type": "checkbox", "id": "show_image", "label": "Show product images", "default": true },
+    { "type": "checkbox", "id": "show_price", "label": "Show price", "default": true },
+    { "type": "checkbox", "id": "show_rating", "label": "Show rating", "default": true },
+    { "type": "checkbox", "id": "show_spec_1", "label": "Show manual row 1", "default": false, "info": "Only needed if auto-parsed specs from metafield aren't enough" },
+    { "type": "checkbox", "id": "show_spec_2", "label": "Show manual row 2", "default": false },
+    { "type": "checkbox", "id": "show_spec_3", "label": "Show manual row 3", "default": false },
+    { "type": "checkbox", "id": "show_spec_4", "label": "Show manual row 4", "default": false },
+    { "type": "checkbox", "id": "show_spec_5", "label": "Show row 5", "default": false },
+    { "type": "checkbox", "id": "show_spec_6", "label": "Show row 6", "default": false },
+    { "type": "checkbox", "id": "show_cta", "label": "Show CTA buttons", "default": true },
+
+    { "type": "header", "content": "Style" },
+    {
+      "type": "select", "id": "background_style", "label": "Background",
+      "options": [
+        { "value": "light", "label": "Light" },
+        { "value": "white", "label": "White" },
+        { "value": "dark", "label": "Dark" }
+      ],
+      "default": "white"
+    },
+    { "type": "color", "id": "accent_color", "label": "Accent color", "default": "#B0C3FA" },
+    { "type": "color", "id": "bg_color", "label": "Background override" },
+    { "type": "color", "id": "text_color", "label": "Text color override" },
+    { "type": "color", "id": "title_color", "label": "Title color override" },
+
+    { "type": "header", "content": "Spacing" },
+    { "type": "range", "id": "padding_top", "label": "Padding top", "min": 0, "max": 200, "step": 10, "default": 80, "unit": "px" },
+    { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 200, "step": 10, "default": 80, "unit": "px" },
+    { "type": "range", "id": "padding_mobile_top", "label": "Padding top (mobile)", "min": 0, "max": 150, "step": 10, "default": 50, "unit": "px" },
+    { "type": "range", "id": "padding_mobile_bottom", "label": "Padding bottom (mobile)", "min": 0, "max": 150, "step": 10, "default": 50, "unit": "px" }
+  ],
+  "blocks": [
+    {
+      "type": "product_column",
+      "name": "Product",
+      "limit": 5,
+      "settings": [
+        { "type": "product", "id": "product", "label": "Product" },
+        { "type": "text", "id": "badge", "label": "Badge (e.g. Bestseller)" },
+        { "type": "checkbox", "id": "recommended", "label": "Highlight as recommended", "default": false },
+        { "type": "text", "id": "spec_1_value", "label": "Row 1 value" },
+        { "type": "text", "id": "spec_2_value", "label": "Row 2 value" },
+        { "type": "text", "id": "spec_3_value", "label": "Row 3 value" },
+        { "type": "text", "id": "spec_4_value", "label": "Row 4 value" },
+        { "type": "text", "id": "spec_5_value", "label": "Row 5 value" },
+        { "type": "text", "id": "spec_6_value", "label": "Row 6 value" },
+        { "type": "text", "id": "cta_text_override", "label": "CTA text override" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Product Comparison",
+      "settings": {
+        "tag_text": "COMPARE",
+        "title": "Compare Our Products",
+        "subtitle": "Find the perfect fit for your space",
+        "spec_1_label": "Dimensions",
+        "spec_2_label": "Weight",
+        "spec_3_label": "Colors"
+      },
+      "blocks": [
+        { "type": "product_column", "settings": { "badge": "Bestseller", "recommended": true } },
+        { "type": "product_column" },
+        { "type": "product_column" }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+{% stylesheet %}
+/* ══════════════════════════════════════════════════════════════
+   CASA PRODUCT COMPARISON TABLE
+   ══════════════════════════════════════════════════════════════ */
+
+.casa-compare {
+  padding: var(--ccomp-padding-top, 80px) 0 var(--ccomp-padding-bottom, 80px);
+  color: var(--ccomp-text);
+}
+.casa-compare--white { background: var(--ccomp-bg, #fff); color: var(--ccomp-text, var(--casa-border-on-ink)); }
+.casa-compare--light { background: var(--ccomp-bg, var(--casa-paper)); color: var(--ccomp-text, var(--casa-ink)); }
+.casa-compare--dark  { background: var(--ccomp-bg, var(--casa-ink)); color: var(--ccomp-text, #f0f0f0); }
+
+.casa-compare__container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ── Header ── */
+.casa-compare__header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+.casa-compare__tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--ccomp-accent, #B0C3FA);
+  margin-bottom: 12px;
+}
+.casa-compare__title {
+  /* Heading scale comes from Theme Settings -> Typography via the
+     ccomp_heading_level dropdown; legacy clamp/weight preserved as fallback. */
+  font-size: var(--ccomp-title-fs, clamp(24px, 4vw, 36px));
+  font-weight: var(--ccomp-title-fw, 600);
+  line-height: var(--ccomp-title-lh, 1.2);
+  letter-spacing: var(--ccomp-title-ls, normal);
+  text-transform: var(--ccomp-title-case, none);
+  color: var(--ccomp-title-color, inherit);
+  margin: 0 0 8px;
+}
+.casa-compare__subtitle {
+  font-size: 15px;
+  color: inherit;
+  opacity: 0.6;
+  margin: 0;
+}
+
+/* ── Scroll Wrapper ── */
+.casa-compare__scroll-wrap {
+  position: relative;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.casa-compare__scroll-wrap::-webkit-scrollbar { display: none; }
+
+/* Scroll fade hint */
+.casa-compare__scroll-wrap::after {
+  content: '';
+  position: sticky;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  pointer-events: none;
+  display: none;
+}
+
+/* ── Grid ── */
+.casa-compare__grid {
+  display: grid;
+  grid-template-columns: 140px repeat(var(--ccomp-cols, 3), 1fr);
+  gap: 0;
+  min-width: 100%;
+}
+
+/* ── Cells ── */
+.casa-compare__cell {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  font-size: 14px;
+}
+.casa-compare--dark .casa-compare__cell {
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+
+/* Label column */
+.casa-compare__cell--label {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.55;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+.casa-compare--white .casa-compare__cell--label { background: var(--casa-paper); }
+.casa-compare--light .casa-compare__cell--label { background: var(--casa-paper); }
+.casa-compare--dark .casa-compare__cell--label  { background: var(--casa-ink); }
+
+/* Alt rows */
+.casa-compare__cell--alt {
+  background: rgba(0,0,0,0.02);
+}
+.casa-compare--dark .casa-compare__cell--alt {
+  background: rgba(255,255,255,0.03);
+}
+.casa-compare__cell--alt.casa-compare__cell--label {
+  /* Override with section bg + tint */
+}
+.casa-compare--white .casa-compare__cell--alt.casa-compare__cell--label { background: var(--casa-paper); }
+.casa-compare--light .casa-compare__cell--alt.casa-compare__cell--label { background: #f2f2f4; }
+.casa-compare--dark .casa-compare__cell--alt.casa-compare__cell--label  { background: #0e0e14; }
+
+/* Value cells */
+.casa-compare__cell--val {
+  font-weight: 600;
+  font-size: 13px;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Recommended column highlight */
+.casa-compare__cell--rec {
+  background: rgba(176, 195, 250, 0.04);
+}
+.casa-compare--dark .casa-compare__cell--rec {
+  background: rgba(176, 195, 250, 0.1);
+}
+
+/* ── Header Cells (product cards) ── */
+.casa-compare__cell--head {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px 12px 16px;
+  gap: 8px;
+  border-bottom: 2px solid rgba(0,0,0,0.08);
+  position: relative;
+}
+.casa-compare--dark .casa-compare__cell--head {
+  border-bottom-color: rgba(255,255,255,0.1);
+}
+.casa-compare__cell--head.casa-compare__cell--rec {
+  border-top: 3px solid var(--ccomp-accent, #B0C3FA);
+  border-radius: 12px 12px 0 0;
+}
+
+/* Badge */
+.casa-compare__badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--ccomp-accent, #B0C3FA);
+  color: #fff;
+}
+
+/* Product image */
+.casa-compare__img {
+  width: 100%;
+  max-width: 160px;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.casa-compare__img img {
+  /* height: auto + aspect-ratio instead of height: 100% — the wrapper's
+     height comes from its own aspect-ratio, and Safari 26 can fail to
+     resolve a %-height against that (the /cart flat-thumbnail class;
+     immune pattern from .cart-items__media-image in snippets/cart-products.liquid). */
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+/* Product title */
+.casa-compare__product-title {
+  font-size: var(--font-h5--size, 14px);
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* Price */
+.casa-compare__price {
+  font-size: 15px;
+  font-weight: 700;
+}
+.casa-compare__price--was {
+  font-size: 12px;
+  font-weight: 400;
+  text-decoration: line-through;
+  opacity: 0.5;
+  margin-left: 6px;
+}
+
+/* Rating */
+.casa-compare__rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+.casa-compare__stars {
+  color: #fbbf24;
+  font-weight: 600;
+}
+.casa-compare__count {
+  opacity: 0.5;
+  font-size: 12px;
+}
+
+/* ── CTA ── */
+.casa-compare__cell--cta {
+  padding: 16px;
+  justify-content: center;
+  border-bottom: none;
+}
+/* Brand class .btn .btn-[treatment] provides display, padding,
+   border, radius, font, transition, text-transform, letter-spacing,
+   hover. casa-compare__btn class kept as a hook for the --rec
+   "recommended" variant + accent-color hover. */
+.casa-compare__btn--rec {
+  background: var(--ccomp-accent, #B0C3FA);
+  border-color: var(--ccomp-accent, #B0C3FA);
+  color: #fff;
+}
+.casa-compare__btn--rec:hover {
+  opacity: 0.9;
+}
+
+/* ── Auto-specs placeholder (removed by JS after parsing) ── */
+.casa-compare__auto-specs {
+  display: contents;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CUSTOMER PICKER
+   ══════════════════════════════════════════════════════════════ */
+.casa-compare__picker {
+  margin-bottom: 24px;
+}
+.casa-compare__picker-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.casa-compare__slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(0,0,0,0.05);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.casa-compare--dark .casa-compare__slot { background: rgba(255,255,255,0.1); }
+.casa-compare__slot img { width: 24px; height: 24px; border-radius: 4px; object-fit: cover; }
+.casa-compare__slot-x {
+  background: none; border: none; cursor: pointer; font-size: 16px;
+  color: inherit; opacity: 0.5; padding: 0 2px; line-height: 1;
+}
+.casa-compare__slot-x:hover { opacity: 1; }
+.casa-compare__slot--add {
+  border: 1.5px dashed rgba(0,0,0,0.2);
+  background: transparent;
+  color: inherit;
+  opacity: 0.5;
+  font-size: 12px;
+  cursor: default;
+}
+.casa-compare--dark .casa-compare__slot--add { border-color: rgba(255,255,255,0.2); }
+
+/* Search input */
+.casa-compare__picker-search { position: relative; max-width: 400px; }
+.casa-compare__search-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid rgba(0,0,0,0.12);
+  border-radius: 10px;
+  font-size: 14px;
+  background: transparent;
+  color: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.casa-compare__search-input:focus { border-color: var(--ccomp-accent, #B0C3FA); }
+.casa-compare--dark .casa-compare__search-input { border-color: rgba(255,255,255,0.15); }
+
+/* Search results dropdown */
+.casa-compare__search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--casa-paper);
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 100;
+  max-height: 320px;
+  overflow-y: auto;
+  display: none;
+  margin-top: 4px;
+}
+.casa-compare--dark .casa-compare__search-results { background: #1a1a1f; border-color: rgba(255,255,255,0.1); }
+.casa-compare__search-results.is-open { display: block; }
+
+.casa-compare__search-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+  color: inherit;
+  transition: background 0.15s;
+}
+.casa-compare__search-item:hover { background: rgba(0,0,0,0.04); }
+.casa-compare--dark .casa-compare__search-item:hover { background: rgba(255,255,255,0.06); }
+.casa-compare__search-item.is-picked { opacity: 0.4; cursor: default; }
+.casa-compare__search-item img { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+.casa-compare__search-name { flex: 1; font-weight: 500; }
+.casa-compare__search-price { font-size: 12px; opacity: 0.6; }
+.casa-compare__search-check { color: var(--ccomp-accent, #B0C3FA); font-weight: 700; }
+.casa-compare__search-empty { padding: 20px; text-align: center; font-size: 13px; opacity: 0.5; }
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 749px) {
+  .casa-compare {
+    padding: var(--ccomp-padding-mobile-top, 48px) 0 var(--ccomp-padding-mobile-bottom, 48px);
+  }
+  .casa-compare__container { padding: 0 16px; }
+  .casa-compare__header { margin-bottom: 24px; }
+
+  .casa-compare__grid {
+    min-width: calc(120px + (var(--ccomp-cols, 3) * 170px));
+    grid-template-columns: 120px repeat(var(--ccomp-cols, 3), minmax(150px, 1fr));
+  }
+  .casa-compare__cell { padding: 10px 12px; font-size: 13px; }
+  .casa-compare__cell--val { font-size: 12px; }
+  .casa-compare__img { max-width: 120px; }
+  .casa-compare__product-title { font-size: var(--font-h6--size, 13px); }
+  .casa-compare__btn { padding: 8px 16px; font-size: 12px; }
+}
+
+@media (max-width: 480px) {
+  .casa-compare__grid {
+    grid-template-columns: 100px repeat(var(--ccomp-cols, 3), minmax(130px, 1fr));
+    min-width: calc(100px + (var(--ccomp-cols, 3) * 140px));
+  }
+  .casa-compare__cell { padding: 8px 8px; }
+  .casa-compare__cell--label { font-size: 11px; }
+  .casa-compare__img { max-width: 100px; }
+}
+{% endstylesheet %}

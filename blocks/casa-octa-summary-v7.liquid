@@ -1,0 +1,255 @@
+{% doc %}
+  Renders the OctaMirror V7 opening claim and review proof.
+
+  @param {product} closest.product - Product summarized by the block
+{% enddoc %}
+
+{% liquid
+  assign selected_product = closest.product
+  assign rating = selected_product.metafields.reviews.rating.value.rating
+  assign rating_count = selected_product.metafields.reviews.rating_count.value
+
+  if rating == blank
+    assign rating = block.settings.rating_fallback
+  endif
+
+  if rating_count == blank
+    assign rating_count = block.settings.rating_count_fallback
+  endif
+
+  assign other_review_count = rating_count | minus: 2
+  if other_review_count < 0
+    assign other_review_count = 0
+  endif
+%}
+
+<div class="casa-v7-summary" {{ block.shopify_attributes }}>
+  <a class="casa-v7-summary__rating" href="#casa-octa-reviews" aria-label="{{ rating }} out of 5 from {{ rating_count }} verified reviews">
+    <span class="casa-v7-summary__stars" aria-hidden="true">★★★★★</span>
+    <strong>{{ rating }}</strong>
+    <span class="casa-v7-summary__count">({{ rating_count }})</span>
+    <span class="casa-v7-summary__verified-label">reviews</span>
+  </a>
+</div>
+
+{% stylesheet %}
+  .casa-v7-summary {
+    display: grid;
+    gap: 11px;
+    width: 100%;
+  }
+
+  .casa-v7-summary__claim {
+    width: 100%;
+    margin: 0;
+    color: #0a0a0f;
+    font-size: clamp(16px, 4.1vw, 20px);
+    font-weight: 720;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+  }
+
+  .casa-v7-summary__claim em {
+    color: #B0C3FA;
+    font-style: italic;
+  }
+
+  .casa-v7-summary__buyers {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .casa-v7-summary__buyer-check {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    color: #fff;
+    background: linear-gradient(135deg, #B0C3FA, #5E0A02 58%, #F2FFA0);
+    box-shadow: 0 5px 14px rgba(176, 195, 250, 0.2);
+  }
+
+  .casa-v7-summary__buyer-check svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .casa-v7-summary__buyer-check svg path:first-child { fill: rgba(255, 255, 255, 0.2); }
+  .casa-v7-summary__buyer-check svg path:last-child { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .casa-v7-summary__buyers p {
+    min-width: 0;
+    margin: 0;
+    color: #52525b;
+    font-size: 14px;
+    line-height: 1.3;
+  }
+
+  .casa-v7-summary__buyers strong {
+    color: #18181b;
+    font-weight: 680;
+  }
+
+  .casa-v7-summary__rating {
+    display: inline-flex;
+    gap: 7px;
+    align-items: center;
+    width: fit-content;
+    min-height: 44px;
+    color: #0a0a0f;
+    text-decoration: none;
+  }
+
+  .casa-v7-summary__rating:hover .casa-v7-summary__count {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .casa-v7-summary__rating:focus-visible {
+    outline: 2px solid #B0C3FA;
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  .casa-v7-summary__stars {
+    color: #B0C3FA;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+  }
+
+  .casa-v7-summary__rating strong,
+  .casa-v7-summary__count {
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .casa-v7-summary__verified {
+    display: grid;
+    place-items: center;
+    width: 23px;
+    height: 23px;
+    margin-left: 3px;
+    border-radius: 50%;
+    color: #fff;
+    background: linear-gradient(135deg, #B0C3FA, #5E0A02 58%, #F2FFA0);
+    box-shadow: 0 5px 14px rgba(176, 195, 250, 0.25);
+  }
+
+  .casa-v7-summary__verified svg {
+    width: 16px;
+    height: 16px;
+    overflow: visible;
+  }
+
+  .casa-v7-summary__verified svg path:first-child {
+    fill: currentColor;
+    opacity: 0.18;
+  }
+
+  .casa-v7-summary__verified svg path:last-child {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .casa-v7-summary__verified-label {
+    color: #52525b;
+    font-size: 14px;
+    font-weight: 650;
+  }
+
+  .casa-octa-v7-purchase .casa-v7-native-bestseller {
+    position: absolute;
+    /* Keep status markers in a top rail, outside the centered size/price copy.
+       The Bestseller pill owns the left edge; the gift dot owns the right. */
+    top: -10px;
+    right: auto;
+    left: 6px;
+    z-index: 2;
+    padding: 4px 7px;
+    border-radius: 999px;
+    color: #fff;
+    background: linear-gradient(135deg, #B0C3FA, #5E0A02);
+    font: 800 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    box-shadow: 0 4px 12px rgba(176, 195, 250, 0.22);
+    pointer-events: none;
+  }
+
+  @media (max-width: 768px) {
+    .casa-octa-v7-purchase .casa-v7-native-bestseller {
+      top: -8px;
+      padding: 3px 5px;
+    }
+  }
+
+  @media (max-width: 390px) {
+    .casa-v7-summary__stars {
+      font-size: 12px;
+    }
+
+    .casa-v7-summary__buyer-check { width: 22px; height: 22px; }
+  }
+
+  @media (forced-colors: active) {
+    .casa-v7-summary__claim em {
+      color: CanvasText;
+    }
+  }
+{% endstylesheet %}
+
+{% javascript %}
+  function markCasaV7Bestseller(root = document) {
+    root.querySelectorAll('.casa-octa-v7-purchase').forEach((purchase) => {
+      purchase.querySelectorAll('.variant-option input[type="radio"]').forEach((input) => {
+        const value = `${input.value || ''}`.replace(/\s+/g, ' ').toLowerCase();
+        if (value.includes('27.6') || value.includes('70cm') || value.includes('70 cm')) input.setAttribute('aria-label', '27.6 inches / 70 centimeters');
+        else if (value.includes('19.7') || value.includes('50cm') || value.includes('50 cm')) input.setAttribute('aria-label', '19.7 inches / 50 centimeters');
+        else if (value.includes('11.8') || value.includes('30cm') || value.includes('30 cm')) input.setAttribute('aria-label', '11.8 inches / 30 centimeters');
+      });
+      const labels = purchase.querySelectorAll('.variant-option__button-label, .variant-option label');
+      labels.forEach((label) => {
+        const value = `${label.textContent || ''} ${label.querySelector('input')?.value || ''}`.replace(/\s+/g, ' ').toLowerCase();
+        const input = label.querySelector('input');
+        let accessibleSize = '';
+        if (value.includes('27.6') || value.includes('70cm') || value.includes('70 cm')) accessibleSize = '27.6 inches / 70 centimeters';
+        else if (value.includes('19.7') || value.includes('50cm') || value.includes('50 cm')) accessibleSize = '19.7 inches / 50 centimeters';
+        else if (value.includes('11.8') || value.includes('30cm') || value.includes('30 cm')) accessibleSize = '11.8 inches / 30 centimeters';
+        if (accessibleSize && input) input.setAttribute('aria-label', accessibleSize);
+        if (!accessibleSize.startsWith('27.6') || label.querySelector('.casa-v7-native-bestseller')) return;
+        const badge = document.createElement('span');
+        badge.className = 'casa-v7-native-bestseller';
+        badge.textContent = 'Bestseller';
+        label.appendChild(badge);
+      });
+    });
+  }
+
+  markCasaV7Bestseller();
+  document.addEventListener('shopify:section:load', (event) => markCasaV7Bestseller(event.target));
+  document.addEventListener('variant:update', () => window.setTimeout(() => markCasaV7Bestseller(), 0));
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "OctaMirror V7 summary",
+  "settings": [
+    { "type": "text", "id": "claim_prefix", "label": "Claim", "default": "Real mirror." },
+    { "type": "text", "id": "claim_emphasis", "label": "Claim emphasis", "default": "Infinity portal." },
+    { "type": "text", "id": "buyer_prefix", "label": "Buyer prefix", "default": "Reviewed by" },
+    { "type": "text", "id": "buyer_1_name", "label": "Buyer one name", "default": "Tricia" },
+    { "type": "text", "id": "buyer_2_name", "label": "Buyer two name", "default": "Mia" },
+    { "type": "text", "id": "verified_label", "label": "Verified label", "default": "Verified reviews" },
+    { "type": "text", "id": "rating_fallback", "label": "Rating fallback", "default": "4.7" },
+    { "type": "text", "id": "rating_count_fallback", "label": "Review count fallback", "default": "356" }
+  ],
+  "presets": [{ "name": "OctaMirror V7 summary" }]
+}
+{% endschema %}

@@ -1,0 +1,82 @@
+{% doc %}
+  Compact V7 purchase assurances and complete practical answers.
+{% enddoc %}
+{% liquid
+  assign shipping_url = shop.shipping_policy.url
+  assign returns_url = shop.refund_policy.url
+  assign guarantee_url = pages['faq'].url
+  assign contact_url = pages['contact-us'].url | default: pages['contact'].url
+
+  if shipping_url == blank
+    assign shipping_url = '/policies/shipping-policy'
+  endif
+
+  if returns_url == blank
+    assign returns_url = '/policies/refund-policy'
+  endif
+
+  if guarantee_url == blank
+    assign guarantee_url = '/pages/faq'
+  endif
+
+  if contact_url == blank
+    assign contact_url = '/pages/contact-us'
+  endif
+%}
+
+<section class="casa-v7-confidence" aria-label="{{ block.settings.section_label | escape }}" {{ block.shopify_attributes }}>
+  <div class="casa-v7-confidence__terms">
+    <a href="{{ shipping_url }}">Free worldwide delivery</a>
+    <a href="{{ guarantee_url }}#warranty">2-year Casa Guarantee</a>
+    <a href="{{ returns_url }}">30-day return window</a>
+  </div>
+  <details name="v7-confidence-{{ block.id }}"><summary>Installation &amp; controls</summary><div class="casa-v7-confidence__answer">{{ 'casa_octa.answers.setup_html' | t }}</div></details>
+  <details name="v7-confidence-{{ block.id }}"><summary>Delivery, returns &amp; support</summary><div class="casa-v7-confidence__answer">{{ 'casa_octa.answers.delivery_html' | t }}{{ 'casa_octa.answers.support_html' | t }}<p><a href="{{ guarantee_url }}#warranty">Read the coverage</a> or <a href="{{ contact_url }}">ask our team</a>.</p></div></details>
+    <article class="casa-v7-confidence__review">
+      {% if block.settings.review_2_image != blank %}
+        <a class="casa-v7-confidence__review-thumb" href="{{ block.settings.review_2_image | image_url: width: 1400 }}" target="_blank" rel="noopener" aria-label="Open Paulina Jackson’s customer photo">
+          {{ block.settings.review_2_image | image_url: width: 180 | image_tag: widths: '90, 120, 180', sizes: '72px', loading: 'lazy', class: 'casa-v7-confidence__review-image', alt: block.settings.review_2_image_alt }}
+        </a>
+      {% else %}
+        <a class="casa-v7-confidence__review-thumb" href="{{ 'octamirror-review-paulina-retouched.jpg' | asset_url }}" target="_blank" rel="noopener" aria-label="Open Paulina Jackson’s customer photo">
+          <img class="casa-v7-confidence__review-image" src="{{ 'octamirror-review-paulina-retouched.jpg' | asset_url }}" width="180" height="180" loading="lazy" alt="{{ block.settings.review_2_image_alt | escape }}">
+        </a>
+      {% endif %}
+      <blockquote>
+        <div class="casa-v7-confidence__stars" aria-label="5 out of 5 stars">★★★★★</div>
+        <p>“{{ block.settings.review_2_quote }}”</p>
+        <cite><span aria-hidden="true">✓</span> {{ block.settings.review_2_author }}</cite>
+      </blockquote>
+    </article>
+</section>
+{% schema %}
+{
+  "name": "OctaMirror V7 confidence",
+  "settings": [
+    { "type": "text", "id": "section_label", "label": "Section label", "default": "Delivery, guarantee, returns and quick answers" },
+    { "type": "text", "id": "shipping_value", "label": "Shipping value", "default": "FREE" },
+    { "type": "text", "id": "shipping_title", "label": "Shipping title", "default": "Worldwide delivery" },
+    { "type": "text", "id": "shipping_body", "label": "Shipping text", "default": "DHL, FedEx or UPS" },
+    { "type": "text", "id": "guarantee_value", "label": "Guarantee value", "default": "2 YEARS" },
+    { "type": "text", "id": "guarantee_title", "label": "Guarantee title", "default": "Casa Guarantee" },
+    { "type": "text", "id": "guarantee_body", "label": "Guarantee text", "default": "Malfunction coverage" },
+    { "type": "text", "id": "returns_value", "label": "Returns value", "default": "30 DAYS" },
+    { "type": "text", "id": "returns_title", "label": "Returns title", "default": "Return window" },
+    { "type": "text", "id": "returns_body", "label": "Returns text", "default": "Time to decide" },
+    { "type": "text", "id": "reviews_label", "label": "Reviews label", "default": "Verified customer review excerpts" },
+    { "type": "image_picker", "id": "review_1_image", "label": "Markus review photo override" },
+    { "type": "text", "id": "review_1_image_alt", "label": "Markus photo alt text", "default": "Violet Infinity OctaMirror mounted at an angle in Markus Mandele’s home" },
+    { "type": "textarea", "id": "review_1_quote", "label": "Review one", "default": "What a marvelous piece of art. The technology to control this thing is on point, extremely well done all round." },
+    { "type": "text", "id": "review_1_author", "label": "Review one author", "default": "Markus Mandele · Verified buyer" },
+    { "type": "image_picker", "id": "review_2_image", "label": "Paulina review photo override" },
+    { "type": "text", "id": "review_2_image_alt", "label": "Paulina photo alt text", "default": "Magenta Infinity OctaMirror mounted at an angle in Paulina Jackson’s home" },
+    { "type": "textarea", "id": "review_2_quote", "label": "Review two", "default": "WOW! The pictures on the store don't even do this mirror justice. I'm absolutely speechless. 5/5 stars." },
+    { "type": "text", "id": "review_2_author", "label": "Review two author", "default": "Paulina Jackson · Verified buyer" },
+    { "type": "text", "id": "faq_2_question", "label": "Question two", "default": "Is it a real mirror—and how does the illusion work?" },
+    { "type": "text", "id": "faq_3_question", "label": "Question three", "default": "How do I install and control it?" },
+    { "type": "text", "id": "faq_4_question", "label": "Question four", "default": "What if I need help?" },
+    { "type": "text", "id": "faq_5_question", "label": "Question five", "default": "How do delivery and returns work?" }
+  ],
+  "presets": [{ "name": "OctaMirror V7 confidence" }]
+}
+{% endschema %}

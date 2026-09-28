@@ -15,32 +15,158 @@
     endif
 
     assign slide_duration = section.settings.slide_duration | default: 5
-    assign bg_style = section.settings.background_style | default: 'animated'
+    assign bg_style = section.settings.background_style | default: 'preset'
+    assign preset = section.settings.preset | default: 'shimmer-tri'
+    assign transition = section.settings.transition | default: 'fade'
+    assign font_weight = section.settings.font_weight | default: '500'
+    assign tracking_pct = section.settings.tracking | default: 0
+    assign tracking_em = tracking_pct | times: 0.01
+    assign uppercase = section.settings.uppercase
+    assign font_size_d = section.settings.font_size | default: 14
+    assign font_size_m = section.settings.font_size_mobile | default: 12
+    assign show_borders = section.settings.show_borders
+    assign border_color = section.settings.border_color | default: 'rgba(255,255,255,0.18)'
+    assign show_glow = section.settings.show_glow
+    assign animation_speed = section.settings.animation_speed | default: 4
+
+    # Map preset name to a gradient. Tokens here intentionally hard-coded
+    # to brand v1 hex values so the bar renders correctly even when loaded
+    # before casa-base.css (announcement is in the head).
+    if preset == 'shimmer-tri'
+      assign preset_bg = 'linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0, #5E0A02, #B0C3FA)'
+      assign preset_animated = true
+    elsif preset == 'purple-pink'
+      assign preset_bg = 'linear-gradient(90deg, #B0C3FA, #5E0A02, #B0C3FA)'
+      assign preset_animated = true
+    elsif preset == 'sunset'
+      assign preset_bg = 'linear-gradient(90deg, #f59e0b, #5E0A02, #B0C3FA, #5E0A02, #f59e0b)'
+      assign preset_animated = true
+    elsif preset == 'aurora'
+      assign preset_bg = 'linear-gradient(90deg, #F2FFA0, #22c55e, #F2FFA0, #B0C3FA, #F2FFA0)'
+      assign preset_animated = true
+    elsif preset == 'midnight'
+      assign preset_bg = 'linear-gradient(90deg, #0a0a0f, #1a1a2e, #16213e, #1a1a2e, #0a0a0f)'
+      assign preset_animated = true
+    elsif preset == 'paper'
+      assign preset_bg = 'var(--casa-paper)'
+      assign preset_animated = false
+    elsif preset == 'ink'
+      assign preset_bg = 'var(--casa-ink)'
+      assign preset_animated = false
+    elsif preset == 'gold'
+      assign preset_bg = 'linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b)'
+      assign preset_animated = true
+    elsif preset == 'pink-solid'
+      assign preset_bg = '#5E0A02'
+      assign preset_animated = false
+    elsif preset == 'purple-solid'
+      assign preset_bg = '#B0C3FA'
+      assign preset_animated = false
+    elsif preset == 'cyan-solid'
+      assign preset_bg = '#F2FFA0'
+      assign preset_animated = false
+    else
+      assign preset_bg = 'linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0, #5E0A02, #B0C3FA)'
+      assign preset_animated = true
+    endif
   -%}
 
+  {%- liquid
+    # `padding` is the simple, shared top+bottom value.
+    # When `padding_split` is on, `padding_top` and `padding_bottom`
+    # take over independently. Without the split toggle there's no
+    # way for Liquid to tell whether the merchant ever moved the
+    # asymmetric sliders — Shopify always sends the schema default
+    # for every setting, set or not.
+    assign base_pad = section.settings.padding | default: 14
+    if section.settings.padding_split
+      assign pad_top = section.settings.padding_top | default: base_pad
+      assign pad_bottom = section.settings.padding_bottom | default: base_pad
+    else
+      assign pad_top = base_pad
+      assign pad_bottom = base_pad
+    endif
+    assign pad_inline = section.settings.padding_inline | default: 40
+  -%}
   {%- capture announcement_styles -%}
-    --announcement-padding: {{ section.settings.padding }}px;
-    --announcement-text: {{ section.settings.text_color | default: '#ffffff' }};
-    {%- if bg_style == 'solid' -%}
-      --announcement-bg: {{ section.settings.solid_color }};
+    --casa-an-pad-top: {{ pad_top }}px;
+    --casa-an-pad-bottom: {{ pad_bottom }}px;
+    --casa-an-pad-inline: {{ pad_inline }}px;
+    --casa-an-text: {{ section.settings.text_color | default: '#FAFAF7' }};
+    --casa-an-font-size: {{ font_size_d }}px;
+    --casa-an-font-size-m: {{ font_size_m }}px;
+    --casa-an-font-weight: {{ font_weight }};
+    --casa-an-tracking: {{ tracking_em }}em;
+    --casa-an-anim-speed: {{ animation_speed }}s;
+    --casa-an-border-color: {{ border_color }};
+    {%- if bg_style == 'preset' -%}
+      --casa-an-bg: {{ preset_bg }};
+    {%- elsif bg_style == 'solid' -%}
+      --casa-an-bg: {{ section.settings.solid_color }};
     {%- else -%}
-      --announcement-color-1: {{ section.settings.gradient_color_1 }};
-      --announcement-color-2: {{ section.settings.gradient_color_2 }};
-      --announcement-color-3: {{ section.settings.gradient_color_3 }};
+      --casa-an-bg: linear-gradient(90deg, {{ section.settings.gradient_color_1 }}, {{ section.settings.gradient_color_2 }}, {{ section.settings.gradient_color_3 }}, {{ section.settings.gradient_color_2 }}, {{ section.settings.gradient_color_1 }});
     {%- endif -%}
   {%- endcapture -%}
 
-  <div class="casa-announcement{% if announcement_count > 1 %} casa-announcement--slider{% endif %}{% if bg_style == 'solid' %} casa-announcement--solid{% endif %}"
+  {%- assign is_animated = false -%}
+  {%- if bg_style == 'preset' and preset_animated -%}{%- assign is_animated = true -%}{%- endif -%}
+  {%- if bg_style == 'gradient' -%}{%- assign is_animated = true -%}{%- endif -%}
+
+  {%- comment -%}
+    Per-block bg/text overrides. The BAR owns the painted background (the
+    base background plus the animated shimmer pseudo-element), so a block
+    override has to repaint the bar — and an inline custom property on a
+    slide cannot: custom properties inherit downward only, and a bar rule
+    reading var(--casa-an-bg) just re-resolves the bar's own section-level
+    inline value (runtime-verified 2026-09-02: the old has-block-override
+    plumbing never painted). Each override block instead gets literal
+    rules keyed on its block id. While that slide is active the bar
+    repaints through its existing 240ms background transition, the
+    shimmer layer fades out for bg overrides, and the nav dots follow an
+    override text color via currentcolor. Emitted only when at least one
+    block sets an override, so today's all-blank config emits no style
+    tag, no data attributes, and renders identically.
+  {%- endcomment -%}
+  {%- capture an_override_css -%}
+    {%- for block in section.blocks -%}
+      {%- if block.type == 'announcement' -%}
+        {%- assign ov_bg = block.settings.bg_override | default: '' -%}
+        {%- assign ov_text = block.settings.text_override | default: '' -%}
+        {%- if ov_bg != blank or ov_text != blank %}
+          .casa-announcement:has([data-an-block="{{ block.id }}"].is-active) {
+            {%- if ov_bg != blank %} background: {{ ov_bg }};{% endif -%}
+            {%- if ov_text != blank %} color: {{ ov_text }};{% endif %}
+          }
+          {%- if ov_bg != blank %}
+          .casa-announcement--animated:has([data-an-block="{{ block.id }}"].is-active)::before {
+            opacity: 0;
+          }
+          {%- endif -%}
+        {%- endif -%}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endcapture -%}
+  {%- if an_override_css != blank -%}
+    {% style %}{{ an_override_css }}{% endstyle %}
+  {%- endif -%}
+
+  <div class="casa-announcement
+              {% if announcement_count > 1 %}casa-announcement--slider casa-announcement--{{ transition }}{% endif %}
+              {% if is_animated %}casa-announcement--animated{% endif %}
+              {% if uppercase %}casa-announcement--upper{% endif %}
+              {% if show_borders %}casa-announcement--bordered{% endif %}
+              {% if show_glow %}casa-announcement--glow{% endif %}"
        data-announcement-slider
        data-slide-duration="{{ slide_duration }}"
        data-pause-on-hover="{{ section.settings.pause_on_hover }}"
+       data-transition="{{ transition }}"
        style="{{ announcement_styles | strip_newlines }}"
        {{ section.shopify_attributes }}>
 
-    <div class="casa-announcement__track" style="--announcement-count: {{ announcement_count }};">
+    <div class="casa-announcement__track" style="--casa-an-count: {{ announcement_count }};">
       {%- if use_fallback -%}
         {%- comment -%} Fallback to legacy single announcement {%- endcomment -%}
-        <div class="casa-announcement__slide{% if announcement_count == 1 %} is-active{% endif %}">
+        <div class="casa-announcement__slide is-active">
           {%- if section.settings.announcement_link != blank -%}
             <a href="{{ section.settings.announcement_link }}" class="casa-announcement__link">
           {%- endif -%}
@@ -55,11 +181,35 @@
           {%- endif -%}
         </div>
       {%- else -%}
-        {%- comment -%} Render announcement blocks {%- endcomment -%}
         {%- assign slide_index = 0 -%}
         {%- for block in section.blocks -%}
           {%- if block.type == 'announcement' -%}
-            <div class="casa-announcement__slide{% if slide_index == 0 %} is-active{% endif %}" {{ block.shopify_attributes }}>
+            {%- liquid
+              assign slide_classes = 'casa-announcement__slide'
+              if slide_index == 0
+                assign slide_classes = slide_classes | append: ' is-active'
+              endif
+              # Per-block bg/text override. The bg repaint is done by the
+              # per-block rules captured above the bar markup, keyed on
+              # data-an-block — an inline var here can never reach the bar
+              # (custom properties inherit down, not up). Only the text var
+              # rides on the slide: the stylesheet slide rule reads it so
+              # outgoing and incoming slides each keep their own text color
+              # through the crossfade.
+              assign block_bg = block.settings.bg_override | default: ''
+              assign block_text = block.settings.text_override | default: ''
+              capture block_style
+                if block_text != blank
+                  echo '--casa-an-text: '
+                  echo block_text
+                  echo ';'
+                endif
+              endcapture
+            -%}
+            <div class="{{ slide_classes }}"
+                 {% if block_bg != blank or block_text != blank %}data-an-block="{{ block.id }}"{% endif %}
+                 {% if block_style != blank %}style="{{ block_style | strip_newlines }}"{% endif %}
+                 {{ block.shopify_attributes }}>
               {%- if block.settings.link != blank -%}
                 <a href="{{ block.settings.link }}" class="casa-announcement__link">
               {%- endif -%}
@@ -67,9 +217,12 @@
                 {%- if block.settings.icon != 'none' -%}
                   <span class="casa-announcement__icon">{%- render 'casa-icon', icon: block.settings.icon, size: 16 -%}</span>
                 {%- endif -%}
-                {{ block.settings.text }}
+                <span class="casa-announcement__text-body">{{ block.settings.text }}</span>
                 {%- if block.settings.promo_code != blank -%}
                   <code class="casa-announcement__code">{{ block.settings.promo_code }}</code>
+                {%- endif -%}
+                {%- if block.settings.cta_text != blank and block.settings.link != blank -%}
+                  <span class="casa-announcement__cta">{{ block.settings.cta_text }} <span aria-hidden="true">→</span></span>
                 {%- endif -%}
               </span>
               {%- if block.settings.link != blank -%}
@@ -96,125 +249,279 @@
 
   <script>
     (function() {
-      const slider = document.querySelector('[data-announcement-slider]');
-      if (!slider) return;
+      // Scope to THIS instance using the shopify-attribute id, so multiple
+      // announcement bars on a page each run their own loop.
+      var sliders = document.querySelectorAll('[data-announcement-slider]');
+      sliders.forEach(function(slider) {
+        if (slider.dataset.casaAnInit) return;
+        slider.dataset.casaAnInit = '1';
 
-      const slides = slider.querySelectorAll('.casa-announcement__slide');
-      const dots = slider.querySelectorAll('.casa-announcement__dot');
-      if (slides.length <= 1) return;
+        var slides = slider.querySelectorAll('.casa-announcement__slide');
+        var dots = slider.querySelectorAll('.casa-announcement__dot');
+        if (slides.length <= 1) return;
 
-      const duration = parseInt(slider.dataset.slideDuration) * 1000 || 5000;
-      const pauseOnHover = slider.dataset.pauseOnHover === 'true';
-      let currentIndex = 0;
-      let interval;
-      let isPaused = false;
+        var duration = parseInt(slider.dataset.slideDuration, 10) * 1000 || 5000;
+        var pauseOnHover = slider.dataset.pauseOnHover === 'true';
+        var transition = slider.dataset.transition || 'fade';
+        var currentIndex = 0;
+        var interval;
+        var isPaused = false;
 
-      function showSlide(index) {
-        slides.forEach((slide, i) => {
-          slide.classList.toggle('is-active', i === index);
+        function showSlide(index) {
+          slides.forEach(function(slide, i) {
+            slide.classList.toggle('is-active', i === index);
+            slide.classList.toggle('is-prev', i === currentIndex && i !== index);
+          });
+          dots.forEach(function(dot, i) {
+            dot.classList.toggle('is-active', i === index);
+          });
+          currentIndex = index;
+        }
+
+        function nextSlide() {
+          showSlide((currentIndex + 1) % slides.length);
+        }
+
+        function startAutoPlay() {
+          if (interval) clearInterval(interval);
+          interval = setInterval(function() {
+            // Hold rotation while keyboard focus is inside the bar (WCAG
+            // 2.2.2): inactive slides are visibility:hidden, so advancing
+            // would drop a focused "Shop now" to <body> and force a re-tab
+            // from the top of the page. Ground truth per tick rather than a
+            // cached focusin/focusout flag — engines disagree on whether
+            // focusout fires when the focused node itself goes
+            // visibility:hidden (the delayed flip above), and one missed
+            // focusout would freeze rotation permanently. Deliberately not
+            // gated on the pause_on_hover setting: a11y need, not merchant
+            // preference.
+            if (!isPaused && !slider.contains(document.activeElement)) nextSlide();
+          }, duration);
+        }
+
+        dots.forEach(function(dot, i) {
+          dot.addEventListener('click', function() {
+            showSlide(i);
+            startAutoPlay();
+          });
         });
-        dots.forEach((dot, i) => {
-          dot.classList.toggle('is-active', i === index);
-        });
-        currentIndex = index;
-      }
 
-      function nextSlide() {
-        const next = (currentIndex + 1) % slides.length;
-        showSlide(next);
-      }
+        if (pauseOnHover) {
+          slider.addEventListener('mouseenter', function() { isPaused = true; });
+          slider.addEventListener('mouseleave', function() { isPaused = false; });
+        }
 
-      function startAutoPlay() {
-        if (interval) clearInterval(interval);
-        interval = setInterval(() => {
-          if (!isPaused) nextSlide();
-        }, duration);
-      }
-
-      // Dot navigation
-      dots.forEach((dot, i) => {
-        dot.addEventListener('click', () => {
-          showSlide(i);
-          startAutoPlay(); // Reset timer on manual navigation
-        });
+        // Respect reduced motion — no autoplay if user opted out
+        var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!reduceMotion) startAutoPlay();
       });
-
-      // Pause on hover
-      if (pauseOnHover) {
-        slider.addEventListener('mouseenter', () => { isPaused = true; });
-        slider.addEventListener('mouseleave', () => { isPaused = false; });
-      }
-
-      // Start
-      startAutoPlay();
     })();
   </script>
 {%- endif -%}
 
 {% stylesheet %}
+  /* Seoul Glow Lab — announcement bar
+     Styling controlled by CSS custom properties passed inline from
+     the Liquid section. All visual variants are toggled via class
+     modifiers on the root .casa-announcement element. */
   .casa-announcement {
-    background: linear-gradient(
-      90deg,
-      var(--announcement-color-1, #9333ea),
-      var(--announcement-color-2, #ec4899),
-      var(--announcement-color-3, #06b6d4),
-      var(--announcement-color-2, #ec4899),
-      var(--announcement-color-1, #9333ea)
-    );
+    background: var(--casa-an-bg, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0, #5E0A02, #B0C3FA));
     background-size: 300% 100%;
-    animation: casa-shimmer 4s linear infinite;
-    padding: var(--announcement-padding, 14px) 40px;
+    /* Padding values are pre-resolved in Liquid (legacy `padding`
+       fallback flows through to top + bottom), so we just consume
+       single-purpose vars here — no fallback chain in var(). */
+    padding-block-start: var(--casa-an-pad-top, 14px);
+    padding-block-end: var(--casa-an-pad-bottom, 14px);
+    padding-inline: var(--casa-an-pad-inline, 40px);
     text-align: center;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--announcement-text, white);
+    font-size: var(--casa-an-font-size, 14px);
+    font-weight: var(--casa-an-font-weight, 500);
+    letter-spacing: var(--casa-an-tracking, 0);
+    color: var(--casa-an-text, #fff);
     line-height: 1.4;
     position: relative;
     overflow: hidden;
+    transition: background 240ms ease;
   }
 
-  /* Solid color mode - no animation */
-  .casa-announcement--solid {
-    background: var(--announcement-bg, #9333ea);
-    background-size: auto;
-    animation: none;
-  }
+  .casa-announcement--upper { text-transform: uppercase; }
 
-  .casa-announcement__track {
-    position: relative;
-    min-height: 1.4em;
-  }
+  /* Shimmer rewritten 2026-05-17 (Elie report: visible flicker on the
+     announcement bar gradient). The original animation moved
+     `background-position` from 0%→300% over 4-12s. Animating
+     background-position forces a full paint of the gradient on every
+     frame — the browser cannot promote it to a GPU layer and the
+     repaint cost compounds with the header backdrop above it,
+     producing visible flicker.
 
-  .casa-announcement__slide {
+     New approach: animate transform: translateX() on a pseudo-element
+     instead. transform is compositor-only (zero paint cost) and runs
+     entirely on the GPU. Same visual effect, zero flicker.
+
+     The ::before is 300% wide (3× parent), holds the gradient at its
+     natural size, and slides left by 2/3 of its own width — which is
+     exactly 2× the parent's width — to complete one full shimmer
+     cycle. The remaining 1/3 of pseudo-width always covers the
+     parent. overflow: hidden on the parent (already present, line
+     above) clips the moving layer. */
+  .casa-announcement--animated {
+    /* The pseudo-element layer below renders the visible gradient.
+       Keeping the parent's background (line 278) intact means non-
+       animated state still works unchanged — and during animation
+       it sits behind the pseudo, invisible but harmless. */
+  }
+  .casa-announcement--animated::before {
+    content: '';
     position: absolute;
     top: 0;
+    bottom: 0;
     left: 0;
-    right: 0;
-    opacity: 0;
-    transform: translateY(10px);
-    transition: opacity 0.4s ease, transform 0.4s ease;
-    pointer-events: none;
+    width: 300%;
+    background: var(--casa-an-bg, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0, #5E0A02, #B0C3FA));
+    z-index: 0;
+    will-change: transform;
+    /* perf-justified: compositor-only translateX on a will-change-promoted
+       layer — 466ba834 rewrote the old background-position paint loop into
+       exactly this to kill flicker; zero main-thread or paint work. */
+    animation: casa-an-shimmer var(--casa-an-anim-speed, 4s) linear infinite;
+    /* Fades out while a bg-override slide is active (per-block rules the
+       section Liquid emits set opacity: 0), matching the bar's own 240ms
+       background transition underneath. */
+    transition: opacity 240ms ease;
   }
-
-  .casa-announcement__slide.is-active {
+  /* Keep text + slides above the shimmer layer */
+  .casa-announcement--animated > * {
     position: relative;
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
+    z-index: 1;
+  }
+  @keyframes casa-an-shimmer {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-66.6667%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .casa-announcement--animated::before { animation: none; }
   }
 
-  /* Single announcement - no transitions needed */
+  /* Borders */
+  .casa-announcement--bordered {
+    border-block: 1px solid var(--casa-an-border-color, rgba(255,255,255,0.18));
+  }
+
+  /* Soft glow underneath, brand purple/pink. Subtle drop shadow when on. */
+  .casa-announcement--glow {
+    box-shadow: 0 4px 24px rgba(176, 195, 250, 0.18), 0 1px 0 rgba(94, 10, 2, 0.12);
+  }
+
+  /* Track + slides.
+     The track is a single-cell GRID and every slide occupies that same
+     cell (grid-area 1/1), so the track's height is the TALLEST slide —
+     never the active one. Load-bearing contract, not a styling choice:
+     the sticky group's height feeds --header-group-height /
+     --casa-chrome-top (casa-header.liquid), which the PDP's sticky
+     gallery/details columns pin against and --casa-vh-fit sections size
+     against. When the track sized itself to the ACTIVE slide, a slide
+     with a CTA pill (28px box: 4px padding ×2 + 1px border ×2 + line)
+     made the bar breathe 36↔28px on every 5s rotation while the pin
+     stayed at its load-time value — a permanent 8px white band above
+     the PDP gallery for two of every three slides, plus a page-wide 8px
+     reflow each turn (merchant, 2026-09-01). Stacked grid areas make
+     equal heights structural at every width, font, and zoom; a slide's
+     own flex centering keeps shorter content centered in the shared
+     box, preserving the old flex track's below-baseline-gap kill. */
+  .casa-announcement__track {
+    position: relative;
+    display: grid;
+    min-height: 0;
+  }
+  .casa-announcement__slide {
+    grid-area: 1 / 1;
+    /* Grid items default to min-width:auto, so the widest nowrap slide
+       would blow the shared column past the track and pin it to the
+       inline START — right-only mid-character clipping at 280-320px.
+       min-width:0 clamps the column to the track so an over-wide slide
+       overflows symmetrically from center, same as the old absolute
+       geometry. */
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* min-height + line-height still pin the text line box so an inline
+       icon SVG (16px) can't wiggle the shared cell by ~3px against
+       text-only slides. Pair to .casa-announcement__link. */
+    min-height: 20px;
+    line-height: 1.4;
+    opacity: 0;
+    pointer-events: none;
+    /* visibility (not display:none) so hidden slides KEEP their layout box —
+       the single-cell-grid contract above sizes the track to the tallest
+       slide whether or not it's showing. What visibility adds over opacity
+       alone: inactive slides leave the a11y tree and the tab order (an
+       invisible "Shop now" link was a keyboard stop on 2 of every 3
+       rotation states). The `0s 0.4s` pair keeps the outgoing slide
+       paintable for the whole fade-out; .is-active re-declares the
+       transition with no delay because the DESTINATION state's transition
+       governs — inheriting this delayed flip would hold the incoming slide
+       invisible for the first 0.4s of its fade-in. */
+    visibility: hidden;
+    transition: opacity 0.4s ease, transform 0.4s ease, visibility 0s 0.4s;
+  }
+  .casa-announcement__slide.is-active {
+    opacity: 1;
+    transform: translateY(0) translateX(0);
+    pointer-events: auto;
+    visibility: visible;
+    transition: opacity 0.4s ease, transform 0.4s ease, visibility 0s;
+  }
+
+  /* Per-block override (bg_override / text_override block settings).
+     The dynamic half — repainting the bar while an override slide is
+     active — is emitted from the section Liquid as literal per-block
+     rules keyed on data-an-block, because a custom property inlined on
+     a slide can never reach the bar (vars inherit down, not up; a bar
+     rule reading var(--casa-an-bg) resolves the bar's own section-level
+     value — which is why the pre-2026-09 has-block-override plumbing
+     never painted). The static half lives here: each slide resolves its
+     own text color, so a crossfade never flashes one slide's override
+     onto its neighbour. Non-override slides resolve the section var
+     inherited from the bar — same computed color as before this rule. */
+  .casa-announcement__slide {
+    color: var(--casa-an-text, inherit);
+  }
+
+  /* Single announcement — no transitions needed */
   .casa-announcement:not(.casa-announcement--slider) .casa-announcement__slide {
     position: relative;
     opacity: 1;
     transform: none;
     pointer-events: auto;
+    visibility: visible;
+  }
+
+  /* Transition variants — applied to OFF-screen / inactive slides only.
+     The active slide always sits at translate(0,0) (set on .is-active
+     above with higher specificity to win the cascade). Without the
+     ":not(.is-active)" qualifier here, the inactive-state transform
+     would also apply to the active slide and push the content down /
+     to the side, eating into the bar's bottom padding visually. */
+  .casa-announcement--fade .casa-announcement__slide:not(.is-active) {
+    transform: translateY(8px);
+  }
+  .casa-announcement--slide-up .casa-announcement__slide:not(.is-active) {
+    transform: translateY(100%);
+  }
+  .casa-announcement--slide-left .casa-announcement__slide:not(.is-active) {
+    transform: translateX(40px);
   }
 
   .casa-announcement__link {
-    color: var(--announcement-text, white);
+    color: inherit;
     text-decoration: none;
-    display: block;
+    /* inline-flex + line-height pin keep the link's box at the slide's
+       20px line-height even when an inline icon SVG (16px) would otherwise
+       push the line-box taller. Pair to .casa-announcement__slide min-height. */
+    display: inline-flex;
+    align-items: center;
+    line-height: 1.4;
   }
 
   .casa-announcement__text {
@@ -222,64 +529,93 @@
     align-items: center;
     gap: 8px;
     justify-content: center;
+    /* Don't wrap — wrapping made the bar grow vertically when the
+       CTA pill / promo code pushed content past the viewport on
+       narrow screens. The bar is intentionally a single line; long
+       copy ellipses cleanly via overflow on the parent. */
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+
+  .casa-announcement__text-body {
+    /* Single-line; long content gets clipped by the bar's overflow:hidden.
+       If you need a longer message, split it into multiple announcement
+       blocks instead. */
   }
 
   .casa-announcement__icon {
     display: inline-flex;
     align-items: center;
-    opacity: 0.9;
+    opacity: 0.92;
   }
 
   .casa-announcement__code {
-    background: color-mix(in srgb, var(--announcement-text, white) 20%, transparent);
-    padding: 4px 12px;
-    border-radius: 4px;
+    background: color-mix(in srgb, currentcolor 18%, transparent);
+    padding: 4px 10px;
+    border-radius: 6px;
     font-weight: 700;
-    font-family: inherit;
-    margin: 0 4px;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 0.92em;
+    letter-spacing: 0.04em;
+    margin: 0 2px;
+    border: 1px solid color-mix(in srgb, currentcolor 22%, transparent);
   }
 
-  /* Navigation dots */
+  /* CTA pill — replaces inline link styling for blocks with cta_text */
+  .casa-announcement__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: color-mix(in srgb, currentcolor 14%, transparent);
+    border: 1px solid color-mix(in srgb, currentcolor 26%, transparent);
+    font-weight: 600;
+    font-size: 0.92em;
+    margin-left: 4px;
+    transition: background 160ms ease, transform 160ms ease, border-color 160ms ease;
+  }
+  .casa-announcement__link:hover .casa-announcement__cta {
+    background: color-mix(in srgb, currentcolor 22%, transparent);
+    border-color: color-mix(in srgb, currentcolor 40%, transparent);
+    transform: translateX(2px);
+  }
+
+  /* Dots */
   .casa-announcement__nav {
     display: flex;
     justify-content: center;
     gap: 6px;
     margin-top: 10px;
   }
-
   .casa-announcement__dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: color-mix(in srgb, var(--announcement-text, white) 30%, transparent);
+    background: color-mix(in srgb, currentcolor 32%, transparent);
     border: none;
     padding: 0;
     cursor: pointer;
     transition: all 0.2s;
   }
-
   .casa-announcement__dot:hover {
-    background: color-mix(in srgb, var(--announcement-text, white) 50%, transparent);
+    background: color-mix(in srgb, currentcolor 55%, transparent);
   }
-
   .casa-announcement__dot.is-active {
-    background: var(--announcement-text, white);
+    background: currentcolor;
     transform: scale(1.3);
   }
 
   @media (max-width: 749px) {
     .casa-announcement {
-      padding: calc(var(--announcement-padding, 14px) * 0.7) 16px;
-      font-size: 12px;
+      padding-block-start: calc(var(--casa-an-pad-top, 14px) * 0.7);
+      padding-block-end:   calc(var(--casa-an-pad-bottom, 14px) * 0.7);
+      padding-inline: 16px;
+      font-size: var(--casa-an-font-size-m, 12px);
     }
-
-    .casa-announcement__code {
-      padding: 2px 8px;
-    }
-
-    .casa-announcement__nav {
-      margin-top: 8px;
-    }
+    .casa-announcement__code { padding: 2px 8px; }
+    .casa-announcement__nav { margin-top: 8px; }
+    .casa-announcement__cta { padding: 3px 10px; }
   }
 {% endstylesheet %}
 
@@ -297,77 +633,233 @@
     },
     {
       "type": "header",
-      "content": "Background Style"
+      "content": "Background"
     },
     {
       "type": "select",
       "id": "background_style",
-      "label": "Background style",
+      "label": "Background source",
       "options": [
-        { "value": "animated", "label": "Animated gradient" },
+        { "value": "preset", "label": "Brand preset" },
+        { "value": "gradient", "label": "Custom gradient" },
         { "value": "solid", "label": "Solid color" }
       ],
-      "default": "animated"
+      "default": "preset",
+      "info": "Brand presets pull from the Seoul Glow Lab brand v1 palette and animate where appropriate."
+    },
+    {
+      "type": "select",
+      "id": "preset",
+      "label": "Brand preset",
+      "options": [
+        { "value": "shimmer-tri",  "label": "Shimmer (purple → pink → cyan)" },
+        { "value": "purple-pink",  "label": "Purple ↔ pink wave" },
+        { "value": "sunset",       "label": "Sunset (gold → pink → purple)" },
+        { "value": "aurora",       "label": "Aurora (cyan → green → purple)" },
+        { "value": "midnight",     "label": "Midnight (deep navy gradient)" },
+        { "value": "gold",         "label": "Gold shimmer" },
+        { "value": "purple-solid", "label": "Solid purple" },
+        { "value": "pink-solid",   "label": "Solid pink" },
+        { "value": "cyan-solid",   "label": "Solid cyan" },
+        { "value": "ink",          "label": "Solid ink (dark)" },
+        { "value": "paper",        "label": "Solid paper (light)" }
+      ],
+      "default": "shimmer-tri",
+      "info": "Used when 'Brand preset' is selected as background source."
     },
     {
       "type": "color",
       "id": "solid_color",
-      "label": "Solid background color",
-      "default": "#9333ea",
-      "info": "Used when 'Solid color' is selected"
+      "label": "Solid color",
+      "default": "#B0C3FA",
+      "info": "Used when 'Solid color' is selected."
+    },
+    {
+      "type": "color",
+      "id": "gradient_color_1",
+      "label": "Custom gradient — color 1",
+      "default": "#B0C3FA"
+    },
+    {
+      "type": "color",
+      "id": "gradient_color_2",
+      "label": "Custom gradient — color 2",
+      "default": "#5E0A02"
+    },
+    {
+      "type": "color",
+      "id": "gradient_color_3",
+      "label": "Custom gradient — color 3",
+      "default": "#F2FFA0"
     },
     {
       "type": "color",
       "id": "text_color",
       "label": "Text color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
-      "type": "color",
-      "id": "gradient_color_1",
-      "label": "Gradient color 1",
-      "default": "#9333ea",
-      "info": "Purple (left side)"
+      "type": "range",
+      "id": "animation_speed",
+      "label": "Gradient animation speed",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 4,
+      "unit": "sec",
+      "info": "Lower = faster shimmer. Only applies to animated presets / gradients."
     },
     {
-      "type": "color",
-      "id": "gradient_color_2",
-      "label": "Gradient color 2",
-      "default": "#ec4899",
-      "info": "Pink (middle)"
+      "type": "header",
+      "content": "Typography"
     },
     {
-      "type": "color",
-      "id": "gradient_color_3",
-      "label": "Gradient color 3",
-      "default": "#06b6d4",
-      "info": "Cyan (center accent)"
+      "type": "range",
+      "id": "font_size",
+      "label": "Font size (desktop)",
+      "min": 11,
+      "max": 18,
+      "step": 1,
+      "default": 14,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "font_size_mobile",
+      "label": "Font size (mobile)",
+      "min": 10,
+      "max": 16,
+      "step": 1,
+      "default": 12,
+      "unit": "px"
+    },
+    {
+      "type": "select",
+      "id": "font_weight",
+      "label": "Font weight",
+      "options": [
+        { "value": "400", "label": "Regular" },
+        { "value": "500", "label": "Medium" },
+        { "value": "600", "label": "Semi-bold" },
+        { "value": "700", "label": "Bold" }
+      ],
+      "default": "500"
+    },
+    {
+      "type": "range",
+      "id": "tracking",
+      "label": "Letter spacing",
+      "min": -2,
+      "max": 16,
+      "step": 1,
+      "default": 0,
+      "unit": "%",
+      "info": "Percent of an em — 0 = none, 8% reads as elegant on uppercase, 16% is wide spacing."
+    },
+    {
+      "type": "checkbox",
+      "id": "uppercase",
+      "label": "Uppercase",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Layout & frame"
     },
     {
       "type": "range",
       "id": "padding",
-      "label": "Bar height (padding)",
-      "min": 6,
-      "max": 24,
-      "step": 2,
+      "label": "Bar height (top + bottom)",
+      "min": 4,
+      "max": 32,
+      "step": 1,
       "default": 14,
       "unit": "px",
-      "info": "Vertical padding controls the bar height"
+      "info": "Sets equal top and bottom padding. For asymmetric padding, enable the option below."
+    },
+    {
+      "type": "checkbox",
+      "id": "padding_split",
+      "label": "Use separate top + bottom padding",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Top padding",
+      "min": 4,
+      "max": 32,
+      "step": 1,
+      "default": 14,
+      "unit": "px",
+      "info": "Active only when the toggle above is on."
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Bottom padding",
+      "min": 4,
+      "max": 32,
+      "step": 1,
+      "default": 14,
+      "unit": "px",
+      "info": "Active only when the toggle above is on."
+    },
+    {
+      "type": "range",
+      "id": "padding_inline",
+      "label": "Side padding (desktop)",
+      "min": 8,
+      "max": 80,
+      "step": 2,
+      "default": 40,
+      "unit": "px",
+      "info": "Mobile uses a smaller fixed value to prevent text truncation."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_borders",
+      "label": "Top + bottom hairline borders",
+      "default": false
+    },
+    {
+      "type": "color",
+      "id": "border_color",
+      "label": "Border color",
+      "default": "#FAFAF7",
+      "info": "Will render at low opacity. Most useful on dark backgrounds."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_glow",
+      "label": "Subtle glow shadow underneath",
+      "default": false,
+      "info": "Casts a brand-purple glow under the bar. Best on hero pages."
     },
     {
       "type": "header",
-      "content": "Slider Settings"
+      "content": "Slider"
+    },
+    {
+      "type": "select",
+      "id": "transition",
+      "label": "Transition between slides",
+      "options": [
+        { "value": "fade",       "label": "Fade" },
+        { "value": "slide-up",   "label": "Slide up" },
+        { "value": "slide-left", "label": "Slide left" }
+      ],
+      "default": "fade"
     },
     {
       "type": "range",
       "id": "slide_duration",
       "label": "Slide duration",
       "min": 2,
-      "max": 10,
+      "max": 12,
       "step": 1,
       "default": 5,
-      "unit": "sec",
-      "info": "How long each announcement displays"
+      "unit": "sec"
     },
     {
       "type": "checkbox",
@@ -379,8 +871,7 @@
       "type": "checkbox",
       "id": "show_navigation",
       "label": "Show navigation dots",
-      "default": false,
-      "info": "Only visible when multiple announcements are added"
+      "default": false
     },
     {
       "type": "header",
@@ -390,7 +881,7 @@
       "type": "text",
       "id": "announcement_text",
       "label": "Announcement text",
-      "default": "✨ Free Worldwide Shipping on All Orders • Use code for 20% off your first order"
+      "default": "Free Worldwide Shipping on All Orders • Use code for 20% off your first order"
     },
     {
       "type": "text",
@@ -412,13 +903,14 @@
         {
           "type": "text",
           "id": "text",
-          "label": "Announcement text",
-          "default": "Free shipping on orders over $50"
+          "label": "Text",
+          "default": "Free shipping on all orders",
+          "info": "Never hardcode a dollar amount here (every market converts differently). If you need to reference a threshold, use copy that points to your shipping policy page instead."
         },
         {
           "type": "text",
           "id": "promo_code",
-          "label": "Promo code (optional)"
+          "label": "Promo code badge (optional)"
         },
         {
           "type": "url",
@@ -426,22 +918,47 @@
           "label": "Link (optional)"
         },
         {
+          "type": "text",
+          "id": "cta_text",
+          "label": "CTA pill text (optional)",
+          "info": "If set AND a link is provided, renders a small pill button at the end of the announcement (e.g. \"Shop now\")."
+        },
+        {
           "type": "select",
           "id": "icon",
           "label": "Icon",
           "options": [
             { "value": "none", "label": "No icon" },
-            { "value": "sparkles", "label": "Sparkles ✨" },
-            { "value": "truck", "label": "Truck 🚚" },
-            { "value": "tag", "label": "Tag / Sale 🏷️" },
-            { "value": "gift", "label": "Gift 🎁" },
-            { "value": "star", "label": "Star ⭐" },
-            { "value": "zap", "label": "Zap ⚡" },
-            { "value": "heart", "label": "Heart ❤️" },
-            { "value": "shield-check", "label": "Shield ✓" },
-            { "value": "refresh", "label": "Returns ↻" }
+            { "value": "sparkles", "label": "Sparkles" },
+            { "value": "truck", "label": "Truck" },
+            { "value": "tag", "label": "Tag / Sale" },
+            { "value": "gift", "label": "Gift" },
+            { "value": "star", "label": "Star" },
+            { "value": "zap", "label": "Zap" },
+            { "value": "heart", "label": "Heart" },
+            { "value": "shield-check", "label": "Shield" },
+            { "value": "refresh", "label": "Returns" }
           ],
           "default": "none"
+        },
+        {
+          "type": "header",
+          "content": "Per-slide override (optional)"
+        },
+        {
+          "type": "paragraph",
+          "content": "Override the section's background and text color for THIS slide only. Useful for high-contrast moments (a single \"FLASH SALE\" slide on a black bg, etc.). Leave blank to inherit the section settings."
+        },
+        {
+          "type": "color",
+          "id": "bg_override",
+          "label": "Background color",
+          "info": "Solid color. For a gradient, leave blank and use the section preset."
+        },
+        {
+          "type": "color",
+          "id": "text_override",
+          "label": "Text color"
         }
       ]
     }
@@ -461,14 +978,15 @@
         {
           "type": "announcement",
           "settings": {
-            "text": "30-Day Easy Returns • Hassle Free",
+            "text": "30-Day Returns • No Questions Asked",
             "icon": "refresh"
           }
         },
         {
           "type": "announcement",
           "settings": {
-            "text": "New Collection Drop • Shop Now",
+            "text": "New Collection Drop",
+            "cta_text": "Shop now",
             "icon": "zap"
           }
         }

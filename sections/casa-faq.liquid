@@ -8,8 +8,8 @@
   assign title = section.settings.title | default: 'Common Questions'
 
   # Accent colors
-  assign accent_primary = section.settings.accent_primary | default: '#9333ea'
-  assign accent_secondary = section.settings.accent_secondary | default: '#ec4899'
+  assign accent_primary = section.settings.accent_primary | default: '#B0C3FA'
+  assign accent_secondary = section.settings.accent_secondary | default: '#5E0A02'
 
   # Background
   assign bg_style = section.settings.background_style | default: 'light'
@@ -35,6 +35,15 @@
     --cfaq-padding-bottom: {{ padding_bottom }}px;
     --cfaq-padding-mobile-top: {{ padding_mobile_top }}px;
     --cfaq-padding-mobile-bottom: {{ padding_mobile_bottom }}px;
+    {%- comment -%}
+      Heading-scale dropdown: merchant picks H1-H6 from Theme Settings -> Typography.
+    {%- endcomment -%}
+    {%- assign _cfaq_title_h = section.settings.cfaq_heading_level | default: 'h1' -%}
+    --cfaq-title-fs:   var(--font-{{ _cfaq_title_h }}--size);
+    --cfaq-title-fw:   var(--font-{{ _cfaq_title_h }}--weight);
+    --cfaq-title-lh:   var(--font-{{ _cfaq_title_h }}--line-height);
+    --cfaq-title-ls:   var(--font-{{ _cfaq_title_h }}--letter-spacing);
+    --cfaq-title-case: var(--font-{{ _cfaq_title_h }}--case);
   "
   data-allow-multiple="{{ allow_multiple }}"
 >
@@ -247,10 +256,25 @@
       "default": "FAQ"
     },
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "title",
-      "label": "Title",
-      "default": "Common Questions"
+      "label": "Title (use <em>word</em> for italic gradient accent)",
+      "default": "Common <em>Questions</em>"
+    },
+    {
+      "type": "select",
+      "id": "cfaq_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
     },
     {
       "type": "header",
@@ -287,13 +311,13 @@
       "type": "color",
       "id": "accent_primary",
       "label": "Primary accent",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "accent_secondary",
       "label": "Secondary accent",
-      "default": "#ec4899"
+      "default": "#5E0A02"
     },
     {
       "type": "header",
@@ -419,8 +443,8 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 .casa-faq {
-  --cfaq-accent-primary: #9333ea;
-  --cfaq-accent-secondary: #ec4899;
+  --cfaq-accent-primary: #B0C3FA;
+  --cfaq-accent-secondary: #5E0A02;
   --cfaq-padding-top: 100px;
   --cfaq-padding-bottom: 100px;
   --cfaq-padding-mobile-top: 60px;
@@ -432,15 +456,15 @@
 
 /* ── Background Variants ── */
 .casa-faq--bg-light {
-  background: #f8f8fa;
+  background: var(--casa-paper);
 }
 
 .casa-faq--bg-white {
-  background: #ffffff;
+  background: var(--casa-paper);
 }
 
 .casa-faq--bg-dark {
-  background: #0a0a0f;
+  background: var(--casa-ink);
 }
 
 /* ── Container ── */
@@ -467,12 +491,15 @@
 }
 
 .casa-faq__title {
-  font-size: clamp(28px, 5vw, 42px);
-  font-weight: 300;
-  color: #0a0a0a;
+  /* Heading scale comes from Theme Settings -> Typography via the
+     cfaq_heading_level dropdown; legacy clamp/weight preserved as fallback. */
+  font-size: var(--cfaq-title-fs, clamp(28px, 5vw, 42px));
+  font-weight: var(--cfaq-title-fw, 300);
+  line-height: var(--cfaq-title-lh, 1.2);
+  letter-spacing: var(--cfaq-title-ls, -0.5px);
+  text-transform: var(--cfaq-title-case, none);
+  color: var(--casa-ink);
   margin: 0;
-  letter-spacing: -0.5px;
-  line-height: 1.2;
 }
 
 .casa-faq--bg-dark .casa-faq__title {
@@ -490,7 +517,7 @@
 }
 
 .casa-faq__item {
-  background: #ffffff;
+  background: var(--casa-paper);
   border: 1px solid #e5e5e5;
   border-radius: 12px;
   overflow: hidden;
@@ -536,7 +563,7 @@
 .casa-faq__question-text {
   font-size: 16px;
   font-weight: 500;
-  color: #0a0a0a;
+  color: var(--casa-ink);
   line-height: 1.4;
 }
 

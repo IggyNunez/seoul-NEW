@@ -266,6 +266,50 @@
   {%- endif -%}
 </span>
 
+<script>
+  // ATC overflow guard: currency-agnostic. The mobile button has a fixed
+  // ~217px slot; "ADD TO CART · $1,469" fits cleanly in USD, but JPY
+  // (¥225,000) / KRW (₩1,950,000) / IDR / VND can render 2-3x wider.
+  // After the page loads (and on every viewport resize + variant change),
+  // measure the actual button's content width; if it overflows the slot,
+  // hide the price suffix. Price remains visible above the buy box and
+  // inside each variant pill, so no information is lost.
+  (function () {
+    if (window.__casaAtcGuardBound) return;
+    window.__casaAtcGuardBound = true;
+
+    var raf;
+    function checkAll() {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(function () {
+        document.querySelectorAll('.product-form-buttons .add-to-cart-button').forEach(function (btn) {
+          var price = btn.querySelector('.add-to-cart-price');
+          if (!price) return;
+          // Reset first so we can re-measure as room becomes available
+          price.style.display = '';
+          if (btn.scrollWidth > btn.clientWidth + 1) {
+            price.style.display = 'none';
+          }
+        });
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', checkAll);
+    } else {
+      checkAll();
+    }
+    window.addEventListener('load', checkAll);
+    window.addEventListener('resize', checkAll, { passive: true });
+    // Theme events (assets/events.js): 'variant:update' fires on variant
+    // selection, 'cart:update' on cart changes. (The previous names —
+    // 'variant:change' / 'cart:updated' — are dispatched by nothing, so
+    // the suffix never re-measured after a variant switch.)
+    document.addEventListener('variant:update', checkAll);
+    document.addEventListener('cart:update', checkAll);
+  })();
+</script>
+
 {% if block_settings.show_pickup_availability %}
   <script
     src="{{ 'local-pickup.js' | asset_url }}"
@@ -403,6 +447,105 @@
   .product-form-buttons > *:not(.quantity-selector-wrapper, .quantity-rules, .quantity-label, .volume-pricing) {
     flex: 1 1 var(--buy-button-preferred-width, 0);
     min-width: fit-content;
+  }
+
+  /* Mobile (≤749px): qty + ATC share row 1, Shop Pay on its own full-width
+     row 2. The default `min-width: fit-content` forces ATC's natural width
+     (~280px for "ADD TO CART — $price" with bag icon), which combined with
+     the ~130px qty selector overflows a 353px container and triggers wrap
+     of every item to its own row. Letting ATC shrink (min-width: 0) and
+     pinning Shop Pay to a full row puts qty + ATC side-by-side. */
+  /* Polished price suffix: middle-dot separator (·) + bold tabular price.
+     Replaces the em-dash render from snippets/add-to-cart-button.liquid;
+     applies on both mobile + desktop because the bullet reads cleaner at
+     any width than a full em-dash. */
+  .product-form-buttons .add-to-cart-button .add-to-cart-price {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-inline-start: 6px;
+  }
+  .product-form-buttons .add-to-cart-button .atc-sep {
+    opacity: 0.45;
+    font-weight: 400;
+  }
+  .product-form-buttons .add-to-cart-button .atc-price-num {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  @media (max-width: 749px) {
+    .product-form-buttons > span:has(.add-to-cart-button) {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    .product-form-buttons > .accelerated-checkout-block {
+      flex: 1 0 100%;
+    }
+    /* Centered unified ATC content: icon · label · bullet · price all
+       at the same 14px Inter 600 size, centered as one tight cluster
+       in the button. Same font everywhere keeps the typography
+       coherent — earlier attempts mixed 14px / 13px and 600 / 700
+       which read as a "weird font" because the label and price looked
+       like two disjoint elements glued together. With the brand-locked
+       UPPERCASE Inter 600 applied uniformly + a subtle (0.5 opacity)
+       middle-dot separator, the whole CTA reads as one phrase:
+       "ADD TO CART · $441". Price at 0.85 opacity keeps the action
+       verb the visual hero. Combined with money_without_trailing_zeros
+       in add-to-cart-button.liquid, even $1,469 fits cleanly in the
+       217px button. */
+    .product-form-buttons .add-to-cart-button {
+      font-size: 14px;
+      padding-block: 12px;
+      padding-inline: 12px;
+      white-space: nowrap;
+    }
+    .product-form-buttons .add-to-cart-button .add-to-cart-icon {
+      width: 16px;
+      height: 16px;
+    }
+    .product-form-buttons .add-to-cart-button .add-to-cart-text {
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+    }
+    .product-form-buttons .add-to-cart-button .add-to-cart-text__content {
+      flex: 0 0 auto;
+    }
+    .product-form-buttons .add-to-cart-button .add-to-cart-text__content > span {
+      display: inline-flex;
+      flex-direction: row;
+      align-items: baseline;
+      gap: 6px;
+      line-height: 1.2;
+    }
+    .product-form-buttons .add-to-cart-button .add-to-cart-price {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+      margin: 0;
+    }
+    .product-form-buttons .add-to-cart-button .atc-sep {
+      opacity: 0.5;
+      font-weight: 400;
+    }
+    .product-form-buttons .add-to-cart-button .atc-price-num {
+      font-size: 14px;
+      font-weight: 600;
+      opacity: 0.85;
+    }
+  }
+
+  /* Defensive fallback: 320-359px viewports (iPhone SE 1st gen, tiny
+     Androids) have ATC slots of ~162px — too narrow for the full
+     "ADD TO CART · $price" cluster. Drop the price suffix on these
+     viewports; the price stays visible in the price block above and
+     in every variant pill, so no information is lost. */
+  @media (max-width: 359px) {
+    .product-form-buttons .add-to-cart-button .add-to-cart-price {
+      display: none;
+    }
   }
 
   .product-form-buttons--stacked

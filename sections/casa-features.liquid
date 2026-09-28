@@ -3,14 +3,30 @@
   "Why Choose OctaMirror" feature grid for PDP
 {%- endcomment -%}
 
+{%- comment -%} Auto-hide when no feature blocks have content {%- endcomment -%}
+{%- assign _has_content = false -%}
+{%- for block in section.blocks -%}
+  {%- if block.settings.title != blank or block.settings.heading != blank or block.settings.image != blank -%}
+    {%- assign _has_content = true -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if _has_content == false and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
 {%- liquid
-  assign tag_text = section.settings.tag_text | default: ''
-  assign title = section.settings.title | default: ''
-  assign subtitle = section.settings.subtitle | default: ''
+  # Source-of-truth: section settings only (no hardcoded copy).
+  # Pre-2026-05-17 defaulted to "Why Choose OctaMirror" + "Premium
+  # craftsmanship meets cutting-edge technology" which bled onto every
+  # non-OctaMirror product using this section.
+  assign tag_text = section.settings.tag_text
+  assign title = section.settings.title
+  assign subtitle = section.settings.subtitle
 
   # Accent colors
-  assign accent_primary = section.settings.accent_primary | default: '#9333ea'
-  assign accent_secondary = section.settings.accent_secondary | default: '#ec4899'
+  assign accent_primary = section.settings.accent_primary | default: '#B0C3FA'
+  assign accent_secondary = section.settings.accent_secondary | default: '#5E0A02'
 
   # Background
   assign bg_style = section.settings.background_style | default: 'light'
@@ -62,6 +78,15 @@
     {%- if icon_color != blank %}--cf-icon-color: {{ icon_color }};{% endif -%}
     {%- if card_bg_color != blank %}--cf-card-bg: {{ card_bg_color }};{% endif -%}
     {%- if card_border_color != blank %}--cf-card-border: {{ card_border_color }};{% endif -%}
+    {%- comment -%}
+      Heading-scale dropdown: merchant picks H1-H6 from Theme Settings -> Typography.
+    {%- endcomment -%}
+    {%- assign _cf_title_h = section.settings.cf_heading_level | default: 'h1' -%}
+    --cf-title-fs:   var(--font-{{ _cf_title_h }}--size);
+    --cf-title-fw:   var(--font-{{ _cf_title_h }}--weight);
+    --cf-title-lh:   var(--font-{{ _cf_title_h }}--line-height);
+    --cf-title-ls:   var(--font-{{ _cf_title_h }}--letter-spacing);
+    --cf-title-case: var(--font-{{ _cf_title_h }}--case);
   "
 >
   <div class="casa-features__container">
@@ -177,20 +202,33 @@
     {
       "type": "text",
       "id": "tag_text",
-      "label": "Tag text",
-      "default": "FEATURES"
+      "label": "Tag text"
     },
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "title",
-      "label": "Title",
-      "default": "Why Choose OctaMirror"
+      "label": "Title (use <em>word</em> for italic gradient accent)",
+      "info": "Product-specific — enter per template. No default to prevent OctaMirror-specific copy bleeding onto other products."
+    },
+    {
+      "type": "select",
+      "id": "cf_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
     },
     {
       "type": "textarea",
       "id": "subtitle",
-      "label": "Subtitle",
-      "default": "Premium craftsmanship meets cutting-edge technology"
+      "label": "Subtitle"
     },
     {
       "type": "header",
@@ -244,13 +282,13 @@
       "type": "color",
       "id": "accent_primary",
       "label": "Primary accent",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "accent_secondary",
       "label": "Secondary accent",
-      "default": "#ec4899"
+      "default": "#5E0A02"
     },
     {
       "type": "header",
@@ -411,14 +449,12 @@
         {
           "type": "text",
           "id": "title",
-          "label": "Title",
-          "default": "Feature Title"
+          "label": "Title"
         },
         {
           "type": "textarea",
           "id": "description",
-          "label": "Description",
-          "default": "Feature description goes here"
+          "label": "Description"
         }
       ]
     }
@@ -426,56 +462,7 @@
   "presets": [
     {
       "name": "Casa Features",
-      "blocks": [
-        {
-          "type": "feature",
-          "settings": {
-            "icon": "palette",
-            "title": "16M+ Colors",
-            "description": "Endless color options"
-          }
-        },
-        {
-          "type": "feature",
-          "settings": {
-            "icon": "smartphone",
-            "title": "Smart Control",
-            "description": "App & voice enabled"
-          }
-        },
-        {
-          "type": "feature",
-          "settings": {
-            "icon": "music",
-            "title": "Music Reactive",
-            "description": "Syncs to your beats"
-          }
-        },
-        {
-          "type": "feature",
-          "settings": {
-            "icon": "mirror",
-            "title": "Real Mirror",
-            "description": "Dual purpose design"
-          }
-        },
-        {
-          "type": "feature",
-          "settings": {
-            "icon": "zap",
-            "title": "Easy Install",
-            "description": "Ready in 15 min"
-          }
-        },
-        {
-          "type": "feature",
-          "settings": {
-            "icon": "globe",
-            "title": "Worldwide",
-            "description": "100V-240V compatible"
-          }
-        }
-      ]
+      "blocks": []
     }
   ]
 }
@@ -488,8 +475,8 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 .casa-features {
-  --cf-accent-primary: #9333ea;
-  --cf-accent-secondary: #ec4899;
+  --cf-accent-primary: #B0C3FA;
+  --cf-accent-secondary: #5E0A02;
   --cf-padding-top: 100px;
   --cf-padding-bottom: 100px;
   --cf-padding-mobile-top: 60px;
@@ -501,15 +488,15 @@
 
 /* ── Background Variants ── */
 .casa-features--bg-light {
-  background: #f8f8fa;
+  background: var(--casa-paper);
 }
 
 .casa-features--bg-white {
-  background: #ffffff;
+  background: var(--casa-paper);
 }
 
 .casa-features--bg-dark {
-  background: #0a0a0f;
+  background: var(--casa-ink);
 }
 
 /* ── Container ── */
@@ -536,12 +523,15 @@
 }
 
 .casa-features__title {
-  font-size: clamp(28px, 5vw, 42px);
-  font-weight: 300;
-  color: var(--cf-title-color, #0a0a0a);
+  /* Heading scale comes from Theme Settings -> Typography via the
+     cf_heading_level dropdown; legacy clamp/weight preserved as fallback. */
+  font-size: var(--cf-title-fs, clamp(28px, 5vw, 42px));
+  font-weight: var(--cf-title-fw, 300);
+  line-height: var(--cf-title-lh, 1.2);
+  letter-spacing: var(--cf-title-ls, -0.5px);
+  text-transform: var(--cf-title-case, none);
+  color: var(--cf-title-color, var(--casa-ink));
   margin: 0 0 16px 0;
-  letter-spacing: -0.5px;
-  line-height: 1.2;
 }
 
 .casa-features--bg-dark .casa-features__title {
@@ -594,7 +584,7 @@
 }
 
 .casa-features--bg-dark .casa-features__icon-wrapper {
-  background: linear-gradient(135deg, rgba(147, 51, 234, 0.15), rgba(236, 72, 153, 0.15));
+  background: linear-gradient(135deg, rgba(176, 195, 250, 0.15), rgba(94, 10, 2, 0.15));
 }
 
 .casa-features__card:hover {
@@ -612,7 +602,7 @@
   width: calc(var(--cf-icon-size, 24px) + 28px);
   height: calc(var(--cf-icon-size, 24px) + 28px);
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(147, 51, 234, 0.1), rgba(236, 72, 153, 0.1));
+  background: linear-gradient(135deg, rgba(176, 195, 250, 0.1), rgba(94, 10, 2, 0.1));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -644,9 +634,9 @@
 
 /* ── Card Content ── */
 .casa-features__card-title {
-  font-size: 18px;
+  font-size: var(--font-h4--size, 18px);
   font-weight: 600;
-  color: var(--cf-card-title, #0a0a0a);
+  color: var(--cf-card-title, var(--casa-ink));
   margin: 0 0 10px 0;
   line-height: 1.3;
 }
@@ -729,7 +719,7 @@
   }
 
   .casa-features__card-title {
-    font-size: 16px;
+    font-size: var(--font-h5--size, 16px);
     margin-bottom: 8px;
   }
 
@@ -761,7 +751,7 @@
   }
 
   .casa-features__card-title {
-    font-size: 15px;
+    font-size: var(--font-h5--size, 15px);
   }
 
   .casa-features__card-text {
@@ -812,8 +802,8 @@
   inset: 0;
   opacity: 0;
   background: linear-gradient(135deg,
-    rgba(147, 51, 234, 0.05) 0%,
-    rgba(236, 72, 153, 0.05) 50%,
+    rgba(176, 195, 250, 0.05) 0%,
+    rgba(94, 10, 2, 0.05) 50%,
     transparent 100%
   );
   transition: opacity 0.4s ease;
@@ -848,7 +838,7 @@
 /* ── Icon glow pulse on hover ── */
 .casa-features__card:hover .casa-features__icon-wrapper {
   animation: cfIconGlow 0.6s ease;
-  box-shadow: 0 0 20px rgba(147, 51, 234, 0.25);
+  box-shadow: 0 0 20px rgba(176, 195, 250, 0.25);
 }
 @keyframes cfIconGlow {
   0% { transform: scale(1); }
@@ -858,10 +848,10 @@
 
 /* ── Card hover lift (enhance existing) ── */
 .casa-features__card:hover {
-  border-color: rgba(147, 51, 234, 0.2);
+  border-color: rgba(176, 195, 250, 0.2);
 }
 .casa-features--bg-dark .casa-features__card:hover {
-  border-color: rgba(147, 51, 234, 0.25);
+  border-color: rgba(176, 195, 250, 0.25);
 }
 
 /* ── Reduced motion ── */

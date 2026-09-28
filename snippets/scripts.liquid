@@ -280,6 +280,21 @@
   defer="defer"
 ></script>
 
+{%- comment -%}
+  Casa product card global bindings — must load on every page so that
+  cards injected via AJAX (recommendations, recently viewed, search,
+  infinite scroll) get hover-video, swatches, wishlist, quick view,
+  and quick add bound. The previous inline <script> in
+  snippets/casa-product-card.liquid never executed for AJAX-injected
+  markup because scripts inserted via innerHTML do not run per the
+  HTML5 spec. This file registers a MutationObserver once and binds
+  any future card automatically.
+{%- endcomment -%}
+<script
+  src="{{ 'casa-product-card.js' | asset_url }}"
+  defer="defer"
+></script>
+
 <script>
   const Theme = {
     translations: {
@@ -290,6 +305,7 @@
       recipient_form_error: `{{ 'content.recipient_form_error' | t }}`,
       items_added_to_cart_one: `{{ 'content.items_added_to_cart.one' | t }}`,
       items_added_to_cart_other: `{{ 'content.items_added_to_cart.other' | t }}`,
+      cart_update_error: `{{ 'content.cart_update_error' | t }}`,
     },
     routes: {
       cart_add_url: '{{ routes.cart_add_url | append: '.js' }}',

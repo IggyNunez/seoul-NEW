@@ -14,6 +14,7 @@
   @param {string} [additional_attributes] - Any additional HTML attributes
   @param {string} [video_type] - 'youtube' or 'vimeo'
   @param {boolean} [disable_controls] - Whether to disable controls. If true, only play/pause will be usable.
+  @param {string} [video_preload] - Preload hint for the autoplay MP4 path: 'metadata' (default) or 'none' for copies that start hidden
   @param {object} video - The Shopify video object or a string containing a YouTube ID or Vimeo ID
   @param {string} section_id - The section ID
   @param {object} [block] - The block object
@@ -115,7 +116,42 @@
         | external_video_tag: data-video-type: 'vimeo'
       }}
     {% else %}
-      {{ video | video_tag: image_size: '2500x', autoplay: true, loop: video_loop, muted: true, controls: controls }}
+      {% liquid
+        # Casa: autoplaying gallery videos hand-pick the MP4 rendition instead
+        # of video_tag's full source list — Shopify lists the .m3u8 (HLS)
+        # stream first, and Safari (which can play both) picks the first
+        # source, paying the adaptive-streaming pipeline for a decorative loop
+        # (same pick as snippets/casa-product-card.liquid). The autoplay
+        # attribute below is media.js's claim hook: DeferredMedia strips it
+        # before the slide is ever visible and drives play()/pause() via
+        # IntersectionObserver itself. Click-to-play videos keep the stock
+        # video_tag path.
+        # video_preload: on the OctaMirror PDP, iOS Safari (simulator, iOS
+        # 26.5) buffered the full MP4 for BOTH preload="metadata" copies —
+        # the gallery slide and the zoom dialog's hidden, paused copy — two
+        # media players, ~12MB each (2026-09-27). Hidden copies pass 'none';
+        # zoom-dialog.js calls play() when the slide opens, which loads it.
+        assign casa_video_preload = video_preload | default: 'metadata'
+        assign casa_autoplay_mp4 = nil
+        if video_autoplay
+          assign casa_autoplay_mp4 = video.sources | where: 'mime_type', 'video/mp4' | first
+        endif
+      %}
+      {% if casa_autoplay_mp4 %}
+        <video
+          playsinline
+          autoplay
+          muted
+          preload="{{ casa_video_preload }}"
+          {% if video_loop %}loop{% endif %}
+          {% if controls %}controls{% endif %}
+          {% if video.preview_image %}poster="{{ video.preview_image | image_url: width: 2500 }}"{% endif %}
+        >
+          <source src="{{ casa_autoplay_mp4.url }}" type="{{ casa_autoplay_mp4.mime_type }}">
+        </video>
+      {% else %}
+        {{ video | video_tag: image_size: '2500x', autoplay: true, loop: video_loop, muted: true, controls: controls }}
+      {% endif %}
     {% endif %}
   {% endcapture %}
 {% endif %}
@@ -129,7 +165,7 @@
     {% endif %}
     {{ additional_attributes }}
   >
-    {% if video_preview_image != blank %}
+    {% if video_preview_image != blank and video_autoplay != true %}
       <button
         class="button deferred-media__poster-button button-unstyled"
         ref="deferredMediaPlayButton"
@@ -212,5 +248,24 @@
 
   .video-interaction-hint:hover {
     opacity: 1;
+  }
+
+  /* Casa: an autoplaying gallery video has no picture until its first frame
+     decodes; on iOS Safari it paints white for a beat after scrolling into
+     view. media.js adds .casa-video-loading until that frame lands — while it's
+     set we keep the video transparent so the poster image underneath shows,
+     then fade the video in. No JS / failed load: class never added, unchanged. */
+  deferred-media[autoplay] > video {
+    transition: opacity 0.3s ease;
+  }
+
+  deferred-media[autoplay] > video.casa-video-loading {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    deferred-media[autoplay] > video {
+      transition: none;
+    }
   }
 {% endstylesheet %}

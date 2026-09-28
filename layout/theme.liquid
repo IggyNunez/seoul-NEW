@@ -1,4 +1,5 @@
 <!doctype html>
+{%- comment -%} sync-marker 2026-05-15-mood-strip-resync {%- endcomment -%}
 <html
   {% if request.design_mode %}
     class="shopify-design-mode"
@@ -6,6 +7,17 @@
   lang="{{ request.locale.iso_code }}"
 >
   <head>
+    {%- comment -%}
+      Safari/iOS does not implement requestIdleCallback. Several Horizon-
+      framework JS modules (predictive-search, paginated-list, floating-
+      panel, section-hydration, etc.) call into it during their custom-
+      element connectedCallback. Without this polyfill, those modules
+      throw `ReferenceError: Can't find variable: requestIdleCallback`
+      and the component fails to initialize. Polyfill must run BEFORE
+      any module script — first thing in <head>. ~200 bytes inlined.
+    {%- endcomment -%}
+    <script>window.requestIdleCallback=window.requestIdleCallback||function(c,o){return setTimeout(function(){c({didTimeout:false,timeRemaining:function(){return 50}})},1)};window.cancelIdleCallback=window.cancelIdleCallback||function(i){clearTimeout(i)};</script>
+
     {%- if settings.favicon != blank -%}
       <link
         rel="icon"
@@ -25,11 +37,49 @@
     {% endif %}
 
     {%- render 'meta-tags' -%}
-    {%- render 'stylesheets' -%}
+    {%- comment -%} Casa SEO: structured data {%- endcomment -%}
+    {%- render 'casa-jsonld-breadcrumbs' -%}
+    {%- render 'casa-jsonld-website' -%}
+    {%- render 'casa-jsonld-organization' -%}
+    {%- render 'casa-jsonld-product' -%}
+    {%- comment -%}
+      Render order matters for FOUT. The browser parses <head> top-to-
+      bottom, so every @font-face and CSS variable must exist BEFORE
+      the stylesheet that references it.
+
+      1. fonts                   — declares 'Inter Fallback' @font-face
+                                   + preload links for real Inter
+      2. theme-styles-variables  — declares real Inter @font-face via
+                                   font_face filter + defines
+                                   --font-heading--family and friends
+      3. color-schemes           — CSS variables for theme colors
+      4. stylesheets             — casa-base.css etc., which CONSUME
+                                   the @font-face and CSS variables
+                                   above
+
+      Prior order had stylesheets BEFORE theme-styles-variables, which
+      meant casa-base.css resolved var(--font-heading--family) to
+      empty (variable not yet defined) and referenced an Inter
+      @font-face that didn't exist yet. First paint fell through to
+      browser-default sans-serif, then reflowed when theme-styles-
+      variables parsed and the variables/font-faces became valid.
+      Site-wide FOUT, user-reported 2026-05-12.
+    {%- endcomment -%}
     {%- render 'fonts' -%}
-    {%- render 'scripts' -%}
     {%- render 'theme-styles-variables' -%}
     {%- render 'color-schemes' -%}
+    {%- render 'stylesheets' -%}
+    {%- comment -%}
+      Casa: Phoenix Floor Lamp PDP tokens (film palette + sunset gradient).
+      Loaded only when the rendered template is the Phoenix product page so
+      it doesn't ship to every PDP. The is-phoenix class is set on <html>
+      so the :root.is-phoenix { ... } rule in casa-phoenix.css activates.
+    {%- endcomment -%}
+    {%- if template contains 'phoenix' -%}
+      {{ 'casa-phoenix.css' | asset_url | stylesheet_tag }}
+      <script>document.documentElement.classList.add('is-phoenix');</script>
+    {%- endif -%}
+    {%- render 'scripts' -%}
 
     {% if request.design_mode %}
       {%- render 'theme-editor' -%}
@@ -38,7 +88,7 @@
     {{ content_for_header }}
   </head>
 
-  <body class="page-width-{{ settings.page_width }} card-hover-effect-{{ settings.card_hover_effect }}">
+  <body class="page-width-{{ settings.page_width }} card-hover-effect-{{ settings.card_hover_effect }}{% if request.page_type == 'product' %} product-{{ product.handle }}{% endif %}">
     {% render 'skip-to-content-link', href: '#MainContent', text: 'accessibility.skip_to_text' %}
     <div id="header-group">
       {% sections 'header-group' %}
@@ -114,6 +164,7 @@
       data-template="{{ template }}"
     >
       {{ content_for_layout }}
+      {% render 'casa-octamirror-measurement' %}
     </main>
 
     {% sections 'footer-group' %}
@@ -123,6 +174,40 @@
     {% if settings.quick_add or settings.mobile_quick_add %}
       {% render 'quick-add-modal' %}
     {% endif %}
+  {%- comment -%} ── Casa: Global sticky add-to-cart (every PDP) ── {%- endcomment -%}
+  {%- if request.page_type == 'product' and settings.casa_enable_sticky_cart -%}
+    {{ 'casa-sticky-cart.css' | asset_url | stylesheet_tag }}
+    <script src="{{ 'casa-sticky-cart.js' | asset_url }}" type="module" defer></script>
+    {%- render 'casa-sticky-cart' -%}
+  {%- endif -%}
+
+  {%- comment -%} ── Casa: off-screen pause owner for decorative videos (video[data-casa-pause]).
+      Loaded globally — videos ship on home, PDPs, and collections, and Section
+      Rendering swaps can inject them anywhere; enumerating templates IS the bug class. {%- endcomment -%}
+  <script src="{{ 'casa-offscreen-pause.js' | asset_url }}" defer></script>
+
+  {%- comment -%} ── Casa: Estimated-Delivery normaliser. Intercepts every POST /cart/add(.js)
+      and stamps ONE canonical `properties[Estimated delivery]` value per variant, so the
+      c-edd app's per-buy-box date can't split the same variant onto two cart lines. Global —
+      adds fire from the buy box, section CTAs, quickview, cards, and drawer upsells. {%- endcomment -%}
+  <script src="{{ 'casa-edd.js' | asset_url }}" defer></script>
+  {%- comment -%}
+    casa-free-gift.js MUST load after casa-edd.js: both wrap window.fetch for
+    /cart/add, and the free-gift shim converts a FormData buy-box add to JSON
+    (appending the gift item) BEFORE the EDD shim normalises delivery
+    properties across all items — including the gift's. Reversing the order
+    would let EDD's per-variant lock key resolve before the gift exists.
+    The country attr is the server-rendered market gate (gift is added only
+    in these markets; removal runs everywhere).
+  {%- endcomment -%}
+  <script src="{{ 'casa-free-gift.js' | asset_url }}" defer data-casa-fg-country="{{ localization.country.iso_code }}" data-casa-fg-allow="US" data-casa-fg-choice="{{ cart.attributes._casa_free_gift_choice | escape }}"></script>
+
+  {%- comment -%} ── Casa: viewport gate for decorative CSS animations.
+      Pauses [data-casa-anim-gate] hosts + .text-grad-shimmer while off-screen —
+      paint-property shimmers (background-clip:text) can't be GPU-composited,
+      so off-screen they must not tick at all. {%- endcomment -%}
+  <script src="{{ 'casa-anim-gate.js' | asset_url }}" defer></script>
+
   {%- comment -%} ── Casa: Track recently viewed products globally ── {%- endcomment -%}
   {%- if request.page_type == 'product' -%}
     <script>
@@ -130,14 +215,20 @@
       try {
         var KEY = 'casa_recently_viewed';
         var rvData = JSON.parse(localStorage.getItem(KEY) || '[]');
+        {%- comment -%}
+          Do NOT store a price here. It would be a raw-cents snapshot frozen in
+          whatever Market the shopper viewed the product in — stale/wrong the
+          moment they switch currency. Every recently-viewed surface (cart
+          Recently-Viewed, the RV section) fetches the LIVE Market price
+          server-side via the casa-qv-price-data / casa-product-card SRA
+          fragments instead. Only identity + display fields belong here.
+        {%- endcomment -%}
         var current = {
           id: {{ product.id }},
           handle: {{ product.handle | json }},
           title: {{ product.title | json }},
           url: {{ product.url | json }},
           image: {{ product.featured_image | image_url: width: 600 | json }},
-          price: {{ product.price }},
-          compare_at_price: {{ product.compare_at_price | default: 0 }},
           available: {{ product.available }},
           vendor: {{ product.vendor | json }},
           type: {{ product.type | json }}
@@ -149,6 +240,32 @@
       } catch(e){}
     })();
     </script>
+  {%- endif -%}
+
+  {%- comment -%}
+    Policy page enhancement: Shopify's built-in renderer for /policies/*
+    ships only the bare .shopify-policy__container markup. casa-policy.js
+    post-processes that DOM to add the Casa editorial chrome (em-gradient
+    title accent, sticky TOC sidebar, numbered sections, drop cap, "Other
+    policies" cross-link footer). Self-gates on container presence so
+    loading it everywhere is safe and cheap.
+  {%- endcomment -%}
+  {%- if request.path contains '/policies/' -%}
+    <script>
+      window.__casaPolicy = {
+        refund:        {{ shop.refund_policy.url | json }},
+        refundTitle:   {{ shop.refund_policy.title | json }},
+        privacy:       {{ shop.privacy_policy.url | json }},
+        privacyTitle:  {{ shop.privacy_policy.title | json }},
+        shipping:      {{ shop.shipping_policy.url | json }},
+        shippingTitle: {{ shop.shipping_policy.title | json }},
+        terms:         {{ shop.terms_of_service.url | json }},
+        termsTitle:    {{ shop.terms_of_service.title | json }},
+        subscription:        {{ shop.subscription_policy.url | json }},
+        subscriptionTitle:   {{ shop.subscription_policy.title | json }}
+      };
+    </script>
+    <script src="{{ 'casa-policy.js' | asset_url }}" defer></script>
   {%- endif -%}
   </body>
 </html>

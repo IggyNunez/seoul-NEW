@@ -13,6 +13,7 @@ export default class ResultsList extends PaginatedList {
   }
 
   disconnectedCallback() {
+    super.disconnectedCallback();
     mediaQueryLarge.removeEventListener('change', this.#handleMediaQueryChange);
   }
 

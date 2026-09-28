@@ -4,11 +4,126 @@
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
+   Page-level horizontal-overflow guard. Third-party widgets (Judge.me
+   .jdgm-gallery sits at x=-4 width=401 on a 393 viewport) and grid columns
+   without minmax(0, …) can push the body past the viewport by a handful of
+   px, which lets mobile Safari bounce-scroll sideways. `overflow-x: clip`
+   stops the bounce without trapping `position: sticky` descendants the way
+   `overflow: hidden` does (see memory:
+   feedback_overflow_hidden_traps_sticky.md).
+   Added 2026-05-19 after merchant report of left/right bounce on PDPs.
+   -------------------------------------------------------------------------- */
+html, body {
+  overflow-x: clip;
+}
+
+/* --------------------------------------------------------------------------
+   Klaviyo scroll-lock un-trap. Klaviyo's on-site popup adds
+   `body.klaviyo-prevent-body-scrolling { overflow: hidden !important }`
+   (injected from static.klaviyo.com, AFTER this stylesheet) to lock scroll
+   behind its modal. On this theme <html> still scrolls (overflow-y: visible),
+   so that body lock does NOT actually stop the page scrolling — it only turns
+   <body> into a scroll container, which TRAPS every `position: sticky`
+   descendant. Symptom: while the Klaviyo popup is showing, the PDP media
+   gallery stops pinning and scrolls away (sticky silently breaks site-wide).
+   `clip` clips the same way without establishing a scroll container, so sticky
+   keeps working; `html body…` (0,1,2 + !important) outspecifies Klaviyo's
+   `body…` (0,1,1 + !important) regardless of injection order. Caveat: if a
+   future Klaviyo build sets an INLINE `style="overflow:hidden !important"` on
+   <body>, inline !important beats any stylesheet rule and this stops working —
+   the fallback would be a small JS MutationObserver. Not the case today.
+   See memory: feedback_overflow_hidden_traps_sticky.md. Added 2026-06-28.
+   -------------------------------------------------------------------------- */
+html body.klaviyo-prevent-body-scrolling {
+  overflow: clip !important;
+}
+
+/* --------------------------------------------------------------------------
+   PDP header-flush guard — on every PDP, every viewport, the carousel/buy-box
+   sits flush against the casa-header bottom. Merchant-set padding-block-start
+   in the editor cannot reintroduce a gap. Section content that needs internal
+   top spacing pushes it INSIDE its own block (image, h1, etc.), never at the
+   section boundary. Added 2026-05-17 after recurring gap regression.
+   See memory: feedback_no_gap_header_to_carousel.md
+   -------------------------------------------------------------------------- */
+#MainContent[data-template^="product"] > .shopify-section:first-child,
+#MainContent[data-template^="product"] > .shopify-section:first-child > .spacing-style,
+#MainContent[data-template^="product"] > .shopify-section:first-child > section,
+#MainContent[data-template^="product"] > .shopify-section:first-child > .section,
+#MainContent[data-template^="product"] > .shopify-section:first-child .product-information,
+#MainContent[data-template^="product"] > .shopify-section:first-child .product-information__media,
+#MainContent[data-template^="product"] > .shopify-section:first-child media-gallery,
+#MainContent[data-template^="product"] > .shopify-section:first-child .product-media-gallery {
+  --padding-block-start: 0px !important;
+  padding-block-start: 0px !important;
+  margin-block-start: 0 !important;
+}
+
+/* --------------------------------------------------------------------------
+   PDP media-gallery slide-height fix — collapses the whitespace gap that
+   appears below the hero image on mobile when a product is on an "adapt"
+   aspect-ratio template AND slide 0 isn't the tallest media in the gallery
+   (e.g. landscape lifestyle photo first, square detail shots later).
+
+   Why this exists: Horizon's snippets/slideshow-slide.liquid hardcodes the
+   slide container height as `50dvh` mobile / `70dvh` desktop. In adapt mode
+   the snippet only attaches the height anchor (`product-media-container--
+   tallest`) to ONE slide — the tallest — so when slide 0 isn't that one,
+   slide 0 falls back to the dvh-derived height and the image gets
+   letterboxed inside it. The dots then float in the dead space below.
+
+   Repro: 6-bulb-golden-floor-lamp at 393w mobile = 506px slideshow / 393px
+   image = 113px visible gap. Audited 80+ active products 2026-05-18.
+
+   Fix: anchor every product-gallery slide to its own image's intrinsic
+   aspect via the --media-preview-ratio var Horizon sets per slide; let the
+   slideshow and slide containers auto-size. Pure CSS, no JS, no CLS — runs
+   on initial paint, scoped to .product-information__media so hero /
+   lookbook / predictive-search slideshows that share slideshow-slide.liquid
+   are unaffected. Fallback chain covers video / 3D model slides without
+   a preview-ratio inline.
+   -------------------------------------------------------------------------- */
+.product-information__media slideshow-slide.product-media-container {
+  --grid-template-rows: 1fr;
+  --grid-template-rows-desktop: 1fr;
+  min-height: 0;
+  height: auto;
+  aspect-ratio: var(--media-preview-ratio, var(--gallery-aspect-ratio, 1));
+}
+
+.product-information__media slideshow-slide.product-media-container--image img {
+  width: 100%;
+  height: auto;
+}
+
+.product-information__media slideshow-component {
+  min-height: 0;
+  height: auto;
+  aspect-ratio: auto;
+}
+
+/* --------------------------------------------------------------------------
    CSS Custom Properties
    -------------------------------------------------------------------------- */
 :root {
+  /* Viewport-fit token — the height left after the sticky chrome.
+     Top: header group (announcement + header), JS-measured onto
+     --header-group-height by casa-header.liquid on <html> and <body>.
+     Bottom: sticky add-to-cart bar, JS-measured onto --casa-chrome-bottom
+     by casa-sticky-cart.js on PDPs; 0 everywhere else.
+     "Moment" sections (one composition that must be seen whole) size
+     their stage against this token instead of raw vh — raw vh renders
+     pixels the stickies then permanently cover (520px stage vs a 456px
+     real window at 1280×640, measured 2026-08-12).
+     Must live on :root: var() inside a custom property resolves on the
+     element that DECLARES the property, so both source vars must exist
+     on <html> — which both JS writers guarantee. */
+  --casa-chrome-bottom: 0px;
+  --casa-vh-fit: calc(100svh - var(--header-group-height, var(--header-height, 100px)) - var(--casa-chrome-bottom, 0px));
+
   /* Brand Colors */
   --casa-purple: #B0C3FA;
+  --casa-purple-on-dark: var(--casa-purple); /* Seoul: surfaces are light, so the on-dark accent matches the brand accent */
   --casa-pink: #5E0A02;
   --casa-cyan: #F2FFA0;
   --casa-green: #1B4900;
@@ -20,6 +135,9 @@
   --casa-bg-dark-secondary: #f3e4d3;
   --casa-bg-dark-tertiary: #B0C3FA;
   --casa-bg-dark-quaternary: #e8ddd0;
+  /* Brand v1: Paper surface (Seoul: white card surface over cream) */
+  --casa-bg-light: var(--casa-paper);
+  --casa-bg-paper-elevated: #FFFFFF;
 
   /* Text */
   --casa-text-primary: #5E0A02;
@@ -56,13 +174,29 @@
   --casa-font-bold: 700;
   --casa-font-extrabold: 800;
 
+  /* PDP heading scale — brand-book v1 .pdp-title spec.
+     Source: docs/brand-book-v1.html §03 Typography + §10 PDP examples.
+     Every Casa PDP section H2 should consume these tokens — change
+     them here and every section heading on every PDP follows. */
+  /* 2026-05-15: tokens restored to brand-book v1 §03 Typography spec.
+     Previously these were using the H1 spec (36-56 / 600 / -0.02 /
+     1.05) by mistake, which made every section heading on PDPs read
+     as a hero — the anti-pattern brand book §08 calls out: "Heavy
+     800-weight on every section heading — only the hero is the loud
+     moment." Brand book line 379 + 1112 H2 spec: */
+  --casa-pdp-h2-family:   var(--font-heading--family, 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif);
+  --casa-pdp-h2-weight:   500;
+  --casa-pdp-h2-size:     clamp(28px, 4vw, 40px);
+  --casa-pdp-h2-tracking: -0.015em;
+  --casa-pdp-h2-line:     1.10;
+
   /* Desktop Type Scale */
   --casa-text-hero: 72px;
-  --casa-text-h1: 48px;
-  --casa-text-h2: 36px;
-  --casa-text-h3: 24px;
-  --casa-text-h4: 18px;
-  --casa-text-body: 16px;
+  --casa-text-h1: var(--font-h1--size, 48px);
+  --casa-text-h2: var(--font-h2--size, 36px);
+  --casa-text-h3: var(--font-h3--size, 24px);
+  --casa-text-h4: var(--font-h4--size, 18px);
+  --casa-text-body: var(--font-paragraph--size, 16px);
   --casa-text-small: 14px;
   --casa-text-xs: 12px;
   --casa-text-xxs: 10px;
@@ -125,10 +259,19 @@
   --casa-z-drawer: 1100;
   --casa-z-overlay: 1050;
 
-  /* Transition */
-  --casa-transition-fast: 0.2s ease;
-  --casa-transition-base: 0.3s ease;
-  --casa-transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Motion (brand v1 spec) */
+  --casa-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --casa-duration-fast:   120ms;  /* press feedback */
+  --casa-duration-base:   200ms;  /* hover, default */
+  --casa-duration-medium: 320ms;  /* sheets, modals */
+  --casa-duration-slow:   480ms;  /* hero reveals */
+
+  /* Legacy transition aliases — kept so existing consumers
+     (--casa-transition-fast / -base / -smooth) don't break.
+     Values aligned to the spec'd durations. */
+  --casa-transition-fast:   var(--casa-duration-base) ease;
+  --casa-transition-base:   var(--casa-duration-medium) ease;
+  --casa-transition-smooth: var(--casa-duration-slow) var(--casa-ease-out);
 }
 
 /* --------------------------------------------------------------------------
@@ -202,64 +345,15 @@
 }
 
 /* --------------------------------------------------------------------------
-   Button System
+   Button System — REMOVED 2026-05-04
+   The legacy .casa-btn / .casa-btn--primary / .casa-btn--secondary /
+   .casa-btn--white / .casa-btn--sm / .casa-btn--pill rules were removed.
+   No section or snippet referenced them (verified by grep on
+   sections/ and snippets/). The brand v1 button system in
+   assets/casa-buttons.css (.btn .btn-primary / .btn-primary-on-dark /
+   .btn-secondary / .btn-secondary-on-dark / .btn-tertiary /
+   .btn-featured) is the single source of truth.
    -------------------------------------------------------------------------- */
-.casa-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--casa-space-2);
-  padding: 18px 40px;
-  border-radius: var(--casa-radius-lg);
-  font-size: var(--casa-text-body);
-  font-weight: var(--casa-font-semibold);
-  font-family: var(--casa-font-family);
-  text-decoration: none;
-  transition: all var(--casa-transition-base);
-  cursor: pointer;
-  border: none;
-  line-height: 1;
-}
-
-.casa-btn--primary {
-  background: var(--casa-gradient-primary);
-  color: white;
-}
-
-.casa-btn--primary:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--casa-shadow-hover);
-}
-
-.casa-btn--secondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid var(--casa-border-strong);
-}
-
-.casa-btn--secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.casa-btn--white {
-  background: white;
-  color: var(--casa-bg-dark);
-}
-
-.casa-btn--white:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-}
-
-.casa-btn--sm {
-  padding: 10px 20px;
-  font-size: var(--casa-text-small);
-  border-radius: var(--casa-radius-md);
-}
-
-.casa-btn--pill {
-  border-radius: var(--casa-radius-full);
-}
 
 /* --------------------------------------------------------------------------
    Badge System
@@ -311,6 +405,68 @@
 }
 
 /* --------------------------------------------------------------------------
+   Section-title line-wrapping
+   --------------------------------------------------------------------------
+   Applies text-wrap: balance to every casa-* section title (BEM block
+   ending in __title or __heading). On multi-sentence titles like
+   "Light your room. Your way." this pushes the browser toward balanced
+   line lengths, which on narrow viewports prefers the natural break at
+   the period over awkward mid-sentence wrapping ("Light your" / "room.
+   Your way.").
+
+   Two excludes:
+   * :not([class*="__title-"]) — skips sub-element classes like
+     __title-line, __title-gradient, __title-pill so we only target the
+     parent heading wrapper.
+   * .casa-product-card__title — product-card titles are short product
+     names where balance can produce uneven splits; left to default.
+
+   text-wrap: balance is supported in Chrome 114+, Safari 17.5+, Firefox
+   121+; older browsers ignore it gracefully and use default wrapping. */
+[class*="casa-"][class*="__title"]:not([class*="__title-"]),
+[class*="casa-"][class*="__heading"]:not([class*="__heading-"]) {
+  text-wrap: balance;
+}
+.casa-product-card__title {
+  text-wrap: auto;
+}
+
+/* --------------------------------------------------------------------------
+   Brand italic-gradient accent — <em> inside Casa section H1/H2/H3
+   --------------------------------------------------------------------------
+   The italic-gradient on a single accent word is THE brand voice signature
+   on section headings. This rule wires <em> with the purple→pink→cyan
+   gradient on every Casa section heading class so authors can write
+   `More to <em>love.</em>` (or similar) in any inline_richtext heading
+   field and the gradient lands automatically — no per-section CSS needed.
+
+   Adding a new section? Add its heading class selector to the list below.
+   The fallback in var(--grad-text, ...) ships the brand gradient even if
+   the variable isn't defined on the page. Locked 2026-05-09 as part of
+   the Cluster 1 brand-audit batch. -------------------------------------- */
+.casa-dn__h2 em,
+.casa-ins__h2 em,
+.casa-sz__h2 em,
+.casa-st__h2 em,
+.casa-rev__h2 em,
+.casa-pdp-feat__heading em,
+.casa-pdp-show__heading em,
+.casa-char__section-title em,
+.casa-day-night__title em,
+.casa-features__title em,
+.casa-faq__title em,
+.casa-fbento__heading em,
+.casa-newsletter__title em {
+  font-style: italic;
+  font-weight: 800;
+  background: var(--grad-text, linear-gradient(90deg, #9333EA, #EC4899, #06B6D4));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* --------------------------------------------------------------------------
    Mobile Overrides
    -------------------------------------------------------------------------- */
 @media (max-width: 749px) {
@@ -322,4 +478,907 @@
   .casa-section-title {
     font-size: var(--casa-text-h1-mobile);
   }
+}
+
+/* --------------------------------------------------------------------------
+   Policy Page Chrome (Shopify built-in renderer override)
+
+   Shopify's /policies/* URLs use a built-in renderer that bypasses
+   templates/policy.liquid entirely in OS 2.0 / Horizon themes. The output
+   is .shopify-policy__container > .shopify-policy__title + .shopify-policy__body
+   These classes only exist on policy pages, so global rules are safe.
+
+   Surface: Paper (#FAFAF7) — same as About Us editorial pages. Locked
+   2026-05-12: legal/dense policy content reads better on light. See
+   memory/brand_informative_pages_paper_vs_ink.md for the contact/FAQ
+   distinction.
+   -------------------------------------------------------------------------- */
+body:has(.shopify-policy__container) {
+  background: var(--casa-paper, #FAFAF7);
+}
+.shopify-policy__container {
+  /* Break out of any page-width parent so the Paper surface goes edge-to-edge */
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw !important;
+  margin-right: -50vw !important;
+  width: 100vw;
+  max-width: 100vw !important;
+  padding: 0 !important;
+  background: var(--casa-paper, #FAFAF7);
+  color: var(--casa-ink, #0A0A0F);
+  font-family: var(--font-body--family, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
+  min-height: 60vh;
+}
+
+/* ── Hero ── */
+.shopify-policy__title {
+  max-width: 1100px;
+  margin: 0 auto !important;
+  padding: 5rem 1.5rem 3rem !important;
+  border-bottom: 1px solid #E5E3DC;
+  position: relative;
+}
+.shopify-policy__title::before {
+  content: "LEGAL · CASA DI LUMO";
+  display: block;
+  font-family: var(--font-mono--family, 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #525252;
+  margin-bottom: 1.25rem;
+}
+.shopify-policy__title h1 {
+  font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+  font-size: clamp(36px, 5.5vw, 64px);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--casa-ink, #0A0A0F);
+  margin: 0;
+  text-wrap: balance;
+}
+@media (min-width: 900px) {
+  .shopify-policy__title {
+    padding: 7rem 2.5rem 4rem !important;
+  }
+}
+
+/* ── Body / prose ── */
+.shopify-policy__body {
+  max-width: 1100px;
+  margin: 0 auto !important;
+  padding: 3rem 1.5rem 5rem !important;
+}
+@media (min-width: 900px) {
+  .shopify-policy__body {
+    padding: 4rem 2.5rem 7rem !important;
+  }
+}
+.shopify-policy__body .rte {
+  max-width: 760px;
+  color: var(--casa-ink, #0A0A0F);
+  font-size: 16px;
+  line-height: 1.75;
+}
+@media (min-width: 750px) {
+  .shopify-policy__body .rte {
+    font-size: 17px;
+  }
+}
+.shopify-policy__body .rte > * + * {
+  margin-top: 1.25rem;
+}
+.shopify-policy__body .rte h1 {
+  font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+  font-size: clamp(26px, 3vw, 32px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  color: var(--casa-ink, #0A0A0F);
+  margin: 3rem 0 1.5rem;
+}
+.shopify-policy__body .rte h2 {
+  font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--casa-ink, #0A0A0F);
+  margin: 2.75rem 0 1.25rem;
+}
+.shopify-policy__body .rte h3,
+.shopify-policy__body .rte h4 {
+  font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+  font-size: clamp(16px, 1.5vw, 18px);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--casa-ink, #0A0A0F);
+  text-transform: none;
+  margin: 2.25rem 0 0.75rem;
+}
+.shopify-policy__body .rte h5,
+.shopify-policy__body .rte h6 {
+  font-family: var(--font-mono--family, 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #525252;
+  margin: 2.25rem 0 0.75rem;
+}
+.shopify-policy__body .rte h5 strong,
+.shopify-policy__body .rte h6 strong {
+  font-weight: 500;
+  color: inherit;
+}
+.shopify-policy__body .rte p {
+  margin: 0 0 1.25rem;
+  color: var(--casa-ink, #0A0A0F);
+}
+.shopify-policy__body .rte strong,
+.shopify-policy__body .rte b {
+  font-weight: 600;
+  color: var(--casa-ink, #0A0A0F);
+}
+.shopify-policy__body .rte em,
+.shopify-policy__body .rte i {
+  font-style: italic;
+}
+/* Links — brand purple on Paper so they read as actionable. Auto-linked
+   emails and URLs (see casa-policy.js) get the same treatment. */
+.shopify-policy__body .rte a {
+  color: #9333EA;
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: #9333EA;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  word-break: break-word;
+  transition: color 0.2s ease, text-decoration-color 0.2s ease, text-decoration-thickness 0.2s ease;
+}
+.shopify-policy__body .rte a:hover,
+.shopify-policy__body .rte a:focus-visible {
+  color: #EC4899;
+  text-decoration-color: #EC4899;
+  text-decoration-thickness: 2.5px;
+}
+.shopify-policy__body .rte a[href^="mailto:"]::before,
+.shopify-policy__body .rte a[href^="tel:"]::before {
+  content: '↗';
+  display: inline-block;
+  font-size: 0.85em;
+  margin-right: 0.25em;
+  opacity: 0.7;
+  transform: translateY(-1px);
+}
+.shopify-policy__body .rte a[href^="mailto:"]:hover::before,
+.shopify-policy__body .rte a[href^="tel:"]:hover::before {
+  opacity: 1;
+}
+.shopify-policy__body .rte ul,
+.shopify-policy__body .rte ol {
+  margin: 0 0 1.5rem;
+  padding-left: 1.5rem;
+}
+.shopify-policy__body .rte li {
+  margin: 0 0 0.625rem;
+  color: var(--casa-ink, #0A0A0F);
+}
+.shopify-policy__body .rte li::marker {
+  color: #525252;
+}
+.shopify-policy__body .rte blockquote {
+  margin: 2rem 0;
+  padding: 1.25rem 1.5rem;
+  border-left: 2px solid #9333EA;
+  background: rgba(10, 10, 15, 0.04);
+  color: var(--casa-ink, #0A0A0F);
+  font-style: italic;
+}
+.shopify-policy__body .rte hr {
+  border: 0;
+  border-top: 1px solid #E5E3DC;
+  margin: 2.5rem 0;
+}
+.shopify-policy__body .rte table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 14px;
+}
+.shopify-policy__body .rte th,
+.shopify-policy__body .rte td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #E5E3DC;
+  text-align: left;
+}
+.shopify-policy__body .rte th {
+  font-weight: 600;
+  color: var(--casa-ink, #0A0A0F);
+  background: rgba(10, 10, 15, 0.04);
+}
+.shopify-policy__body .rte img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 1.5rem 0;
+}
+
+/* ── em-gradient on the H1 last word (wrapped by casa-policy.js) ── */
+.shopify-policy__title h1 em {
+  font-style: italic;
+  font-weight: 800;
+  background-image: linear-gradient(90deg, #9333EA 0%, #EC4899 50%, #06B6D4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* ── Last-updated subline ── */
+.shopify-policy__updated {
+  display: block;
+  margin-top: 1rem;
+  font-family: var(--font-mono--family, 'JetBrains Mono', monospace);
+  font-size: 12px;
+  color: #525252;
+  letter-spacing: 0.05em;
+}
+
+/* ── Drop cap on first paragraph (JS adds .casa-policy-firstp) ── */
+.shopify-policy__body .rte .casa-policy-firstp::first-letter {
+  float: left;
+  font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+  font-size: 56px;
+  line-height: 0.9;
+  font-weight: 700;
+  margin: 0.3rem 0.5rem 0 0;
+  color: var(--casa-ink, #0A0A0F);
+  letter-spacing: -0.02em;
+}
+@media (max-width: 749px) {
+  .shopify-policy__body .rte .casa-policy-firstp::first-letter {
+    font-size: 44px;
+  }
+}
+
+/* ── Numbered section markers on H5 (data-policy-num set by JS) ── */
+.shopify-policy__body .rte h5[data-policy-num] {
+  position: relative;
+  padding-top: 2.5rem;
+  margin-top: 3rem;
+  border-top: 1px solid #E5E3DC;
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+.shopify-policy__body .rte h5[data-policy-num]::before {
+  content: attr(data-policy-num);
+  font-family: var(--font-mono--family, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: #9333EA;
+  flex-shrink: 0;
+}
+.shopify-policy__body .rte h5[data-policy-num]:first-child {
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+/* ── TOC sidebar (JS-injected on desktop) ── */
+.shopify-policy__body--with-toc {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3rem;
+}
+@media (min-width: 1024px) {
+  .shopify-policy__body--with-toc {
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 5rem;
+    align-items: start;
+  }
+}
+.casa-policy-toc {
+  align-self: start;
+}
+@media (min-width: 1024px) {
+  .casa-policy-toc {
+    position: sticky;
+    /* Clear the sticky site header (incl. announcement bar) so the
+       "ON THIS PAGE" label isn't clipped. Tracks the live header height
+       like the anchor offset; falls back to the 80px default. */
+    top: calc(var(--casa-chrome-top, var(--header-group-height, var(--header-height, 80px))) + 1.5rem);
+  }
+}
+@media (max-width: 1023px) {
+  .casa-policy-toc {
+    padding: 1.25rem 1.5rem;
+    background: rgba(10, 10, 15, 0.04);
+    border: 1px solid #E5E3DC;
+    border-radius: 4px;
+  }
+}
+.casa-policy-toc__label {
+  display: block;
+  font-family: var(--font-mono--family, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #525252;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid #E5E3DC;
+}
+.casa-policy-toc__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+.casa-policy-toc__nav a {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  color: #525252;
+  font-size: 13px;
+  line-height: 1.45;
+  text-decoration: none;
+  padding: 0.25rem 0 0.25rem 0.75rem;
+  margin-left: -0.75rem;
+  border-left: 2px solid transparent;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.casa-policy-toc__num {
+  font-family: var(--font-mono--family, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: #9333EA;
+  flex-shrink: 0;
+  min-width: 1.6em;
+}
+.casa-policy-toc__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.casa-policy-toc__nav a:hover,
+.casa-policy-toc__nav a:focus-visible {
+  color: var(--casa-ink, #0A0A0F);
+}
+.casa-policy-toc__nav a.is-active {
+  color: var(--casa-ink, #0A0A0F);
+  border-left-color: #9333EA;
+}
+.casa-policy-toc__nav a.is-active .casa-policy-toc__num {
+  color: #EC4899;
+}
+
+/* The .rte takes the right column when TOC is present */
+.shopify-policy__body--with-toc .rte {
+  max-width: 760px;
+  width: 100%;
+}
+
+/* ── Other policies footer (JS-injected) ── */
+.casa-policy-other {
+  margin-top: 4rem;
+  border-top: 1px solid #E5E3DC;
+  padding: 3rem 1.5rem 5rem;
+}
+@media (min-width: 900px) {
+  .casa-policy-other { padding: 4rem 2.5rem 6rem; }
+}
+.casa-policy-other__inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.casa-policy-other__label {
+  display: block;
+  font-family: var(--font-mono--family, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #525252;
+  margin-bottom: 1.75rem;
+}
+.casa-policy-other__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+}
+@media (min-width: 750px) {
+  .casa-policy-other__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.875rem 2rem;
+  }
+}
+.casa-policy-other__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: var(--casa-ink, #0A0A0F);
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+.casa-policy-other__link::after {
+  content: '→';
+  font-size: 14px;
+  opacity: 0.55;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.casa-policy-other__link:hover,
+.casa-policy-other__link:focus-visible {
+  border-bottom-color: #9333EA;
+}
+.casa-policy-other__link:hover::after {
+  transform: translateX(4px);
+  opacity: 1;
+}
+
+/* ─── Judge.me Review Widget — brand-book heading override ──────────
+   The Judge.me widget hard-codes "Customer Reviews" as its <h2> in
+   plain sans-serif, no brand voice. Override visual styling so the
+   heading reads as a Casa section H2: same family + size + weight +
+   tracking as every other PDP H2, with the italic-gradient accent on
+   the keyword "Reviews." (matches the Casa pattern of "More to love."
+   above it and "Common questions." in the FAQ).
+
+   Approach: collapse the original text node to font-size: 0, then
+   inject "Customer " (plain) + "Reviews." (italic gradient) via
+   pseudo-elements. The text content for screen readers is preserved
+   via aria-label fallback on the original element where applicable.
+   ─────────────────────────────────────────────────────────────── */
+.jdgm-rev-widg__title {
+  /* !important needed — Judge.me ships its own .jdgm-rev-widg__title
+     rule with higher specificity than a single-class selector. Without
+     !important the original "Customer Reviews" renders on top of our
+     injected pseudo-text. */
+  font-size: 0 !important;
+  font-family: var(--font-body--family, 'Inter', sans-serif);
+  text-align: center;
+  letter-spacing: var(--casa-pdp-h2-tracking, -0.02em);
+  line-height: var(--casa-pdp-h2-line, 1.05);
+  color: var(--casa-ink, #0A0A0F);
+  margin: 0 0 24px;
+}
+.jdgm-rev-widg__title::before {
+  content: 'Customer ';
+  font-size: var(--casa-pdp-h2-size, clamp(24px, 4vw, 40px));
+  font-weight: var(--casa-pdp-h2-weight, 600);
+  font-style: normal;
+  vertical-align: baseline;
+}
+.jdgm-rev-widg__title::after {
+  content: 'Reviews.';
+  font-size: var(--casa-pdp-h2-size, clamp(24px, 4vw, 40px));
+  font-weight: 600;
+  font-style: italic;
+  background-image: linear-gradient(95deg, #9333EA 0%, #EC4899 50%, #06B6D4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  vertical-align: baseline;
+}
+
+/* ─── Judge.me widget — inline gutter for sort + date + review rows ───
+   Judge.me renders its sort dropdown, summary header, photo collage,
+   and per-review date column flush to the widget root's left/right
+   edges. We need an internal inset so content steps back regardless
+   of what section_width the merchant chose on the parent _blocks
+   section (page-width, full-width, etc.).
+
+   Cascade note (2026-05-19 audit): Judge.me's widget stylesheet loads
+   AFTER assets/casa-base.css and ships `padding-left: 0; padding-right: 0`
+   as longhand on .jdgm-rev-widg. Without !important, our shorthand
+   `padding-inline` loses cascade order — computed value resolves to 0
+   on every PDP. !important is the right tool here: this is a 3rd-party
+   widget override (Judge.me ships no merchant-controllable internal-
+   padding setting we'd be masking), not a Casa-section override.
+
+   clamp(16px, 3vw, 24px) → 16px on phones, ~24px on desktop. Stacked
+   on the parent's --page-margin (16px mobile / 40px desktop on page-
+   width sections; 0 on full-width sections), internal content lands
+   at minimum 16px from viewport even on full-width parents, and at
+   ~32px / ~64px on page-width parents. Symmetric by construction.
+
+   Robust against new PDPs / merchant edits — the rule doesn't depend
+   on which section_width the merchant picked. Pair with: keep new PDP
+   reviews _blocks sections at section_width: page-width as canon
+   (matches the other 30+ PDP templates).
+
+   Canonical inline-gutter pattern for any 3rd-party app-block widget
+   that ships flush-edge internal layout (Klaviyo embedded forms, etc.).
+   ─────────────────────────────────────────────────────────────── */
+.jdgm-rev-widg {
+  padding-inline: clamp(16px, 3vw, 24px) !important;
+}
+
+/* 2026-08-25: readability cap on review bodies. The widget's 1200px
+   box runs review paragraphs to 130ch at >=1920 (widescreen sweep).
+   72ch matches the site-wide measure caps (7589c55f). Left-aligned
+   content, and narrower viewports never reach the cap, so mobile is
+   untouched. Judge.me sets no max-width of its own here — no
+   !important needed. */
+.jdgm-rev__body {
+  max-width: 72ch;
+}
+
+/* ─── Judge.me preview-badge FOUC — scoped to the Horizon app block ──
+   The 3-stage hydration FOUC (★ placeholder → ★ N reviews → ★ 5.0 (N))
+   only happens inside the Judge.me Horizon app block, which lives at
+   shopify://apps/judge-me-reviews/blocks/preview_badge and renders
+   inside .jdgm-horizon-widget on the PDP buy-box rating row.
+
+   Casa's casa-judgeme-rating.liquid snippet (product cards, cart
+   drawer, comparison, lookbook, PDP recommendations) is NOT inside
+   .jdgm-horizon-widget — it server-renders the final stars+count HTML
+   from product.metafields.judgeme.badge on first paint. There's no
+   hydration to gate, and these badges must NOT be opacity-gated:
+   Judge.me's loader does not always add .jdgm--done-setup to them
+   (verified 2026-05-20: PDP recommendations carousel badges with real
+   review counts stay at .jdgm--done-setup=false indefinitely because
+   data-auto-install="false" makes the loader skip them entirely).
+   Pre-scope, those badges were stuck invisible site-wide on every
+   carousel-mounted surface.
+
+   The .jdgm--done-setup class is Judge.me's internal marker added by
+   widget_preview.js when the app block finishes hydrating. The fade
+   reveals the final-state HTML once that lands.
+
+   No JS failsafe: if widget_preview.js never runs (consent banner,
+   ad blocker, network failure), Judge.me's server-rendered HTML wraps
+   the inner .jdgm-prev-badge in inline style="display:none" anyway,
+   so the gated placeholder surfaces nothing visible without their JS.
+
+   Visible behavior: PDP buy-box reload → badge invisible → fades in
+   at ~120ms. Casa card badges paint immediately at opacity:1.
+   ─────────────────────────────────────────────────────────────── */
+.jdgm-horizon-widget .jdgm-widget.jdgm-preview-badge {
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+.jdgm-horizon-widget .jdgm-widget.jdgm-preview-badge.jdgm--done-setup {
+  opacity: 1;
+}
+
+/* ─── Product-card review badge: quiet the count text ──────────────
+   The Judge.me preview badge renders the review count in
+   `.jdgm-prev-badge__text` ("212 reviews"). On Casa's quiet-chrome
+   LIGHT cards the gold stars carry the trust signal and the count is
+   supporting metadata, so we demote the TEXT ONLY — lighter weight +
+   a restrained gray — and leave the stars (.jdgm-star) untouched.
+   Design: "stars lead, number recedes."
+
+   SCOPE = light cards ONLY. The `collection` + `mega-menu` variants
+   render on dark surfaces (the recently-viewed strip, the dark
+   collection grid) and bring their own colours for full parity with
+   the rest of the site, so they are EXCLUDED here via :not().
+   An earlier version forced rgba(255,255,255,.6) on those variants and
+   made the recently-viewed count text disappear — the dark variants
+   MUST keep Judge.me's own default, which already renders correctly on
+   their surface. (regression fixed 2026-06-15)
+
+   Colour held at the WCAG-AA floor (count text <=14px needs 4.5:1):
+   #6b7280 = 4.83:1 on #fff / 4.62:1 on Paper #FAFAF7. Anything lighter
+   (e.g. #9ca3af = 2.5:1) FAILS AA — soften via weight, not colour.
+   Selector beats Judge.me's low-specificity widget CSS without
+   !important. */
+.casa-product-card:not(.casa-product-card--collection):not(.casa-product-card--mega-menu)
+  .casa-product-card__rating .jdgm-prev-badge__text {
+  color: #6b7280;
+  font-weight: 400;
+}
+
+/* Shrink the whole review badge (stars + count) ~10% on cards so it
+   reads as supporting detail, not a headline. Scale (not font-size)
+   shrinks stars and number IN PROPORTION regardless of how Judge.me
+   sizes its star glyphs, and is colour-agnostic so it's safe on every
+   variant including the dark recently-viewed strip. `left center`
+   origin keeps it flush to the card's left edge (default alignment);
+   it's a static transform, so no animation/perf cost. */
+.casa-product-card .casa-product-card__rating .jdgm-prev-badge {
+  transform: scale(0.9);
+  transform-origin: left center;
+}
+
+/* ─── Card review badges: drop Judge.me's "link to reviews" affordance ──
+   Judge.me's app-embed JS (widget_preview.js) post-processes EVERY
+   .jdgm-preview-badge on the page — including the ones this theme
+   server-renders from product.metafields.judgeme.badge via
+   casa-judgeme-rating.liquid — and decorates them with its click-to-
+   reviews behaviour: it adds .jdgm-preview-badge--with-link plus a
+   role="button" + pointer cursor on the stars and a scroll-to-the-
+   reviews-widget click handler. (Verified in the live DOM 2026-07-10:
+   data-auto-install="false" stops the loader from REPLACING the badge
+   but not from adding this link behaviour. Judge.me's server HTML
+   itself contains no <a>.)
+
+   That affordance is correct on the PDP buy-box (.casa-pdp-rating) —
+   the reviews widget is on the same page — so it is deliberately NOT
+   listed below and keeps its link. But on the compact surfaces
+   (product cards, lookbook cards, the comparison table, the cart
+   drawer) there is no on-page reviews widget AND the whole card is
+   already a link to the PDP, so the linked stars read as a stray
+   hyperlink. Make the badge purely presentational there: pointer-
+   events:none means a click falls through to the card's own <a> (or
+   is simply inert), with no separate link target and no pointer cursor
+   of its own. Stars stay visible. Selector specificity (0,3,0) beats
+   Judge.me's widget CSS without !important. */
+.casa-product-card__rating .jdgm-widget.jdgm-preview-badge,
+.casa-product-card__rating .jdgm-widget.jdgm-preview-badge *,
+.casa-lb-prod__rating .jdgm-widget.jdgm-preview-badge,
+.casa-lb-prod__rating .jdgm-widget.jdgm-preview-badge *,
+.casa-compare__rating .jdgm-widget.jdgm-preview-badge,
+.casa-compare__rating .jdgm-widget.jdgm-preview-badge *,
+.cart-items__rating .jdgm-widget.jdgm-preview-badge,
+.cart-items__rating .jdgm-widget.jdgm-preview-badge * {
+  pointer-events: none;
+}
+
+/* ─── Klaviyo font-swap guard ─────────────────────────────────────
+   klaviyo.js loads fonts from Klaviyo's font library post-paint.
+   When a Klaviyo font shares a family name with one on this site
+   (Inter), the post-paint inject overrides our @font-face and the
+   browser repaints — visible site-wide font swap, reported when
+   the embed was enabled.
+
+   Paired fix in Klaviyo dashboard: Content → Images & Brand →
+   Fonts → remove any Inter entries so Klaviyo stops trying to
+   ship its own copy. Without the dashboard step, this CSS alone
+   won't kill the swap — it just keeps the popup itself in Inter.
+
+   `inherit` (not an explicit family) is load-bearing: it pulls
+   --font-body--family from <body>, which already includes the
+   metric-matched 'Inter Fallback' so the popup paints in correct
+   metrics even mid-load.
+   ─────────────────────────────────────────────────────────────── */
+.klaviyo-form,
+.klaviyo-form *,
+.needsclick,
+.needsclick *,
+[class*='kl-private'],
+[class*='kl-private'] * {
+  font-family: inherit !important;
+}
+
+/* ─── Klaviyo teaser vs the theme's fullscreen modals ─────────────
+   The signup teaser is a fixed chip Klaviyo renders at z-index
+   90000. Two of our fullscreen surfaces are plain <div>s at
+   z-index 9999 — the video-testimonial modal and quickview — so
+   the chip paints ON TOP of them and swallows taps aimed at the
+   video (measured 9/9 hit-test points, WebKit/iPhone 13).
+
+   The cart drawer and the PDP image zoom are <dialog> opened with
+   showModal(), which promotes them to the browser's top layer —
+   that outranks any z-index, which is why they need no guard and
+   only these two do.
+
+   Scoped to the TEASER only, deliberately: hiding .klaviyo-form
+   as well would suppress a popup that happens to fire mid-modal
+   while Klaviyo still counted the impression and started its
+   5-day cookie — the customer would silently lose that offer.
+
+   Both body classes are set AND cleared by the modals themselves:
+     body.casa-vtm-open → sections/casa-video-demo.liquid
+     body.casa-qv-open  → snippets/casa-quickview-modal.liquid
+   Verified open→close→reopen restores the teaser cleanly (0/9
+   blocked while open, 9/9 after close).
+
+   Degrades safe: these are Klaviyo-generated class names. If they
+   rename, the selector stops matching and behaviour returns to
+   what it is today — it cannot break the modals.
+   ─────────────────────────────────────────────────────────────── */
+body.casa-vtm-open [class*='kl-teaser'],
+body.casa-qv-open [class*='kl-teaser'] {
+  /* display, NOT visibility. Klaviyo's kl-private-reset-css-* class
+     sets `visibility: visible` + `pointer-events: auto` on every
+     descendant, so hiding only the root leaves the chip painted and
+     still tappable (caught by screenshot after a visibility-based
+     first attempt measured as passing). A display:none ancestor
+     removes the whole subtree from rendering — no descendant can
+     override it. */
+  display: none !important;
+}
+
+/* ── Compositor-load reduction (2026-07-05) ───────────────────────────────
+   A live layer audit found 106 GPU compositor layers on the homepage — 87 of
+   them on HIDDEN / off-screen elements. That overloads the compositor and drops
+   a frame during fast scroll (the "page content shows through the sticky
+   header" report). backdrop-filter is the most expensive layer type per frame,
+   and 35 of the 41 backdrop-filter layers were tiny UI chrome — carousel
+   arrows, category title pills, styled-spaces labels, media buttons — most of
+   them off-screen. Dropping the frosted glass on these ~20-40px controls
+   (glass -> solid; verified legible on the category pills) removes those layers
+   (measured ~41 -> ~8 backdrop layers) and takes the biggest safe bite out of
+   per-frame compositing. Intentional VISIBLE glass (hero float-badge, the
+   .cdl-split__glass panel, drawers, menus, modals) is deliberately NOT listed
+   and keeps its blur. !important is required so these win over each section's
+   compiled {% stylesheet %} rule. Pairs with the #header-group GPU promotion. */
+.casa-cat__title-pill,
+.casa-cat__arrow,
+.casa-cat__overlay-arrow,
+.cdh-spaces__label,
+.casa-rv__overlay-arrow,
+.casa-mega-cat-hero-arrow,
+.casa-mega-faq-arrow,
+.casa-submenu__cat-hero-arrow,
+.casa-products-grid__overlay-arrow,
+.casa-vtm-section__play,
+.casa-vtm-section__arrow,
+.casa-vtm-section__mute,
+.casa-vtm-section__close {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  will-change: auto !important;
+}
+
+/* The category tile pill + styled-spaces room label had NO background of their
+   own — they relied ENTIRELY on the (now-removed) backdrop-filter blur for
+   their backing, which left white label text sitting on the raw tile image
+   (fine over dark tiles, risky over a light one). Restore a legible backing
+   with a cheap solid dark tint (no compositor layer) — the correct glass ->
+   solid swap: keeps the perf win, legible over any tile at any breakpoint. */
+.casa-cat__title-pill,
+.cdh-spaces__label {
+  background-color: rgba(10, 10, 15, 0.5) !important;
+}
+
+/* casa-anim-gate.js sets data-casa-anim="paused" on gated hosts (and on
+   .text-grad-shimmer elements) while they sit outside the viewport. Pause
+   the host's whole subtree, pseudos included. Default (attribute absent)
+   is running — if the script 404s the theme degrades to the old
+   always-animating behavior, never to frozen. !important so it beats every
+   section's compiled stylesheet block. */
+[data-casa-anim="paused"],
+[data-casa-anim="paused"] *,
+[data-casa-anim="paused"]::before,
+[data-casa-anim="paused"]::after,
+[data-casa-anim="paused"] *::before,
+[data-casa-anim="paused"] *::after {
+  animation-play-state: paused !important;
+}
+
+/* --------------------------------------------------------------------------
+   GLOBAL RULES EXTRACTED FROM casa-pdp.css (2026-07-09)
+   --------------------------------------------------------------------------
+   casa-pdp.css is now loaded ONLY on product pages — snippets/stylesheets.liquid
+   gates it on `request.page_type == 'product'` — to keep ~37 KB of PDP-only CSS
+   off the homepage / collection / cart and shrink the render-blocking payload.
+
+   These four rule groups are the ONLY casa-pdp.css rules that also render OFF
+   the PDP: product cards + mega-menu prices, the collection-link block, and RTE
+   prose inside accordions (collection filters, cart, header drawer, track-order).
+   They must stay global, so they live here (casa-base.css loads on every page).
+   They ALSO remain in casa-pdp.css — the ~1.5 KB duplication on PDPs is
+   intentional. If you edit one copy, edit BOTH (grep both files).
+   -------------------------------------------------------------------------- */
+
+/* [casa-pdp.css §2] Collection link block */
+.casa-collection-link__anchor {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--casa-space-1, 4px);
+  font-size: var(--casa-text-small, 14px);
+  font-weight: var(--casa-font-medium, 500);
+  text-decoration: none;
+  transition: all var(--casa-transition-fast, 0.2s ease);
+  color: var(--casa-purple, #9333ea);
+}
+
+.casa-collection-link__anchor:hover {
+  gap: var(--casa-space-2, 8px);
+}
+
+.casa-collection-link__arrow {
+  display: inline-flex;
+  transition: transform var(--casa-transition-fast, 0.2s ease);
+}
+
+.casa-collection-link__anchor:hover .casa-collection-link__arrow {
+  transform: translateX(2px);
+}
+
+/* [casa-pdp.css §9] Price save badge (price.liquid enhancement) */
+.price-save-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(147, 51, 234, 0.12);
+  color: #9333ea;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 100px;
+  border: 1px solid rgba(147, 51, 234, 0.25);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* [casa-pdp.css §12] Price block overrides (product cards, mega menu) */
+product-price .price {
+  font-weight: var(--casa-font-bold, 700);
+}
+
+product-price .compare-at-price {
+  font-size: 0.85em;
+  opacity: 0.6;
+}
+
+/* [casa-pdp.css §17] Lift the reading-measure cap on RTE prose inside
+   accordions (collection filters, cart, header drawer, track-order) to 100%
+   of the panel — these accordions render off-PDP and need this too.
+   2026-08-25 partial walk-back: bare p/li re-cap at 72ch via
+   blocks/_accordion-row.liquid — its (0,2,2) selector beats the
+   strongest lift selector here ((0,2,1), the div.accordion wrapper
+   makes ".accordion details ..." apply) and it sets max-inline-size
+   as well as max-width so it wins inside this property. Panels ran
+   to 93ch at >=1920 per the widescreen sweep. Headings, tables and
+   blockquotes keep the 100% lift. */
+accordion-custom rte-formatter > *,
+accordion-custom .text-block > *,
+.accordion details rte-formatter > *,
+.accordion details .text-block > * {
+  max-inline-size: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   WCAG AA contrast override — Judge.me review widget (2026-07-10)
+   --------------------------------------------------------------------------
+   Judge.me ships its muted meta text as #7b7b7b on white = 4.23:1, just
+   under the 4.5:1 AA floor (WCAG 1.4.3). It's third-party CSS, so we nudge
+   it to #767676 (4.54:1) with a scoped !important. Kept minimal — only the
+   grey meta/histogram text, not the review body. */
+.jdgm-histogram__frequency,
+.jdgm-histogram__percentage,
+.jdgm-histogram__label,
+.jdgm-rev__timestamp,
+.jdgm-rev__location,
+.jdgm-all-reviews-text,
+.jdgm-rev__product-link,
+.jdgm-gallery-title {
+  color: #767676 !important;
+}
+
+/* WCAG 2.5.8 (2026-07-10): Judge.me pagination targets render at ~23.4px,
+   just under the 24px AA minimum. Bump to 24px. Third-party markup. */
+.jdgm-paginate__page,
+.jdgm-paginate__next-page,
+.jdgm-paginate__prev-page,
+.jdgm-paginate__last-page,
+.jdgm-paginate__first-page {
+  min-width: 24px !important;
+  min-height: 24px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* iOS double-tap-zoom eats rapid taps 2..n on click-driven controls (the
+   cart-stepper device bug, 4b68c056): with zoom allowed (a11y — no
+   maximum-scale), Safari routes taps through disambiguation, delaying and
+   suppressing repeat taps. House rule: every repeatedly-tapped control
+   carries touch-action: manipulation (quantity steppers and the
+   casa-products-grid arrows already comply). This covers Horizon's
+   slideshow controls — PDP gallery arrows, card galleries, recommendation
+   carousels — which had no touch-action anywhere. Pinch-zoom stays intact;
+   only the double-tap gesture (and its 300ms wait) is opted out on the
+   buttons themselves. */
+.slideshow-control {
+  touch-action: manipulation;
 }

@@ -9,10 +9,10 @@
   assign title         = section.settings.title | default: 'Frequently Asked Questions'
   assign subtitle      = section.settings.subtitle | default: 'Everything you need to know about our products, orders, and shipping.'
 
-  assign accent_1      = section.settings.accent_primary | default: '#9333ea'
-  assign accent_2      = section.settings.accent_secondary | default: '#ec4899'
-  assign bg_color      = section.settings.bg_color | default: '#09090b'
-  assign text_color    = section.settings.text_color | default: '#fafafa'
+  assign accent_1      = section.settings.accent_primary | default: '#B0C3FA'
+  assign accent_2      = section.settings.accent_secondary | default: '#5E0A02'
+  assign bg_color      = section.settings.bg_color | default: '#0A0A0F'
+  assign text_color    = section.settings.text_color | default: '#FAFAF7'
   assign muted_color   = section.settings.muted_color | default: '#a1a1aa'
   assign card_bg       = section.settings.card_bg | default: 'rgba(255,255,255,0.04)'
   assign card_border   = section.settings.card_border | default: 'rgba(255,255,255,0.08)'
@@ -21,7 +21,7 @@
   assign contact_title = section.settings.contact_title | default: 'Still have questions?'
   assign contact_text  = section.settings.contact_text | default: 'Our support team is here to help. Reach out and we will get back to you within 24 hours.'
   assign contact_btn   = section.settings.contact_btn_text | default: 'Contact Us'
-  assign contact_url   = section.settings.contact_url | default: '/pages/contact'
+  assign contact_url   = section.settings.contact_url | default: '/pages/contact-us'
 
   assign padding_top          = section.settings.padding_top | default: 100
   assign padding_bottom       = section.settings.padding_bottom | default: 100
@@ -58,6 +58,15 @@
     --faqp-pb: {{ padding_bottom }}px;
     --faqp-pt-m: {{ padding_mobile_top }}px;
     --faqp-pb-m: {{ padding_mobile_bottom }}px;
+    {%- comment -%}
+      Heading-scale dropdown: merchant picks H1-H6 from Theme Settings -> Typography.
+    {%- endcomment -%}
+    {%- assign _faqp_title_h = section.settings.faqp_heading_level | default: 'h1' -%}
+    --faqp-title-fs:   var(--font-{{ _faqp_title_h }}--size);
+    --faqp-title-fw:   var(--font-{{ _faqp_title_h }}--weight);
+    --faqp-title-lh:   var(--font-{{ _faqp_title_h }}--line-height);
+    --faqp-title-ls:   var(--font-{{ _faqp_title_h }}--letter-spacing);
+    --faqp-title-case: var(--font-{{ _faqp_title_h }}--case);
   "
 >
   <div class="casa-faqp__wrap">
@@ -172,9 +181,10 @@
           {%- if contact_text != blank -%}
             <p class="casa-faqp__cta-text">{{ contact_text }}</p>
           {%- endif -%}
-          <a href="{{ contact_url }}" class="casa-faqp__cta-btn">
+          {%- assign faqp_btn_treatment = section.settings.faqp_btn_treatment | default: 'featured' -%}
+          <a href="{{ contact_url }}" class="btn btn-{{ faqp_btn_treatment }} casa-faqp__cta-btn">
             {{ contact_btn }}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            <span class="arrow" aria-hidden="true">&rarr;</span>
           </a>
         </div>
       </div>
@@ -241,7 +251,7 @@
 </script>
 
 {%- comment -%} ---- Styles ---- {%- endcomment -%}
-<style>
+{% stylesheet %}
 /* === Casa FAQ Page === */
 .casa-faqp {
   background: var(--faqp-bg);
@@ -278,14 +288,17 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   background: linear-gradient(135deg, var(--faqp-accent), var(--faqp-accent-2));
-  color: #fff;
+  color: var(--casa-text-on-ink);
   margin-bottom: 20px;
 }
 .casa-faqp__title {
-  font-size: clamp(28px, 5vw, 44px);
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  /* Heading scale comes from Theme Settings -> Typography via the
+     faqp_heading_level dropdown; legacy clamp/weight preserved as fallback. */
+  font-size: var(--faqp-title-fs, clamp(28px, 5vw, 44px));
+  font-weight: var(--faqp-title-fw, 700);
+  line-height: var(--faqp-title-lh, 1.15);
+  letter-spacing: var(--faqp-title-ls, -0.02em);
+  text-transform: var(--faqp-title-case, none);
   margin: 0 0 16px;
   color: var(--faqp-text);
 }
@@ -328,7 +341,7 @@
 .casa-faqp__tab--active {
   background: linear-gradient(135deg, var(--faqp-accent), var(--faqp-accent-2));
   border-color: transparent;
-  color: #fff;
+  color: var(--casa-text-on-ink);
 }
 .casa-faqp__tab svg {
   flex-shrink: 0;
@@ -360,8 +373,8 @@
   border: 1px solid var(--faqp-card-border);
   border-radius: 14px;
   background: var(--faqp-card-bg);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   margin-bottom: 10px;
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
   overflow: hidden;
@@ -370,8 +383,8 @@
   border-color: rgba(255,255,255,0.12);
 }
 .casa-faqp__item[open] {
-  border-color: rgba(147,51,234,0.3);
-  box-shadow: 0 0 24px rgba(147,51,234,0.06);
+  border-color: rgba(176, 195, 250,0.3);
+  box-shadow: 0 0 24px rgba(176, 195, 250,0.06);
 }
 
 .casa-faqp__question {
@@ -411,7 +424,7 @@
   background: linear-gradient(135deg, var(--faqp-accent), var(--faqp-accent-2));
 }
 .casa-faqp__item[open] .casa-faqp__chevron svg {
-  color: #fff;
+  color: var(--casa-text-on-ink);
 }
 
 .casa-faqp__answer {
@@ -452,11 +465,11 @@
   color: var(--faqp-text, #ffffff);
   text-decoration: underline;
   text-underline-offset: 3px;
-  text-decoration-color: var(--faqp-accent, #9333ea);
+  text-decoration-color: var(--faqp-accent, #B0C3FA);
   transition: color 0.2s, text-decoration-color 0.2s;
 }
 .casa-faqp__text-block a:hover {
-  color: var(--faqp-accent, #9333ea);
+  color: var(--faqp-accent, #B0C3FA);
 }
 .casa-faqp__text-block p { margin: 0 0 8px; }
 .casa-faqp__text-block p:last-child { margin: 0; }
@@ -472,8 +485,8 @@
   border-radius: 20px;
   border: 1px solid var(--faqp-card-border);
   background: var(--faqp-card-bg);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   overflow: hidden;
 }
 .casa-faqp__cta-glow {
@@ -484,7 +497,7 @@
   width: 320px;
   height: 320px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(147,51,234,0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(176, 195, 250,0.12) 0%, transparent 70%);
   pointer-events: none;
 }
 .casa-faqp__cta-title {
@@ -502,23 +515,16 @@
   margin: 0 auto 24px;
   position: relative;
 }
+/* Brand class .btn .btn-[treatment] provides display, padding,
+   radius, font, transition, text-transform, letter-spacing, hover.
+   Section-specific override: deeper hover shadow + lift, matches the
+   FAQ contact CTA's existing visual emphasis. */
 .casa-faqp__cta-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 28px;
-  border-radius: 9999px;
-  background: linear-gradient(135deg, var(--faqp-accent), var(--faqp-accent-2));
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
   position: relative;
 }
 .casa-faqp__cta-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(147,51,234,0.3);
+  box-shadow: 0 8px 24px rgba(176, 195, 250,0.3);
 }
 
 /* Mobile tweaks */
@@ -533,14 +539,14 @@
   .casa-faqp__cta-inner { padding: 36px 20px; }
   .casa-faqp__group { margin-bottom: 28px; }
 }
-</style>
+{% endstylesheet %}
 
 {% schema %}
 {
   "name": "FAQ Page",
   "tag": "section",
   "class": "casa-faqp-section",
-  "templates": ["page"],
+  "enabled_on": { "templates": ["page"] },
   "settings": [
     {
       "type": "header",
@@ -559,6 +565,21 @@
       "default": "Frequently Asked Questions"
     },
     {
+      "type": "select",
+      "id": "faqp_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
+    },
+    {
       "type": "textarea",
       "id": "subtitle",
       "label": "Subtitle",
@@ -572,25 +593,25 @@
       "type": "color",
       "id": "accent_primary",
       "label": "Accent primary",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "accent_secondary",
       "label": "Accent secondary",
-      "default": "#ec4899"
+      "default": "#5E0A02"
     },
     {
       "type": "color",
       "id": "bg_color",
       "label": "Background",
-      "default": "#09090b"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
       "id": "text_color",
       "label": "Text color",
-      "default": "#fafafa"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
@@ -642,6 +663,21 @@
       "type": "url",
       "id": "contact_url",
       "label": "CTA button link"
+    },
+    {
+      "type": "select",
+      "id": "faqp_btn_treatment",
+      "label": "Button treatment",
+      "info": "Brand-book button style. Featured (gradient) is rare per brand book — reserved for hero/launch CTAs.",
+      "options": [
+        { "value": "primary",            "label": "Primary — solid ink (light surface)" },
+        { "value": "primary-on-dark",    "label": "Primary — solid white (dark surface)" },
+        { "value": "secondary",          "label": "Secondary — outline (light surface)" },
+        { "value": "secondary-on-dark",  "label": "Secondary — outline (dark surface)" },
+        { "value": "tertiary",           "label": "Tertiary — underlined link" },
+        { "value": "featured",           "label": "Featured — purple→pink gradient" }
+      ],
+      "default": "featured"
     },
     {
       "type": "header",
@@ -740,7 +776,7 @@
           "type": "richtext",
           "id": "content",
           "label": "Content",
-          "default": "<p>Still got questions? Visit our <a href=\"/pages/faq\">FAQ</a> page or <a href=\"/pages/contact\">contact us</a>.</p>"
+          "default": "<p>Still got questions? Visit our <a href=\"/pages/faq\">FAQ</a> page or <a href=\"/pages/contact-us\">contact us</a>.</p>"
         },
         {
           "type": "select",

@@ -1,0 +1,267 @@
+{%- comment -%}
+  casa-mirror-criteria.liquid
+  Seoul Glow Lab — "What makes a good infinity mirror?" (category authority)
+
+  Paper section. Instead of a Casa-vs-Others table full of claims nobody
+  can check, it teaches the shopper what to look for on ANY infinity mirror
+  — then answers each question for this product with a verified fact, and
+  where a real customer said it better, their own words. The visitor draws
+  the conclusion; the page never says "we're the best".
+
+  Used by: templates/product.infinity-octamirror-v3.json
+  Blocks:  criterion (question, why, answer, quote, quote_by)
+  Settings: kicker, heading (one <em>), lede, answer_label, padding.
+
+  Copy rules: every `answer` must be a verified product fact (metafields,
+  description, merchant-locked memory). Every `quote` must be a verbatim
+  Judge.me review for this product with its real author.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign rows = section.blocks | where: 'type', 'criterion'
+-%}
+
+<section
+  id="casa-cr-{{ section.id }}"
+  class="casa-cr"
+  data-casa-section="criteria"
+  style="
+    --casa-cr-pt: {{ s.padding_top | default: 64 }}px;
+    --casa-cr-pb: {{ s.padding_bottom | default: 64 }}px;
+  "
+>
+  <div class="casa-cr__cap">
+    <header class="casa-cr__head">
+      {%- if s.kicker != blank -%}
+        <p class="casa-cr__mono">{{ s.kicker | escape }}</p>
+      {%- endif -%}
+      {%- if s.heading != blank -%}
+        <h2 class="casa-cr__h2">{{ s.heading }}</h2>
+      {%- endif -%}
+      {%- if s.lede != blank -%}
+        <p class="casa-cr__lede">{{ s.lede | escape }}</p>
+      {%- endif -%}
+    </header>
+
+    {%- if rows.size > 0 -%}
+      <ol class="casa-cr__list" role="list">
+        {%- for block in rows -%}
+          {%- assign b = block.settings -%}
+          <li class="casa-cr__row" {{ block.shopify_attributes }}>
+            <span class="casa-cr__n" aria-hidden="true">{{ forloop.index | prepend: '00' | slice: -2, 2 }}</span>
+            <div class="casa-cr__content">
+              <h3 class="casa-cr__q">{{ b.question | escape }}</h3>
+              {%- if b.why != blank -%}
+                <p class="casa-cr__why">{{ b.why | escape }}</p>
+              {%- endif -%}
+              {%- if b.answer != blank -%}
+                <p class="casa-cr__a">
+                  <span class="casa-cr__a-label">{{ s.answer_label | default: product.title | escape }}</span>
+                  {{ b.answer | escape }}
+                </p>
+              {%- endif -%}
+              {%- if b.quote != blank -%}
+                <figure class="casa-cr__quote">
+                  <blockquote>“{{ b.quote | escape }}”</blockquote>
+                  {%- if b.quote_by != blank -%}
+                    <figcaption>{{ b.quote_by | escape }}</figcaption>
+                  {%- endif -%}
+                </figure>
+              {%- endif -%}
+            </div>
+          </li>
+        {%- endfor -%}
+      </ol>
+    {%- endif -%}
+  </div>
+</section>
+
+{% stylesheet %}
+.casa-cr {
+  background: var(--bg-paper, #FAFAF7);
+  color: var(--t-on-light, #0A0A0F);
+  padding: var(--casa-cr-pt, 64px) 0 var(--casa-cr-pb, 64px);
+}
+.casa-cr__cap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px);
+}
+.casa-cr__mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0 0 14px;
+  color: var(--t-on-light, #0A0A0F);
+}
+.casa-cr__head {
+  max-width: 720px;
+  margin: 0 0 clamp(24px, 4vw, 44px);
+}
+.casa-cr__h2 {
+  font-family: var(--casa-pdp-h2-family, var(--font-body--family));
+  font-size: var(--casa-pdp-h2-size, clamp(28px, 4vw, 40px));
+  font-weight: var(--casa-pdp-h2-weight, 500);
+  letter-spacing: var(--casa-pdp-h2-tracking, -0.015em);
+  line-height: var(--casa-pdp-h2-line, 1.1);
+  margin: 0;
+  color: var(--t-on-light, #0A0A0F);
+  text-wrap: balance;
+}
+.casa-cr__h2 em {
+  font-style: italic;
+  font-weight: 800;
+  background-image: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.casa-cr__lede {
+  margin: 14px 0 0;
+  font-size: clamp(15px, 1.4vw, 17px);
+  line-height: 1.55;
+  color: var(--t-on-light-muted, #54545C);
+  max-width: 60ch;
+  text-wrap: pretty;
+}
+
+.casa-cr__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 clamp(28px, 5vw, 72px);
+}
+.casa-cr__row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  padding: clamp(18px, 2.4vw, 28px) 0;
+  border-top: 1px solid rgba(10, 10, 15, 0.14);
+}
+.casa-cr__n {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--c-purple, #B0C3FA);
+  padding-top: 5px;
+}
+.casa-cr__q {
+  font-family: var(--font-body--family, 'Inter', sans-serif);
+  font-size: clamp(17px, 1.6vw, 21px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0 0 8px;
+  color: var(--t-on-light, #0A0A0F);
+  text-wrap: pretty;
+}
+.casa-cr__why {
+  margin: 0 0 10px;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--t-on-light-muted, #54545C);
+  text-wrap: pretty;
+}
+.casa-cr__a {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--t-on-light, #0A0A0F);
+  text-wrap: pretty;
+}
+.casa-cr__a-label {
+  display: inline-block;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--c-purple, #B0C3FA);
+  margin-right: 8px;
+  vertical-align: 0.1em;
+}
+.casa-cr__quote {
+  margin: 12px 0 0;
+  padding-left: 12px;
+  border-left: 2px solid rgba(176, 195, 250, 0.45);
+}
+.casa-cr__quote blockquote {
+  margin: 0;
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--t-on-light-muted, #54545C);
+  text-wrap: pretty;
+}
+.casa-cr__quote figcaption {
+  margin-top: 4px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t-on-light-muted, #54545C);
+}
+
+@media (max-width: 899px) {
+  .casa-cr__list { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  /* Six rows on a phone is a long read — tighten every step, keep every word. */
+  .casa-cr__row { grid-template-columns: 26px minmax(0, 1fr); gap: 8px; padding: 16px 0; }
+  .casa-cr__q { font-size: 16.5px; margin-bottom: 6px; }
+  .casa-cr__why { font-size: 14px; margin-bottom: 8px; }
+  .casa-cr__a { font-size: 14.5px; }
+  .casa-cr__quote { margin-top: 10px; }
+  .casa-cr__quote blockquote { font-size: 13.5px; }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Mirror Criteria",
+  "tag": "section",
+  "class": "casa-mirror-criteria-section",
+  "settings": [
+    { "type": "header", "content": "Heading" },
+    { "type": "text", "id": "kicker", "label": "Kicker (mono)", "default": "05 · CHOOSING WELL" },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading (one <em>phrase</em> for the gradient accent)",
+      "default": "What makes a good <em>infinity mirror?</em>"
+    },
+    {
+      "type": "textarea",
+      "id": "lede",
+      "label": "Lede",
+      "default": "Six things to check on any infinity mirror, whoever sells it — and how this one answers each."
+    },
+    { "type": "text", "id": "answer_label", "label": "Answer label", "default": "The OctaMirror" },
+    { "type": "header", "content": "Padding" },
+    { "type": "range", "id": "padding_top", "label": "Padding top", "min": 0, "max": 160, "step": 8, "default": 64, "unit": "px" },
+    { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 160, "step": 8, "default": 64, "unit": "px" }
+  ],
+  "blocks": [
+    {
+      "type": "criterion",
+      "name": "Criterion",
+      "settings": [
+        { "type": "text", "id": "question", "label": "Question" },
+        { "type": "textarea", "id": "why", "label": "Why it matters" },
+        { "type": "textarea", "id": "answer", "label": "How this product answers it", "info": "Verified facts only — metafields, description, or merchant-confirmed." },
+        { "type": "textarea", "id": "quote", "label": "Customer quote (verbatim, optional)", "info": "Must be a real review of this product. No paraphrasing." },
+        { "type": "text", "id": "quote_by", "label": "Quote attribution" }
+      ]
+    }
+  ],
+  "max_blocks": 8,
+  "presets": [
+    { "name": "Casa Mirror Criteria", "category": "Product" }
+  ]
+}
+{% endschema %}
+

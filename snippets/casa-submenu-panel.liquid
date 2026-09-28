@@ -36,7 +36,14 @@
   endif
 -%}
 
-<div class="casa-submenu-panel casa-submenu-panel--{{ submenu_variant }}{% if drawer_glassmorphic %} casa-submenu-panel--glass{% endif %}" id="casa-submenu-{{ panel_id }}" role="dialog" aria-modal="true" aria-label="{{ link.title }} submenu">
+{%- comment -%}
+  Glass variant suppressed — same brand-Ink lock as the parent
+  drawer. drawer_glassmorphic merchant setting no longer affects
+  the visual surface. Chrome stays brand Ink (or Paper for the
+  Lifestyle variant).
+{%- endcomment -%}
+<div class="casa-submenu-panel casa-submenu-panel--{{ submenu_variant }}" id="casa-submenu-{{ panel_id }}" role="dialog" aria-modal="true" aria-label="{{ link.title }} submenu">
+  <div class="casa-submenu__frost-cover" aria-hidden="true"></div>
 
   {%- comment -%} Header with back button {%- endcomment -%}
   <div class="casa-submenu__header">
@@ -52,17 +59,221 @@
   {%- comment -%} Scrollable content {%- endcomment -%}
   <div class="casa-submenu__content">
 
-    {%- comment -%} Featured banner with mirror visual {%- endcomment -%}
-    <div class="casa-submenu__featured-img">
-      {%- if panel_collection.image != blank -%}
-        {{ panel_collection.image | image_url: width: 600 | image_tag: loading: 'lazy', class: 'casa-submenu__featured-photo' }}
-      {%- else -%}
-        <div class="casa-submenu__mirror">
-          {%- render 'casa-infinity-mirror', size: 'md', animate: true, shape: 'octagon' -%}
+    {%- comment -%}
+      Brand-voice headline + "Featured · Most-Loved" hero card.
+      Lifted to the top of every panel (was previously only inside
+      the subcategory branch — meant Lighting / Mirrors / Home Decor
+      never showed the desktop megamenu's Option G hero moment
+      because their collections have products and the products
+      branch won, skipping the hero render).
+
+      Headline uses the locked italic-gradient `<em>` typography
+      (memory: brand_typography_locked_2026-05-04.md). Hero card
+      scans `link.links` for a child flagged
+      `casa.badge=featured/best/popular/hot`; falls back to the
+      global Best Sellers collection; last-resort falls back to
+      the linked collection itself (so every Glow / Lifestyle
+      panel always has a curated visual moment).
+
+      Suppressed when:
+        - submenu_variant is 'support' — utility menus shouldn't
+          have a marketing card
+        - the linked collection has metafield `casa.hide_submenu_featured`
+          set to true (per-link kill switch for merchants)
+        - the parent passes show_featured: false (section-level toggle)
+    {%- endcomment -%}
+    {%- if show_featured == nil -%}{%- assign show_featured = true -%}{%- endif -%}
+    {%- if submenu_variant == 'support' -%}
+      {%- assign show_featured = false -%}
+    {%- endif -%}
+    {%- if panel_collection.metafields.sgl.hide_submenu_featured -%}
+      {%- assign show_featured = false -%}
+    {%- endif -%}
+
+    {%- assign _hero_handle = '' -%}
+    {%- assign _hero_link = nil -%}
+    {%- assign _hero_collection = nil -%}
+
+    {%- comment -%}
+      Brand-voice headline — renders for every variant, including
+      Support (which uses "How can we help?" to mirror the desktop
+      megamenu). Italic-gradient <em> per the locked typography
+      decision.
+    {%- endcomment -%}
+    <h3 class="casa-submenu__cat-headline">
+      {%- if submenu_variant == 'support' -%}How can we <em>help?</em>
+      {%- elsif submenu_variant == 'lifestyle' -%}Curated <em>decor.</em>
+      {%- else -%}Find your <em>light.</em>
+      {%- endif -%}
+    </h3>
+
+    {%- comment -%}
+      Support featured card — Contact Us treatment matching the
+      desktop megamenu. Rendered when submenu_variant is 'support'
+      and at least one support setting is filled. Each contact
+      method is its own tappable row (mailto: / tel: / link).
+    {%- endcomment -%}
+    {%- if submenu_variant == 'support' -%}
+      {%- assign _has_support_card = false -%}
+      {%- if support_title != blank or support_description != blank or support_email != blank or support_phone != blank or support_chat_label != blank -%}
+        {%- assign _has_support_card = true -%}
+      {%- endif -%}
+      {%- if _has_support_card -%}
+        <div class="casa-submenu__support-card">
+          {%- if featured_label_support != blank -%}
+            <span class="casa-submenu__support-label">
+              {%- render 'casa-icon', icon: 'headphones', size: 14 -%}
+              {{ featured_label_support }}
+            </span>
+          {%- endif -%}
+          {%- if support_title != blank -%}
+            <h4 class="casa-submenu__support-title">{{ support_title | newline_to_br }}</h4>
+          {%- endif -%}
+          {%- if support_description != blank -%}
+            <p class="casa-submenu__support-desc">{{ support_description | newline_to_br }}</p>
+          {%- endif -%}
+          {%- if support_email != blank or support_phone != blank or support_chat_label != blank -%}
+            <div class="casa-submenu__support-methods">
+              {%- if support_email != blank -%}
+                <a href="mailto:{{ support_email }}" class="casa-submenu__support-method">
+                  <span class="casa-submenu__support-method-icon">
+                    {%- render 'casa-icon', icon: 'mail', size: 16 -%}
+                  </span>
+                  <span class="casa-submenu__support-method-text">{{ support_email }}</span>
+                  <span class="casa-submenu__support-method-arrow" aria-hidden="true">
+                    {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}
+                  </span>
+                </a>
+              {%- endif -%}
+              {%- if support_phone != blank -%}
+                <a href="tel:{{ support_phone | remove: ' ' | remove: '(' | remove: ')' | remove: '-' }}" class="casa-submenu__support-method">
+                  <span class="casa-submenu__support-method-icon">
+                    {%- render 'casa-icon', icon: 'smartphone', size: 16 -%}
+                  </span>
+                  <span class="casa-submenu__support-method-text">{{ support_phone }}</span>
+                  <span class="casa-submenu__support-method-arrow" aria-hidden="true">
+                    {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}
+                  </span>
+                </a>
+              {%- endif -%}
+              {%- if support_chat_label != blank -%}
+                <a href="{{ support_chat_link | default: '/pages/contact-us' }}" class="casa-submenu__support-method">
+                  <span class="casa-submenu__support-method-icon">
+                    {%- render 'casa-icon', icon: 'message-circle', size: 16 -%}
+                  </span>
+                  <span class="casa-submenu__support-method-text">{{ support_chat_label }}</span>
+                  <span class="casa-submenu__support-method-arrow" aria-hidden="true">
+                    {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}
+                  </span>
+                </a>
+              {%- endif -%}
+            </div>
+          {%- endif -%}
+          {%- if support_btn_text != blank -%}
+            <a href="{{ support_btn_link | default: '/pages/contact-us' }}" class="casa-submenu__support-btn btn btn-primary">
+              {{ support_btn_text }}
+              {%- render 'casa-icon', icon: 'arrow-right', size: 14 -%}
+            </a>
+          {%- endif -%}
         </div>
       {%- endif -%}
-      <span class="casa-submenu__featured-badge">{{ link.title }}</span>
-    </div>
+    {%- endif -%}
+
+    {%- if show_featured -%}
+
+      {%- comment -%} Resolve hero — first flagged child, else global Best Sellers, else linked collection. {%- endcomment -%}
+      {%- for _scan_link in link.links -%}
+        {%- if _hero_handle != '' -%}{%- break -%}{%- endif -%}
+        {%- assign _scan_url_parts = _scan_link.url | split: '/' -%}
+        {%- assign _scan_handle = _scan_url_parts | last -%}
+        {%- assign _scan_collection = collections[_scan_handle] -%}
+        {%- assign _scan_badge = '' -%}
+        {%- if _scan_collection.metafields.sgl.badge != blank -%}
+          {%- assign _scan_badge = _scan_collection.metafields.sgl.badge | downcase -%}
+        {%- endif -%}
+        {%- if _scan_badge == 'featured' or _scan_badge == 'best' or _scan_badge == 'popular' or _scan_badge == 'hot' -%}
+          {%- assign _hero_handle = _scan_handle -%}
+          {%- assign _hero_link = _scan_link -%}
+          {%- assign _hero_collection = _scan_collection -%}
+        {%- elsif _scan_handle == 'best-sellers' or _scan_handle == 'bestsellers' -%}
+          {%- assign _hero_handle = _scan_handle -%}
+          {%- assign _hero_link = _scan_link -%}
+          {%- assign _hero_collection = _scan_collection -%}
+        {%- endif -%}
+      {%- endfor -%}
+
+      {%- comment -%}
+        Hero fallback chain (changed 2026-05-11 — flipped order so
+        the linked collection's own image wins before Best Sellers,
+        otherwise Home Decor showed a Best Sellers infinity-mirror
+        cover that has nothing to do with home decor):
+          1. featured child (any link.links child flagged
+             casa.badge = featured/best/popular/hot) — explicit
+             merchant curation always wins
+          2. linked collection itself, if it has an image — most
+             on-topic visual for the category (Home Decor cover for
+             Home Decor, Lighting cover for Lighting, etc.)
+          3. global Best Sellers — last resort for utility/curated
+             top-levels like "Shop All" or anything without its
+             own cover image
+      {%- endcomment -%}
+      {%- assign _hero_url = '' -%}
+      {%- assign _hero_title = '' -%}
+      {%- if _hero_link != nil -%}
+        {%- assign _hero_url = _hero_link.url -%}
+        {%- assign _hero_title = _hero_link.title -%}
+      {%- elsif panel_collection != blank and panel_collection.image != blank -%}
+        {%- assign _hero_url = link.url -%}
+        {%- assign _hero_title = link.title -%}
+        {%- assign _hero_collection = panel_collection -%}
+      {%- else -%}
+        {%- assign _global_best = collections['best-sellers'] -%}
+        {%- if _global_best != blank and _global_best.image != blank -%}
+          {%- assign _hero_url = '/collections/best-sellers' -%}
+          {%- assign _hero_title = 'Best Sellers' -%}
+          {%- assign _hero_collection = _global_best -%}
+        {%- endif -%}
+      {%- endif -%}
+
+      {%- if _hero_url != '' and _hero_collection.image != blank -%}
+        {%- assign _hero_focal_x = _hero_collection.metafields.sgl.focal_x -%}
+        {%- assign _hero_focal_y = _hero_collection.metafields.sgl.focal_y -%}
+        {%- if _hero_focal_x != blank -%}{%- assign _hero_focal_x_pct = _hero_focal_x | times: 100 -%}{%- else -%}{%- assign _hero_focal_x_pct = 50 -%}{%- endif -%}
+        {%- comment -%}
+          Default focal-y = 30% (was 50%). Most Casa collection
+          covers are 1:1 square photos where the subject sits in
+          the upper half (typical product photography). At 50/50
+          crop into a 3:2 card, the top arc of the subject gets
+          clipped by the visible band starting at source row ~60
+          (out of 360). 30% biases the visible band upward so the
+          full subject lands inside the crop. Per-collection
+          casa.focal_y metafield still wins if set.
+        {%- endcomment -%}
+        {%- if _hero_focal_y != blank -%}{%- assign _hero_focal_y_pct = _hero_focal_y | times: 100 -%}{%- else -%}{%- assign _hero_focal_y_pct = 30 -%}{%- endif -%}
+        <a href="{{ _hero_url }}" class="casa-submenu__cat-hero">
+          <img class="casa-submenu__cat-hero-img"
+               src="{{ _hero_collection.image | image_url: width: 760 }}"
+               srcset="{{ _hero_collection.image | image_url: width: 380 }} 380w, {{ _hero_collection.image | image_url: width: 760 }} 760w, {{ _hero_collection.image | image_url: width: 1140 }} 1140w"
+               sizes="(max-width: 480px) 360px, 380px"
+               alt="{{ _hero_collection.image.alt | escape | default: _hero_title | escape }}"
+               width="760" height="507"
+               loading="lazy" decoding="async"
+               style="object-position: {{ _hero_focal_x_pct }}% {{ _hero_focal_y_pct }}%">
+          <span class="casa-submenu__cat-hero-overlay" aria-hidden="true"></span>
+          <span class="casa-submenu__cat-hero-content">
+            <span class="casa-submenu__cat-hero-text">
+              <span class="casa-submenu__cat-hero-tag">Featured · Most-Loved</span>
+              <span class="casa-submenu__cat-hero-name">{{ _hero_title }}</span>
+            </span>
+            <span class="casa-submenu__cat-hero-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 6 15 12 9 18"/>
+              </svg>
+            </span>
+          </span>
+        </a>
+      {%- endif -%}
+    {%- endif -%}
 
     {%- comment -%}
       Product or subcategory list.
@@ -71,21 +282,31 @@
       mega menu). A collection can force the product showcase back on by setting
       the metafield sgl.show_submenu_products = true. (Pattern adapted from Casa
       di Lumo's hide_submenu_products toggle.)
+      Products are also always suppressed when:
+        - submenu_variant is 'support' (utility menus only show child links)
+        - the parent passes show_products: false (section-level toggle)
     {%- endcomment -%}
     {%- assign _has_products = false -%}
+    {%- if show_products == nil -%}{%- assign show_products = true -%}{%- endif -%}
+    {%- if submenu_variant == 'support' -%}
+      {%- assign show_products = false -%}
+    {%- endif -%}
     {%- assign _force_products = false -%}
     {%- if panel_collection and panel_collection.metafields.sgl.show_submenu_products -%}
       {%- assign _force_products = true -%}
     {%- endif -%}
     {%- if link.links.size > 0 and _force_products == false -%}
-      {%- assign _has_products = false -%}
-    {%- elsif panel_collection and panel_collection.products.size > 0 -%}
+      {%- assign show_products = false -%}
+    {%- endif -%}
+    {%- if show_products and panel_collection and panel_collection.products.size > 0 -%}
       {%- assign _has_products = true -%}
     {%- endif -%}
 
     <div class="casa-submenu__section-title">
       {%- if _has_products -%}
         Popular in {{ link.title }}
+      {%- elsif submenu_variant == 'support' and link.links.size > 0 -%}
+        {{ link.title | upcase }} TOPICS
       {%- elsif link.links.size > 0 -%}
         Browse {{ link.title }}
       {%- else -%}
@@ -101,22 +322,61 @@
           <a href="{{ product.url }}" class="casa-submenu__item">
             <div class="casa-submenu__item-img">
               {%- if product.featured_image != blank -%}
-                {{ product.featured_image | image_url: width: 112 | image_tag: loading: 'lazy', class: 'casa-submenu__item-photo' }}
+                {%- comment -%}
+                  sizes: .casa-submenu__item-img is a fixed 56×56 box the
+                  photo fills; sizes-less srcset would default the slot to
+                  100vw — see snippets/casa-cart-items.liquid.
+                {%- endcomment -%}
+                {{ product.featured_image | image_url: width: 112 | image_tag: loading: 'lazy', class: 'casa-submenu__item-photo', sizes: '56px' }}
               {%- else -%}
+                /* perf-justified: submenu panel layered over open drawer — same modal lifecycle as parent */
                 <div class="casa-submenu__item-shape casa-octagon" style="width:32px;height:32px;background:conic-gradient(from var(--angle),var(--submenu-accent-1),var(--submenu-accent-2),var(--submenu-accent-1));animation:casa-rotate 8s linear infinite;"></div>
               {%- endif -%}
             </div>
             <div class="casa-submenu__item-content">
               <span class="casa-submenu__item-name">{{ product.title }}</span>
               <div class="casa-submenu__item-meta">
-                <span class="casa-submenu__item-price">{{ product.price | money }}</span>
+                <span class="casa-submenu__item-price">{{ product.price | money_with_currency }}</span>
                 {%- if product.compare_at_price > product.price -%}
-                  <span class="casa-submenu__item-price-old">{{ product.compare_at_price | money }}</span>
+                  {%- comment -%}
+                    Was-price uses | money (NOT money_with_currency): the active
+                    price above already carries the currency code, so repeating it
+                    on the strikethrough is redundant — and in a long-currency
+                    market (VND: "8.841.000 VND"), two coded strings side by side
+                    each wrapped at the space before the code, fragmenting the row
+                    into a broken 2×2 price grid. Same fix + rationale as
+                    casa-product-card (commit c8ea957f, merchant-approved
+                    currency-code exception scoped to the redundant was-price).
+                    The active price keeps its code so Markets currency is never
+                    ambiguous.
+                  {%- endcomment -%}
+                  <s class="casa-submenu__item-price-old">{{ product.compare_at_price | money }}</s>
                 {%- endif -%}
-                {%- if product.tags contains 'bestseller' -%}
-                  <span class="casa-submenu__item-badge casa-submenu__item-badge--bestseller">Bestseller</span>
-                {%- elsif product.tags contains 'new' -%}
-                  <span class="casa-submenu__item-badge casa-submenu__item-badge--new">New</span>
+
+                {%- comment -%}
+                  Badges from the same source as the product grid:
+                    1. custom.badges metafield (list — up to 2 in this compact list)
+                    2. tag fallback (bestseller / new) when no metafield is set
+                  Class naming matches casa-product-card so colors stay
+                  consistent across the storefront — Theme Settings →
+                  Casa Product Card Colors flow through.
+                  `show_badges` defaults to true if the parent didn't pass
+                  it (preserves prior behaviour for direct callers).
+                {%- endcomment -%}
+                {%- if show_badges == nil -%}{%- assign show_badges = true -%}{%- endif -%}
+                {%- if show_badges -%}
+                  {%- assign submenu_badges_meta = product.metafields.custom.badges.value -%}
+                  {%- if submenu_badges_meta != blank -%}
+                    {%- for submenu_badge_item in submenu_badges_meta limit: 2 -%}
+                      {%- if submenu_badge_item != blank -%}
+                        <span class="casa-submenu__item-badge casa-submenu__item-badge--meta casa-submenu__item-badge--meta-{{ submenu_badge_item | handleize }}">{{ submenu_badge_item }}</span>
+                      {%- endif -%}
+                    {%- endfor -%}
+                  {%- elsif product.tags contains 'bestseller' or product.tags contains 'best-seller' -%}
+                    <span class="casa-submenu__item-badge casa-submenu__item-badge--bestseller">Bestseller</span>
+                  {%- elsif product.tags contains 'new' -%}
+                    <span class="casa-submenu__item-badge casa-submenu__item-badge--new">New</span>
+                  {%- endif -%}
                 {%- endif -%}
               </div>
             </div>
@@ -126,37 +386,329 @@
           </a>
         {%- endfor -%}
       {%- elsif link.links.size > 0 -%}
-        {%- comment -%} Show child links as subcategories {%- endcomment -%}
+        {%- comment -%}
+          Subcategory list — matches casa-mega-menu.liquid logic so
+          the mobile submenu mirrors the desktop mega menu visually.
+          Resolves real handle from URL (link.handle drifts from title),
+          looks up collection + page, picks image / icon / subtitle
+          per the same priority chain.
+
+          NOTE: Brand-voice headline + Featured · Most-Loved hero card
+          previously lived here, but were lifted to the top of the
+          panel (see show_featured block above) so they render on
+          panels that DO have products too. `_hero_handle` is set
+          there and remains in scope here, so the loop below still
+          correctly skips the hero item when iterating subcategories.
+        {%- endcomment -%}
+
+        {%- comment -%}
+          Detect manual `—` section dividers — same logic as desktop.
+          When present, render in merchant order via the original
+          single-pass loop. Otherwise (Glow / Lifestyle without
+          manual dividers), run the 5-pass auto-group renderer below.
+        {%- endcomment -%}
+        {%- assign _has_manual_sections = false -%}
+        {%- for _ck in link.links -%}
+          {%- assign _ck_first1 = _ck.title | strip | slice: 0, 1 -%}
+          {%- if _ck_first1 == '—' or _ck_first1 == '–' -%}
+            {%- assign _has_manual_sections = true -%}
+            {%- break -%}
+          {%- endif -%}
+        {%- endfor -%}
+
+        {%- if submenu_variant == 'support' or _has_manual_sections -%}
         {%- for child_link in link.links -%}
-          <a href="{{ child_link.url }}" class="casa-submenu__item">
-            <div class="casa-submenu__item-img">
-              <div class="casa-submenu__item-icon">
-                {%- render 'casa-icon', icon: 'chevron-right', size: 20 -%}
-              </div>
-            </div>
-            <div class="casa-submenu__item-content">
-              <span class="casa-submenu__item-name">{{ child_link.title }}</span>
-              {%- comment -%} Resolve the collection from the link object first
-                (a menu link's handle is a handleized title, not the collection
-                handle, so collections[handle] often misses). {%- endcomment -%}
-              {%- assign _child_collection = nil -%}
-              {%- if child_link.type == 'collection_link' and child_link.object != blank -%}
-                {%- assign _child_collection = child_link.object -%}
+          {%- assign _child_url_parts = child_link.url | split: '/' -%}
+          {%- assign _child_url_handle = _child_url_parts | last -%}
+
+          {%- comment -%}
+            Skip the hero item — already rendered as the hero card.
+          {%- endcomment -%}
+          {%- if _hero_handle != '' and _child_url_handle == _hero_handle -%}
+            {%- continue -%}
+          {%- endif -%}
+
+          {%- comment -%} Resolve the collection from the link object first
+            (a menu link's handle is a handleized title, not the collection
+            handle, so collections[handle] often misses). {%- endcomment -%}
+          {%- assign _child_collection = nil -%}
+          {%- if child_link.type == 'collection_link' and child_link.object != blank -%}
+            {%- assign _child_collection = child_link.object -%}
+          {%- else -%}
+            {%- assign _child_collection = collections[_child_url_handle] -%}
+            {%- if _child_collection == blank -%}{%- assign _child_collection = collections[child_link.handle] -%}{%- endif -%}
+          {%- endif -%}
+          {%- assign _child_page = pages[_child_url_handle] -%}
+
+          {%- comment -%} Image priority: collection metafield → collection featured → page metafield {%- endcomment -%}
+          {%- assign _child_image = nil -%}
+          {%- if _child_collection.metafields.sgl.menu_image != blank -%}
+            {%- assign _child_image = _child_collection.metafields.sgl.menu_image -%}
+          {%- elsif _child_collection != blank and _child_collection.image != blank -%}
+            {%- assign _child_image = _child_collection.image -%}
+          {%- elsif _child_page != blank and _child_page.metafields.custom.page_image != blank -%}
+            {%- assign _child_image = _child_page.metafields.custom.page_image.value -%}
+          {%- endif -%}
+
+          {%- comment -%}
+            Focal-point metafields (casa.focal_x / casa.focal_y, both
+            number_decimal in 0–1 range). Anchors the thumbnail crop on
+            the actual product instead of the geometric center, which
+            slices random product edges off when the source image
+            isn't perfectly composed. Default 50/50 (classic center
+            crop) if either metafield is unset.
+          {%- endcomment -%}
+          {%- assign _child_focal_x = _child_collection.metafields.sgl.focal_x -%}
+          {%- assign _child_focal_y = _child_collection.metafields.sgl.focal_y -%}
+          {%- if _child_focal_x != blank -%}
+            {%- assign _child_focal_x_pct = _child_focal_x | times: 100 -%}
+          {%- else -%}
+            {%- assign _child_focal_x_pct = 50 -%}
+          {%- endif -%}
+          {%- if _child_focal_y != blank -%}
+            {%- assign _child_focal_y_pct = _child_focal_y | times: 100 -%}
+          {%- else -%}
+            {%- assign _child_focal_y_pct = 50 -%}
+          {%- endif -%}
+
+          {%- comment -%} Icon priority: collection metafield → page metafield → handle-mapped {%- endcomment -%}
+          {%- assign _child_icon = 'hexagon' -%}
+          {%- if _child_collection.metafields.sgl.icon != blank -%}
+            {%- assign _child_icon = _child_collection.metafields.sgl.icon -%}
+          {%- elsif _child_page != blank and _child_page.metafields.sgl.icon != blank -%}
+            {%- assign _child_icon = _child_page.metafields.sgl.icon -%}
+          {%- elsif submenu_variant == 'support' -%}
+            {%- comment -%}
+              Support icon resolution — three passes from most specific
+              to most generic:
+                1. URL-handle case (works when merchant uses canonical
+                   handles like /pages/contact-us, /policies/refund-policy).
+                2. Title-keyword fallback (catches merchant-custom URLs
+                   like /apps/track123 or /pages/about-us-1 — what we
+                   actually see in the live nav).
+                3. `info` default — generic help-topic.
+              `document` isn't defined in casa-icon, so terms uses `shield`.
+              Keep names in sync with snippets/casa-icon.liquid.
+            {%- endcomment -%}
+            {%- assign _child_icon = '' -%}
+            {%- case _child_url_handle -%}
+              {%- when 'contact', 'contact-us' -%}{%- assign _child_icon = 'headphones' -%}
+              {%- when 'shipping', 'shipping-policy' -%}{%- assign _child_icon = 'truck' -%}
+              {%- when 'returns', 'refund-policy', 'refunds-returns' -%}{%- assign _child_icon = 'refresh' -%}
+              {%- when 'warranty' -%}{%- assign _child_icon = 'shield-check' -%}
+              {%- when 'faq' -%}{%- assign _child_icon = 'info' -%}
+              {%- when 'our-story', 'about', 'about-us' -%}{%- assign _child_icon = 'users' -%}
+              {%- when 'track-order', 'order-status' -%}{%- assign _child_icon = 'package' -%}
+              {%- when 'customer-reviews', 'reviews' -%}{%- assign _child_icon = 'star' -%}
+              {%- when 'installation', 'apollo-installation' -%}{%- assign _child_icon = 'zap' -%}
+              {%- when 'privacy-policy', 'privacy' -%}{%- assign _child_icon = 'lock' -%}
+              {%- when 'terms-of-service', 'terms' -%}{%- assign _child_icon = 'shield' -%}
+            {%- endcase -%}
+            {%- if _child_icon == '' -%}
+              {%- assign _title_norm = child_link.title | downcase | strip -%}
+              {%- if _title_norm contains 'track' or _title_norm contains 'order status' or _title_norm contains 'shipment' -%}
+                {%- assign _child_icon = 'package' -%}
+              {%- elsif _title_norm contains 'contact' or _title_norm contains 'support' or _title_norm contains 'get in touch' -%}
+                {%- assign _child_icon = 'headphones' -%}
+              {%- elsif _title_norm contains 'shipping' or _title_norm contains 'delivery' -%}
+                {%- assign _child_icon = 'truck' -%}
+              {%- elsif _title_norm contains 'refund' or _title_norm contains 'return' -%}
+                {%- assign _child_icon = 'refresh' -%}
+              {%- elsif _title_norm contains 'warranty' -%}
+                {%- assign _child_icon = 'shield-check' -%}
+              {%- elsif _title_norm contains 'review' or _title_norm contains 'testimonial' -%}
+                {%- assign _child_icon = 'star' -%}
+              {%- elsif _title_norm contains 'story' or _title_norm contains 'about' or _title_norm contains 'team' -%}
+                {%- assign _child_icon = 'users' -%}
+              {%- elsif _title_norm contains 'privacy' -%}
+                {%- assign _child_icon = 'lock' -%}
+              {%- elsif _title_norm contains 'terms' or _title_norm contains 'legal' -%}
+                {%- assign _child_icon = 'shield' -%}
+              {%- elsif _title_norm contains 'install' or _title_norm contains 'setup' or _title_norm contains 'how to' -%}
+                {%- assign _child_icon = 'zap' -%}
+              {%- elsif _title_norm contains 'faq' or _title_norm contains 'question' or _title_norm contains 'help' -%}
+                {%- assign _child_icon = 'info' -%}
+              {%- elsif _title_norm contains 'email' or _title_norm contains 'message' -%}
+                {%- assign _child_icon = 'mail' -%}
+              {%- elsif _title_norm contains 'reward' or _title_norm contains 'loyalty' -%}
+                {%- assign _child_icon = 'gift' -%}
               {%- else -%}
-                {%- assign _child_collection = collections[child_link.handle] -%}
+                {%- assign _child_icon = 'info' -%}
               {%- endif -%}
+            {%- endif -%}
+          {%- else -%}
+            {%- case _child_url_handle -%}
+              {%- when 'all-lighting', 'all', 'lighting', 'shop-all' -%}{%- assign _child_icon = 'sun' -%}
+              {%- when 'infinity-mirrors', 'mirrors', 'infinity' -%}{%- assign _child_icon = 'hexagon' -%}
+              {%- when 'floor-lamps', 'floor-lamp' -%}{%- assign _child_icon = 'lamp' -%}
+              {%- when 'table-lamps', 'table-lamp', 'desk-lamps' -%}{%- assign _child_icon = 'lamp' -%}
+              {%- when 'wall-lamps', 'wall-lamp', 'wall-lights', 'sconces' -%}{%- assign _child_icon = 'sun' -%}
+              {%- when 'led-neon-signs', 'neon-signs', 'neon', 'led-signs' -%}{%- assign _child_icon = 'zap' -%}
+              {%- when 'bubble-girl-lamps', 'bubble-girls', 'bubble-lamps' -%}{%- assign _child_icon = 'sparkles' -%}
+              {%- when 'mushroom-lamps', 'mushroom' -%}{%- assign _child_icon = 'moon' -%}
+              {%- when 'new-arrivals', 'new' -%}{%- assign _child_icon = 'sparkles' -%}
+              {%- when 'best-sellers', 'bestsellers', 'popular' -%}{%- assign _child_icon = 'star' -%}
+              {%- when 'sale', 'on-sale' -%}{%- assign _child_icon = 'tag' -%}
+              {%- when 'home-decor', 'decor', 'decoration' -%}{%- assign _child_icon = 'home' -%}
+              {%- when 'furniture', 'tables', 'chairs' -%}{%- assign _child_icon = 'box' -%}
+              {%- when 'accessories', 'accents' -%}{%- assign _child_icon = 'grid' -%}
+            {%- endcase -%}
+          {%- endif -%}
+
+          {%- comment -%}
+            Subtitle priority: collection description → page subtitle →
+            "{N} items". No "Learn more" fallback — the chevron implies
+            it, and rendering literal "Learn more" on every row was
+            wasteful noise that the user explicitly called out.
+          {%- endcomment -%}
+          {%- assign _child_subtitle = '' -%}
+          {%- if _child_collection.metafields.sgl.description != blank -%}
+            {%- assign _child_subtitle = _child_collection.metafields.sgl.description -%}
+          {%- elsif _child_page != blank and _child_page.metafields.custom.page_subtitle != blank -%}
+            {%- assign _child_subtitle = _child_page.metafields.custom.page_subtitle -%}
+          {%- elsif _child_collection != blank -%}
+            {%- assign _child_count = _child_collection.all_products_count | default: _child_collection.products_count -%}
+            {%- if _child_count > 0 -%}
+              {%- assign _child_subtitle = _child_count | append: ' items' -%}
+            {%- endif -%}
+          {%- endif -%}
+
+          {%- comment -%}
+            Option C — text-led, sectioned (mockups/megamenu-options.html).
+            Section header convention: child link titles starting with
+            `—` (em-dash) or `--` are rendered as a section header
+            instead of a clickable item.
+          {%- endcomment -%}
+          {%- assign _ch_first2 = child_link.title | strip | slice: 0, 2 -%}
+          {%- assign _is_section = false -%}
+          {%- if _ch_first2 == '——' or _ch_first2 == '--' -%}
+            {%- assign _is_section = true -%}
+          {%- else -%}
+            {%- assign _ch_first1 = child_link.title | strip | slice: 0, 1 -%}
+            {%- if _ch_first1 == '—' or _ch_first1 == '–' -%}
+              {%- assign _is_section = true -%}
+            {%- endif -%}
+          {%- endif -%}
+
+          {%- if _is_section -%}
+            <div class="casa-submenu__cat-section">
+              {{ child_link.title | replace: '——', '' | replace: '—', '' | replace: '–', '' | replace: '--', '' | strip }}
+            </div>
+          {%- else -%}
+            {%- assign _is_featured = false -%}
+            {%- assign _bdg = '' -%}
+            {%- if _child_collection.metafields.sgl.badge != blank -%}
+              {%- assign _bdg = _child_collection.metafields.sgl.badge | downcase -%}
+            {%- endif -%}
+            {%- if _bdg == 'featured' or _bdg == 'best' or _bdg == 'popular' or _bdg == 'hot' -%}
+              {%- assign _is_featured = true -%}
+            {%- elsif _child_url_handle == 'best-sellers' or _child_url_handle == 'bestsellers' -%}
+              {%- assign _is_featured = true -%}
+            {%- endif -%}
+
+            <a href="{{ child_link.url }}" class="casa-submenu__item casa-submenu__item--cat{% if _is_featured %} casa-submenu__item--featured{% endif %}">
+              {%- if show_icons and submenu_variant == 'support' -%}
+                <span class="casa-submenu__item-leadicon" aria-hidden="true">
+                  {%- render 'casa-icon', icon: _child_icon, size: 18 -%}
+                </span>
+              {%- endif -%}
+              <span class="casa-submenu__item-name">{{ child_link.title }}</span>
+              {%- if _child_subtitle != blank -%}
+                <span class="casa-submenu__item-count">{{ _child_subtitle }}</span>
+              {%- endif -%}
+              <svg class="casa-submenu__item-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </a>
+          {%- endif -%}
+        {%- endfor -%}
+
+        {%- else -%}
+        {%- comment -%}
+          ═══════════════════════════════════════════════════════════
+          Auto-group renderer (5 sub-passes) — same logic as desktop
+          casa-mega-menu.liquid. Sorts children into Shop / Lamps /
+          Walls & Surfaces / Home / More buckets so the mobile drawer
+          matches the Option G mockup without admin work.
+          ═══════════════════════════════════════════════════════════
+        {%- endcomment -%}
+        {%- assign _section_labels = 'Shop|Lamps|Walls & Surfaces|Home|More' | split: '|' -%}
+        {%- for _section_label in _section_labels -%}
+          {%- assign _section_idx = forloop.index -%}
+          {%- assign _section_rendered = false -%}
+
+          {%- comment -%}
+            Two priority passes per section — same as desktop. "all-*"
+            overview entries always come first within their section.
+          {%- endcomment -%}
+          {%- for _priority in (1..2) -%}
+          {%- for child_link in link.links -%}
+            {%- assign _child_url_parts = child_link.url | split: '/' -%}
+            {%- assign _child_url_handle = _child_url_parts | last -%}
+
+            {%- if _hero_handle != '' and _child_url_handle == _hero_handle -%}{%- continue -%}{%- endif -%}
+            {%- assign _ch_first1 = child_link.title | strip | slice: 0, 1 -%}
+            {%- if _ch_first1 == '—' or _ch_first1 == '–' -%}{%- continue -%}{%- endif -%}
+
+            {%- comment -%} Same broadened matcher as desktop — handle + title fallback for Shop bucket {%- endcomment -%}
+            {%- assign _h = _child_url_handle | downcase -%}
+            {%- assign _t = child_link.title | downcase | strip -%}
+            {%- assign _belongs_to = 5 -%}
+            {%- if _h contains 'all-product' or _h == 'all' or _h contains 'best-seller' or _h contains 'bestseller' or _h contains 'arrival' or _h == 'new' or _h contains 'whats-new' or _h contains 'gift' or _h contains 'sale' or _h contains 'perfect' or _t == 'new arrivals' or _t == 'best sellers' or _t == 'all products' or _t == 'sale' or _t == 'whats new' -%}
+              {%- assign _belongs_to = 1 -%}
+            {%- elsif _h contains 'lamp' or _h contains 'lighting' or _h contains 'sconce' or _h contains 'bubble' or _h contains 'mushroom' or _h contains 'apollo' or _h contains 'halo' or _h contains 'nova' or _h contains 'orbella' or _h contains 'genix' or _h contains 'aura' or _h contains 'nexus' or _h contains 'sphere' or _h contains 'donut' or _h contains 'thinker' or _h contains 'dancer' or _h contains 'fleur' -%}
+              {%- assign _belongs_to = 2 -%}
+            {%- elsif _h contains 'mirror' or _h contains 'neon' or _h contains 'wall' or _h contains 'sign' -%}
+              {%- assign _belongs_to = 3 -%}
+            {%- elsif _h contains 'home' or _h contains 'decor' or _h contains 'furniture' or _h contains 'accessor' or _h contains 'table' or _h contains 'vase' -%}
+              {%- assign _belongs_to = 4 -%}
+            {%- endif -%}
+            {%- if _belongs_to != _section_idx -%}{%- continue -%}{%- endif -%}
+
+            {%- assign _is_all = false -%}
+            {%- if _h == 'all' or _h contains 'all-' -%}{%- assign _is_all = true -%}{%- endif -%}
+            {%- if _priority == 1 and _is_all == false -%}{%- continue -%}{%- endif -%}
+            {%- if _priority == 2 and _is_all == true -%}{%- continue -%}{%- endif -%}
+
+            {%- if _section_rendered == false -%}
+              <div class="casa-submenu__cat-section">{{ _section_label }}</div>
+              {%- assign _section_rendered = true -%}
+            {%- endif -%}
+
+            {%- assign _child_collection = nil -%}
+            {%- if child_link.type == 'collection_link' and child_link.object != blank -%}
+              {%- assign _child_collection = child_link.object -%}
+            {%- else -%}
+              {%- assign _child_collection = collections[_child_url_handle] -%}
+            {%- if _child_collection == blank -%}{%- assign _child_collection = collections[child_link.handle] -%}{%- endif -%}
+            {%- endif -%}
+            {%- assign _is_featured = false -%}
+            {%- assign _bdg = '' -%}
+            {%- if _child_collection.metafields.sgl.badge != blank -%}
+              {%- assign _bdg = _child_collection.metafields.sgl.badge | downcase -%}
+            {%- endif -%}
+            {%- if _bdg == 'featured' or _bdg == 'best' or _bdg == 'popular' or _bdg == 'hot' -%}
+              {%- assign _is_featured = true -%}
+            {%- elsif _h == 'best-sellers' or _h == 'bestsellers' -%}
+              {%- assign _is_featured = true -%}
+            {%- endif -%}
+
+            <a href="{{ child_link.url }}" class="casa-submenu__item casa-submenu__item--cat{% if _is_featured %} casa-submenu__item--featured{% endif %}">
+              <span class="casa-submenu__item-name">{{ child_link.title }}</span>
               {%- if _child_collection != blank -%}
                 {%- assign _child_count = _child_collection.all_products_count | default: _child_collection.products_count -%}
                 {%- if _child_count > 0 -%}
                   <span class="casa-submenu__item-count">{{ _child_count }} items</span>
                 {%- endif -%}
               {%- endif -%}
-            </div>
-            <div class="casa-submenu__item-arrow">
-              {%- render 'casa-icon', icon: 'chevron-right', size: 16 -%}
-            </div>
-          </a>
+              <svg class="casa-submenu__item-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </a>
+          {%- endfor -%}
+          {%- endfor -%}
         {%- endfor -%}
+        {%- endif -%}
       {%- else -%}
         {%- comment -%} No products and no child links - show empty state {%- endcomment -%}
         <div class="casa-submenu__empty">
@@ -168,12 +720,57 @@
       {%- endif -%}
     </div>
 
-    {%- comment -%} View All CTA {%- endcomment -%}
-    <a href="{{ link.url | default: '#' }}" class="casa-submenu__view-all">
-      View All {{ link.title }}
-      {%- render 'casa-icon', icon: 'arrow-right', size: 16 -%}
-    </a>
-  </div>
+    {%- comment -%}
+      Sticky bottom CTA — sits inside the scrolling content area and
+      uses `position: sticky` so the bar stays pinned to the bottom
+      of the visible viewport. Background is fully solid so list
+      items scrolling under the bar are obscured (not bleeding
+      through). The sticky element has its own compositing layer so
+      iOS Safari can repaint just the scrolling content without
+      reflowing the whole panel — the flex-sibling alternative
+      caused safe-area-inset-bottom changes during URL-bar
+      show/hide to cascade into content layout and visibly flash.
+      Default `.btn-primary` (Ink-on-Paper) is correct for the
+      Lifestyle Paper surface. Glow / Support panels use Ink, so
+      the CSS overrides the visual to white-on-Ink (mirroring
+      `.btn-primary-on-dark`).
+    {%- endcomment -%}
+    {%- comment -%}
+      CTA copy — naive "View All {{ link.title }}" reads weird for
+      "Shop All" (→ "View All Shop All") and "Best Sellers" (→
+      "View All Best Sellers" is OK but stiff). Resolve a clean
+      label per top-level link instead.
+    {%- endcomment -%}
+    {%- assign _cta_link_title_lc = link.title | downcase | strip -%}
+    {%- if _cta_link_title_lc == 'shop all' or _cta_link_title_lc == 'shop' or _cta_link_title_lc == 'all' or _cta_link_title_lc == 'all products' -%}
+      {%- assign _cta_label = 'View all products' -%}
+    {%- elsif _cta_link_title_lc == 'help' or submenu_variant == 'support' -%}
+      {%- assign _cta_label = 'Visit help center' -%}
+    {%- elsif _cta_link_title_lc contains 'best seller' -%}
+      {%- assign _cta_label = 'Shop best sellers' -%}
+    {%- elsif _cta_link_title_lc contains 'new arrival' -%}
+      {%- assign _cta_label = 'Shop new arrivals' -%}
+    {%- else -%}
+      {%- assign _cta_label = 'Shop ' | append: link.title -%}
+    {%- endif -%}
+  </div>  <!-- closes .casa-submenu__content -->
+
+  {%- comment -%}
+    Bottom CTA — direct flex sibling of .casa-submenu__content (NOT
+    inside it, NOT wrapped in a sticky "bar" div). The panel is a
+    flex column, so the button naturally sits at the bottom edge of
+    the panel surrounded by the panel's own background — no separate
+    bar element, no sticky positioning, no own bg behind the button.
+    Restoring the pre-2026-05-10 pattern (commit 1367878). The
+    sticky-bar wrapper that replaced this caused two regressions:
+    a transparent fade strip that let items bleed through, and a
+    safe-area-inset-bottom flash on iOS URL-bar show/hide. Plain
+    flex sibling avoids both.
+  {%- endcomment -%}
+  <a href="{{ link.url | default: '#' }}" class="casa-submenu__view-all btn btn-primary">
+    {{ _cta_label }}
+    {%- render 'casa-icon', icon: 'arrow-right', size: 14 -%}
+  </a>
 </div>
 
 {% stylesheet %}
@@ -184,18 +781,41 @@
 
   /* ── Glow (default): Purple + Pink ── */
   .casa-submenu-panel--glow {
-    --submenu-accent-1: var(--casa-glow-primary, #9333ea);
-    --submenu-accent-2: var(--casa-glow-secondary, #ec4899);
-    --submenu-accent-1-rgb: var(--casa-glow-primary-rgb, 147, 51, 234);
-    --submenu-accent-2-rgb: var(--casa-glow-secondary-rgb, 236, 72, 153);
-    --submenu-glow: rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.12);
+    --submenu-accent-1: var(--casa-glow-primary, #B0C3FA);
+    --submenu-accent-2: var(--casa-glow-secondary, #5E0A02);
+    --submenu-accent-1-rgb: var(--casa-glow-primary-rgb, 176, 195, 250);
+    --submenu-accent-2-rgb: var(--casa-glow-secondary-rgb, 94, 10, 2);
+    --submenu-glow: rgba(var(--casa-glow-primary-rgb, 176, 195, 250), 0.12);
     --submenu-banner-bg: linear-gradient(135deg, #1a1a2e, #2d1b4e);
-    --submenu-banner-glow-1: rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.4);
-    --submenu-banner-glow-2: rgba(var(--casa-glow-secondary-rgb, 236, 72, 153), 0.3);
+    --submenu-banner-glow-1: rgba(var(--casa-glow-primary-rgb, 176, 195, 250), 0.4);
+    --submenu-banner-glow-2: rgba(var(--casa-glow-secondary-rgb, 94, 10, 2), 0.3);
   }
 
-  /* ── Lifestyle: Gold + Amber ── */
-  .casa-submenu-panel--lifestyle {
+  /* ── Lifestyle: Daylit mood = brand Paper surface ──
+     Per brand book "three moods", lifestyle covers Home Decor / Coffee
+     Tables / Vases / Furniture — sculptural objects on Paper. The
+     drawer surface flips to Paper for these submenus only. Other
+     drawers (glow / support) stay Ink. Section header / item / hero
+     text colors auto-adapt via the --casa-section-text + override of
+     base panel background below. */
+  /* Compound selector boosts specificity (2 classes) so this beats
+     the base .casa-submenu-panel Ink-frost background that comes
+     later in source order. */
+  .casa-submenu-panel.casa-submenu-panel--lifestyle {
+    /* Brand v1 Editorial mood — Paper surface (#FAFAF7), no frost.
+       Mirrors the desktop megamenu's Lifestyle treatment so Home
+       Decor renders the same on mobile as it does on desktop. */
+    background: linear-gradient(180deg, color-mix(in srgb, var(--casa-paper) 100%, black 2%) 0%, #FAFAF7 100%);
+    color: var(--casa-ink);
+    --casa-section-text: var(--casa-ink);
+    /* Kill the parent's blur/saturate frost — Paper isn't frosted glass */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    /* Cleaner shadow over a light surface */
+    box-shadow:
+      -4px 0 32px rgba(10, 10, 15, 0.18),
+      inset 0 1px 0 rgba(10, 10, 15, 0.06);
+
     --submenu-accent-1: var(--casa-lifestyle-primary, #f59e0b);
     --submenu-accent-2: var(--casa-lifestyle-secondary, #d97706);
     --submenu-accent-1-rgb: var(--casa-lifestyle-primary-rgb, 245, 158, 11);
@@ -206,15 +826,55 @@
     --submenu-banner-glow-2: rgba(var(--casa-lifestyle-secondary-rgb, 217, 119, 6), 0.25);
   }
 
+  /* ─────────────────────────────────────────────────────────────
+     Lifestyle (Paper) — text-color overrides
+     ─────────────────────────────────────────────────────────────
+     The default submenu text rules hardcode white-on-Ink colors.
+     When the surface flips to Paper for the Lifestyle variant,
+     every text element needs to flip to Ink-on-Paper to stay
+     legible. Compound selector (.casa-submenu-panel.casa-submenu-
+     panel--lifestyle ...) bumps specificity above the base text
+     rules. Stays inside the variant's color tokens (no new colors). */
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu__content,
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu-back,
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu__title,
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu__item,
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu__item-name,
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu__item-price,
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu__cat-headline {
+    color: var(--casa-ink);
+  }
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu__label,
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu__section-title,
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu__cat-section,
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu__item-count,
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu__item-arrow {
+    color: rgba(10, 10, 15, 0.55);
+  }
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu__item-price-old {
+    color: rgba(10, 10, 15, 0.4);
+  }
+  /* Subtle row separators flip to Ink so they actually show on Paper */
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu__item,
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu__header {
+    border-color: rgba(10, 10, 15, 0.06);
+  }
+  /* Back button hover/active background — was white-tint on Ink,
+     flip to Ink-tint on Paper */
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu-back:hover,
+  .casa-submenu-panel.casa-submenu-panel--lifestyle .casa-submenu-back:active {
+    background: rgba(10, 10, 15, 0.06);
+  }
+
   /* ── Support: Teal + Cyan ── */
   .casa-submenu-panel--support {
-    --submenu-accent-1: var(--casa-support-primary, #06b6d4);
-    --submenu-accent-2: var(--casa-support-secondary, #0891b2);
-    --submenu-accent-1-rgb: var(--casa-support-primary-rgb, 6, 182, 212);
+    --submenu-accent-1: var(--casa-support-primary, #F2FFA0);
+    --submenu-accent-2: var(--casa-support-secondary, #F2FFA0);
+    --submenu-accent-1-rgb: var(--casa-support-primary-rgb, 242, 255, 160);
     --submenu-accent-2-rgb: var(--casa-support-secondary-rgb, 8, 145, 178);
-    --submenu-glow: rgba(var(--casa-support-primary-rgb, 6, 182, 212), 0.1);
+    --submenu-glow: rgba(var(--casa-support-primary-rgb, 242, 255, 160), 0.1);
     --submenu-banner-bg: linear-gradient(135deg, #0f1a1a, #1b2d2d);
-    --submenu-banner-glow-1: rgba(var(--casa-support-primary-rgb, 6, 182, 212), 0.35);
+    --submenu-banner-glow-1: rgba(var(--casa-support-primary-rgb, 242, 255, 160), 0.35);
     --submenu-banner-glow-2: rgba(var(--casa-support-secondary-rgb, 8, 145, 178), 0.25);
   }
 
@@ -230,10 +890,20 @@
     width: 100%;
     max-width: 340px;
     height: 100%;
-    background: linear-gradient(180deg, color-mix(in srgb, var(--casa-drawer-bg, #0a0a0f) 100%, white 5%) 0%, var(--casa-drawer-bg, #0a0a0f) 100%);
-    z-index: 1300;
-    transform: translateX(100%);
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0.35s;
+    /* Brand v1 frosted Ink — matches the parent .casa-drawer
+       (0.72 → 0.78 opacity + 72px blur + saturate 180%). Lighter
+       and more frosted than the previous 0.86/0.90 — the page
+       underneath shows through enough to feel like real frosted
+       glass instead of a semi-solid dark panel. White text still
+       clears 4.6:1 (top) → 6.4:1 (bottom) over a white page.
+       Lifestyle variant overrides to brand Paper below. */
+    background: linear-gradient(180deg, rgba(20, 20, 28, 0.72) 0%, rgba(10, 10, 15, 0.78) 100%);
+    box-shadow:
+      -4px 0 32px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    z-index: 100000;
+    transform: translateX(-100%);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0.2s;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -245,7 +915,44 @@
     transform: translateX(0);
     visibility: visible;
     pointer-events: auto;
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0s;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s 0s;
+  }
+  /* Frost only after the slide settles (.is-settled from casa-navigation.js)
+     — a 72px backdrop-filter moving with the slide re-blurs every frame on
+     iOS, and every CLOSED panel (one per top-level menu link) used to hold
+     a permanent full-height blur layer despite visibility: hidden. */
+  .casa-submenu-panel.active.is-settled {
+    /* perf-justified: static-only blur while the panel is open; saturate is the brand frosted-Ink identity, matches parent drawer */
+    backdrop-filter: blur(72px) saturate(180%);
+    /* perf-justified: static-only blur while the panel is open; saturate is the brand frosted-Ink identity, matches parent drawer */
+    -webkit-backdrop-filter: blur(72px) saturate(180%);
+  }
+  /* Slide-in face — same pattern as .casa-drawer__frost-cover: near-solid
+     Ink while the panel moves, cross-fades away once .is-settled lands
+     the frost. Opacity-only; re-covers the blur-free slide-out on close. */
+  .casa-submenu__frost-cover {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(180deg, rgba(18, 18, 25, 0.97) 0%, rgba(9, 9, 13, 0.98) 100%);
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  .casa-submenu-panel.is-settled .casa-submenu__frost-cover {
+    opacity: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .casa-submenu__frost-cover { transition: none; }
+  }
+  /* Variant surfaces: the cover must match the panel it fronts.
+     Lifestyle is opaque Paper with no frost at all — no cover needed.
+     Glass tints the cover with its own tint token. */
+  .casa-submenu-panel--lifestyle .casa-submenu__frost-cover {
+    display: none;
+  }
+  .casa-submenu-panel--glass .casa-submenu__frost-cover {
+    background: rgba(var(--casa-glass-tint-rgb), 0.97);
   }
 
   /* Ambient glow - uses variant accent color */
@@ -256,7 +963,7 @@
     right: 0;
     width: 200px;
     height: 400px;
-    background: radial-gradient(ellipse, var(--submenu-glow, rgba(147, 51, 234, 0.12)) 0%, transparent 70%);
+    background: radial-gradient(ellipse, var(--submenu-glow, rgba(176, 195, 250, 0.12)) 0%, transparent 70%);
     pointer-events: none;
   }
 
@@ -297,6 +1004,13 @@
     font-size: 18px;
     font-weight: 600;
     margin: 0;
+    /* Defensive — every realistic top-level label fits ("Lighting",
+       "Home Decor", "Best Sellers", etc.), but if a merchant adds
+       a long custom menu item we'd rather ellipsis than wrap. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
 
   /* ── Content (scrollable) ── */
@@ -319,18 +1033,26 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    text-decoration: none;
+    color: inherit;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  a.casa-submenu__featured-img:active {
+    transform: scale(0.98);
   }
   .casa-submenu__featured-img::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at 30% 50%, var(--submenu-banner-glow-1, rgba(147, 51, 234, 0.4)), transparent 60%);
+    background: radial-gradient(circle at 30% 50%, var(--submenu-banner-glow-1, rgba(176, 195, 250, 0.4)), transparent 60%);
   }
   .casa-submenu__featured-img::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at 70% 50%, var(--submenu-banner-glow-2, rgba(236, 72, 153, 0.3)), transparent 60%);
+    background: radial-gradient(circle at 70% 50%, var(--submenu-banner-glow-2, rgba(94, 10, 2, 0.3)), transparent 60%);
   }
   .casa-submenu__featured-photo {
     width: 100%;
@@ -368,16 +1090,20 @@
     text-transform: uppercase;
     letter-spacing: 1.5px;
     color: rgba(255, 255, 255, 0.3);
-    padding: 8px 20px;
+    /* Align with the .casa-submenu__list wrapper padding (16px) so
+       the eyebrow text starts at the same X as items / section
+       headers / headline. */
+    padding: 8px 16px;
   }
 
-  /* ── Item List ── */
-  .casa-submenu__list { padding: 0 12px; }
+  /* ── Item List ── 16px wrapper padding sets the baseline left
+     edge that items, section headers, and the headline all align to. */
+  .casa-submenu__list { padding: 0 16px; }
   .casa-submenu__item {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 14px 12px;
+    padding: 6px 18px;
     border-radius: 12px;
     text-decoration: none;
     color: white;
@@ -404,22 +1130,98 @@
     object-fit: cover;
     border-radius: 12px;
   }
-  .casa-submenu__item-content { flex: 1; }
-  .casa-submenu__item-name { font-size: 14px; font-weight: 500; display: block; margin-bottom: 2px; }
-  .casa-submenu__item-meta { display: flex; align-items: center; gap: 8px; }
-  .casa-submenu__item-price { font-size: 13px; font-weight: 600; color: white; }
-  .casa-submenu__item-price-old { font-size: 11px; color: rgba(255, 255, 255, 0.4); text-decoration: line-through; }
+  /* min-width: 0 lets the flex child shrink below its content
+     width so the name/price text can truncate instead of forcing
+     the row wider than the panel. */
+  .casa-submenu__item-content { flex: 1; min-width: 0; }
+  .casa-submenu__item-name {
+    font-size: 14px;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 2px;
+    /* Hard rule: NEVER wraps to a second line. Ellipsis on long
+       product names ("Parisian Bubble Girls - Colored Glass" etc.). */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* flex-wrap lets the whole was-price drop to a 2nd line as one unit at the
+     narrowest widths — the price spans are nowrap so a price NEVER splits its
+     number from its currency code (the "8.841.000 / VND" fragmenting seen in
+     VND). Worst case is a clean two-line stack, never a broken 2×2 grid. */
+  .casa-submenu__item-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 8px; }
+  .casa-submenu__item-price {
+    font-size: var(--casa-submenu-price-size, 13px);
+    font-weight: var(--casa-submenu-price-weight, 600);
+    color: white;
+    white-space: nowrap;
+  }
+  .casa-submenu__item-price-old {
+    font-size: var(--casa-submenu-compare-price-size, 11px);
+    color: rgba(255, 255, 255, 0.4);
+    text-decoration: line-through;
+    white-space: nowrap;
+  }
   .casa-submenu__item-badge {
     font-size: 8px;
     font-weight: 600;
     padding: 3px 6px;
     border-radius: 10px;
     text-transform: uppercase;
-    color: white;
+    color: var(--card-badge-text, #ffffff);
+    flex-shrink: 0;
   }
-  .casa-submenu__item-badge--bestseller { background: var(--submenu-accent-1, #9333ea); }
-  .casa-submenu__item-badge--new { background: var(--casa-green, #22c55e); }
-  .casa-submenu__item-badge--sale { background: var(--casa-red, #ef4444); }
+  /* Tag-fallback badges (used when product has no custom.badges metafield) */
+  .casa-submenu__item-badge--bestseller { background: var(--card-badge-bestseller-bg, var(--submenu-accent-1, #B0C3FA)); }
+  .casa-submenu__item-badge--new { background: var(--card-badge-new-bg, var(--casa-green, #22c55e)); }
+  .casa-submenu__item-badge--sale { background: var(--card-badge-urgency-bg, var(--casa-red, #ef4444)); }
+  /* Metafield badges — same handle-suffix scheme as casa-product-card so colors match across the site */
+  .casa-submenu__item-badge--meta {
+    background: linear-gradient(135deg, #B0C3FA, #6366f1);
+  }
+  .casa-submenu__item-badge--meta-1-bestseller,
+  .casa-submenu__item-badge--meta-bestseller {
+    background: var(--card-badge-bestseller-bg, linear-gradient(135deg, #f59e0b, #ef4444));
+  }
+  .casa-submenu__item-badge--meta-new-arrival,
+  .casa-submenu__item-badge--meta-new {
+    background: var(--card-badge-new-bg, var(--grad-primary, linear-gradient(135deg, #B0C3FA, #5E0A02)));
+  }
+  .casa-submenu__item-badge--meta-use-code-new20 {
+    background: var(--card-badge-new-bg, linear-gradient(135deg, #F2FFA0, #B0C3FA));
+  }
+  .casa-submenu__item-badge--meta-gift-favorite {
+    background: var(--card-badge-gift-favorite-bg, linear-gradient(135deg, #5E0A02, #5E0A02));
+  }
+  .casa-submenu__item-badge--meta-editor-s-pick {
+    background: var(--card-badge-editors-pick-bg, linear-gradient(135deg, #0f172a, #334155));
+  }
+  .casa-submenu__item-badge--meta-limited-edition,
+  .casa-submenu__item-badge--meta-limited {
+    background: var(--card-badge-limited-bg, linear-gradient(135deg, #f59e0b, #d97706));
+  }
+  .casa-submenu__item-badge--meta-trending,
+  .casa-submenu__item-badge--meta-hot {
+    background: var(--card-badge-trending-bg, linear-gradient(135deg, #ef4444, #f97316));
+  }
+  .casa-submenu__item-badge--meta-eco-friendly,
+  .casa-submenu__item-badge--meta-eco {
+    background: var(--card-badge-eco-bg, linear-gradient(135deg, #10b981, #059669));
+  }
+  .casa-submenu__item-badge--meta-exclusive {
+    background: var(--card-badge-exclusive-bg, linear-gradient(135deg, #0f172a, #334155));
+  }
+  .casa-submenu__item-badge--meta-handmade,
+  .casa-submenu__item-badge--meta-artisan {
+    background: var(--card-badge-handmade-bg, linear-gradient(135deg, #B0C3FA, #B0C3FA));
+  }
+  .casa-submenu__item-badge--meta-free-shipping {
+    background: var(--card-badge-free-shipping-bg, linear-gradient(135deg, #F2FFA0, #F2FFA0));
+  }
+  .casa-submenu__item-badge--meta-best-value,
+  .casa-submenu__item-badge--meta-value {
+    background: var(--card-badge-best-value-bg, linear-gradient(135deg, #22c55e, #16a34a));
+  }
   .casa-submenu__item-arrow {
     color: rgba(255, 255, 255, 0.3);
     flex-shrink: 0;
@@ -430,18 +1232,447 @@
     width: 40px;
     height: 40px;
     border-radius: 10px;
-    background: linear-gradient(135deg, rgba(var(--submenu-accent-1-rgb, 147, 51, 234), 0.15), rgba(var(--submenu-accent-2-rgb, 236, 72, 153), 0.1));
-    border: 1px solid rgba(var(--submenu-accent-1-rgb, 147, 51, 234), 0.2);
+    background: linear-gradient(135deg, rgba(var(--submenu-accent-1-rgb, 176, 195, 250), 0.15), rgba(var(--submenu-accent-2-rgb, 94, 10, 2), 0.1));
+    border: 1px solid rgba(var(--submenu-accent-1-rgb, 176, 195, 250), 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--submenu-accent-1, #9333ea);
+    color: var(--submenu-accent-1, #B0C3FA);
   }
   .casa-submenu__item-count {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.4);
     display: block;
     margin-top: 2px;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     Option C — text-led, sectioned (category list only).
+     Scoped under .casa-submenu__item--cat so it doesn't affect
+     the product card layout that shares the same base class.
+     Reference: mockups/megamenu-options.html.
+     ═══════════════════════════════════════════════════════════ */
+  .casa-submenu__item--cat {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Flush-left items so the name aligns with eyebrow / headline /
+       section header at the .casa-submenu__list wrapper's 16px edge.
+       Right padding keeps chevron breathing room from the row's
+       right edge. */
+    gap: 10px;
+    padding: 12px 12px 12px 0;
+    border-radius: 10px;
+    position: relative;
+  }
+  .casa-submenu__item--cat:hover,
+  .casa-submenu__item--cat:active {
+    background: rgba(94, 10, 2, 0.04);
+  }
+  .casa-submenu__item--cat.casa-submenu__item--featured::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 12px;
+    bottom: 12px;
+    width: 2px;
+    border-radius: 1px;
+    background: linear-gradient(180deg, var(--submenu-accent-1, #B0C3FA), var(--submenu-accent-2, #5E0A02));
+  }
+  .casa-submenu__item--cat .casa-submenu__item-name {
+    font-family: var(--font-body--family);
+    /* Mobile drawer is 380px wide — even with name + count + chevron
+       all on one line, 15px Inter 600 fits "Perfect For Gifting" plus
+       "108 ITEMS" plus 12px chevron comfortably. Hard rule: NEVER
+       wraps to a 2nd line. Ellipsis if a merchant-added category
+       title overruns the available row width. */
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    color: #5E0A02;
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .casa-submenu__item--cat .casa-submenu__item-count {
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: rgba(94, 10, 2, 0.55);
+    flex-shrink: 0;
+    display: inline-block;
+    margin-top: 0;
+    white-space: nowrap;
+  }
+  .casa-submenu__item--cat .casa-submenu__item-arrow {
+    width: 14px;
+    height: 14px;
+    color: rgba(94, 10, 2, 0.45);
+    transition: transform 0.18s ease, color 0.18s ease;
+    flex-shrink: 0;
+  }
+  .casa-submenu__item--cat:hover .casa-submenu__item-arrow,
+  .casa-submenu__item--cat:active .casa-submenu__item-arrow {
+    transform: translateX(3px);
+    color: rgba(94, 10, 2, 0.85);
+  }
+  /* Support-variant lead icon. Quiet white at 60% opacity by default,
+     warms to brand purple on hover/focus. Fixed 18×18 box so every row
+     aligns regardless of icon shape. */
+  .casa-submenu__item--cat .casa-submenu__item-leadicon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(94, 10, 2, 0.6);
+    transition: color 0.18s ease;
+  }
+  .casa-submenu__item--cat .casa-submenu__item-leadicon svg {
+    width: 100%;
+    height: 100%;
+  }
+  .casa-submenu__item--cat:hover .casa-submenu__item-leadicon,
+  .casa-submenu__item--cat:active .casa-submenu__item-leadicon,
+  .casa-submenu__item--cat:focus-visible .casa-submenu__item-leadicon {
+    color: var(--submenu-accent-1, #B0C3FA);
+  }
+
+  /* Section header — JetBrains Mono UPPERCASE "spec register",
+     mirrors casa-mega-menu.liquid. Mobile drawer is wider than the
+     desktop column so we can scale the type up to 12px (vs 11px on
+     desktop) and increase the divider line slightly for breathing
+     room. */
+  .casa-submenu__cat-section {
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    /* Theme-aware: Casa Paper #FAFAF7 on Ink drawers (default), Casa
+       Ink #0A0A0F on Paper drawers (Lifestyle / Home Decor). The
+       --casa-section-text variable switches per variant so the section
+       header always has reliable contrast. */
+    color: var(--casa-section-text, var(--casa-paper));
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.18);
+    /* Flush-left to align with eyebrow / headline / items. */
+    padding: 20px 0 10px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.10);
+    margin-top: 8px;
+  }
+  .casa-submenu__cat-section:first-child {
+    border-top: none;
+    margin-top: 0;
+    padding-top: 6px;
+  }
+  /* Hairline accent under the subcategory eyebrow ("SHOP" / "LAMPS"
+     / "WALLS & SURFACES" / etc.) — quiet section mark between the
+     label and the items grouped under it. Mirrors the desktop
+     .casa-mega-cat-section::after rule so navigation feels
+     consistent across mobile drawer and desktop dropdown.
+     currentColor inherits the parent's section-text color so it
+     adapts to Paper-mode (Ink) and Ink-mode (dim white). */
+  .casa-submenu__cat-section::after {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.5;
+    margin-top: 8px;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     Option G — brand-voice headline + featured hero card.
+     Mirrors casa-mega-menu.liquid; mobile drawer is the wider
+     surface (380px vs 280px desktop column) so we can scale the
+     headline up. Reference: mockups/megamenu-wow-options.html.
+     ═══════════════════════════════════════════════════════════ */
+  .casa-submenu__cat-headline {
+    font-family: var(--font-body--family);
+    font-size: clamp(20px, 5.6vw, 24px);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    color: #5E0A02;
+    /* 16px horizontal gutter so headline aligns with the section
+       title + items list below. (Used to inherit this from
+       .casa-submenu__list when the headline lived inside it; now
+       that it's lifted to the top of the panel we apply the gutter
+       directly.) */
+    margin: 8px 0 16px 0;
+    padding: 0 16px;
+  }
+  .casa-submenu__cat-headline em {
+    font-style: italic;
+    font-weight: 800;
+    background-image: linear-gradient(90deg, var(--submenu-accent-1, #B0C3FA), var(--submenu-accent-2, #5E0A02), #F2FFA0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SUPPORT FEATURED CARD
+     Mirrors the desktop megamenu's Contact Us card. Lives at the
+     top of the Help / Support panel under the brand-voice headline
+     and above the topics list. Compact, scannable, and tappable —
+     email / phone / chat each open the native handler.
+     ═══════════════════════════════════════════════════════════ */
+  .casa-submenu__support-card {
+    margin: 0 16px 16px 16px;
+    padding: 16px;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(242, 255, 160, 0.18) 0%, transparent 50%),
+      radial-gradient(circle at 0% 100%, rgba(176, 195, 250, 0.16) 0%, transparent 55%),
+      rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  /* Subtle 2px top edge in the support accent gradient — same
+     accent as the desktop megamenu so the moment reads consistent
+     across breakpoints. */
+  .casa-submenu__support-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--casa-support-primary, #F2FFA0), var(--casa-glow-primary, #B0C3FA), var(--casa-glow-secondary, #5E0A02));
+  }
+  .casa-submenu__support-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(250, 250, 247, 0.75);
+    margin-bottom: 10px;
+  }
+  .casa-submenu__support-label svg {
+    color: var(--casa-support-primary, #F2FFA0);
+  }
+  .casa-submenu__support-title {
+    font-family: var(--font-body--family);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    color: var(--casa-paper);
+    margin: 0 0 6px 0;
+  }
+  .casa-submenu__support-desc {
+    font-family: var(--font-body--family);
+    font-size: 13px;
+    line-height: 1.45;
+    color: rgba(250, 250, 247, 0.7);
+    margin: 0 0 14px 0;
+  }
+  .casa-submenu__support-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 14px;
+  }
+  .casa-submenu__support-method {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 10px;
+    margin: 0 -10px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--casa-paper);
+    font-family: var(--font-body--family);
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.18s ease;
+    min-height: 44px;
+  }
+  .casa-submenu__support-method:hover,
+  .casa-submenu__support-method:active,
+  .casa-submenu__support-method:focus-visible {
+    background: rgba(94, 10, 2, 0.06);
+  }
+  .casa-submenu__support-method:focus-visible {
+    outline: 2px solid var(--casa-support-primary, #F2FFA0);
+    outline-offset: -2px;
+  }
+  .casa-submenu__support-method-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    background: rgba(242, 255, 160, 0.12);
+    color: var(--casa-support-primary, #F2FFA0);
+  }
+  .casa-submenu__support-method-text {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .casa-submenu__support-method-arrow {
+    display: inline-flex;
+    color: rgba(250, 250, 247, 0.4);
+    flex-shrink: 0;
+    transition: transform 0.18s ease, color 0.18s ease;
+  }
+  .casa-submenu__support-method:hover .casa-submenu__support-method-arrow {
+    color: rgba(250, 250, 247, 0.85);
+    transform: translateX(2px);
+  }
+  /* In-card CTA button — uses .btn .btn-primary, but on Ink frost
+     so flip to white-on-Ink visual same as the sticky CTA. */
+  .casa-submenu__support-btn {
+    width: 100%;
+    justify-content: center;
+    background: var(--casa-paper);
+    color: var(--casa-ink);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+  .casa-submenu__support-btn:hover,
+  .casa-submenu__support-btn:active {
+    background: #F1F1F1;
+    color: var(--casa-ink);
+  }
+
+  .casa-submenu__cat-hero {
+    position: relative;
+    display: block;
+    /* 16px horizontal margin so the hero card aligns with the
+       headline + section title + items list. Margin (not padding)
+       because the hero's <img> is position: absolute and would
+       bleed past padding to the edge of the link. */
+    margin: 0 16px 12px 16px;
+    border-radius: 12px;
+    overflow: hidden;
+    /* 3:2 instead of 16:9 — most Casa collection covers are 1:1
+       square photos (the Shopify default), so the previous 16:9
+       crop clipped ~28% off top + bottom equally and shoved the
+       subject toward the edges of the visible card. 3:2 trims
+       only ~13% off each side, so subjects composed in the
+       upper-middle of the source image (typical product
+       photography) now sit visually centered in the hero card.
+       Merchants can still fine-tune any specific collection via
+       the casa.focal_x / casa.focal_y metafields. */
+    aspect-ratio: 3 / 2;
+    background: linear-gradient(135deg, #2a1850 0%, #6b2890 35%, #B0C3FA 70%, #5E0A02 100%);
+    text-decoration: none;
+    color: #fff;
+    isolation: isolate;
+  }
+  .casa-submenu__cat-hero-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+  }
+  .casa-submenu__cat-hero:active .casa-submenu__cat-hero-img {
+    transform: scale(1.03);
+  }
+  .casa-submenu__cat-hero:focus-visible {
+    outline: 2px solid var(--submenu-accent-2, #5E0A02);
+    outline-offset: 3px;
+  }
+  .casa-submenu__cat-hero-overlay {
+    position: absolute;
+    inset: 0;
+    /* Bottom-up dark gradient only — strong enough to ensure tag and
+       collection name are legible on any source image. */
+    background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.12) 75%, transparent 100%);
+    pointer-events: none;
+  }
+  .casa-submenu__cat-hero-content {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .casa-submenu__cat-hero-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  .casa-submenu__cat-hero-tag {
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.95);
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  }
+  .casa-submenu__cat-hero-name {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: #fff;
+    line-height: 1.2;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .casa-submenu__cat-hero-arrow {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    /* Dark backdrop + 1px border so the circle stays visible on any
+       collection image. */
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.18s ease, transform 0.18s ease;
+  }
+  .casa-submenu__cat-hero-arrow svg {
+    width: 14px;
+    height: 14px;
+  }
+  .casa-submenu__cat-hero:active .casa-submenu__cat-hero-arrow {
+    background: rgba(0, 0, 0, 0.6);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateX(2px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .casa-submenu__cat-hero-img,
+    .casa-submenu__cat-hero-arrow {
+      transition: none;
+    }
+    .casa-submenu__cat-hero:active .casa-submenu__cat-hero-img {
+      transform: none;
+    }
   }
 
   /* ── Empty State ── */
@@ -457,12 +1688,12 @@
     width: 56px;
     height: 56px;
     border-radius: 16px;
-    background: linear-gradient(135deg, rgba(var(--submenu-accent-1-rgb, 147, 51, 234), 0.15), rgba(var(--submenu-accent-2-rgb, 236, 72, 153), 0.1));
-    border: 1px solid rgba(var(--submenu-accent-1-rgb, 147, 51, 234), 0.2);
+    background: linear-gradient(135deg, rgba(var(--submenu-accent-1-rgb, 176, 195, 250), 0.15), rgba(var(--submenu-accent-2-rgb, 94, 10, 2), 0.1));
+    border: 1px solid rgba(var(--submenu-accent-1-rgb, 176, 195, 250), 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--submenu-accent-1, #9333ea);
+    color: var(--submenu-accent-1, #B0C3FA);
     margin-bottom: 16px;
   }
   .casa-submenu__empty-text {
@@ -471,25 +1702,43 @@
     margin: 0;
   }
 
-  /* ── View All CTA ── */
+  /* ═══════════════════════════════════════════════════════════
+     Bottom CTA — brand v1 aligned.
+     The button is a direct flex sibling of .casa-submenu__content,
+     so flex layout naturally pins it to the bottom edge of the
+     panel. There is no wrapper "bar" element and no own bg behind
+     the button — the panel's own surface fills the space around
+     the button on all four sides, so the button reads as "the
+     button sitting on the panel" rather than "a button on top of
+     a separate bar". `.btn .btn-primary` supplies the pill styling.
+     ═══════════════════════════════════════════════════════════ */
   .casa-submenu__view-all {
+    flex-shrink: 0;
+    margin: 12px 16px 16px;
+    /* `.btn` is `display: inline-flex` by default. Switching to
+       `display: flex` makes it a block-level flex item so it stretches
+       to fill the panel's width minus the side margins above. */
     display: flex;
-    align-items: center;
     justify-content: center;
-    gap: 8px;
-    margin: 16px;
-    padding: 14px;
-    background: linear-gradient(135deg, var(--submenu-accent-1, #9333ea), var(--submenu-accent-2, #ec4899));
-    border-radius: 12px;
-    color: white;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.3s;
-    box-shadow: 0 4px 16px rgba(var(--submenu-accent-1-rgb, 147, 51, 234), 0.3);
   }
-  .casa-submenu__view-all:active {
-    transform: scale(0.98);
+  .casa-submenu__view-all svg {
+    flex-shrink: 0;
+  }
+
+  /* Glow / Support are Ink-surface drawers — use the on-dark CTA
+     treatment. Lifestyle stays on default .btn-primary which is
+     the Ink-on-Paper treatment. */
+  .casa-submenu-panel--glow .casa-submenu__view-all,
+  .casa-submenu-panel--support .casa-submenu__view-all {
+    /* Apply on-dark visual without renaming the class. Mirrors what
+       the .btn-primary-on-dark class would supply. */
+    background: var(--casa-paper);
+    color: var(--casa-ink);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+  .casa-submenu-panel--glow .casa-submenu__view-all:hover,
+  .casa-submenu-panel--support .casa-submenu__view-all:hover {
+    background: #F1F1F1;
   }
 
   /* ═══════════════════════════════════════════════════════
@@ -568,13 +1817,6 @@
     .casa-submenu__product-price {
       font-size: 12px;
     }
-
-    .casa-submenu__view-all {
-      margin: 12px;
-      padding: 12px;
-      font-size: 13px;
-      border-radius: 10px;
-    }
   }
 
   /* ═══════════════════════════════════════════════════════
@@ -624,12 +1866,6 @@
     .casa-submenu__product-name {
       font-size: 11px;
     }
-
-    .casa-submenu__view-all {
-      margin: 10px;
-      padding: 10px;
-      font-size: 12px;
-    }
   }
 
   /* ═══════════════════════════════════════════════════════
@@ -638,12 +1874,21 @@
      Overrides every white-based color in the base panel.
      ═══════════════════════════════════════════════════════ */
 
-  /* ── Panel background & base color ── */
+  /* ── Panel background & base color ──
+     backdrop-filter is moved to the .active scope below. The panel uses
+     visibility: hidden when closed, but visibility doesn't free the GPU
+     compositing layer for an active backdrop-filter — the blur keeps
+     getting recomputed every scroll tick, contributing to nav flicker.
+     Apply the blur only while the panel is actually shown. */
   .casa-submenu-panel--glass {
     background: rgba(var(--casa-glass-tint-rgb), var(--casa-glass-opacity));
-    backdrop-filter: blur(var(--casa-glass-blur)) saturate(180%);
-    -webkit-backdrop-filter: blur(var(--casa-glass-blur)) saturate(180%);
     color: var(--casa-glass-text);
+  }
+  .casa-submenu-panel--glass.active.is-settled {
+    /* perf-justified: static-only blur (is-settled lands after the slide); saturate is the glass-variant identity */
+    backdrop-filter: blur(var(--casa-glass-blur)) saturate(180%);
+    /* perf-justified: static-only blur (is-settled lands after the slide); saturate is the glass-variant identity */
+    -webkit-backdrop-filter: blur(var(--casa-glass-blur)) saturate(180%);
   }
   .casa-submenu-panel--glass::before,
   .casa-submenu-panel--glass::after { display: none; }

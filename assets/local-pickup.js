@@ -6,36 +6,43 @@ class LocalPickup extends Component {
   /** @type {AbortController | undefined} */
   #activeFetch;
 
+  /** @type {Element | null} */
+  #section = null;
+
   connectedCallback() {
     super.connectedCallback();
 
-    const closestSection = this.closest(`.shopify-section, dialog`);
-
-    /** @type {(event: VariantUpdateEvent) => void} */
-    const variantUpdated = (event) => {
-      if (event.detail.data.newProduct) {
-        this.dataset.productUrl = event.detail.data.newProduct.url;
-      }
-
-      const variantId = event.detail.resource ? event.detail.resource.id : null;
-      const variantAvailable = event.detail.resource ? event.detail.resource.available : null;
-      if (variantId !== this.dataset.variantId) {
-        if (variantId && variantAvailable) {
-          this.removeAttribute('hidden');
-          this.dataset.variantId = variantId;
-          this.#fetchAvailability(variantId);
-        } else {
-          this.setAttribute('hidden', '');
-        }
-      }
-    };
-
-    closestSection?.addEventListener(ThemeEvents.variantUpdate, variantUpdated);
-
-    this.disconnectedCallback = () => {
-      closestSection?.removeEventListener(ThemeEvents.variantUpdate, variantUpdated);
-    };
+    this.#section = this.closest(`.shopify-section, dialog`);
+    this.#section?.addEventListener(ThemeEvents.variantUpdate, this.#variantUpdated);
   }
+
+  // A proper prototype-level override (the previous instance-property
+  // assignment shadowed Component's disconnectedCallback, so its
+  // MutationObserver was never disconnected).
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.#section?.removeEventListener(ThemeEvents.variantUpdate, this.#variantUpdated);
+    this.#section = null;
+  }
+
+  /** @type {(event: VariantUpdateEvent) => void} */
+  #variantUpdated = (event) => {
+    if (event.detail.data.newProduct) {
+      this.dataset.productUrl = event.detail.data.newProduct.url;
+    }
+
+    const variantId = event.detail.resource ? event.detail.resource.id : null;
+    const variantAvailable = event.detail.resource ? event.detail.resource.available : null;
+    if (variantId !== this.dataset.variantId) {
+      if (variantId && variantAvailable) {
+        this.removeAttribute('hidden');
+        this.dataset.variantId = variantId;
+        this.#fetchAvailability(variantId);
+      } else {
+        this.setAttribute('hidden', '');
+      }
+    }
+  };
 
   #createAbortController() {
     if (this.#activeFetch) this.#activeFetch.abort();

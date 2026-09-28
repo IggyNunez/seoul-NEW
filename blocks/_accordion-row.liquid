@@ -1,6 +1,12 @@
 
 {% assign block_settings = block.settings %}
 
+{%- comment -%} Auto-hide when heading is empty {%- endcomment -%}
+{%- assign _acc_heading = block_settings.heading | strip -%}
+{%- if _acc_heading == blank and request.design_mode == false -%}
+  {%- style -%}[data-block-id="{{ block.id }}"] { display: none !important; }{%- endstyle -%}
+{%- endif -%}
+
 <accordion-custom
   {% if block_settings.open_by_default %}
     open-by-default-on-desktop
@@ -31,7 +37,7 @@
       </span>
     </summary>
 
-    <div class="details-content">
+    <div class="details-content" data-acc-content>
       {% content_for 'blocks' %}
     </div>
   </details>
@@ -41,6 +47,32 @@
   .details__icon {
     height: auto;
     margin-inline-end: var(--margin-xs);
+  }
+
+  /* 2026-08-25: readability cap. At >=1920 the details column runs
+     ~824px and accordion RTE paragraphs hit 93ch (widescreen sweep).
+     72ch matches the July measure caps on brand-story + FAQ answers
+     (7589c55f). This deliberately OUT-SPECIFIES the §17 measure lift
+     ("ACCORDION TEXT-BLOCK MEASURE OVERRIDE", duplicated in
+     casa-base.css + casa-pdp.css) for bare p/li only — §17 lifted
+     Horizon's 455px cap to 100% panel width, which widescreen panels
+     turned into 93ch lines. Headings/tables/blockquotes keep §17's
+     lift. Two hard-won cascade facts (measured live 2026-08-25, first
+     ship of this rule was inert on PDP accordions):
+     1. The accordion BLOCK wraps everything in div.accordion, so
+        §17's strongest selector ".accordion details .text-block > *"
+        applies at (0,2,1) — this rule leads with .details to reach
+        (0,2,2). A plain .details-content form lost.
+     2. Declare max-inline-size alongside max-width: §17 sets the
+        LOGICAL property, and a physical-only 72ch lost to the
+        logical 100% in live testing — compete inside the same
+        property, don't trust cross-pair resolution.
+     Left-aligned body copy (centered text blocks re-center via
+     text.liquid's margin-inline:auto), and narrower columns never
+     reach 72ch, so no mobile pixels move. */
+  .details .details-content rte-formatter :is(p, li) {
+    max-width: 72ch;
+    max-inline-size: 72ch;
   }
 {% endstylesheet %}
 

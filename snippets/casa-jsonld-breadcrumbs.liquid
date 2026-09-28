@@ -1,0 +1,176 @@
+{%- doc -%}
+  Renders BreadcrumbList JSON-LD for the current page.
+  Google rewards breadcrumb structured data with breadcrumb display
+  in search results, which improves CTR.
+
+  Outputs nothing on the homepage (no breadcrumbs make sense there).
+  Auto-detects context from request.page_type:
+    - product → Home > Collection (if from collection) > Product
+    - collection → Home > Collection
+    - article → Home > Blog > Article
+    - page → Home > Page
+{%- enddoc -%}
+
+{%- comment -%} Same collection the visible breadcrumb picks — keeps the two in sync. {%- endcomment -%}
+{%- capture _bc_handle -%}{%- render 'casa-breadcrumb-collection' -%}{%- endcapture -%}
+{%- assign _bc_handle = _bc_handle | strip -%}
+
+{%- liquid
+  assign _origin = request.origin
+
+  # Pre-compute name + url JSON values for each potential item.
+  # Using `| json` on the assign produces a properly-escaped JSON
+  # string ready to drop into a {"name": <here>} slot.
+  assign _name_home = shop.name | json
+  assign _url_home  = _origin | json
+
+  if product != blank
+    assign _name_product = product.title | json
+    assign _product_full_url = _origin | append: product.url
+    assign _url_product = _product_full_url | json
+  endif
+
+  if collection != blank
+    assign _name_collection = collection.title | json
+    assign _collection_full_url = _origin | append: '/collections/' | append: collection.handle
+    assign _url_collection = _collection_full_url | json
+  endif
+
+  # Product-page breadcrumb collection (shared selector, may differ from the
+  # nav `collection`). Looked up separately so the collection-page branch below
+  # still uses the real `collection` global even when it's a junk collection.
+  assign _bc_col = collections[_bc_handle]
+  if _bc_col != blank
+    assign _name_bc_col = _bc_col.title | json
+    assign _bc_col_full_url = _origin | append: '/collections/' | append: _bc_col.handle
+    assign _url_bc_col = _bc_col_full_url | json
+  endif
+
+  if article != blank
+    assign _name_article = article.title | json
+    assign _article_full_url = _origin | append: article.url
+    assign _url_article = _article_full_url | json
+  endif
+
+  if blog != blank
+    assign _name_blog = blog.title | json
+    assign _blog_full_url = _origin | append: '/blogs/' | append: blog.handle
+    assign _url_blog = _blog_full_url | json
+  endif
+
+  if page != blank
+    assign _name_page = page.title | json
+    assign _page_full_url = _origin | append: page.url
+    assign _url_page = _page_full_url | json
+  endif
+
+  # Build the items array per page type.
+  assign _bc = ''
+
+  case request.page_type
+    when 'product'
+      capture _bc
+        echo '['
+        echo '{"@type":"ListItem","position":1,"name":'
+        echo _name_home
+        echo ',"item":'
+        echo _url_home
+        echo '}'
+        if _bc_col != blank
+          echo ',{"@type":"ListItem","position":2,"name":'
+          echo _name_bc_col
+          echo ',"item":'
+          echo _url_bc_col
+          echo '}'
+          echo ',{"@type":"ListItem","position":3,"name":'
+          echo _name_product
+          echo ',"item":'
+          echo _url_product
+          echo '}'
+        else
+          echo ',{"@type":"ListItem","position":2,"name":'
+          echo _name_product
+          echo ',"item":'
+          echo _url_product
+          echo '}'
+        endif
+        echo ']'
+      endcapture
+
+    when 'collection'
+      capture _bc
+        echo '['
+        echo '{"@type":"ListItem","position":1,"name":'
+        echo _name_home
+        echo ',"item":'
+        echo _url_home
+        echo '}'
+        echo ',{"@type":"ListItem","position":2,"name":'
+        echo _name_collection
+        echo ',"item":'
+        echo _url_collection
+        echo '}'
+        echo ']'
+      endcapture
+
+    when 'article'
+      capture _bc
+        echo '['
+        echo '{"@type":"ListItem","position":1,"name":'
+        echo _name_home
+        echo ',"item":'
+        echo _url_home
+        echo '}'
+        echo ',{"@type":"ListItem","position":2,"name":'
+        echo _name_blog
+        echo ',"item":'
+        echo _url_blog
+        echo '}'
+        echo ',{"@type":"ListItem","position":3,"name":'
+        echo _name_article
+        echo ',"item":'
+        echo _url_article
+        echo '}'
+        echo ']'
+      endcapture
+
+    when 'page'
+      capture _bc
+        echo '['
+        echo '{"@type":"ListItem","position":1,"name":'
+        echo _name_home
+        echo ',"item":'
+        echo _url_home
+        echo '}'
+        echo ',{"@type":"ListItem","position":2,"name":'
+        echo _name_page
+        echo ',"item":'
+        echo _url_page
+        echo '}'
+        echo ']'
+      endcapture
+
+    when 'blog'
+      capture _bc
+        echo '['
+        echo '{"@type":"ListItem","position":1,"name":'
+        echo _name_home
+        echo ',"item":'
+        echo _url_home
+        echo '}'
+        echo ',{"@type":"ListItem","position":2,"name":'
+        echo _name_blog
+        echo ',"item":'
+        echo _url_blog
+        echo '}'
+        echo ']'
+      endcapture
+  endcase
+
+  # Strip whitespace introduced by capture
+  assign _bc = _bc | strip_newlines | strip
+-%}
+
+{%- if _bc != '' -%}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":{{ _bc }}}</script>
+{%- endif -%}

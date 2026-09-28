@@ -13,11 +13,11 @@
   assign title_size = section.settings.title_size | default: 'large'
 
   # Colors
-  assign bg_color = section.settings.bg_color | default: '#0a0a0f'
-  assign text_primary = section.settings.text_primary | default: '#ffffff'
+  assign bg_color = section.settings.bg_color | default: '#0A0A0F'
+  assign text_primary = section.settings.text_primary | default: '#FAFAF7'
   assign text_secondary = section.settings.text_secondary | default: '#a0a0a0'
-  assign accent_primary = section.settings.accent_primary | default: '#9333ea'
-  assign accent_secondary = section.settings.accent_secondary | default: '#ec4899'
+  assign accent_primary = section.settings.accent_primary | default: '#B0C3FA'
+  assign accent_secondary = section.settings.accent_secondary | default: '#5E0A02'
 
   # Image / Video
   assign bg_image = section.settings.bg_image
@@ -86,22 +86,51 @@
     --cch-content-w: {{ content_width }}px;
     --cch-overlay-opacity: {{ overlay_opacity | divided_by: 100.0 }};
     {%- if min_height > 0 -%}--cch-min-h: {{ min_height }}px;{%- endif -%}
+    {%- comment -%}
+      Heading-scale dropdown: merchant picks H1-H6 from Theme Settings -> Typography.
+    {%- endcomment -%}
+    {%- assign _colhero_title_h = section.settings.colhero_heading_level | default: 'h1' -%}
+    --cch-title-fs:   var(--font-{{ _colhero_title_h }}--size);
+    --cch-title-fw:   var(--font-{{ _colhero_title_h }}--weight);
+    --cch-title-lh:   var(--font-{{ _colhero_title_h }}--line-height);
+    --cch-title-ls:   var(--font-{{ _colhero_title_h }}--letter-spacing);
+    --cch-title-case: var(--font-{{ _colhero_title_h }}--case);
+    {%- assign _colhero_accent_h = section.settings.colhero_accent_heading_level | default: 'inherit' -%}
+    {%- if _colhero_accent_h != 'inherit' -%}
+    --cch-accent-fs:   var(--font-{{ _colhero_accent_h }}--size);
+    --cch-accent-fw:   var(--font-{{ _colhero_accent_h }}--weight);
+    --cch-accent-lh:   var(--font-{{ _colhero_accent_h }}--line-height);
+    --cch-accent-ls:   var(--font-{{ _colhero_accent_h }}--letter-spacing);
+    --cch-accent-case: var(--font-{{ _colhero_accent_h }}--case);
+    {%- endif -%}
   "
 >
   {%- comment -%} Background media {%- endcomment -%}
   {%- if has_bg_media -%}
     <div class="casa-col-hero__media">
       {%- if bg_video_url != blank -%}
-        <video class="casa-col-hero__video" autoplay loop muted playsinline>
+        <video class="casa-col-hero__video" data-casa-pause loop muted playsinline preload="metadata">
           <source src="{{ bg_video_url }}" type="video/mp4">
         </video>
       {%- elsif hero_image -%}
+        {%- comment -%}
+          fetchpriority="high" added 2026-05-13 to fix the 1,560ms LCP
+          load-delay measured on /collections/best-sellers (1,878ms
+          total LCP). Without it the browser assigned Low priority to
+          the LCP image and queued it behind dozens of other resources.
+          The image downloads in 3ms once requested — fetchpriority
+          gets it requested ~1,500ms earlier, dropping LCP to ~400ms.
+          loading="eager" was already correct.
+        {%- endcomment -%}
         <img
           src="{{ hero_image | image_url: width: 1920 }}"
+          width="{{ hero_image.width }}"
+          height="{{ hero_image.height }}"
           srcset="{{ hero_image | image_url: width: 960 }} 960w, {{ hero_image | image_url: width: 1440 }} 1440w, {{ hero_image | image_url: width: 1920 }} 1920w"
           sizes="100vw"
           alt="{{ collection_title | escape }}"
           loading="eager"
+          fetchpriority="high"
           class="casa-col-hero__bg-img{% if enable_parallax %} casa-col-hero__bg-img--parallax{% endif %}"
           style="object-position: {{ bg_position }};"
         >
@@ -117,9 +146,9 @@
   <div class="casa-col-hero__container">
     {%- if show_breadcrumbs -%}
       <nav class="casa-col-hero__breadcrumbs" aria-label="Breadcrumbs">
-        <a href="/" class="casa-col-hero__breadcrumb-link">Home</a>
+        <a href="{{ routes.root_url }}" class="casa-col-hero__breadcrumb-link">Home</a>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-        <a href="/collections" class="casa-col-hero__breadcrumb-link">Collections</a>
+        <a href="{{ routes.collections_url }}" class="casa-col-hero__breadcrumb-link">Collections</a>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
         <span class="casa-col-hero__breadcrumb-current">{{ collection_title }}</span>
       </nav>
@@ -142,12 +171,14 @@
       {%- endif -%}
 
       {%- if cta_text != blank -%}
+        {%- assign cch_cta_treatment = section.settings.cch_cta_treatment | default: 'featured' -%}
+        {%- assign cch_cta_2_treatment = section.settings.cch_cta_2_treatment | default: 'secondary-on-dark' -%}
         <div class="casa-col-hero__cta-row">
-          <a href="{{ cta_link | default: collection.url }}" class="casa-col-hero__cta casa-col-hero__cta--{{ cta_style }}">
+          <a href="{{ cta_link | default: collection.url }}" class="btn btn-{{ cch_cta_treatment }} casa-col-hero__cta casa-col-hero__cta--{{ cta_style }}">
             {{ cta_text }}
           </a>
           {%- if cta_text_2 != blank -%}
-            <a href="{{ cta_link_2 | default: collection.url }}" class="casa-col-hero__cta casa-col-hero__cta--outline">
+            <a href="{{ cta_link_2 | default: collection.url }}" class="btn btn-{{ cch_cta_2_treatment }} casa-col-hero__cta casa-col-hero__cta--outline">
               {{ cta_text_2 }}
             </a>
           {%- endif -%}
@@ -198,6 +229,8 @@
       <div class="casa-col-hero__split-image">
         <img
           src="{{ hero_image | image_url: width: 800 }}"
+          width="{{ hero_image.width }}"
+          height="{{ hero_image.height }}"
           alt="{{ collection_title | escape }}"
           loading="eager"
           class="casa-col-hero__split-img"
@@ -210,13 +243,22 @@
 {%- if enable_parallax and has_bg_media -%}
   <script>
     (function() {
+      var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reducedMotion) return;
       var img = document.querySelector('.casa-col-hero__bg-img--parallax');
       if (!img) return;
       var hero = img.closest('.casa-col-hero');
+      var ticking = false;
       function onScroll() {
-        var rect = hero.getBoundingClientRect();
-        var y = -(rect.top * 0.3);
-        img.style.transform = 'translateY(' + y + 'px) scale(1.1)';
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(function() {
+            var rect = hero.getBoundingClientRect();
+            var y = -(rect.top * 0.3);
+            img.style.transform = 'translateY(' + y + 'px) scale(1.1)';
+            ticking = false;
+          });
+        }
       }
       window.addEventListener('scroll', onScroll, { passive: true });
       onScroll();
@@ -276,7 +318,39 @@
         { "value": "large", "label": "Large" },
         { "value": "extra-large", "label": "Extra Large" }
       ],
-      "default": "large"
+      "default": "large",
+      "visible_if": "{{ false }}"
+    },
+    {
+      "type": "select",
+      "id": "colhero_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "select",
+      "id": "colhero_accent_heading_level",
+      "label": "Accent heading scale",
+      "info": "Heading scale for the accent word. Inherit matches the title.",
+      "options": [
+        { "value": "inherit", "label": "Inherit (match title)" },
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "inherit"
     },
     {
       "type": "checkbox",
@@ -398,13 +472,30 @@
     {
       "type": "select",
       "id": "cta_style",
-      "label": "Primary button style",
+      "label": "Primary button style (legacy)",
+      "info": "Deprecated. Superseded by Primary button treatment below.",
       "options": [
         { "value": "gradient", "label": "Gradient" },
         { "value": "solid", "label": "Solid" },
         { "value": "outline", "label": "Outline" }
       ],
-      "default": "gradient"
+      "default": "gradient",
+      "visible_if": "{{ false }}"
+    },
+    {
+      "type": "select",
+      "id": "cch_cta_treatment",
+      "label": "Primary button treatment",
+      "info": "Brand-book button style. Featured (gradient) is rare per brand book — reserved for hero/launch CTAs.",
+      "options": [
+        { "value": "primary",            "label": "Primary — solid ink (light surface)" },
+        { "value": "primary-on-dark",    "label": "Primary — solid white (dark surface)" },
+        { "value": "secondary",          "label": "Secondary — outline (light surface)" },
+        { "value": "secondary-on-dark",  "label": "Secondary — outline (dark surface)" },
+        { "value": "tertiary",           "label": "Tertiary — underlined link" },
+        { "value": "featured",           "label": "Featured — purple→pink gradient" }
+      ],
+      "default": "featured"
     },
     {
       "type": "text",
@@ -417,6 +508,21 @@
       "label": "Secondary button link"
     },
     {
+      "type": "select",
+      "id": "cch_cta_2_treatment",
+      "label": "Secondary button treatment",
+      "info": "Brand-book button style for the secondary CTA.",
+      "options": [
+        { "value": "primary",            "label": "Primary — solid ink (light surface)" },
+        { "value": "primary-on-dark",    "label": "Primary — solid white (dark surface)" },
+        { "value": "secondary",          "label": "Secondary — outline (light surface)" },
+        { "value": "secondary-on-dark",  "label": "Secondary — outline (dark surface)" },
+        { "value": "tertiary",           "label": "Tertiary — underlined link" },
+        { "value": "featured",           "label": "Featured — purple→pink gradient" }
+      ],
+      "default": "secondary-on-dark"
+    },
+    {
       "type": "header",
       "content": "Colors"
     },
@@ -424,13 +530,13 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background color",
-      "default": "#0a0a0f"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
       "id": "text_primary",
       "label": "Text color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
@@ -442,13 +548,13 @@
       "type": "color",
       "id": "accent_primary",
       "label": "Primary accent",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "accent_secondary",
       "label": "Secondary accent",
-      "default": "#ec4899"
+      "default": "#5E0A02"
     },
     {
       "type": "header",
@@ -662,16 +768,20 @@
 /* ── Breadcrumbs ── */
 .casa-col-hero__breadcrumbs {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 8px;
+  gap: clamp(4px, 0.8vw, 8px);
   margin-bottom: 20px;
-  font-size: 13px;
+  font-size: clamp(10px, 1vw + 6px, 14px);
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .casa-col-hero__breadcrumb-link {
   color: var(--cch-text-muted);
   text-decoration: none;
   transition: color 0.2s ease;
+  white-space: nowrap;
 }
 
 .casa-col-hero__breadcrumb-link:hover {
@@ -681,10 +791,16 @@
 .casa-col-hero__breadcrumbs svg {
   color: var(--cch-text-muted);
   flex-shrink: 0;
+  width: clamp(10px, 1vw + 4px, 14px);
+  height: clamp(10px, 1vw + 4px, 14px);
 }
 
 .casa-col-hero__breadcrumb-current {
   color: var(--cch-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 /* ── Badge ── */
@@ -694,7 +810,7 @@
   gap: 6px;
   padding: 5px 14px;
   border-radius: 100px;
-  background: linear-gradient(135deg, rgba(147, 51, 234, 0.15), rgba(236, 72, 153, 0.1));
+  background: linear-gradient(135deg, rgba(176, 195, 250, 0.15), rgba(94, 10, 2, 0.1));
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--cch-text);
   font-size: 11px;
@@ -725,26 +841,39 @@
   flex: 1;
 }
 
-/* Title sizes */
+/* Title — heading scale comes from Theme Settings -> Typography via the
+   colhero_heading_level dropdown. Legacy --sm/--md/--lg/--xl modifiers
+   below preserve old behavior as fallbacks. */
 .casa-col-hero__title {
-  font-weight: 300;
+  font-size: var(--cch-title-fs, var(--font-h1--size, 48px));
+  font-weight: var(--cch-title-fw, 300);
+  line-height: var(--cch-title-lh, 1.1);
+  letter-spacing: var(--cch-title-ls, -1px);
+  text-transform: var(--cch-title-case, none);
   color: var(--cch-text);
   margin: 0 0 16px 0;
-  letter-spacing: -1px;
-  line-height: 1.1;
 }
 
-.casa-col-hero__title--sm { font-size: 32px; }
-.casa-col-hero__title--md { font-size: 40px; }
-.casa-col-hero__title--lg { font-size: 48px; }
-.casa-col-hero__title--xl { font-size: 64px; }
+/* Legacy size modifiers — only applied if merchant hasn't picked a
+   heading scale yet (the var fallback above wins when set). Once Pass 2
+   removes the title_size field these classes can be deleted. */
+.casa-col-hero__title--sm { font-size: var(--cch-title-fs, var(--font-h2--size, 32px)); }
+.casa-col-hero__title--md { font-size: var(--cch-title-fs, var(--font-h2--size, 40px)); }
+.casa-col-hero__title--lg { font-size: var(--cch-title-fs, var(--font-h1--size, 48px)); }
+.casa-col-hero__title--xl { font-size: var(--cch-title-fs, var(--font-h1--size, 64px)); }
 
+/* Accent: gradient text. background-image (longhand) keeps
+   background-clip: text working — see casa-brand-tokens Bug 1. */
 .casa-col-hero__accent {
-  background: linear-gradient(135deg, var(--cch-accent-1), var(--cch-accent-2));
+  background-image: linear-gradient(135deg, var(--cch-accent-1), var(--cch-accent-2));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  font-weight: 400;
+  font-size: var(--cch-accent-fs, inherit);
+  font-weight: var(--cch-accent-fw, 400);
+  line-height: var(--cch-accent-lh, inherit);
+  letter-spacing: var(--cch-accent-ls, inherit);
+  text-transform: var(--cch-accent-case, inherit);
 }
 
 .casa-col-hero__description {
@@ -772,34 +901,27 @@
   margin-bottom: 24px;
 }
 
-.casa-col-hero__cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 28px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
+/* Brand class .btn .btn-[treatment] provides display, padding, font,
+   radius, transition, text-transform, letter-spacing, hover.
+   Legacy --gradient/--solid/--outline modifier rules below kept so
+   any merchant template still using deprecated cta_style keeps
+   rendering until they pick a new treatment. */
 
 .casa-col-hero__cta--gradient {
   background: linear-gradient(135deg, var(--cch-accent-1), var(--cch-accent-2));
-  color: #ffffff;
+  color: var(--casa-text-on-ink);
   border: none;
 }
 
 .casa-col-hero__cta--gradient:hover {
   filter: brightness(1.15);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(147, 51, 234, 0.4);
+  box-shadow: 0 8px 24px rgba(176, 195, 250, 0.4);
 }
 
 .casa-col-hero__cta--solid {
   background: var(--cch-accent-1);
-  color: #ffffff;
+  color: var(--casa-text-on-ink);
   border: none;
 }
 
@@ -869,10 +991,7 @@
     padding-right: 24px;
   }
 
-  .casa-col-hero__title--sm { font-size: 26px; }
-  .casa-col-hero__title--md { font-size: 32px; }
-  .casa-col-hero__title--lg { font-size: 36px; }
-  .casa-col-hero__title--xl { font-size: 48px; }
+  /* Title font-size driven by Horizon heading tokens (auto-swap on mobile). */
 
   .casa-col-hero__glow--1 {
     width: 300px;
@@ -905,10 +1024,7 @@
     padding-right: 16px;
   }
 
-  .casa-col-hero__title--sm { font-size: 22px; }
-  .casa-col-hero__title--md { font-size: 26px; }
-  .casa-col-hero__title--lg { font-size: 28px; }
-  .casa-col-hero__title--xl { font-size: 36px; }
+  /* Title font-size handled by Horizon heading tokens. */
 
   .casa-col-hero__description {
     font-size: 14px;

@@ -65,6 +65,7 @@
             alt="{{ shop.name }}"
             loading="lazy"
             class="casa-footer__logo-img"
+            width="{{ section.settings.logo_image.aspect_ratio | times: section.settings.logo_height | default: 40 | round }}"
             height="{{ section.settings.logo_height | default: 40 }}"
           >
         </a>
@@ -73,8 +74,12 @@
           <span class="casa-footer__logo">{{ section.settings.logo_text | default: 'SEOUL GLOW LAB' }}</span>
         </a>
       {%- endif -%}
-      {%- if section.settings.brand_title != blank -%}
-        <h3 class="casa-footer__brand-title">{{ section.settings.brand_title }}</h3>
+      {%- assign brand_title_text = section.settings.brand_title | strip | replace: ' ', '' | replace: '​', '' | replace: '&nbsp;', '' | replace: '&#160;', '' | replace: '&#8203;', '' -%}
+      {%- if brand_title_text != blank -%}
+        {%- assign brand_title_style = section.settings.brand_title_style | default: 'current' -%}
+        {%- comment -%} data-casa-glow feeds the ::before/::after glow layers of the
+            "current" style via content: attr() — see casa-tagline-glow CSS below. {%- endcomment -%}
+        <h3 class="casa-footer__brand-title casa-footer__brand-title--{{ brand_title_style }}{% if brand_title_style == 'shimmer' %} text-grad-shimmer{% elsif brand_title_style == 'text' %} text-grad-text{% endif %}"{% if brand_title_style == 'current' %} data-casa-glow="{{ section.settings.brand_title | strip | escape }}"{% endif %}>{{ section.settings.brand_title | strip }}</h3>
       {%- endif -%}
       <p>{{ section.settings.brand_description | default: 'House of Light. We create mesmerizing lighting and décor that transforms ordinary spaces into extraordinary experiences.' }}</p>
       {%- if section.settings.show_follow_on_shop -%}
@@ -129,27 +134,26 @@
               {%- comment -%} Fallback links based on column title {%- endcomment -%}
               {%- assign col_title = block.settings.title | downcase -%}
               {%- if col_title == 'shop' -%}
-                <a href="/collections">All Products {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
+                <a href="/collections/all">All Products {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
                 <a href="/collections/best-sellers">Best Sellers {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
                 <a href="/collections/infinity-mirrors">Infinity Mirrors {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
-                <a href="/collections/new-arrivals">New Arrivals {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
-                <a href="/collections/sale">Sale {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
+                <a href="/collections/new">New Arrivals {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
               {%- elsif col_title == 'support' -%}
-                <a href="/pages/contact">Contact Us {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
+                <a href="/pages/contact-us">Contact Us {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
                 <a href="/pages/faq">FAQ {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
-                <a href="/apps/track-order">Track Order {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
+                <a href="/pages/track-order">Track Order {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
                 <a href="/policies/shipping-policy">Shipping Info {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
                 <a href="/policies/refund-policy">Returns {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
               {%- elsif col_title == 'company' -%}
-                <a href="/pages/about">Our Story {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
-                <a href="/pages/reviews">Reviews {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
-                <a href="/pages/affiliate">Affiliate Program {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
-                <a href="/blogs/press">Press {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
+                <a href="/pages/about-us-1">Our Story {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
+                <a href="/pages/customer-reviews">Reviews {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
+                <a href="/pages/casa-di-lumo-rewards">Rewards {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
+                <a href="/blogs/news">Blog {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
               {%- elsif col_title == 'resources' -%}
-                <a href="/pages/size-guide">Size Guide {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
-                <a href="/pages/installation">Installation Guide {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
-                <a href="/pages/style-quiz">Style Quiz {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
-                <a href="/blogs/journal">Blog {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
+                <a href="/blogs/news">Blog {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
+                <a href="/pages/faq">FAQ {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
+                <a href="/policies/shipping-policy">Shipping {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
+                <a href="/policies/refund-policy">Returns {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}</a>
               {%- endif -%}
             {%- endif -%}
           </div>
@@ -159,18 +163,25 @@
             <h4>{{ block.settings.title | default: 'Stay Illuminated' }}</h4>
             <p>{{ block.settings.description | default: 'Get 15% off your first order + exclusive access to new drops and VIP sales' }}</p>
             {%- form 'customer', class: 'casa-footer__newsletter-form' -%}
-              <input type="hidden" name="contact[tags]" value="newsletter,footer">
-              <input
-                type="email"
-                name="contact[email]"
-                class="casa-footer__newsletter-input"
-                placeholder="{{ block.settings.placeholder | default: 'Enter your email' }}"
-                required
-                autocomplete="email"
-              >
-              <button type="submit" class="casa-footer__newsletter-btn">
-                {{ block.settings.button_text | default: 'Subscribe & Save 15%' }}
-              </button>
+              {%- if form.posted_successfully? -%}
+                <p class="casa-footer__newsletter-msg casa-footer__newsletter-msg--ok" role="status">You're in — welcome to Seoul Glow Lab.</p>
+              {%- else -%}
+                {%- if form.errors -%}
+                  <p class="casa-footer__newsletter-msg casa-footer__newsletter-msg--err" role="alert">{{ form.errors.translated_fields.email | capitalize }} {{ form.errors.messages.email | default: 'could not be subscribed — please try again.' }}</p>
+                {%- endif -%}
+                <input type="hidden" name="contact[tags]" value="newsletter,footer">
+                <input
+                  type="email"
+                  name="contact[email]"
+                  class="casa-footer__newsletter-input"
+                  placeholder="{{ block.settings.placeholder | default: 'Enter your email' }}"
+                  required
+                  autocomplete="email"
+                >
+                <button type="submit" class="casa-footer__newsletter-btn">
+                  {{ block.settings.button_text | default: 'Subscribe & Save 15%' }}
+                </button>
+              {%- endif -%}
             {%- endform -%}
             {%- if block.settings.note != blank -%}
               <p class="casa-footer__newsletter-note">{{ block.settings.note }}</p>
@@ -223,7 +234,7 @@
   {%- comment -%} Bottom Bar {%- endcomment -%}
   <div class="casa-footer__bottom">
     <div class="casa-footer__bottom-left">
-      <p>&copy; {{ 'now' | date: '%Y' }} {{ section.settings.logo_text | default: 'Casa Di Lumo' }}. All rights reserved.</p>
+      <p>&copy; {{ 'now' | date: '%Y' }} {{ section.settings.logo_text | default: 'Seoul Glow Lab' }}. All rights reserved.</p>
       <div class="casa-footer__legal">
         {%- assign legal_menu = linklists[section.settings.legal_menu] -%}
         {%- if legal_menu != blank -%}
@@ -338,6 +349,19 @@
       "label": "Brand title",
       "info": "Large text below logo (e.g., tagline)",
       "placeholder": "Nordic, Modern & Minimalist"
+    },
+    {
+      "type": "select",
+      "id": "brand_title_style",
+      "label": "Brand title style",
+      "info": "Visual treatment for the brand title text. Brand book reserves shimmer for hero accent word — using it in the footer means two shimmers per page.",
+      "options": [
+        { "value": "current", "label": "Animated halo (purple to blue, recommended)" },
+        { "value": "text",    "label": "Static gradient (purple to pink to cyan)" },
+        { "value": "solid",   "label": "Solid white (no gradient)" },
+        { "value": "shimmer", "label": "Shimmer (use sparingly, conflicts with hero)" }
+      ],
+      "default": "current"
     },
     {
       "type": "textarea",
@@ -576,7 +600,7 @@
       "type": "color",
       "id": "trust_icon_color",
       "label": "Trust icon color",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
@@ -635,7 +659,7 @@
       "type": "color",
       "id": "cta_accent",
       "label": "CTA accent / highlight",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     }
   ],
   "blocks": [
@@ -710,6 +734,13 @@
 {% endschema %}
 
 <style>
+  .casa-footer__newsletter-msg {
+    margin: 0 0 10px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .casa-footer__newsletter-msg--ok { color: #7bd8a5; }
+  .casa-footer__newsletter-msg--err { color: #f28b82; }
   /* Override base theme input background for dark footer */
   .casa-footer__newsletter-input,
   .casa-footer__newsletter-input:hover,
@@ -719,7 +750,7 @@
     color: #ffffff;
   }
   .casa-footer__newsletter-input:focus {
-    border-color: #9333ea !important;
+    border-color: #B0C3FA !important;
     background-color: rgba(255, 255, 255, 0.08) !important;
   }
   .casa-footer__newsletter-input:-webkit-autofill,
@@ -754,7 +785,7 @@
   transform: translateX(-50%);
   width: 800px;
   height: 400px;
-  background: radial-gradient(ellipse, rgba(147, 51, 234, 0.12) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(176, 195, 250, 0.12) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -780,7 +811,7 @@
 }
 
 .casa-footer__cta h3 span {
-  background: linear-gradient(90deg, var(--footer-cta-accent, #9333ea), #ec4899);
+  background: linear-gradient(90deg, var(--footer-cta-accent, #B0C3FA), #5E0A02);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -810,13 +841,13 @@
 }
 
 .casa-footer__btn--primary {
-  background: var(--footer-cta-btn-bg, linear-gradient(135deg, #9333ea, #ec4899));
+  background: var(--footer-cta-btn-bg, linear-gradient(135deg, #B0C3FA, #5E0A02));
   color: var(--footer-cta-btn-text, #ffffff);
 }
 
 .casa-footer__btn--primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 24px -6px rgba(147, 51, 234, 0.5);
+  box-shadow: 0 12px 24px -6px rgba(176, 195, 250, 0.5);
 }
 
 .casa-footer__btn--secondary {
@@ -846,18 +877,131 @@
   min-width: 200px;
 }
 
+/* Base layout for the footer brand title. The four visual treatments
+   live in modifier classes (--current, --text, --solid, --shimmer)
+   so they don't share the `background` shorthand with `background-clip`
+   on the same selector — see casa-brand-tokens skill, Bug 1. */
 .casa-footer__brand-title {
   font-size: 18px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--footer-heading, var(--footer-text, #ffffff));
   margin: 12px 0 8px;
   line-height: 1.3;
+}
+/* Defensive: hide if the element has no glyphs to clip to (gradient
+   styles would otherwise paint a solid rectangle). */
+.casa-footer__brand-title:empty { display: none; }
+
+/* Current style: bespoke animated 3-stop tagline tuned by the merchant
+   (commits 962db0e, 356370b, 6a76d3c, 7bc973c). Preserved verbatim
+   so existing footers don't visually change. background-image (not
+   the shorthand) per casa-brand-tokens skill Bug 1 — same end visual. */
+.casa-footer__brand-title--current {
+  background-image: linear-gradient(90deg, #ce08d4 0%, #4100ff 50%, #ce08d4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  position: relative;
+  /* Own stacking context so the z-index:-1 glow layers below sit
+     behind the glyphs but never behind the footer background. */
+  isolation: isolate;
+}
+
+/* Text style: brand-book static gradient (purple to pink to cyan). */
+.casa-footer__brand-title--text {
+  background-image: var(--grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Solid style: plain white text on the dark footer surface. */
+.casa-footer__brand-title--solid {
+  color: var(--t-on-dark, var(--footer-heading, var(--footer-text, #ffffff)));
+}
+
+/* Shimmer style: applied via the .text-grad-shimmer brand utility from
+   casa-buttons.css (background-image, background-clip, color, animation
+   all provided there). No section-level overrides needed. */
+
+/* "Live in your own light" — gradient stays static (purple→blue
+   across all letters always). The pulse used to interpolate stacked
+   drop-shadow FILTERS on the text itself — a per-frame CPU re-raster
+   on every page whenever the footer was visible. Now the two glow
+   states are pre-rendered as STATIC filters on two text-duplicate
+   pseudo-elements (fed the tagline via data-casa-glow / attr()),
+   layered exactly behind the real glyphs, and only the peak layer's
+   OPACITY animates — compositor-only, same 5s timing, same purple +
+   blue halo growing and receding. Rest state (::before) matches the
+   old 0% frame; mid-cycle (::after at opacity 1) matches the old 50%
+   frame. Used by .casa-footer__brand-title--current. */
+.casa-footer__brand-title--current::before,
+.casa-footer__brand-title--current::after {
+  content: attr(data-casa-glow);
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* Same gradient-clipped glyphs as the real text, so the duplicate
+     letterforms hide exactly underneath and only the halo shows. */
+  background-image: inherit;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+/* Resting halo — static filter, rasterized once. */
+.casa-footer__brand-title--current::before {
+  filter: drop-shadow(0 0 3px rgba(206, 8, 212, 0.35))
+          drop-shadow(0 0 6px rgba(65, 0, 255, 0.25));
+}
+/* Peak halo — static filter; only its opacity animates. */
+.casa-footer__brand-title--current::after {
+  filter: drop-shadow(0 0 10px rgba(206, 8, 212, 0.7))
+          drop-shadow(0 0 18px rgba(65, 0, 255, 0.5));
+  opacity: 0;
+  /* perf-justified: compositor-only opacity fade between two statically
+     rasterized glow layers — no per-frame filter re-raster off-screen. */
+  animation: casa-tagline-glow 5s ease-in-out infinite;
+  will-change: opacity;
+}
+@keyframes casa-tagline-glow {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .casa-footer__brand-title--current,
+  .casa-footer__brand-title--current::after,
+  .casa-footer__brand-title--shimmer {
+    animation: none;
+  }
 }
 
 .casa-footer__follow-shop {
   margin: 12px 0 8px;
+  /* The Shop "Follow on Shop" web component (shop-follow-button) lives in a
+     shadow root with no ::part or theming attribute. It picks its label
+     colour from the CSS color-scheme of its context. The footer is always
+     dark (#0a0a0f), but the visitor's DEVICE may be in light mode — in which
+     case the "Following on Shop" state renders near-black label text that
+     vanishes against the dark footer. Forcing color-scheme: dark pins the
+     component to its dark-surface treatment (light label) regardless of the
+     device theme. The color fallback covers any inner node that uses
+     currentColor. This does NOT alter the purple "Follow" CTA pill.
+     NOTE: this is coupled to the footer staying dark (footer_bg default
+     #0a0a0f, brand surfaces are Ink). If a merchant ever sets a light
+     footer background, revisit — color-scheme: dark would then put a light
+     label on a light surface. */
+  color-scheme: dark;
+}
+.casa-footer__follow-shop shop-follow-button,
+.casa-footer__follow-shop shop-login-button {
+  color-scheme: dark;
+  color: #ffffff;
 }
 
 .casa-footer__col {
@@ -917,8 +1061,8 @@
 }
 
 .casa-footer__social-icon:hover {
-  background: var(--footer-social-hover, #9333ea);
-  border-color: var(--footer-social-hover, #9333ea);
+  background: var(--footer-social-hover, #B0C3FA);
+  border-color: var(--footer-social-hover, #B0C3FA);
   transform: translateY(-2px);
   color: #ffffff;
 }
@@ -1003,13 +1147,13 @@
 }
 
 .casa-footer__newsletter-input:focus {
-  border-color: var(--footer-nl-btn-bg, #9333ea);
+  border-color: var(--footer-nl-btn-bg, #B0C3FA);
   background: var(--footer-nl-input-bg, rgba(255, 255, 255, 0.08));
 }
 
 .casa-footer__newsletter-btn {
   padding: 12px 18px;
-  background: var(--footer-nl-btn-bg, linear-gradient(135deg, #9333ea, #ec4899));
+  background: var(--footer-nl-btn-bg, linear-gradient(135deg, #B0C3FA, #5E0A02));
   border: none;
   border-radius: 8px;
   color: var(--footer-nl-btn-text, #ffffff);
@@ -1023,7 +1167,7 @@
 .casa-footer__newsletter-btn:hover {
   transform: translateY(-2px);
   filter: brightness(1.15);
-  box-shadow: 0 8px 20px rgba(147, 51, 234, 0.4);
+  box-shadow: 0 8px 20px rgba(176, 195, 250, 0.4);
 }
 
 .casa-footer__newsletter-note {

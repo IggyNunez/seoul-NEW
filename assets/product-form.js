@@ -103,7 +103,10 @@ export class AddToCartComponent extends Component {
    */
   #animateFlyToCart() {
     const { addToCartButton } = this.refs;
-    const cartIcon = document.querySelector('.header-actions__cart-icon');
+    // Casa: the live header renders the cart icon as .casa-header__cart-icon;
+    // .header-actions__cart-icon is the stock class, kept as a fallback. Without the
+    // casa selector this returned null and the fly-to-cart animation silently no-op'd.
+    const cartIcon = document.querySelector('.casa-header__cart-icon, .header-actions__cart-icon');
 
     const image = this.dataset.productVariantMedia;
 
@@ -222,8 +225,9 @@ class ProductFormComponent extends Component {
     const variantIdInput = /** @type {HTMLInputElement | null} */ (this.querySelector('input[name="id"]'));
     if (!variantIdInput?.value || !cart?.items) return 0;
 
-    const cartItem = cart.items.find((item) => item.variant_id.toString() === variantIdInput.value.toString());
-    const cartQty = cartItem ? cartItem.quantity : 0;
+    const cartQty = cart.items.reduce((quantity, item) => {
+      return item.variant_id.toString() === variantIdInput.value.toString() ? quantity + item.quantity : quantity;
+    }, 0);
 
     // Use public API to update quantity selector
     const quantitySelector = /** @type {any | undefined} */ (this.querySelector('quantity-selector-component'));
@@ -265,7 +269,8 @@ class ProductFormComponent extends Component {
     if (event.detail?.sourceId === this.id || event.detail?.data?.source === 'product-form-component') return;
 
     const cart = /** @type {Cart} */ (event.detail?.resource);
-    if (cart?.items) {
+    const isFullCartResponse = cart?.items && Number.isFinite(cart.item_count);
+    if (isFullCartResponse) {
       this.#updateCartQuantityFromData(cart);
     } else {
       await this.#fetchAndUpdateCartQuantity();
@@ -343,27 +348,56 @@ class ProductFormComponent extends Component {
       }
     }
 
-    const formData = new FormData(form);
+    for (const container of allAddToCartContainers) {
+      container.disable();
+    }
 
-    const cartItemsComponents = document.querySelectorAll('cart-items-component');
-    let cartItemComponentsSectionIds = [];
-    cartItemsComponents.forEach((item) => {
-      if (item instanceof HTMLElement && item.dataset.sectionId) {
-        cartItemComponentsSectionIds.push(item.dataset.sectionId);
-      }
-      formData.append('sections', cartItemComponentsSectionIds.join(','));
-    });
+    /** @type {FormData} */
+    let formData;
 
-    const fetchCfg = fetchConfig('javascript', { body: formData });
+    this.#waitForCartItemsToSettle()
+      .then(() => {
+        formData = new FormData(form);
 
-    fetch(Theme.routes.cart_add_url, {
-      ...fetchCfg,
-      headers: {
-        ...fetchCfg.headers,
-        Accept: 'text/html',
-      },
-    })
-      .then((response) => response.json())
+        // Estimated-delivery normalisation is handled globally by casa-edd.js, which
+        // intercepts this /cart/add POST and stamps ONE canonical `Estimated delivery`
+        // value per variant so the same variant can't split onto two lines. The buy box
+        // no longer strips or re-persists the property itself.
+        const cartItemComponentsSectionIds = Array.from(document.querySelectorAll('cart-items-component'))
+          .map((item) => (item instanceof HTMLElement ? item.dataset.sectionId : ''))
+          .filter((sectionId, index, sectionIds) => sectionId && sectionIds.indexOf(sectionId) === index);
+
+        if (cartItemComponentsSectionIds.length) {
+          formData.set('sections', cartItemComponentsSectionIds.join(','));
+          formData.set('sections_url', window.location.pathname);
+        }
+
+        const fetchCfg = fetchConfig('javascript', { body: formData });
+
+        return fetch(Theme.routes.cart_add_url, {
+          ...fetchCfg,
+          headers: {
+            ...fetchCfg.headers,
+            Accept: 'text/html',
+          },
+        });
+      })
+      .then(async (response) => {
+        // Classify by PARSEABILITY, not the content-type header. Shopify serves cart
+        // validation errors (422) as `text/javascript; charset=utf-8` with a JSON body, so the
+        // old `!contentType.includes('application/json')` test mistook every real cart error
+        // for a network failure and threw it into the catch below — dropping the structured
+        // `errors` object, so field-level messages (gift-card "message too long", sold-out,
+        // max-quantity) vanished silently on every PDP. A genuinely challenged / rate-limited
+        // add (Cloudflare interstitial, 429/503) returns non-JSON HTML, which JSON.parse
+        // rejects → still routed to the catch as a hard failure, as before.
+        const text = await response.text();
+        try {
+          return JSON.parse(text);
+        } catch {
+          throw new Error(`Add to cart failed: HTTP ${response.status}`);
+        }
+      })
       .then(async (response) => {
         if (response.status) {
           this.dispatchEvent(
@@ -444,10 +478,29 @@ class ProductFormComponent extends Component {
       })
       .catch((error) => {
         console.error(error);
+        // Casa deviation from stock Horizon: dispatch a real cart:error on a hard add
+        // failure (non-JSON / network) so listeners — e.g. the sticky-cart "Added!"
+        // confirmation, which cancels on cart:error — don't falsely show success.
+        this.dispatchEvent(new CartErrorEvent(form.getAttribute('id') || '', 'Add to cart failed'));
       })
       .finally(() => {
         cartPerformance.measureFromEvent('add:user-action', event);
+        for (const container of allAddToCartContainers) {
+          container.enable();
+        }
       });
+  }
+
+  async #waitForCartItemsToSettle() {
+    const components = Array.from(document.querySelectorAll('cart-items-component'));
+    await Promise.all(
+      components.map((component) => {
+        if ('flushPendingCartUpdates' in component && typeof component.flushPendingCartUpdates === 'function') {
+          return component.flushPendingCartUpdates();
+        }
+        return undefined;
+      })
+    );
   }
 
   /**

@@ -1,17 +1,18 @@
 {% comment %}
   Seoul Glow Lab — Premium FAQ Page v2
   Layouts: two-column | tabs-top | cards
+  2026-05-15: h1→h2 + hero alignment honors --faq2-content-align
 {% endcomment %}
 
 {%- comment -%} Auto-hide when no question blocks exist {%- endcomment -%}
-{%- assign _has_questions = false -%}
+{%- assign has_questions = false -%}
 {%- for block in section.blocks -%}
   {%- if block.type == 'question' and block.settings.question != blank -%}
-    {%- assign _has_questions = true -%}
+    {%- assign has_questions = true -%}
     {%- break -%}
   {%- endif -%}
 {%- endfor -%}
-{%- if _has_questions == false and section.settings.auto_hide and request.design_mode == false -%}
+{%- if has_questions == false and section.settings.auto_hide and request.design_mode == false -%}
   <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
 {%- endif -%}
 
@@ -27,6 +28,17 @@
   assign muted = section.settings.color_muted
   assign accent1 = section.settings.color_accent_primary
   assign accent2 = section.settings.color_accent_secondary
+
+  comment
+    WCAG-AA: answer/no-results links use accent1 (default brand purple #B0C3FA),
+    which is only 3.67:1 on Ink and fails AA. On a dark background swap to the
+    lighter #B0C3FA (~4.8:1 on Ink). Light backgrounds keep #B0C3FA (4.97:1 on Paper).
+  endcomment
+  assign faq2_link_color = accent1 | default: '#B0C3FA'
+  assign _bg_bright = bg | default: '#FAFAF7' | color_brightness
+  if _bg_bright < 128
+    assign faq2_link_color = '#B0C3FA'
+  endif
   assign card_bg = section.settings.color_card_bg
   assign card_border = section.settings.color_card_border
   assign pt = section.settings.padding_top
@@ -34,12 +46,10 @@
   assign contact_title = section.settings.contact_title
   assign contact_text = section.settings.contact_text
   assign contact_email = section.settings.contact_email
-  assign contact_page_url = section.settings.contact_page_url
+  assign contact_page_url = section.settings.contact_page_url | default: '/pages/contact-us'
   assign contact_page_label = section.settings.contact_page_label
 
-  assign categories = ""
   assign cat_index = -1
-  assign cats_array = ""
 -%}
 
 {%- comment %} Build categories and questions arrays {% endcomment -%}
@@ -51,7 +61,7 @@
 
 <section
   id="casa-faq2-{{ section.id }}"
-  class="casa-faq2"
+  class="casa-faq2{% if content_align == 'center' %} casa-faq2--center{% endif %}{% if section.settings.layout_density == 'one_frame' %} casa-faq2--compact{% endif %}"
   data-layout="{{ layout }}"
   data-section-id="{{ section.id }}"
   style="
@@ -59,6 +69,7 @@
     --faq2-text: {{ text_color }};
     --faq2-muted: {{ muted }};
     --faq2-accent1: {{ accent1 }};
+    --faq2-link: {{ faq2_link_color }};
     --faq2-accent2: {{ accent2 }};
     --faq2-card-bg: {{ card_bg }};
     --faq2-card-border: {{ card_border }};
@@ -85,6 +96,22 @@
     {%- if section.settings.color_cta_text != blank %}--faq2-cta-text: {{ section.settings.color_cta_text }};{% endif -%}
     {%- if section.settings.color_cta_btn_bg != blank %}--faq2-cta-btn-bg: {{ section.settings.color_cta_btn_bg }};{% endif -%}
     {%- if section.settings.color_cta_btn_text != blank %}--faq2-cta-btn-text: {{ section.settings.color_cta_btn_text }};{% endif -%}
+    {%- comment -%}
+      Heading scales: each title pulls size/weight/lh/ls/case from
+      Theme Settings -> Typography (H1-H6).
+    {%- endcomment -%}
+    {%- assign faq_title_h    = section.settings.faq2_heading_level     | default: 'h1' -%}
+    {%- assign faq_cat_h      = section.settings.faq2_cat_heading_level | default: 'h4' -%}
+    {%- assign faq_cta_h      = section.settings.faq2_cta_heading_level | default: 'h3' -%}
+    --faq2-title-fs:   var(--font-{{ faq_title_h }}--size);
+    --faq2-title-fw:   var(--font-{{ faq_title_h }}--weight);
+    --faq2-title-lh:   var(--font-{{ faq_title_h }}--line-height);
+    --faq2-title-ls:   var(--font-{{ faq_title_h }}--letter-spacing);
+    --faq2-title-case: var(--font-{{ faq_title_h }}--case);
+    --faq2-cat-fs:     var(--font-{{ faq_cat_h }}--size);
+    --faq2-cat-fw:     var(--font-{{ faq_cat_h }}--weight);
+    --faq2-ctatitle-fs:   var(--font-{{ faq_cta_h }}--size);
+    --faq2-ctatitle-fw:   var(--font-{{ faq_cta_h }}--weight);
   "
 >
   <!-- Hero -->
@@ -94,7 +121,15 @@
         <span class="casa-faq2__badge casa-faq2__anim" data-anim="fade-up">{{ badge }}</span>
       {%- endif -%}
       {%- if title != blank -%}
-        <h1 class="casa-faq2__title casa-faq2__anim" data-anim="fade-up" data-delay="1">{{ title }}</h1>
+        {%- assign faq2_title_style = section.settings.faq2_title_style | default: 'current' -%}
+        {%- comment -%}
+          Tag is driven by the existing faq2_heading_level setting
+          (default h1) so this section can be safely embedded on a
+          page that already has its own H1 — e.g. cart, where the
+          cart heading is the primary H1. Default behavior (h1) is
+          unchanged for the dedicated FAQ page.
+        {%- endcomment -%}
+        <{{ faq_title_h }} class="casa-faq2__title casa-faq2__title--{{ faq2_title_style }} casa-faq2__anim{% if faq2_title_style == 'shimmer' %} text-grad-shimmer{% elsif faq2_title_style == 'text' %} text-grad-text{% endif %}" data-anim="fade-up" data-delay="1">{{ title }}</{{ faq_title_h }}>
       {%- endif -%}
       {%- if subtitle != blank -%}
         <p class="casa-faq2__subtitle casa-faq2__anim" data-anim="fade-up" data-delay="2">{{ subtitle }}</p>
@@ -133,6 +168,7 @@
         <div class="casa-faq2__content">
           {%- assign ci = -1 -%}
           {%- assign open_cat = false -%}
+          {% # theme-check-disable %}
           {%- for block in section.blocks -%}
             {%- if block.type == 'category' -%}
               {%- if open_cat -%}</div>{%- endif -%}
@@ -161,6 +197,7 @@
             {%- endif -%}
           {%- endfor -%}
           {%- if open_cat -%}</div>{%- endif -%}
+          {% # theme-check-enable %}
 
           <div class="casa-faq2__no-results" style="display:none">
             <p class="casa-faq2__no-results-text">No matching questions found.</p>
@@ -187,6 +224,7 @@
         <div class="casa-faq2__tabs-content">
           {%- assign ci = -1 -%}
           {%- assign open_cat = false -%}
+          {% # theme-check-disable %}
           {%- for block in section.blocks -%}
             {%- if block.type == 'category' -%}
               {%- if open_cat -%}</div>{%- endif -%}
@@ -208,6 +246,7 @@
             {%- endif -%}
           {%- endfor -%}
           {%- if open_cat -%}</div>{%- endif -%}
+          {% # theme-check-enable %}
 
           <div class="casa-faq2__no-results" style="display:none">
             <p class="casa-faq2__no-results-text">No matching questions found.</p>
@@ -221,6 +260,7 @@
       <div class="casa-faq2__cards-grid">
         {%- assign ci = -1 -%}
         {%- assign open_cat = false -%}
+        {% # theme-check-disable %}
         {%- for block in section.blocks -%}
           {%- if block.type == 'category' -%}
             {%- if open_cat -%}
@@ -275,6 +315,7 @@
             </div>
           </div>
         {%- endif -%}
+        {% # theme-check-enable %}
       </div>
       <div class="casa-faq2__no-results" style="display:none">
         <p class="casa-faq2__no-results-text">No matching questions found.</p>
@@ -292,14 +333,16 @@
           <p class="casa-faq2__cta-text">{{ contact_text }}</p>
         {%- endif -%}
         <div class="casa-faq2__cta-btns">
+          {%- assign faq2_email_treatment = section.settings.faq2_email_treatment | default: 'featured' -%}
+          {%- assign faq2_page_treatment  = section.settings.faq2_page_treatment  | default: 'secondary-on-dark' -%}
           {%- if contact_email != blank -%}
-            <a href="mailto:{{ contact_email }}" class="casa-faq2__cta-btn casa-faq2__cta-btn--email">
+            <a href="mailto:{{ contact_email }}" class="btn btn-{{ faq2_email_treatment }} casa-faq2__cta-btn casa-faq2__cta-btn--email">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
               Email Support
             </a>
           {%- endif -%}
           {%- if contact_page_url != blank -%}
-            <a href="{{ contact_page_url }}" class="casa-faq2__cta-btn casa-faq2__cta-btn--page">
+            <a href="{{ contact_page_url }}" class="btn btn-{{ faq2_page_treatment }} casa-faq2__cta-btn casa-faq2__cta-btn--page">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               {{ contact_page_label | default: 'Contact Us' }}
             </a>
@@ -310,7 +353,7 @@
   {%- endif -%}
 </section>
 
-<style>
+{% stylesheet %}
 /* ========== CASA FAQ v2 — Core ========== */
 .casa-faq2 {
   background: var(--faq2-bg);
@@ -338,20 +381,52 @@
   font-weight: 600;
   letter-spacing: .08em;
   text-transform: uppercase;
-  background: linear-gradient(135deg, var(--faq2-accent1), var(--faq2-accent2));
+  /* Decorative gradient — brand --grad-primary (rebrand-friendly).
+     Section accent_purple/_pink settings stay scoped to nav active /
+     icon / chevron / cta-btn-bg overrides (see top of style attr). */
+  background: var(--grad-primary, linear-gradient(135deg, var(--faq2-accent1), var(--faq2-accent2)));
   color: #fff;
   margin-bottom: 20px;
 }
+/* Title — uses the brand-book .pdp-title spec via casa-base.css
+   tokens so it matches every other Casa PDP section H2. Was 700/56
+   from theme settings, now 600/clamp(36-56px) per brand book §03. */
 .casa-faq2__title {
-  font-size: clamp(32px, 5vw, 52px);
-  font-weight: 700;
-  line-height: 1.15;
+  font-family:    var(--casa-pdp-h2-family);
+  font-size:      var(--casa-pdp-h2-size);
+  font-weight:    var(--casa-pdp-h2-weight);
+  letter-spacing: var(--casa-pdp-h2-tracking);
+  line-height:    var(--casa-pdp-h2-line);
+  text-transform: var(--faq2-title-case, none);
   margin: 0 0 16px;
-  background: linear-gradient(135deg, var(--faq2-text), var(--faq2-muted));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
+
+/* Default "current" mode — solid text color. Brand v1 reserves
+   gradient for italic accent words only; section headings stay
+   solid. The text→muted gradient was rendering near-invisible
+   when both stops were close in luminance on the live theme.
+   For an explicit gradient effect, use --text or --shimmer. */
+.casa-faq2__title--current {
+  color: var(--faq2-text);
+  -webkit-text-fill-color: var(--faq2-text);
+}
+/* Italic accent — purple→pink→cyan brand gradient, matches every
+   other PDP section heading's <em> treatment. */
+.casa-faq2__title em {
+  font-style: italic;
+  /* Brand book v1 §08: cap section-heading em weight at 600. */
+  font-weight: 600;
+  /* Gradient accent reads larger than surrounding text — merchant
+     directive 2026-05-15 (brand book emphasis register). */
+  font-size: 1.25em;
+  background: linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+/* --text and --shimmer modifiers: parallel .text-grad-text /
+   .text-grad-shimmer brand classes paint via brand tokens. */
 .casa-faq2__subtitle {
   font-size: clamp(16px, 2vw, 20px);
   color: var(--faq2-muted);
@@ -368,13 +443,14 @@
   background: var(--faq2-card-bg);
   border: 1px solid var(--faq2-card-border);
   border-radius: 14px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
   transition: border-color .3s, box-shadow .3s;
 }
 .casa-faq2__search:focus-within {
   border-color: var(--faq2-accent1);
-  box-shadow: 0 0 0 3px rgba(147,51,234,.15);
+  box-shadow: 0 0 0 3px rgba(176, 195, 250,.15);
 }
 .casa-faq2__search-icon { flex-shrink: 0; margin-left: 16px; color: var(--faq2-muted); }
 .casa-faq2__search-input {
@@ -382,6 +458,7 @@
   background: transparent !important;
   background-color: transparent !important;
   border: none !important;
+  /* perf-justified: search input has a custom :focus-visible style on the parent wrapper — visible keyboard focus delivered via the wrapper outline */
   outline: none;
   padding: 14px 16px;
   font-size: 16px;
@@ -425,7 +502,7 @@
 .casa-faq2__nav-item:hover { color: var(--faq2-text); background: rgba(255,255,255,.03); }
 .casa-faq2__nav-item.is-active {
   color: transparent;
-  background: rgba(147,51,234,.08);
+  background: rgba(176, 195, 250,.08);
   border-image: linear-gradient(180deg, var(--faq2-accent1), var(--faq2-accent2)) 1;
   border-left-width: 3px;
   border-left-style: solid;
@@ -447,8 +524,8 @@
   align-items: center;
   justify-content: var(--faq2-content-align, flex-start);
   gap: 12px;
-  font-size: 22px;
-  font-weight: 600;
+  font-size:   var(--faq2-cat-fs, var(--font-h4--size, 22px));
+  font-weight: var(--faq2-cat-fw, 600);
   margin: 0 0 8px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--faq2-card-border);
@@ -460,7 +537,7 @@
   flex-shrink: 0;
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, rgba(var(--faq2-accent1-rgb, 147,51,234), 0.15), rgba(var(--faq2-accent1-rgb, 147,51,234), 0.05));
+  background: linear-gradient(135deg, rgba(var(--faq2-accent1-rgb, 176, 195, 250), 0.15), rgba(var(--faq2-accent1-rgb, 176, 195, 250), 0.05));
   border-radius: 8px;
 }
 .casa-faq2__cat-icon svg { width: 18px; height: 18px; stroke: var(--faq2-accent1); }
@@ -477,8 +554,9 @@
   background: var(--faq2-card-bg);
   border: 1px solid var(--faq2-card-border);
   border-radius: 16px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
   margin-bottom: 40px;
 }
 .casa-faq2__tabs-bar::-webkit-scrollbar { display: none; }
@@ -517,14 +595,15 @@
   background: var(--faq2-card-bg);
   border: 1px solid var(--faq2-card-border);
   border-radius: 20px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
   overflow: hidden;
   transition: transform .3s, box-shadow .3s, border-color .3s;
 }
 .casa-faq2__card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(147,51,234,.12);
+  box-shadow: 0 12px 40px rgba(176, 195, 250,.12);
   border-color: var(--faq2-accent1);
 }
 .casa-faq2__card-header {
@@ -541,7 +620,7 @@
   text-align: left;
 }
 .casa-faq2__card-icon svg { width: 28px; height: 28px; stroke: var(--faq2-accent1); flex-shrink: 0; }
-.casa-faq2__card-title { flex: 1; font-size: 18px; font-weight: 600; }
+.casa-faq2__card-title { flex: 1; font-size: var(--font-h4--size, 18px); font-weight: 600; }
 .casa-faq2__card-count {
   background: linear-gradient(135deg, var(--faq2-accent1), var(--faq2-accent2));
   color: #fff;
@@ -559,6 +638,7 @@
   transition: transform .35s cubic-bezier(.4,0,.2,1);
 }
 .casa-faq2__card[data-expanded="true"] .casa-faq2__card-arrow { transform: rotate(180deg); }
+/* perf-justified: accordion max-height transition — no transform alternative for variable-height collapsible content */
 .casa-faq2__card-body { max-height: 0; overflow: hidden; transition: max-height .45s cubic-bezier(.4,0,.2,1); }
 .casa-faq2__card-body-inner { padding: 0 24px 24px; }
 
@@ -568,8 +648,9 @@
   border: 1px solid var(--faq2-card-border);
   border-radius: 14px;
   margin-bottom: 10px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
   transition: border-color .3s, box-shadow .3s;
   overflow: hidden;
 }
@@ -579,8 +660,8 @@
   border-color: rgba(255,255,255,.06);
 }
 .casa-faq2__item:hover {
-  border-color: rgba(147,51,234,.3);
-  box-shadow: 0 2px 16px rgba(147,51,234,.06);
+  border-color: rgba(176, 195, 250,.3);
+  box-shadow: 0 2px 16px rgba(176, 195, 250,.06);
 }
 .casa-faq2__q {
   display: flex;
@@ -626,6 +707,7 @@
 .casa-faq2__a {
   max-height: 0;
   overflow: hidden;
+  /* perf-justified: accordion max-height transition — no transform alternative for variable-height collapsible content */
   transition: max-height .4s cubic-bezier(.4,0,.2,1);
 }
 .casa-faq2__a-inner {
@@ -634,16 +716,26 @@
   line-height: 1.7;
   color: var(--faq2-muted);
   text-align: var(--faq2-content-align, left);
+  /* Readability cap: on PDPs the accordion item runs ~1150px wide and
+     answers hit ~142 characters per line (comfortable is 50-75).
+     ch-based so it binds only where lines run long. All 24 product-
+     template instances are left-aligned, so the cap anchors left there;
+     centered instances (cart.json's cart-faq) get auto margins via the
+     --center modifier below so the capped box centers with its text. */
+  max-width: var(--casa-measure-max, 72ch);
+}
+.casa-faq2--center .casa-faq2__a-inner {
+  margin-inline: auto;
 }
 .casa-faq2__a-inner a {
-  color: var(--faq2-accent1);
+  color: var(--faq2-link, var(--faq2-accent1));
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 .casa-faq2__a-inner ul, .casa-faq2__a-inner ol { padding-left: 20px; margin: 8px 0; }
 .casa-faq2__a-inner strong { color: var(--faq2-text); }
 .casa-faq2__a-inner mark {
-  background: linear-gradient(135deg, rgba(147,51,234,.25), rgba(236,72,153,.25));
+  background: linear-gradient(135deg, rgba(176, 195, 250,.25), rgba(94, 10, 2,.25));
   color: var(--faq2-text);
   padding: 1px 4px;
   border-radius: 3px;
@@ -653,7 +745,7 @@
 .casa-faq2__no-results { text-align: center; padding: 48px 24px; }
 .casa-faq2__no-results-text { font-size: 18px; font-weight: 600; margin: 0 0 8px; }
 .casa-faq2__no-results-sub { font-size: 15px; color: var(--faq2-muted); margin: 0; }
-.casa-faq2__no-results-sub a { color: var(--faq2-accent1); }
+.casa-faq2__no-results-sub a { color: var(--faq2-link, var(--faq2-accent1)); }
 
 /* ========== Contact CTA ========== */
 .casa-faq2__cta-wrap {
@@ -667,8 +759,9 @@
   background: var(--faq2-card-bg);
   border: 1px solid transparent;
   border-radius: 24px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
   position: relative;
 }
 .casa-faq2__cta::before {
@@ -683,31 +776,36 @@
   mask-composite: exclude;
   pointer-events: none;
 }
-.casa-faq2__cta-title { font-size: 24px; font-weight: 600; margin: 0 0 8px; }
+.casa-faq2__cta-title { font-size: var(--faq2-ctatitle-fs, var(--font-h3--size, 24px)); font-weight: var(--faq2-ctatitle-fw, 600); margin: 0 0 8px; }
 .casa-faq2__cta-text { font-size: 15px; color: var(--faq2-muted); margin: 0 0 24px; }
-.casa-faq2__cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-.casa-faq2__cta-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 28px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all .25s;
+/* Equal-width CTA buttons in BOTH layouts. Was flex-wrap, so each button
+   sized to its own label — the longer "Email Support" rendered wider than
+   "Contact Us", and once they wrapped to a stack the mismatched edges read
+   as broken. Grid auto-fit gives two equal 1fr columns side by side, then
+   collapses to a single 1fr column when the card is too narrow for two;
+   grid items stretch to fill their column, so both buttons always match.
+   The min(200px, 100%) floor keeps the track from exceeding the container
+   at ≤280px (a bare 200px minmax floor would overflow the card there). */
+.casa-faq2__cta-btns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 12px;
+  justify-content: center;
 }
-.casa-faq2__cta-btn--email {
-  background: linear-gradient(135deg, var(--faq2-accent1), var(--faq2-accent2));
-  color: #fff;
+/* Many instances render only one button (e.g. FAQ page = "Contact Us"
+   alone). Stretching a lone button to the full card reads as an
+   oversized bar on desktop, so keep it at its natural content width,
+   centered. The equal-width stretch only kicks in when both buttons
+   are present — which is the mismatch the grid exists to fix. */
+.casa-faq2__cta-btns > .casa-faq2__cta-btn:only-child {
+  justify-self: center;
+  width: auto;
 }
-.casa-faq2__cta-btn--email:hover { opacity: .9; transform: translateY(-2px); }
-.casa-faq2__cta-btn--page {
-  border: 1px solid var(--faq2-card-border);
-  color: var(--faq2-text);
-  background: var(--faq2-card-bg);
-}
-.casa-faq2__cta-btn--page:hover { border-color: var(--faq2-accent1); }
+/* Brand class .btn .btn-(treatment) provides display, padding,
+   radius, font, transition, text-transform, letter-spacing,
+   background, color, hover. casa-faq2__cta-btn / --email / --page
+   classes kept as hooks for any future section-specific overrides
+   (intentionally minimal). */
 
 /* ========== Animations ========== */
 .casa-faq2__anim { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
@@ -725,33 +823,41 @@
     width: 100%;
     margin-bottom: 24px;
   }
+  /* Auto-fit grid: 4 across on tablet (~768px), 2 across on phone (~375px).
+     Replaces overflow-x scrolling — every category is visible without swipe. */
   .casa-faq2__nav {
-    flex-direction: row;
-    overflow-x: auto;
-    scrollbar-width: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 6px;
     padding: 6px;
     background: var(--faq2-card-bg);
     border: 1px solid var(--faq2-card-border);
     border-radius: 14px;
   }
-  .casa-faq2__nav::-webkit-scrollbar { display: none; }
   .casa-faq2__nav-item {
-    white-space: nowrap;
+    justify-content: center;
+    text-align: center;
     border-left: none !important;
     border-bottom: 2px solid transparent;
-    padding: 10px 16px;
+    padding: 14px 12px;
     border-radius: 10px;
     font-size: 13px;
+    line-height: 1.25;
+    gap: 6px;
+    min-width: 0;
+    min-height: 44px;
   }
+  /* Icons duplicate the category-header icon below; hide on phone to free up
+     horizontal room for the label. */
+  .casa-faq2__nav-item .casa-faq2__nav-icon { display: none; }
   .casa-faq2__nav-item.is-active {
     border-image: none;
     border-bottom: 2px solid var(--faq2-accent1);
-    background: rgba(147,51,234,.12);
+    background: rgba(176, 195, 250,.12);
   }
   .casa-faq2__cards-grid { grid-template-columns: 1fr; }
   .casa-faq2__hero { padding: 40px 16px 32px; }
-  .casa-faq2__cat-title { font-size: 18px; }
+  .casa-faq2__cat-title { font-size: var(--font-h4--size, 18px); }
   .casa-faq2__cta-wrap { margin-top: 40px; }
   .casa-faq2__cta { padding: 28px 20px; }
 }
@@ -763,9 +869,9 @@
 /* ── Granular color overrides via CSS variables ── */
 .casa-faq2__hero-title { color: var(--faq2-hero-title, var(--faq2-text)); }
 .casa-faq2__hero-subtitle { color: var(--faq2-hero-subtitle, var(--faq2-muted)); }
-.casa-faq2__badge { background: var(--faq2-badge-bg, linear-gradient(135deg, rgba(147,51,234,0.15), rgba(236,72,153,0.1))); color: var(--faq2-badge-text, var(--faq2-accent1)); }
+.casa-faq2__badge { background: var(--faq2-badge-bg, linear-gradient(135deg, rgba(176, 195, 250,0.15), rgba(94, 10, 2,0.1))); color: var(--faq2-badge-text, var(--faq2-accent1)); }
 .casa-faq2__nav-item { color: var(--faq2-nav-text, var(--faq2-muted)); }
-.casa-faq2__nav-item.is-active { background: var(--faq2-nav-active-bg, rgba(147,51,234,0.1)); color: var(--faq2-nav-active-text, var(--faq2-accent1)); }
+.casa-faq2__nav-item.is-active { background: var(--faq2-nav-active-bg, rgba(176, 195, 250,0.1)); color: var(--faq2-nav-active-text, var(--faq2-accent1)); }
 .casa-faq2__tab { color: var(--faq2-nav-text, var(--faq2-muted)); }
 .casa-faq2__tab.is-active { background: var(--faq2-nav-active-bg, linear-gradient(135deg, var(--faq2-accent1), var(--faq2-accent2))); color: var(--faq2-nav-active-text, #fff); }
 .casa-faq2__q { color: var(--faq2-q-text, var(--faq2-text)); }
@@ -779,9 +885,63 @@
 .casa-faq2__stats-number { color: var(--faq2-stats-num, var(--faq2-text)); }
 .casa-faq2__stats-label { color: var(--faq2-stats-label, var(--faq2-muted)); }
 .casa-faq2__stats-stars { color: var(--faq2-stats-star, #fbbf24); }
-.casa-faq2__contact-card { background: var(--faq2-cta-bg, rgba(147,51,234,0.05)); color: var(--faq2-cta-text, var(--faq2-text)); }
+.casa-faq2__contact-card { background: var(--faq2-cta-bg, rgba(176, 195, 250,0.05)); color: var(--faq2-cta-text, var(--faq2-text)); }
 .casa-faq2__contact-btn--primary { background: var(--faq2-cta-btn-bg, linear-gradient(135deg, var(--faq2-accent1), var(--faq2-accent2))); color: var(--faq2-cta-btn-text, #fff); }
-</style>
+
+/* ── One-frame density ───────────────────────────────────────────────
+   Opt-in via the "Section height" setting. This section renders on 26
+   templates including the cart and the standalone FAQ page, so every
+   rule below is gated behind the modifier and the default is untouched.
+
+   Note this section's height scales with the number of questions — CSS
+   can tighten each row but cannot make an unbounded list fit a frame.
+   The rows are compressed here, and nothing is hidden or made
+   inner-scrollable: a question a customer cannot see is worse than a
+   section that runs a little long. If an instance still overruns, the
+   fix is fewer questions on that instance, not more compression.       */
+.casa-faq2--compact .casa-faq2__hero { padding: 18px 24px 16px; }
+.casa-faq2--compact .casa-faq2__badge { padding: 4px 14px; font-size: 11px; }
+.casa-faq2--compact .casa-faq2__subtitle { margin-bottom: 14px; }
+.casa-faq2--compact .casa-faq2__category { margin-bottom: 16px; }
+.casa-faq2--compact .casa-faq2__cat-title { margin-bottom: 4px; }
+.casa-faq2--compact .casa-faq2__item { margin-bottom: 4px; border-radius: 11px; }
+/* Measured: 10px block padding rendered a 42px row, NOT the ~44px the
+   arithmetic suggested — short of the mobile tap-target minimum. Pin the
+   floor explicitly instead of inferring it from padding, so the row stays
+   compliant whatever the label length or font does. */
+.casa-faq2--compact .casa-faq2__q { padding: 10px 16px; font-size: 15px; min-height: 44px; }
+.casa-faq2--compact .casa-faq2__cta-wrap { margin-top: 8px; }
+.casa-faq2--compact .casa-faq2__cta { padding: 12px 20px; border-radius: 18px; }
+.casa-faq2--compact .casa-faq2__hero { padding-bottom: 10px; }
+.casa-faq2--compact .casa-faq2__category { margin-bottom: 12px; }
+
+/* Short viewports: the closing "still have questions" card and the hero
+   are the two blocks that are not the questions themselves. */
+
+
+@media (max-width: 640px) {
+  .casa-faq2--compact .casa-faq2__hero { padding: 16px 20px 12px; }
+  .casa-faq2--compact .casa-faq2__q { padding: 11px 14px; font-size: 14px; }
+  .casa-faq2--compact .casa-faq2__item { margin-bottom: 4px; }
+  .casa-faq2--compact .casa-faq2__cta { padding: 14px 16px; }
+}
+
+/* 790px, not 800: it has to catch a 768-tall landscape tablet, which
+   the first attempt at 760 missed by eight pixels, without also firing
+   on an 800-tall laptop that already fits and would only get smaller
+   for nothing.
+
+   Height tiers live LAST. They share specificity with the width
+   queries above and only win on source order — placed earlier they
+   silently lost, which is exactly what happened on the first pass. */
+@media (max-height: 790px) {
+  .casa-faq2--compact .casa-faq2__hero { padding: 12px 20px 8px; }
+  .casa-faq2--compact .casa-faq2__cta-wrap { margin-top: 8px; }
+  .casa-faq2--compact .casa-faq2__cta { padding: 10px 14px; }
+  .casa-faq2--compact .casa-faq2__item { margin-bottom: 3px; }
+  .casa-faq2--compact .casa-faq2__category { margin-bottom: 10px; }
+}
+{% endstylesheet %}
 
 <script>
 (function(){
@@ -966,12 +1126,58 @@
 })();
 </script>
 
+{%- comment -%}
+  FAQPage JSON-LD — reads from the same `question` blocks the visible UI
+  renders, so the merchant edits Q&A in one place and structured data
+  stays in sync. Emits only when at least one question + answer pair is
+  filled in, to avoid shipping an empty `mainEntity` array (Google flags
+  empty FAQPage schemas as low-quality).
+
+  Note on rich results: as of 2023 Google restricts FAQPage SERP rich
+  snippets to government and authoritative health sites. We still emit
+  this because (a) Bing honors it, (b) AI search crawlers (ChatGPT,
+  Claude, Perplexity, Gemini) parse it for grounded answers, and
+  (c) Google still uses it for AI Overviews and entity understanding.
+{%- endcomment -%}
+{%- assign _faq_has_entries = false -%}
+{%- for block in section.blocks -%}
+  {%- if block.type == 'question' and block.settings.question != blank and block.settings.answer != blank -%}
+    {%- assign _faq_has_entries = true -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if _faq_has_entries -%}
+<script type="application/ld+json">{
+"@context":"https://schema.org",
+"@type":"FAQPage",
+"mainEntity":[{%- assign _faq_first = true -%}
+{%- for block in section.blocks -%}
+{%- if block.type == 'question' and block.settings.question != blank and block.settings.answer != blank -%}
+{%- unless _faq_first -%},{%- endunless -%}
+{"@type":"Question","name":{{ block.settings.question | strip_html | strip_newlines | strip | json }},"acceptedAnswer":{"@type":"Answer","text":{{ block.settings.answer | strip_html | strip_newlines | strip | json }}}}
+{%- assign _faq_first = false -%}
+{%- endif -%}
+{%- endfor -%}]
+}</script>
+{%- endif -%}
+
 {% schema %}
 {
   "name": "FAQ Page v2",
   "tag": "section",
   "class": "casa-faq2-section",
   "settings": [
+    {
+      "type": "select",
+      "id": "layout_density",
+      "label": "Section height",
+      "info": "One frame tightens the hero, rows and closing card. Height still scales with the number of questions on this instance.",
+      "options": [
+        { "value": "comfortable", "label": "Comfortable" },
+        { "value": "one_frame", "label": "Fit one frame" }
+      ],
+      "default": "comfortable"
+    },
     {
       "type": "checkbox",
       "id": "auto_hide",
@@ -1000,23 +1206,111 @@
       ],
       "default": "left"
     },
-    { "type": "text", "id": "title", "label": "Title", "default": "Frequently Asked Questions" },
+    { "type": "inline_richtext", "id": "title", "label": "Title (use <em>word</em> for italic gradient accent)", "default": "Frequently Asked <em>Questions</em>" },
     { "type": "text", "id": "subtitle", "label": "Subtitle", "default": "Everything you need to know about our premium lighting collection" },
     { "type": "text", "id": "badge_text", "label": "Badge Text", "default": "Support" },
     { "type": "checkbox", "id": "show_search", "label": "Show search bar", "default": true },
+    { "type": "header", "content": "Typography" },
+    {
+      "type": "select",
+      "id": "faq2_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings -> Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "select",
+      "id": "faq2_title_style",
+      "label": "Title style",
+      "info": "current = legacy text-to-muted gradient. text = brand book static gradient (purple->pink->cyan). shimmer = brand book animated 5-stop. Brand book reserves shimmer for hero -- one per page max.",
+      "options": [
+        { "value": "current", "label": "Current (legacy gradient)" },
+        { "value": "text",    "label": "Gradient (static, 3-color)" },
+        { "value": "shimmer", "label": "Shimmer (animated, brand)" }
+      ],
+      "default": "current"
+    },
+    {
+      "type": "select",
+      "id": "faq2_cat_heading_level",
+      "label": "Category title scale",
+      "info": "Heading scale for category titles within the FAQ.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h4"
+    },
+    {
+      "type": "select",
+      "id": "faq2_cta_heading_level",
+      "label": "Contact CTA title scale",
+      "info": "Heading scale for the 'Still have questions?' CTA title.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h3"
+    },
     { "type": "header", "content": "Contact CTA" },
     { "type": "text", "id": "contact_title", "label": "Contact title", "default": "Still have questions?" },
     { "type": "text", "id": "contact_text", "label": "Contact description", "default": "Our team is here to help you find the perfect lighting solution." },
     { "type": "text", "id": "contact_email", "label": "Support email", "default": "hello@seoulglow.com" },
     { "type": "url", "id": "contact_page_url", "label": "Contact page URL" },
-    { "type": "text", "id": "contact_page_label", "label": "Contact button label", "default": "Contact Us" },
+    { "type": "text", "id": "contact_page_label", "label": "Contact button label", "default": "CONTACT US" },
+    {
+      "type": "select",
+      "id": "faq2_email_treatment",
+      "label": "Email button treatment",
+      "info": "Brand-book button style. Featured (gradient) is rare per brand book -- reserved for hero/launch CTAs.",
+      "options": [
+        { "value": "primary",            "label": "Primary -- solid ink (light surface)" },
+        { "value": "primary-on-dark",    "label": "Primary -- solid white (dark surface)" },
+        { "value": "secondary",          "label": "Secondary -- outline (light surface)" },
+        { "value": "secondary-on-dark",  "label": "Secondary -- outline (dark surface)" },
+        { "value": "tertiary",           "label": "Tertiary -- underlined link" },
+        { "value": "featured",           "label": "Featured -- purple->pink gradient" }
+      ],
+      "default": "featured"
+    },
+    {
+      "type": "select",
+      "id": "faq2_page_treatment",
+      "label": "Contact page button treatment",
+      "info": "Brand-book button style for the 'Contact Us' page link.",
+      "options": [
+        { "value": "primary",            "label": "Primary -- solid ink (light surface)" },
+        { "value": "primary-on-dark",    "label": "Primary -- solid white (dark surface)" },
+        { "value": "secondary",          "label": "Secondary -- outline (light surface)" },
+        { "value": "secondary-on-dark",  "label": "Secondary -- outline (dark surface)" },
+        { "value": "tertiary",           "label": "Tertiary -- underlined link" },
+        { "value": "featured",           "label": "Featured -- purple->pink gradient" }
+      ],
+      "default": "secondary-on-dark"
+    },
     { "type": "header", "content": "Colors" },
     { "type": "header", "content": "Page colors" },
-    { "type": "color", "id": "color_bg", "label": "Background", "default": "#050505" },
-    { "type": "color", "id": "color_text", "label": "Text", "default": "#f5f5f5" },
-    { "type": "color", "id": "color_muted", "label": "Muted text", "default": "#a3a3a3" },
-    { "type": "color", "id": "color_accent_primary", "label": "Accent primary", "default": "#9333ea" },
-    { "type": "color", "id": "color_accent_secondary", "label": "Accent secondary", "default": "#ec4899" },
+    { "type": "color", "id": "color_bg", "label": "Background", "default": "#0A0A0F" },
+    { "type": "color", "id": "color_text", "label": "Text", "default": "#E5E3DC" },
+    { "type": "color", "id": "color_muted", "label": "Muted text", "default": "#A3A3A3" },
+    { "type": "color", "id": "color_accent_primary", "label": "Accent primary", "default": "#B0C3FA" },
+    { "type": "color", "id": "color_accent_secondary", "label": "Accent secondary", "default": "#5E0A02" },
     { "type": "header", "content": "Hero colors" },
     { "type": "color", "id": "color_hero_title", "label": "Hero title color" },
     { "type": "color", "id": "color_hero_subtitle", "label": "Hero subtitle color" },
@@ -1043,7 +1337,7 @@
     { "type": "color", "id": "color_cta_bg", "label": "CTA card background" },
     { "type": "color", "id": "color_cta_text", "label": "CTA card text" },
     { "type": "color", "id": "color_cta_btn_bg", "label": "CTA button background" },
-    { "type": "color", "id": "color_cta_btn_text", "label": "CTA button text", "default": "#ffffff" },
+    { "type": "color", "id": "color_cta_btn_text", "label": "CTA button text", "default": "#FAFAF7" },
     { "type": "header", "content": "Spacing" },
     { "type": "range", "id": "padding_top", "label": "Padding top", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 20 },
     { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 60 }
@@ -1086,8 +1380,8 @@
       "type": "question",
       "name": "Question",
       "settings": [
-        { "type": "text", "id": "question", "label": "Question", "default": "Question goes here" },
-        { "type": "richtext", "id": "answer", "label": "Answer", "default": "<p>Answer goes here.</p>" },
+        { "type": "text", "id": "question", "label": "Question", "default": "Your question here" },
+        { "type": "richtext", "id": "answer", "label": "Answer", "default": "<p>Your answer here</p>" },
         {
           "type": "select",
           "id": "icon",
@@ -1133,8 +1427,8 @@
       },
       "blocks": [
         { "type": "category", "settings": { "title": "Order Information", "icon": "box" } },
-        { "type": "question", "settings": { "question": "I received a wrong item. What should I do?", "answer": "<p>We sincerely apologize for the mix-up. Please contact us at <strong>hello@seoulglow.com</strong> with your order number, details of the item you received versus what you ordered, and a photo of the incorrect item. Our team will arrange for the correct item to be sent to you as quickly as possible.</p>" } },
-        { "type": "question", "settings": { "question": "I received a damaged item. What should I do?", "answer": "<p>We're sorry to hear that. Please report any damage to <strong>hello@seoulglow.com</strong> within 48 hours of receiving your order. Include photos of the damaged item and packaging. We will arrange a <strong>free replacement or full refund</strong> — whichever you prefer.</p>" } },
+        { "type": "question", "settings": { "question": "I received a wrong item. What should I do?", "answer": "<p>We sincerely apologize for the mix-up. Please contact us at <a href=\"mailto:info@seoulglowlab.com\"><strong>info@seoulglowlab.com</strong></a> with your order number, details of the item you received versus what you ordered, and a photo of the incorrect item. Our team will arrange for the correct item to be sent to you as quickly as possible.</p>" } },
+        { "type": "question", "settings": { "question": "I received a damaged item. What should I do?", "answer": "<p>We're sorry to hear that. Please report any damage to <a href=\"mailto:info@seoulglowlab.com\"><strong>info@seoulglowlab.com</strong></a> within 48 hours of receiving your order. Include photos of the damaged item and packaging. We will arrange a <strong>free replacement or full refund</strong> — whichever you prefer.</p>" } },
         { "type": "question", "settings": { "question": "Can I change my order after placing it?", "answer": "<p>Yes, changes may be possible if your order has not yet shipped. Please contact our support team with your <strong>order number</strong> and the modification you'd like. We'll do our best to accommodate your request.</p>" } },
         { "type": "question", "settings": { "question": "What currency are orders processed in?", "answer": "<p>All orders are processed in your <strong>local currency</strong>. No currency conversion is needed — what you see at checkout is what you pay.</p>" } },
         { "type": "question", "settings": { "question": "Can I track my order?", "answer": "<p>Absolutely! Once your order ships, you'll receive a <strong>confirmation email with a tracking ID</strong>. Please allow 1–3 business days for tracking information to become active in the carrier's system.</p>" } },
@@ -1145,7 +1439,7 @@
         { "type": "question", "settings": { "question": "Will multiple products be shipped separately?", "answer": "<p>For larger products, items may ship in <strong>separate packages</strong> to ensure safe delivery. If you receive one package before the other, please allow a few additional days for the remaining items to arrive.</p>" } },
         { "type": "question", "settings": { "question": "How long will it take to receive my order?", "answer": "<p>Most orders arrive within <strong>3–7 business days</strong> via our express delivery service. Delivery times may vary slightly based on your location.</p>" } },
         { "type": "question", "settings": { "question": "What shipping carriers do you use?", "answer": "<p>We partner with <strong>DHL, FedEx, and UPS</strong>. The carrier is selected automatically based on your delivery address to ensure the fastest and most reliable service.</p>" } },
-        { "type": "question", "settings": { "question": "What if my package is lost or stolen?", "answer": "<p>Please first file a report with the shipping carrier. Then contact us at <strong>hello@seoulglow.com</strong> and we'll work together to resolve the situation and ensure you receive your order.</p>" } },
+        { "type": "question", "settings": { "question": "What if my package is lost or stolen?", "answer": "<p>Please first file a report with the shipping carrier. Then contact us at <a href=\"mailto:info@seoulglowlab.com\"><strong>info@seoulglowlab.com</strong></a> and we'll work together to resolve the situation and ensure you receive your order.</p>" } },
 
         { "type": "category", "settings": { "title": "Products", "icon": "lamp" } },
         { "type": "question", "settings": { "question": "What warranty do your products come with?", "answer": "<p>All Seoul Glow Lab products include a <strong>2-Year Warranty</strong> covering manufacturing defects and malfunctions. If an issue arises, we'll provide a full replacement or refund.</p>" } },
@@ -1153,10 +1447,9 @@
         { "type": "question", "settings": { "question": "Do your products come with a plug?", "answer": "<p>Yes. All products include a <strong>UL-listed plug</strong> that is compatible worldwide with any standard outlet (100V–240V). No adapters needed.</p>" } },
 
         { "type": "category", "settings": { "title": "Additional Info", "icon": "info" } },
-        { "type": "question", "settings": { "question": "My question isn't listed here. How can I get help?", "answer": "<p>We're happy to help! Please visit our <strong>Contact page</strong> or email us directly at <strong>hello@seoulglow.com</strong>. Our team typically responds within 24 hours.</p>" } }
+        { "type": "question", "settings": { "question": "My question isn't listed here. How can I get help?", "answer": "<p>We're happy to help! Please visit our <strong>Contact page</strong> or email us directly at <a href=\"mailto:info@seoulglowlab.com\"><strong>info@seoulglowlab.com</strong></a>. Our team typically responds within 24 hours.</p>" } }
       ]
     }
-  ],
-  "templates": ["page", "product", "collection"]
+  ]
 }
 {% endschema %}

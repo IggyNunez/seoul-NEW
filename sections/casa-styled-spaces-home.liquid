@@ -1,0 +1,1272 @@
+{%- comment -%}
+  Seoul Glow Lab - Styled Spaces Gallery
+  Bento grid: first card featured (spans 2 col + 2 row), remaining 4/3 aspect cards
+  Conversion section — shows product in real room settings
+{%- endcomment -%}
+
+{%- comment -%} Auto-hide when no spaces have images {%- endcomment -%}
+{%- assign _has_content = false -%}
+{%- for block in section.blocks -%}
+  {%- if block.settings.image != blank or block.settings.title != blank -%}
+    {%- assign _has_content = true -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if _has_content == false and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
+{%- liquid
+  assign s = section.settings
+  assign tag_text  = s.tag_text
+  assign heading   = s.heading
+  assign subtitle  = s.subtitle
+
+  assign bg_color   = s.bg_color | default: '#FAFAF7'
+  assign text_color = s.text_color | default: '#0A0A0F'
+  assign tag_color  = s.tag_color | default: '#B0C3FA'
+  assign subtitle_color = s.subtitle_color | default: '#6b7280'
+
+  assign mobile_last_card = s.mobile_last_card | default: 'auto'
+
+  assign padding_top          = s.padding_top | default: 100
+  assign padding_bottom       = s.padding_bottom | default: 100
+  assign padding_mobile_top   = s.padding_mobile_top | default: 60
+  assign padding_mobile_bottom = s.padding_mobile_bottom | default: 60
+-%}
+
+<section
+  class="cdh-spaces"
+  id="cdh-spaces-{{ section.id }}"
+  style="
+    --cdhs-bg: {{ bg_color }};
+    --cdhs-text: {{ text_color }};
+    --cdhs-pt: {{ padding_top }}px;
+    --cdhs-pb: {{ padding_bottom }}px;
+    --cdhs-tag: {{ tag_color }};
+    --cdhs-subtitle: {{ subtitle_color }};
+    --cdhs-mpt: {{ padding_mobile_top }}px;
+    --cdhs-mpb: {{ padding_mobile_bottom }}px;
+    --cdhs-tag-size: {{ section.settings.tag_size | default: 12 }}px;
+    --cdhs-subtitle-size: {{ section.settings.subtitle_size | default: 16 }}px;
+    --cdhs-card-title-size: {{ section.settings.card_title_size | default: 16 }}px;
+    {%- comment -%}
+      Mobile default lowered from 18px → 13px on 2026-05-12. The
+      old default was larger than desktop (18 vs 16), which made
+      the pill dominate narrow 2-up cards on mobile and pushed long
+      titles like "Studio Apartment" toward overflow. 13px scales
+      proportionally to the smaller cards.
+    {%- endcomment -%}
+    --cdhs-card-title-size-m: {{ section.settings.card_title_size_mobile | default: 13 }}px;
+    --cdhs-card-subtitle-size: {{ section.settings.card_subtitle_size | default: 13 }}px;
+    --cdhs-card-subtitle-size-m: {{ section.settings.card_subtitle_size_mobile | default: 12 }}px;
+    --cdhs-card-text: {{ section.settings.card_text_color | default: '#FAFAF7' }};
+    {%- if section.settings.card_subtitle_color != blank %}--cdhs-card-subtitle: {{ section.settings.card_subtitle_color }};{% endif -%}
+    {%- comment -%}
+      Heading typography is brand-locked to the --casa-pdp-h2-* tokens
+      defined in assets/casa-base.css. The legacy cdls_heading_level
+      dropdown emitted theme-typography vars which diverged per-theme
+      and broke heading parity with adjacent PDP sections (casa-stats-grid,
+      casa-sizing). Per memory `brand_typography_locked_2026-05-04.md`.
+      Merchants who genuinely need a different size override via theme CSS.
+    {%- endcomment -%}
+    --cdh-spaces-max-w: {% case section.settings.section_width %}{% when 'full' %}100%{% when 'wide' %}1600px{% when 'narrow' %}1200px{% else %}1400px{% endcase %};
+    --cdh-spaces-px: {% if section.settings.section_width == 'full' %}24px{% else %}40px{% endif %};
+  "
+>
+  <div class="cdh-spaces__container">
+    {%- comment -%} Header {%- endcomment -%}
+    <div class="cdh-spaces__header">
+      {%- if tag_text != blank -%}
+        <span class="cdh-spaces__tag">{{ tag_text }}</span>
+      {%- endif -%}
+      {%- if heading != blank -%}
+        <h2 class="cdh-spaces__heading">{{ heading }}</h2>
+      {%- endif -%}
+      {%- if subtitle != blank -%}
+        <p class="cdh-spaces__subtitle">{{ subtitle }}</p>
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} Bento Grid {%- endcomment -%}
+    {%- liquid
+      assign non_featured_count = 0
+      for block in section.blocks
+        unless forloop.first
+          if block.type == 'space'
+            assign non_featured_count = non_featured_count | plus: 1
+          endif
+        endunless
+      endfor
+      assign is_odd = non_featured_count | modulo: 2
+      assign show_last_wide = false
+      if mobile_last_card == 'wide'
+        assign show_last_wide = true
+      elsif mobile_last_card == 'auto' and is_odd == 1
+        assign show_last_wide = true
+      endif
+    -%}
+    <div class="cdh-spaces__grid{% if show_last_wide %} cdh-spaces__grid--last-wide{% endif %}">
+      {%- for block in section.blocks -%}
+        {%- case block.type -%}
+          {%- when 'space' -%}
+            {%- liquid
+              assign has_hosted_video = false
+              assign has_ext_video = false
+              if block.settings.video != blank
+                assign has_hosted_video = true
+              endif
+              if block.settings.video_url != blank
+                assign has_ext_video = true
+              endif
+            -%}
+            {%- assign _has_link = false -%}
+            {%- if block.settings.link != blank -%}{%- assign _has_link = true -%}{%- endif -%}
+            {%- assign _has_content = false -%}
+            {%- if block.settings.title != blank or block.settings.caption != blank -%}{%- assign _has_content = true -%}{%- endif -%}
+            {%- capture _card_class -%}cdh-spaces__card{% if forloop.first %} cdh-spaces__card--featured{% endif %}{% if has_hosted_video or has_ext_video %} cdh-spaces__card--has-video{% endif %}{% unless _has_content %} cdh-spaces__card--no-content{% endunless %}{%- endcapture -%}
+            {%- if _has_link -%}
+              <a href="{{ block.settings.link }}" class="{{ _card_class }}" {{ block.shopify_attributes }}>
+            {%- else -%}
+              <div class="{{ _card_class }}" {{ block.shopify_attributes }}>
+            {%- endif -%}
+              {%- comment -%}
+                Video background (Shopify-hosted takes priority).
+                Lazy-loaded: no src on the element initially — only data-src.
+                JS swaps data-src → src + calls .load() + .play() when the
+                section approaches the viewport (rootMargin: 200px). Cuts
+                ~6.3 MB of HLS chunks from cold homepage loads for users
+                who bounce before reaching this section.
+                Poster attribute dropped: sibling .cdh-spaces__img--poster
+                already covers the video at higher z-index, so the video's
+                own poster= would have been a duplicate fetch.
+              {%- endcomment -%}
+              {%- comment -%}
+                Per-block focal point — applied to both image and
+                video via inline `object-position`. Lets the
+                merchant keep the product in the visible band of a
+                cover-cropped card (e.g. Floor Lamps card was cropping
+                out the actual lamp; setting focal_y=80% pulls the
+                bottom of the image into view).
+              {%- endcomment -%}
+              {%- assign _fx = block.settings.focal_x | default: 50 -%}
+              {%- assign _fy = block.settings.focal_y | default: 50 -%}
+              {%- assign _focal_style = 'object-position: ' | append: _fx | append: '% ' | append: _fy | append: '%;' -%}
+
+              {%- if has_hosted_video -%}
+                <video
+                  class="cdh-spaces__video"
+                  data-casa-pause
+                  loop
+                  muted
+                  playsinline
+                  preload="none"
+                  style="{{ _focal_style }}"
+                >
+                  {%- comment -%} MP4 only — never the .m3u8: Safari would pick
+                    the HLS stream and pay its adaptive-decode pipeline for a
+                    looping bg video (the homepage scroll jitter). Same fix as
+                    casa-video-demo.liquid. {%- endcomment -%}
+                  {%- for source in block.settings.video.sources -%}
+                    {%- if source.mime_type == 'video/mp4' -%}
+                      <source data-src="{{ source.url }}" type="video/mp4">
+                    {%- endif -%}
+                  {%- endfor -%}
+                </video>
+              {%- elsif has_ext_video -%}
+                <video
+                  class="cdh-spaces__video"
+                  data-casa-pause
+                  data-src="{{ block.settings.video_url | escape }}"
+                  loop
+                  muted
+                  playsinline
+                  preload="none"
+                  style="{{ _focal_style }}"
+                ></video>
+              {%- endif -%}
+
+              {%- comment -%} Image background (fallback when no video, or poster for video) {%- endcomment -%}
+              {%- if block.settings.image != blank -%}
+                <img
+                  src="{{ block.settings.image | image_url: width: 1400 }}"
+                  srcset="
+                    {{ block.settings.image | image_url: width: 600 }} 600w,
+                    {{ block.settings.image | image_url: width: 900 }} 900w,
+                    {{ block.settings.image | image_url: width: 1400 }} 1400w
+                  "
+                  sizes="{% if forloop.first %}(max-width: 768px) 100vw, 66vw{% else %}(max-width: 768px) 50vw, 33vw{% endif %}"
+                  alt="{{ block.settings.title | escape }}"
+                  class="cdh-spaces__img{% if has_hosted_video or has_ext_video %} cdh-spaces__img--poster{% endif %}"
+                  loading="lazy"
+                  width="700"
+                  height="525"
+                  style="{{ _focal_style }}"
+                >
+              {%- endif -%}
+              {%- if _has_content -%}
+                <div class="cdh-spaces__overlay"></div>
+                <div class="cdh-spaces__card-content">
+                  {%- comment -%}
+                    Review-chrome row: 5-star rating + VERIFIED PURCHASE
+                    eyebrow tag. Intentional on PDP instances of this
+                    section (where each tile caption IS a real customer
+                    quote tied to a specific product). Hidden on the
+                    homepage — the homepage tiles use category-name
+                    captions (e.g. "Home Decor"), not testimonials, so
+                    the chrome reads as fabricated social proof and
+                    violates Casa's no-fabricated-claims rule.
+                  {%- endcomment -%}
+                  {%- if template.name != 'index' -%}
+                  <div class="cdh-spaces__review-meta" aria-hidden="true">
+                    <span class="cdh-spaces__stars">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    </span>
+                    <span class="cdh-spaces__verified">VERIFIED PURCHASE</span>
+                  </div>
+                  {%- endif -%}
+                  {%- if block.settings.caption != blank -%}
+                    <span class="cdh-spaces__caption">{{ block.settings.caption }}</span>
+                  {%- endif -%}
+                  {%- if block.settings.title != blank -%}
+                    <span class="cdh-spaces__label">
+                      <span class="cdh-spaces__label-text">{{ block.settings.title }}</span>
+                      <span class="cdh-spaces__label-arrow" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+                      </span>
+                    </span>
+                  {%- endif -%}
+                </div>
+              {%- endif -%}
+            {%- if _has_link -%}</a>{%- else -%}</div>{%- endif -%}
+          {%- when '@app' -%}
+            <div {{ block.shopify_attributes }}>
+              {%- render block -%}
+            </div>
+          {%- when 'custom-liquid' -%}
+            <div {{ block.shopify_attributes }}>
+              {{ block.settings.custom_liquid }}
+            </div>
+        {%- endcase -%}
+      {%- endfor -%}
+
+      {%- comment -%} Fallback if no blocks {%- endcomment -%}
+      {%- if section.blocks.size == 0 -%}
+        <div class="cdh-spaces__card cdh-spaces__card--featured">
+          <div class="cdh-spaces__overlay"></div>
+          <div class="cdh-spaces__card-content">
+            <span class="cdh-spaces__label">Gaming Setup</span>
+          </div>
+        </div>
+        <div class="cdh-spaces__card">
+          <div class="cdh-spaces__overlay"></div>
+          <div class="cdh-spaces__card-content">
+            <span class="cdh-spaces__label">Living Room</span>
+          </div>
+        </div>
+        <div class="cdh-spaces__card">
+          <div class="cdh-spaces__overlay"></div>
+          <div class="cdh-spaces__card-content">
+            <span class="cdh-spaces__label">Home Office</span>
+          </div>
+        </div>
+        <div class="cdh-spaces__card">
+          <div class="cdh-spaces__overlay"></div>
+          <div class="cdh-spaces__card-content">
+            <span class="cdh-spaces__label">Bedroom</span>
+          </div>
+        </div>
+        <div class="cdh-spaces__card">
+          <div class="cdh-spaces__overlay"></div>
+          <div class="cdh-spaces__card-content">
+            <span class="cdh-spaces__label">Entertainment Room</span>
+          </div>
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+
+<script>
+(function() {
+  var root = document.getElementById('cdh-spaces-{{ section.id }}');
+  if (!root) return;
+
+  /* Save-Data / slow-network / reduced-motion: drop videos entirely.
+     The static poster image stays as the fallback — same visual content,
+     no degradation. Matches the casa-hero / casa-split-feature pattern. */
+  var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var saveData = (navigator.connection && navigator.connection.saveData) === true;
+  var slowNet = navigator.connection && /2g|slow-2g/.test(navigator.connection.effectiveType || '');
+  if (reducedMotion || saveData || slowNet) {
+    root.querySelectorAll('.cdh-spaces__video').forEach(function(v) { v.remove(); });
+    return;
+  }
+
+  /* Fade out poster image once video starts playing */
+  root.querySelectorAll('.cdh-spaces__card--has-video').forEach(function(card) {
+    var video = card.querySelector('.cdh-spaces__video');
+    var poster = card.querySelector('.cdh-spaces__img--poster');
+    if (!video || !poster) return;
+    video.addEventListener('playing', function() {
+      poster.style.opacity = '0';
+    }, { once: true });
+  });
+
+  /* Lazy-load: copy data-src → src on first intersection. Cuts ~6.3 MB
+     of HLS chunks from cold homepage loads for users who bounce before
+     reaching this section. rootMargin 200px gives the video a head start
+     before it enters the viewport so playback feels immediate. */
+  /* PLAYBACK OWNER: assets/casa-offscreen-pause.js (data-casa-pause on the
+     <video>) — plays in view / pauses off-screen from real geometry. This
+     script only LAZY-LOADS the bytes: copy data-src → src 200px before the
+     section enters view so the buffer gets a head start. The old inline owner
+     here had an unguarded deferred retry ('canplay' → play(), {once:true})
+     that restarted the video AFTER the off-screen pause when buffering
+     finished late — the "keeps playing after you scroll past it" bug. */
+  function loadVideo(video) {
+    if (video.dataset.casaSpacesLoaded) return;
+    video.dataset.casaSpacesLoaded = '1';
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+    video.setAttribute('muted', '');
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    if (video.dataset.src && !video.src) {
+      video.src = video.dataset.src;
+    }
+    video.querySelectorAll('source[data-src]').forEach(function(source) {
+      if (!source.src) source.src = source.dataset.src;
+    });
+    /* preload=none would defer the fetch until play(); with the src now
+       assigned, auto lets the browser buffer ahead — the point of the
+       200px head start. */
+    video.preload = 'auto';
+    video.load();
+    /* The global owner's initial pass ran while this video had no src (its
+       play() no-opped); re-gate now that it is loadable. */
+    if (window.casa && window.casa.offscreenPauseRefresh) window.casa.offscreenPauseRefresh();
+  }
+
+  var observer = null;
+  if ('IntersectionObserver' in window) {
+    observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          loadVideo(entry.target);
+          observer.unobserve(entry.target); /* load once; playback is the global owner's job */
+        }
+      });
+    }, { rootMargin: '200px' });
+    root.querySelectorAll('.cdh-spaces__video').forEach(function(v) {
+      observer.observe(v);
+    });
+  } else {
+    /* No IntersectionObserver support — fall back to eager load so the
+       section still works on ancient browsers. */
+    root.querySelectorAll('.cdh-spaces__video').forEach(function(v) {
+      loadVideo(v);
+    });
+  }
+
+  /* Theme-editor cleanup: when the merchant removes/replaces this section
+     in the editor, disconnect the observer so it stops referencing
+     orphaned video nodes. Production traffic never hits this path. */
+  document.addEventListener('shopify:section:unload', function(e) {
+    if (e.target && e.target.id === 'shopify-section-{{ section.id }}' && observer) {
+      observer.disconnect();
+    }
+  });
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Casa Styled Spaces — Home",
+  "tag": "section",
+  "class": "cdh-spaces-section",
+  "max_blocks": 8,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "text",
+      "id": "tag_text",
+      "label": "Tag",
+      "default": "Styled Spaces"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Title",
+      "info": "Wrap a phrase in <em>...</em> for the brand italic-gradient accent (e.g. \"In <em>their rooms.</em>\").",
+      "default": "In <em>their rooms.</em>"
+    },
+    {
+      "type": "select",
+      "id": "cdls_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "richtext",
+      "id": "subtitle",
+      "label": "Subtitle / Description",
+      "info": "Supports rich text, lists, links, and dynamic content",
+      "default": "<p>Real customers. Real spaces. See where the light belongs.</p>"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#0A0A0F"
+    },
+    {
+      "type": "color",
+      "id": "tag_color",
+      "label": "Tag/accent color",
+      "default": "#B0C3FA"
+    },
+    {
+      "type": "color",
+      "id": "subtitle_color",
+      "label": "Subtitle color",
+      "default": "#525252"
+    },
+    {
+      "type": "header",
+      "content": "Typography"
+    },
+    {
+      "type": "range",
+      "id": "tag_size",
+      "label": "Tag font size",
+      "min": 8,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "subtitle_size",
+      "label": "Subtitle font size (desktop)",
+      "min": 12,
+      "max": 22,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_title_size",
+      "label": "Card title size (desktop)",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 16
+    },
+    {
+      "type": "range",
+      "id": "card_title_size_mobile",
+      "label": "Card title size (mobile)",
+      "min": 11,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 13
+    },
+    {
+      "type": "range",
+      "id": "card_subtitle_size",
+      "label": "Card subtitle size (desktop)",
+      "min": 10,
+      "max": 18,
+      "step": 1,
+      "unit": "px",
+      "default": 13
+    },
+    {
+      "type": "range",
+      "id": "card_subtitle_size_mobile",
+      "label": "Card subtitle size (mobile)",
+      "min": 10,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "color",
+      "id": "card_text_color",
+      "label": "Card text color",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "card_subtitle_color",
+      "label": "Card subtitle color"
+    },
+    {
+      "type": "header",
+      "content": "Mobile layout"
+    },
+    {
+      "type": "select",
+      "id": "mobile_last_card",
+      "label": "Last card on mobile (odd count)",
+      "info": "When you have an odd number of non-featured cards, the last one sits alone. Choose how it displays.",
+      "default": "auto",
+      "options": [
+        { "value": "auto", "label": "Auto (full-width if odd)" },
+        { "value": "wide", "label": "Always full-width" },
+        { "value": "square", "label": "Keep square" }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "Section width",
+      "options": [
+        { "value": "full", "label": "Full width" },
+        { "value": "wide", "label": "Wide (1600px)" },
+        { "value": "contained", "label": "Contained (1400px)" },
+        { "value": "narrow", "label": "Narrow (1200px)" }
+      ],
+      "default": "full"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 100,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom (desktop)",
+      "min": 0,
+      "max": 200,
+      "step": 10,
+      "default": 100,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile_top",
+      "label": "Padding top (mobile)",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "default": 60,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_mobile_bottom",
+      "label": "Padding bottom (mobile)",
+      "min": 0,
+      "max": 150,
+      "step": 10,
+      "default": 60,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "@app"
+    },
+    {
+      "type": "custom-liquid",
+      "name": "Custom Liquid",
+      "settings": [
+        {
+          "type": "liquid",
+          "id": "custom_liquid",
+          "label": "Custom Liquid"
+        }
+      ]
+    },
+    {
+      "type": "space",
+      "name": "Space",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Living Room"
+        },
+        {
+          "type": "text",
+          "id": "caption",
+          "label": "Caption",
+          "info": "Optional short description"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image",
+          "info": "Used as background or as poster frame when a video is set"
+        },
+        {
+          "type": "range",
+          "id": "focal_x",
+          "label": "Image focal point — horizontal",
+          "min": 0,
+          "max": 100,
+          "step": 5,
+          "unit": "%",
+          "default": 50,
+          "info": "Shift the crop horizontally so the product stays in view. 0 = align left edge, 50 = center, 100 = align right edge."
+        },
+        {
+          "type": "range",
+          "id": "focal_y",
+          "label": "Image focal point — vertical",
+          "min": 0,
+          "max": 100,
+          "step": 5,
+          "unit": "%",
+          "default": 50,
+          "info": "Shift the crop vertically so the product stays in view. 0 = align top edge, 50 = center, 100 = align bottom edge."
+        },
+        {
+          "type": "video",
+          "id": "video",
+          "label": "Background video (Shopify-hosted)",
+          "info": "Upload to Files, loops silently as card background"
+        },
+        {
+          "type": "text",
+          "id": "video_url",
+          "label": "Background video URL (fallback)",
+          "info": "Direct .mp4 URL — only used if no Shopify video above"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Styled Spaces — Home",
+      "blocks": [
+        { "type": "space", "settings": { "title": "Gaming Setup", "caption": "Immersive RGB ambiance" } },
+        { "type": "space", "settings": { "title": "Living Room", "caption": "Elegant centerpiece" } },
+        { "type": "space", "settings": { "title": "Home Office", "caption": "Focus & style" } },
+        { "type": "space", "settings": { "title": "Bedroom", "caption": "Ambient relaxation" } },
+        { "type": "space", "settings": { "title": "Entertainment Room", "caption": "Ultimate vibes" } },
+        { "type": "space", "settings": { "title": "Studio Apartment", "caption": "Space-saving glow" } }
+      ]
+    }
+  ]
+}
+{% endschema %}
+
+{% stylesheet %}
+/* ══════════════════════════════════════════════════════════════════════════
+   CDH STYLED SPACES (HOME variant) — Bento gallery grid
+   Featured card (2col × 2row) + smaller 4:3 cards
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.cdh-spaces {
+  /* Brand v1 surface lock fallbacks: Paper bg + Ink text. */
+  background: var(--cdhs-bg, var(--bg-paper, var(--casa-paper)));
+  color: var(--cdhs-text, var(--bg-dark, var(--casa-ink)));
+  padding: var(--cdhs-pt, 100px) 0 var(--cdhs-pb, 100px);
+}
+
+/* ── Container ── */
+.cdh-spaces__container {
+  max-width: var(--cdh-spaces-max-w, 100%);
+  margin: 0 auto;
+  padding: 0 var(--cdh-spaces-px, 24px);
+}
+
+/* Ultrawide guardrail: the bento's featured tile spans 2 of 3 fr columns,
+   so a full-width grid puts one 2246×1691px image on a 3440px screen —
+   taller than the viewport itself. Capping the container past 1920px keeps
+   tiles at their ≤1920 size; min() lets narrower presets keep winning. */
+@media screen and (min-width: 1920px) {
+  .cdh-spaces__container {
+    max-width: min(var(--cdh-spaces-max-w, 100%), var(--casa-content-max-w, 1920px));
+  }
+}
+
+/* ── Header ── */
+.cdh-spaces__header {
+  text-align: center;
+  margin-bottom: 56px;
+}
+
+.cdh-spaces__tag {
+  display: inline-block;
+  font-size: var(--cdhs-tag-size, 12px);
+  font-weight: 600;
+  color: var(--cdhs-tag, #B0C3FA);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+}
+
+.cdh-spaces__heading {
+  /* Brand book v1 §03 locked H2 spec — Inter 500 / -0.015em / 1.10 LH.
+     white-space: nowrap forces single-line per merchant request. */
+  font-family: var(--casa-pdp-h2-family, 'Inter', sans-serif);
+  font-size: clamp(22px, 4vw, 40px);
+  font-weight: 500;
+  line-height: 1.10;
+  letter-spacing: -0.015em;
+  text-transform: none;
+  color: var(--cdhs-text, var(--casa-ink));
+  margin: 0 0 16px 0;
+  white-space: nowrap;
+}
+
+/* Italic accent inside heading — LARGER (1.15em) than surrounding text
+   per merchant. Italic + brand gradient. line-height: 1 prevents the
+   bigger em from inflating the heading's line-height. */
+.cdh-spaces__heading em {
+  font-size: 1.15em;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1;
+  background-image: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.cdh-spaces__subtitle {
+  font-size: var(--cdhs-subtitle-size, 16px);
+  color: var(--cdhs-subtitle, #6b7280);
+  max-width: 520px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BENTO GRID
+   Desktop: 3 columns — featured spans 2 col + 2 row (LEFT side)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.cdh-spaces__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto auto;
+  gap: 24px;
+}
+
+/* When exactly 4 review tiles exist, the default 3-col bento (featured
+   2×2 + 2 stacked right) leaves the 4th card orphaned full-row below
+   with empty space to its right. Switch to a clean 2×2 grid for that
+   case so all 4 reviews sit as equal social-proof tiles. */
+.cdh-spaces__grid:has(> .cdh-spaces__card:nth-child(4):last-child) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto;
+}
+.cdh-spaces__grid:has(> .cdh-spaces__card:nth-child(4):last-child) > .cdh-spaces__card--featured {
+  grid-column: span 1;
+  grid-row: span 1;
+  aspect-ratio: 4 / 3;
+}
+
+/* ── Card base ── */
+.cdh-spaces__card {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  text-decoration: none;
+  color: #fff;
+  display: block;
+  aspect-ratio: 4 / 3;
+  transition: transform 0.35s ease;
+}
+
+.cdh-spaces__card:hover {
+  transform: scale(1.02);
+}
+
+/* No-content cards: no overlay, no hover box */
+.cdh-spaces__card--no-content {
+  cursor: default;
+}
+.cdh-spaces__card--no-content:hover {
+  transform: scale(1.01);
+}
+
+/* ── Featured card: spans 2 col + 2 row ── */
+.cdh-spaces__card--featured {
+  grid-column: span 2;
+  grid-row: span 2;
+  aspect-ratio: auto;
+}
+
+/* ── Image ── */
+.cdh-spaces__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.cdh-spaces__card:hover .cdh-spaces__img {
+  transform: scale(1.06);
+}
+
+/* Ken Burns removed 2026-05-12 — an infinite transform animation
+   on the featured card kept the GPU busy every frame even when
+   the section was off-screen, and contributed to choppy scroll
+   on mobile. The hover transform: scale(1.06) below still gives
+   tactile feedback on interaction; no continuous motion needed. */
+
+/* ── Video background ── */
+.cdh-spaces__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  transition: transform 0.5s ease;
+}
+
+/* Belt-and-suspenders: if a device blocks muted autoplay (Low Power Mode,
+   reduced-data) the video stays paused and iOS would paint its native centre
+   play button on this decorative media. Suppress the WebKit media-control
+   pseudo-elements so the poster image is the clean fallback, never a stray
+   button. ONE RULE PER PSEUDO-ELEMENT — a comma-grouped list is dropped in
+   its entirety by any selector the engine doesn't recognise, and
+   `-overlay-play-button` (Chromium-only) would otherwise poison the iOS-only
+   `-start-playback-button` rule. */
+.cdh-spaces__video::-webkit-media-controls {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.cdh-spaces__video::-webkit-media-controls-enclosure { display: none !important; }
+.cdh-spaces__video::-webkit-media-controls-panel { display: none !important; }
+.cdh-spaces__video::-webkit-media-controls-play-button { display: none !important; }
+.cdh-spaces__video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.cdh-spaces__video::-webkit-media-controls-overlay-play-button { display: none !important; }
+
+.cdh-spaces__card:hover .cdh-spaces__video {
+  transform: scale(1.06);
+}
+
+/* When a video is present, hide the poster image once video loads */
+.cdh-spaces__img--poster {
+  z-index: 0;
+}
+
+.cdh-spaces__card--has-video .cdh-spaces__img--poster {
+  opacity: 1;
+  transition: opacity 0.6s ease;
+}
+
+/* ── Overlay gradient ── */
+.cdh-spaces__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* ── Card content (bottom-left) ── */
+.cdh-spaces__card-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 24px;
+}
+
+/* ── Review meta: stars + VERIFIED PURCHASE eyebrow ── */
+.cdh-spaces__review-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cdh-spaces__stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: #F5C518;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+.cdh-spaces__stars svg { display: block; }
+.cdh-spaces__verified {
+  font-family: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* ── Label — BRAND-INK PILL ──
+   Brand-Ink gradient tint matches the drawer / megamenu system
+   visually, but uses a much lighter blur kernel than the drawer
+   itself (blur 8 vs blur 72) — six labels on screen simultaneously
+   makes wide-blur backdrop-filter a serious GPU cost during
+   scroll. Hairline brand-gradient accent at the top of the pill
+   does the "brand moment" lifting that blur otherwise would. */
+.cdh-spaces__label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  /* Brand-Ink gradient — same color hits the eye as the drawer */
+  background: linear-gradient(180deg, rgba(20, 20, 28, 0.78) 0%, rgba(10, 10, 15, 0.84) 100%);
+  /* Light blur only — was blur(20) + saturate(160%) which is ~3×
+     the GPU cost of this and accounted for the visible scroll
+     judder. */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
+  padding: 12px 20px;
+  border-radius: 12px;
+  color: var(--cdhs-card-text, var(--casa-paper));
+  font-size: var(--cdhs-card-title-size, 16px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  /* Only transition the cheap properties — no shadow/transform
+     transitions on every label so paint stays light. */
+  transition: background 0.3s ease;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+/* Brand-gradient hairline at the top edge of the pill — at rest
+   it's faint (0.25), on hover the full purple → pink → cyan rises
+   to 1.0 so the pill feels "lit." */
+.cdh-spaces__label::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0);
+  opacity: 0.25;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.cdh-spaces__label-text { display: inline-block; }
+.cdh-spaces__label-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0;
+  margin-left: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateX(-4px);
+  /* perf-justified: width/margin transition fires only on :hover of
+     a single card, bounded layout cost; transform alternative would
+     leave the resting pill 24px wider with an invisible chevron in
+     its layout slot, which we don't want visually. */
+  transition: width 0.3s ease, margin-left 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+  color: inherit;
+}
+
+.cdh-spaces__card:hover .cdh-spaces__label {
+  /* Hover state stays in the brand-Ink family — a touch lighter
+     with a slight purple bias. Background shift only; no shadow
+     or transform on the label itself (the .cdh-spaces__card
+     hover already scales the image, which gives the tactile
+     feedback). Keeps hover paint cost minimal. */
+  background: linear-gradient(180deg, rgba(28, 24, 42, 0.82) 0%, rgba(20, 14, 32, 0.86) 100%);
+}
+.cdh-spaces__card:hover .cdh-spaces__label::before {
+  opacity: 1;
+}
+.cdh-spaces__card:hover .cdh-spaces__label-arrow {
+  width: 14px;
+  margin-left: 10px;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cdh-spaces__label,
+  .cdh-spaces__label-arrow {
+    transition: none;
+  }
+}
+
+/* Touch devices have no :hover state, so the chevron slide-in
+   would never fire and the affordance ("this card is tappable")
+   would be invisible. On touch, show a small static chevron at
+   rest so users know the card drills in. */
+@media (hover: none) {
+  .cdh-spaces__label-arrow {
+    width: 12px;
+    margin-left: 8px;
+    opacity: 0.7;
+    transform: translateX(0);
+  }
+  .cdh-spaces__card:active .cdh-spaces__label-arrow {
+    opacity: 1;
+  }
+}
+
+/* ── Caption (shown on featured or hover) ──
+   Lives next to the label pill. The label is the loud chrome (Brand-Ink
+   pill, full opacity); the caption is the quiet chrome — half the
+   darkness and blur of the label so it reads as secondary, but still
+   has enough plate to clear 4.5:1 contrast against any image. */
+.cdh-spaces__caption {
+  font-size: var(--cdhs-card-subtitle-size, 13px);
+  color: var(--cdhs-card-subtitle, rgba(255, 255, 255, 0.96));
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  /* Quieter than .cdh-spaces__label — 0.55 alpha + blur(6) vs the
+     label's ~0.8 alpha + blur(8). Matches the label's Ink family
+     without competing with it. */
+  background: rgba(10, 10, 15, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
+  padding: 6px 10px;
+  border-radius: 8px;
+  /* Belt-and-suspenders for browsers without backdrop-filter — the
+     plate alone is enough, but a tight shadow keeps glyphs crisp on
+     extreme HDR backdrops too. */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.cdh-spaces__card:hover .cdh-spaces__caption {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.cdh-spaces__card--featured .cdh-spaces__caption {
+  opacity: 1;
+  transform: none;
+}
+
+/* Touch devices have no :hover state, so the caption would never appear.
+   Show it at rest on touch — same treatment as .cdh-spaces__label-arrow
+   above (the existing chevron-on-touch override). */
+@media (hover: none) {
+  .cdh-spaces__caption {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Fallback gradient backgrounds ── */
+.cdh-spaces__card:nth-child(1) { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+.cdh-spaces__card:nth-child(2) { background: linear-gradient(135deg, #2d132c 0%, #801336 50%, #c72c41 100%); }
+.cdh-spaces__card:nth-child(3) { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #3d3d3d 100%); }
+.cdh-spaces__card:nth-child(4) { background: linear-gradient(135deg, #0d7377 0%, #14a3a8 50%, #32e0c4 100%); }
+.cdh-spaces__card:nth-child(5) { background: linear-gradient(135deg, #4a1942 0%, #6b2d5c 50%, #893168 100%); }
+.cdh-spaces__card:nth-child(6) { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #3a7bd5 100%); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE — Tablet
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+  .cdh-spaces__container {
+    padding: 0 24px;
+  }
+
+  .cdh-spaces__grid {
+    gap: 16px;
+  }
+
+  .cdh-spaces__label {
+    font-size: 14px;
+    padding: 10px 18px;
+  }
+
+  .cdh-spaces__card-content {
+    padding: 20px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE — Mobile
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .cdh-spaces {
+    padding: var(--cdhs-mpt, 60px) 0 var(--cdhs-mpb, 60px);
+  }
+
+  .cdh-spaces__container {
+    padding: 0 16px;
+  }
+
+  .cdh-spaces__header {
+    margin-bottom: 32px;
+  }
+
+  /* Mobile: scaled down so "In their rooms." + "Step into the studio."
+     both stay on one line. white-space: nowrap inherited from base. */
+  .cdh-spaces__heading {
+    font-size: clamp(14px, 4.5vw, 22px);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  .cdh-spaces__heading em {
+    font-size: 1.15em;
+  }
+
+  .cdh-spaces__tag {
+    font-size: var(--cdhs-tag-size, 11px);
+    margin-bottom: 12px;
+  }
+
+  .cdh-spaces__subtitle {
+    font-size: var(--casa-subtitle-size, 14px);
+  }
+
+  /* Mobile grid: featured full-width 16:9, rest 2-col squares */
+  .cdh-spaces__grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+    gap: 8px;
+  }
+
+  .cdh-spaces__card {
+    border-radius: 12px;
+    aspect-ratio: 1 / 1;
+  }
+
+  .cdh-spaces__card--featured {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    aspect-ratio: 16 / 9;
+  }
+
+  .cdh-spaces__card-content {
+    padding: 12px;
+  }
+
+  /* Homepage variant intentionally KEEPS the bottom-anchored label
+     on mobile — same behavior as desktop. The shared PDP version of
+     this section flips chips to the TOP on mobile (to avoid covering
+     product compositions); the homepage uses styled rooms where the
+     label reads as a card-foot CTA, so it stays at the bottom across
+     every viewport. The base .cdh-spaces__card-content { bottom: 0 }
+     rule from the static stylesheet already handles this — this
+     block is intentionally empty and exists only as the documented
+     diff vs the PDP-shared casa-styled-spaces.liquid. */
+
+  .cdh-spaces__label {
+    /* Hard cap at 13px on mobile via min() — beats any merchant
+       value above 13. clamp lower bound at 11px protects against
+       hostile settings. Below 768px the merchant variable can
+       still SHRINK the text (down to 11px) but never grow it past
+       13px. This was the bug: the schema default of 18px got
+       baked into settings_data.json so even a fresh install came
+       in oversized. */
+    font-size: clamp(11px, min(var(--cdhs-card-title-size-m, 13px), 13px), 13px);
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, 2026-05-17 flicker-fix pattern) */
+  }
+  .cdh-spaces__caption {
+    /* Same cap pattern for subtitle */
+    font-size: clamp(10px, min(var(--cdhs-card-subtitle-size-m, 12px), 12px), 12px);
+  }
+  /* Mobile chevron a touch smaller to match the smaller pill */
+  .cdh-spaces__card:hover .cdh-spaces__label-arrow,
+  .cdh-spaces__card:active .cdh-spaces__label-arrow {
+    width: 12px;
+    margin-left: 8px;
+  }
+
+  .cdh-spaces__caption {
+    font-size: var(--cdhs-card-subtitle-size-m, 14px);
+  }
+
+  /* When last card should span full-width (odd count) */
+  .cdh-spaces__grid--last-wide > .cdh-spaces__card:last-child:not(.cdh-spaces__card--featured) {
+    grid-column: 1 / -1;
+    aspect-ratio: 16 / 9;
+  }
+}
+
+@media (max-width: 480px) {
+  .cdh-spaces__card-content {
+    padding: 10px;
+  }
+
+  .cdh-spaces__label {
+    padding: 5px 10px;
+  }
+}
+{% endstylesheet %}

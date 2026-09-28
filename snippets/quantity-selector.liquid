@@ -9,6 +9,7 @@
   @param {string} [class] - custom class for the quantity selector, optional
   @param {boolean} [can_update_quantity] - whether the quantity can be updated, defaults to true
   @param {number} [min] - override the minimum quantity (e.g., 0 for quick order list)
+  @param {string} [line_item_key] - cart line-item key; emitted as data-line-key so the cart resolves the row by key, not by index (RC-4)
 {%- enddoc -%}
 
 {% liquid
@@ -71,6 +72,7 @@
       aria-label="{{ 'accessibility.quantity' | t }}"
       {% if line_index %}
         data-cart-line="{{ line_index | plus: 1 }}"
+        {% if line_item_key %}data-line-key="{{ line_item_key }}"{% endif %}
       {% endif %}
       {% if variant.quantity_rule.max %}
         max="{{ variant.quantity_rule.max }}"
@@ -178,5 +180,58 @@
     color: var(--color-foreground);
     font-size: var(--font-size--sm);
     font-weight: normal;
+  }
+
+  /* iOS Safari fix: forces the number to be visible.
+     iOS overrides <input type="number"> text with its own
+     -webkit-text-fill-color, ignoring the CSS `color` rule. Setting
+     the fill color explicitly matches the authored color. Also
+     override the input's max-width because the theme formula
+     `calc(100px - 44px * 2) = 12px` squeezes the digit to zero
+     visible space on mobile (where --minimum-touch-target is 44px). */
+  .quantity-selector input[type='number'] {
+    -webkit-text-fill-color: var(--color-input-text, var(--color-foreground, #0a0a0a));
+    color: var(--color-input-text, var(--color-foreground, #0a0a0a));
+    opacity: 1;
+    min-width: 28px;
+    max-width: 40px;
+    padding-inline: 0;
+    /* iOS Safari boosts <input type=number> text well beyond its CSS size
+       ("text autosizing"), which does NOT reproduce in Playwright/desktop —
+       only on real iPhones — and made the cart-drawer digit render huge next
+       to Casa's 11px drawer type. Pin it to 100% so the rendered size equals
+       the authored 16px. Do NOT drop the 16px itself: <16px re-triggers the
+       focus auto-zoom this file already guards against. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  .quantity-selector input[type='number']:disabled {
+    -webkit-text-fill-color: var(--input-disabled-text-color, var(--color-input-text, inherit));
+    opacity: var(--disabled-opacity, 0.5);
+  }
+  /* Stop the selector from stretching to fill its flex parent */
+  .quantity-selector {
+    flex: 0 0 auto;
+  }
+
+  /* iOS Safari fix: rapid taps on +/- only registered the FIRST tap on real
+     iPhones ("increases by 1 no matter how fast I tap"). The viewport allows
+     user zoom (width=device-width,initial-scale=1 — correct for a11y), so iOS
+     runs every tap through double-tap-to-zoom disambiguation: a ~300ms delay
+     plus suppression of taps 2..n when it reads them as a zoom gesture, so
+     their `click` never fires. touch-action: manipulation opts these controls
+     out of double-tap-zoom (pinch-zoom on the page is untouched), so each tap
+     fires an immediate click. Does NOT reproduce in Playwright/desktop —
+     synthetic clicks skip the gesture layer entirely — only on real touch. */
+  .quantity-selector .quantity-plus,
+  .quantity-selector .quantity-minus,
+  .quantity-selector input[type='number'] {
+    touch-action: manipulation;
+  }
+
+  @media screen and (max-width: 749px) {
+    .quantity-selector input[type='number'] {
+      font-size: 16px;
+    }
   }
 {% endstylesheet %}

@@ -355,7 +355,17 @@
     {%- comment -%} Casa PDP: Gallery image badge overlays {%- endcomment -%}
     {%- if show_discount_badge == nil -%}{%- assign _show_discount_badge = true -%}{%- else -%}{%- assign _show_discount_badge = show_discount_badge -%}{%- endif -%}
     {%- if show_custom_badges == nil -%}{%- assign _show_custom_badges = true -%}{%- else -%}{%- assign _show_custom_badges = show_custom_badges -%}{%- endif -%}
-    <div class="casa-gallery-badges" aria-hidden="true">
+    {%- comment -%}
+      Bubble Girls collections (classic, Parisian, Soulful) bake each girl's
+      name into the TOP-LEFT of every gallery photo. The default badge corner
+      is also top-left, so it covers the printed name. Detect the family by tag
+      and flip its badges to the top-right via .casa-gallery-badges--name-art.
+    {%- endcomment -%}
+    {%- comment -%} Case-insensitive: merchant tag casing is inconsistent (matches the multi-case bestseller check below). 'bubble girl' as a substring also catches the 'bubble girls' tag. {%- endcomment -%}
+    {%- assign _badges_name_art = false -%}
+    {%- assign _tags_dc = selected_product.tags | join: ',' | downcase -%}
+    {%- if _tags_dc contains 'bubble girl' -%}{%- assign _badges_name_art = true -%}{%- endif -%}
+    <div class="casa-gallery-badges{% if _badges_name_art %} casa-gallery-badges--name-art{% endif %}" aria-hidden="true">
       {%- if _show_custom_badges -%}
         {%- for tag in selected_product.tags -%}
           {%- if tag == 'bestseller' or tag == 'Bestseller' or tag == 'BESTSELLER' -%}
@@ -379,6 +389,9 @@
       {%- endif -%}
     </div>
 
+    {%- liquid
+      assign gallery_last_index = sorted_media.size | minus: 1
+    -%}
     {% capture slides %}
       {% for media in sorted_media %}
         {% capture children %}
@@ -388,14 +401,21 @@
               else
                 assign media_sizes = sizes
               endif
+              assign is_neighbor = false
+              if forloop.index0 == 1
+                assign is_neighbor = true
+              endif
+              if sorted_media.size > 2 and forloop.index0 == gallery_last_index
+                assign is_neighbor = true
+              endif
           -%}
           {% if block_settings.aspect_ratio != 'adapt' and block_settings.constrain_to_viewport %}
             <div
               class="product-media-constraint-wrapper">
-              {%- render 'product-media', media: media, sizes: media_sizes, is_main_product_media: forloop.first -%}
+              {%- render 'product-media', media: media, sizes: media_sizes, is_main_product_media: forloop.first, is_neighbor: is_neighbor -%}
             </div>
           {% else %}
-            {%- render 'product-media', media: media, sizes: media_sizes, is_main_product_media: forloop.first -%}
+            {%- render 'product-media', media: media, sizes: media_sizes, is_main_product_media: forloop.first, is_neighbor: is_neighbor -%}
           {% endif %}
         {% endcapture %}
         {% capture class %}
@@ -406,7 +426,18 @@
             --media-preview-ratio: {{ media.preview_image.aspect_ratio | default: 1.0 }};
           {% endcapture %}
         {% endif %}
-        {% if block_settings.zoom and media.media_type == 'model' %}
+        {%- comment -%}
+          Only IMAGES open the zoom lightbox. Videos (and 3D models) are
+          interactive in place: tapping a gallery video must play it, not
+          throw the shopper into a full-screen slideshow they then have to
+          back out of to return to the PDP (merchant, 2026-08-13 — surfaced
+          the moment `zoom` was switched on for these templates, since the
+          stock handler bound the open-click to every media type but model).
+          The zoom BUTTON below is already image-only, and the dialog still
+          contains every slide, so a video is reachable by swiping once
+          inside — it just isn't the entry point.
+        {%- endcomment -%}
+        {% if block_settings.zoom and media.media_type != 'image' %}
           {%- capture attributes -%}"{% if settings.transition_to_main_product and forloop.first %} data-view-transition-type="product-image-transition"{% endif %}{% endcapture -%}
         {% elsif block_settings.zoom %}
           {%- capture attributes -%}on:click="#zoom-dialog-{{ block_id }}/open/{{ forloop.index0 }}"{% if settings.transition_to_main_product and forloop.first %} data-view-transition-type="product-image-transition"{% endif %}{% endcapture -%}
@@ -538,6 +569,32 @@
             <span class="visually-hidden">{{ 'actions.close' | t }}</span>
             {{ 'icon-close.svg' | inline_asset_content }}
           </button>
+          {%- comment -%}
+            Desktop prev/next controls for the enlarged slideshow. The
+            gallery is a horizontal left/right slideshow on desktop (the
+            layout mobile already ships); a mouse can't swipe, so these
+            arrows are the desktop nav. CSS hides them ≤749px (touch swipe)
+            and when there's only one image. `on:click` maps to the
+            ZoomDialog component's next()/previous() (assets/zoom-dialog.js).
+          {%- endcomment -%}
+          {%- if sorted_media.size > 1 -%}
+            <button
+              type="button"
+              class="button button-unstyled dialog-zoomed-gallery__nav dialog-zoomed-gallery__nav--prev"
+              aria-label="{{ 'accessibility.slideshow_previous' | t }}"
+              on:click="/previous"
+            >
+              {{ 'icon-chevron-left.svg' | inline_asset_content }}
+            </button>
+            <button
+              type="button"
+              class="button button-unstyled dialog-zoomed-gallery__nav dialog-zoomed-gallery__nav--next"
+              aria-label="{{ 'accessibility.slideshow_next' | t }}"
+              on:click="/next"
+            >
+              {{ 'icon-chevron-right.svg' | inline_asset_content }}
+            </button>
+          {%- endif -%}
           <div class="dialog-thumbnails-list-container">
             <scroll-hint
               class="dialog-thumbnails-list list-unstyled"
@@ -611,7 +668,8 @@
                     media: media,
                     sizes: '100vw',
                     loading: 'lazy',
-                    is_main_product_media: forloop.first
+                    is_main_product_media: forloop.first,
+                    video_preload: 'none'
                   -%}
                 {% endif %}
               </li>
@@ -686,12 +744,19 @@
 
   @media screen and (max-width: 749px) {
     .dialog-zoomed-gallery {
-      /* Prevent scroll wheel or swipe scrolling */
+      /* Swipe left/right to page between images. Stock shipped this as
+         `overflow-x: hidden` ("prevent scroll wheel or swipe scrolling"),
+         which left the bottom thumbnail rail as the only way to move
+         between slides on a phone — the merchant expected to swipe and
+         couldn't (iPhone, 2026-08-13). `auto` restores native scroll-snap
+         paging; the scrollbar stays hidden below. Panning a zoomed-in
+         image still wins, because drag-zoom-wrapper.js only claims the
+         touch (preventDefault) while scale > 1. */
       overscroll-behavior: none;
       scrollbar-width: none;
       display: flex;
       scroll-snap-type: x mandatory;
-      overflow-x: hidden;
+      overflow-x: auto;
       scroll-behavior: smooth;
       height: 100%;
 
@@ -763,6 +828,186 @@
           object-fit: cover;
         }
       }
+    }
+  }
+
+  /* ── Desktop: enlarged view is a horizontal left/right slideshow ──────
+     Horizon ships the desktop zoom as a VERTICAL scroll; the merchant
+     wants the same horizontal slideshow desktop that mobile already has
+     (2026-08-12, "a true click to enlarge slideshow where we can move
+     left right"). This promotes the mobile scroll-snap-x layout to
+     desktop. Navigation is the ‹ › controls / arrow keys, both routed
+     through the theme's own selectThumbnail() (zoom-dialog.js), so the
+     scroll mechanics are unchanged — this is layout only. The thumbnail
+     rail is position:fixed on the right (base.css) and floats over the
+     full-width panel, exactly as before. */
+  @media screen and (min-width: 750px) {
+    .dialog-zoomed-gallery {
+      display: flex;
+      flex-direction: row;
+      height: 100%;
+      /* auto (not hidden) makes the <ul> the unambiguous horizontal scroll
+         container, so the theme's scrollIntoView pages it horizontally on
+         open instead of walking up to the <dialog>. Scrollbar hidden below. */
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      overscroll-behavior: none;
+      scrollbar-width: none;
+    }
+
+    .dialog-zoomed-gallery::-webkit-scrollbar {
+      display: none;
+    }
+
+    .dialog-zoomed-gallery > .product-media-container {
+      flex: 0 0 100%;
+      scroll-snap-align: start;
+      height: 100%;
+      /* Center the fitted media in the panel (letterbox space is even). */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Fit the WHOLE product inside the window. Stock desktop zoom sizes the
+       image by width × aspect-ratio (e.g. 1512×1512 for a 1:1 product on a
+       1512-wide panel), which overflows a wide-short viewport (820px tall) —
+       "you can't see the product within the window" (merchant, 2026-08-12).
+       The stock design intends that overflow for pan-to-magnify; in
+       slideshow mode the panel must contain the image instead. Constrain
+       both the media box and the drag-zoom wrapper to the panel so
+       object-fit: contain letterboxes the product whole. The drag-zoom
+       transform still scales on top for magnify. */
+    .dialog-zoomed-gallery > .product-media-container--image .product-media,
+    .dialog-zoomed-gallery > .product-media-container--image .product-media__drag-zoom-wrapper {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      aspect-ratio: auto;
+    }
+
+    .dialog-zoomed-gallery > .product-media-container--image .product-media__image {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    /* Video panels — same fit. Stock zoom uses object-fit: cover (crops)
+       and sizes the deferred-media by aspect-ratio, so a 1:1 video rendered
+       1512×1512 object-fit:cover: zoomed in AND clipped top/bottom in the
+       820px window ("the video is so zoomed in", merchant 2026-08-12).
+       Contain it to the panel so the whole video is visible. */
+    .dialog-zoomed-gallery > .product-media-container--video .product-media,
+    .dialog-zoomed-gallery > .product-media-container--video deferred-media {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      aspect-ratio: auto;
+    }
+
+    /* The extra `.product-media` in the chain is load-bearing: a stock rule
+       sets the video to object-fit: cover, and only this deeper selector
+       out-specifies it to contain (verified — the shorter form lost). */
+    .dialog-zoomed-gallery > .product-media-container--video .product-media video {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .dialog-zoomed-gallery__nav {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: var(--layer-raised);
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(10, 10, 15, 0.55);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .dialog-zoomed-gallery__nav:hover {
+      background: rgba(10, 10, 15, 0.78);
+    }
+
+    .dialog-zoomed-gallery__nav--prev {
+      left: clamp(12px, 2vw, 32px);
+    }
+
+    /* Right offset clears the fixed thumbnail rail (base.css puts it at the
+       right edge, vertically centred). Tuned to a mirror PDP's rail width. */
+    .dialog-zoomed-gallery__nav--next {
+      right: clamp(96px, 11vw, 168px);
+    }
+
+    .dialog-zoomed-gallery__nav svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  /* Mobile keeps the native touch swipe — no on-screen arrows. */
+  @media screen and (max-width: 749px) {
+    .dialog-zoomed-gallery__nav {
+      display: none;
+    }
+  }
+
+  /* Video play affordance (all viewports). Shown only while a zoom video is
+     PAUSED — i.e. when autoplay was blocked (Safari Low Power Mode, strict
+     autoplay). Clicking it is a user gesture, so it plays reliably where
+     autoplay can't. zoom-dialog.js creates the button and toggles
+     .is-video-paused on the panel from the real play/pause state. */
+  .dialog-zoomed-gallery > .product-media-container--video {
+    position: relative;
+  }
+
+  .dialog-zoomed-gallery__play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: var(--layer-raised);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    padding-left: 4px;
+    border-radius: 50%;
+    background: rgba(10, 10, 15, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .dialog-zoomed-gallery__play:hover {
+    background: rgba(10, 10, 15, 0.78);
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+
+  .product-media-container--video.is-video-paused .dialog-zoomed-gallery__play {
+    display: flex;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dialog-zoomed-gallery {
+      scroll-behavior: auto;
     }
   }
 

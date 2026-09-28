@@ -1,0 +1,207 @@
+{%- comment -%}
+  casa-proof-quote.liquid
+  Standalone theme block for Horizon product-information (buy box).
+  A single real customer testimonial (photo + verbatim quote + stars) placed
+  high in the buy box to collapse taste-risk at the decision point.
+  Used by: product.infinity-cube-v2.json (group_nALnXU, after casa-price).
+  Surface: Paper/white buy box — light styling, dark text.
+  Rule 1: quote sits BESIDE the photo, never overlaid on it.
+  All copy/stars must reflect a REAL Judge.me review — no fabrication.
+{%- endcomment -%}
+
+{%- assign product = closest.product -%}
+{%- assign r = block.settings.rating | default: 5 -%}
+
+<div class="casa-proof" {{ block.shopify_attributes }}>
+  {%- if block.settings.image != blank -%}
+    <div class="casa-proof__thumb">
+      {%- comment -%}
+        alt precomputed: a piped fallback inside image_tag's arg list
+        (alt: x | default: y) terminates the args — the fallback bound to
+        the tag output and never applied. No | escape: image_tag escapes
+        attribute values itself.
+      {%- endcomment -%}
+      {%- assign _proof_alt = block.settings.image_alt | default: product.title -%}
+      {{
+        block.settings.image
+        | image_url: width: 240
+        | image_tag:
+            loading: 'lazy',
+            decoding: 'async',
+            widths: '104,156,208,240',
+            sizes: '104px',
+            alt: _proof_alt
+      }}
+    </div>
+  {%- endif -%}
+
+  <div class="casa-proof__body">
+    {%- if block.settings.show_stars -%}
+      <div class="casa-proof__stars">
+        <span class="casa-proof__sr">{{ r }} out of 5 stars</span>
+        <span class="casa-proof__stars-glyphs" aria-hidden="true">{%- for i in (1..r) -%}★{%- endfor -%}</span>
+      </div>
+    {%- endif -%}
+
+    {%- if block.settings.quote_headline != blank -%}
+      <p class="casa-proof__quote">{{ block.settings.quote_headline }}</p>
+    {%- endif -%}
+
+    {%- if block.settings.quote_body != blank -%}
+      <p class="casa-proof__sub">{{ block.settings.quote_body }}</p>
+    {%- endif -%}
+
+    {%- if block.settings.attribution != blank -%}
+      <p class="casa-proof__by">{{ block.settings.attribution }}</p>
+    {%- endif -%}
+  </div>
+</div>
+
+{% stylesheet %}
+.casa-proof {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid rgba(10, 10, 15, 0.10);
+  border-radius: 8px;
+  background: rgba(10, 10, 15, 0.02);
+}
+.casa-proof__thumb {
+  flex: 0 0 auto;
+  width: 104px;
+  height: 104px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #000;
+}
+.casa-proof__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.casa-proof__body { min-width: 0; }
+.casa-proof__stars {
+  color: #F6B01E;
+  font-size: 13px;
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.casa-proof__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.casa-proof__quote {
+  font-family: var(--font-body--family);
+  font-weight: 600;
+  font-size: 19px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin: 8px 0 5px;
+  color: var(--color-foreground, #0a0a0f);
+}
+.casa-proof__quote em {
+  font-style: italic;
+  font-weight: 800;
+  background: linear-gradient(95deg, #B0C3FA, #5E0A02, #F2FFA0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.casa-proof__sub {
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 0 0 8px;
+  color: var(--cpm-text-muted, #5b5b66);
+}
+.casa-proof__by {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-weight: 500;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0;
+  color: var(--cpm-text-muted, #6b7280);
+}
+@media (max-width: 480px) {
+  .casa-proof { gap: 13px; padding: 12px; }
+  .casa-proof__thumb { width: 88px; height: 88px; }
+  .casa-proof__quote { font-size: 17px; }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Proof Quote",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "A single REAL customer review (photo + verbatim quote + stars) for social proof high in the buy box. Copy and stars must match an actual Judge.me review — no fabricated claims."
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Photo"
+    },
+    {
+      "type": "text",
+      "id": "image_alt",
+      "label": "Photo alt text",
+      "info": "For screen readers + SEO. Describe what the photo shows (the product), not the reviewer's name.",
+      "default": "An Infinity Cube glowing in a real home"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "quote_headline",
+      "label": "Pull quote (short)",
+      "info": "Wrap one word in <em>…</em> for the brand italic-gradient accent.",
+      "default": "It feels like <em>art.</em>"
+    },
+    {
+      "type": "text",
+      "id": "quote_body",
+      "label": "Supporting quote",
+      "default": "“A gorgeous piece of lighting — you experience different colours from different directions.”"
+    },
+    {
+      "type": "text",
+      "id": "attribution",
+      "label": "Attribution",
+      "default": "Jasmine L. · Verified buyer"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_stars",
+      "label": "Show stars",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "rating",
+      "label": "Star count",
+      "min": 1,
+      "max": 5,
+      "step": 1,
+      "default": 5,
+      "visible_if": "{{ block.settings.show_stars == true }}"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Proof Quote",
+      "category": "t:categories.product"
+    }
+  ]
+}
+{% endschema %}

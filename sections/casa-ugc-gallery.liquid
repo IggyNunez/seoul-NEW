@@ -19,8 +19,8 @@
 
   assign _ugc_bg = section.settings.bg_color | default: '#0a0a0f'
   assign _ugc_text = section.settings.text_color | default: '#ffffff'
-  assign _ugc_accent = section.settings.accent_color | default: '#9333ea'
-  assign _ugc_accent2 = section.settings.accent_secondary | default: '#ec4899'
+  assign _ugc_accent = section.settings.accent_color | default: '#B0C3FA'
+  assign _ugc_accent2 = section.settings.accent_secondary | default: '#5E0A02'
 -%}
 
 <section
@@ -68,20 +68,24 @@
           {%- when 'photo' -%}
             <div class="casa-ugc__item" {{ block.shopify_attributes }}>
               {%- if block.settings.video != blank -%}
-                <video class="casa-ugc__item-video" autoplay loop muted playsinline
+                {%- comment -%} perf-justified: playback owned by this section's inline IntersectionObserver (MAX_PLAYING cap); no autoplay attr — the IO calls play()/pause() {%- endcomment -%}
+                <video class="casa-ugc__item-video" loop muted playsinline
                   {%- if block.settings.image != blank %} poster="{{ block.settings.image | image_url: width: 600 }}"{% endif %}>
                   {%- for source in block.settings.video.sources -%}
                     <source src="{{ source.url }}" type="{{ source.mime_type }}">
                   {%- endfor -%}
                 </video>
               {%- elsif block.settings.video_url != blank -%}
-                <video class="casa-ugc__item-video" src="{{ block.settings.video_url }}" autoplay loop muted playsinline
+                {%- comment -%} perf-justified: playback owned by this section's inline IntersectionObserver (MAX_PLAYING cap); no autoplay attr — the IO calls play()/pause() {%- endcomment -%}
+                <video class="casa-ugc__item-video" src="{{ block.settings.video_url }}" loop muted playsinline
                   {%- if block.settings.image != blank %} poster="{{ block.settings.image | image_url: width: 600 }}"{% endif %}></video>
               {%- endif -%}
               {%- if block.settings.image != blank -%}
                 <img
                   src="{{ block.settings.image | image_url: width: 600 }}"
                   alt="{{ block.settings.alt | default: 'Customer photo' | escape }}"
+                  width="{{ block.settings.image.width }}"
+                  height="{{ block.settings.image.height }}"
                   class="casa-ugc__item-img{% if block.settings.video != blank or block.settings.video_url != blank %} casa-ugc__item-img--poster{% endif %}"
                   loading="lazy"
                 >
@@ -124,15 +128,87 @@
     }
   });
 
-  /* ── Intersection observer for lazy play/pause ── */
+  /* ── Intersection observer for lazy play/pause ──
+     iOS Safari rejects programmatic muted autoplay unless the muted/inline
+     PROPERTIES (not just the HTML attributes) are set before play() — these
+     decorative grid thumbnails otherwise stay paused until tapped. Re-assert
+     at play time; some iOS builds drop the muted flag. NOTE: this applies
+     ONLY to the grid thumbnails; the click-to-play lightbox/modal video below
+     is user-triggered (and keeps its controls/sound), so it is left alone. */
+  function tryPlay(video) {
+    video.muted = true;
+    video.playsInline = true;
+    var p = video.play();
+    if (p && p.catch) p.catch(function(){});
+  }
   if ('IntersectionObserver' in window) {
+    /* Concurrency cap: on wide viewports the whole strip intersects at
+       once — 5-7 simultaneous decoders was the 2026-07-09 white-flash
+       zone on the merchant's 240Hz/3440px display (GPU raster misses
+       paint the page background). Tiles beyond the cap hold their
+       poster frame; a freed slot is offered to the next in-view tile.
+       rootMargin 0: pause at the real viewport edge, not 100px past it. */
+    var MAX_PLAYING = 3;
+    var inViewUgc = [];
+    function playingCount() {
+      var n = 0;
+      inViewUgc.forEach(function(v) { if (!v.paused) n++; });
+      return n;
+    }
+    /* Shared overlay gate (casa-offscreen-pause.js): shim → false until the
+       deferred utility loads (plays as before). */
+    function ugcOverlayOpen() {
+      return !!(window.casa && window.casa.overlayOpen && window.casa.overlayOpen());
+    }
+    function offerSlots() {
+      if (ugcOverlayOpen() || document.hidden) {   /* overlay open / tab hidden → pause the pool, start nothing */
+        for (var j = 0; j < inViewUgc.length; j++) { if (!inViewUgc[j].paused) { try { inViewUgc[j].pause(); } catch (e) {} } }
+        return;
+      }
+      for (var i = 0; i < inViewUgc.length; i++) {
+        if (playingCount() >= MAX_PLAYING) return;
+        if (inViewUgc[i].paused) tryPlay(inViewUgc[i]);
+      }
+    }
     var obs = new IntersectionObserver(function(entries) {
       entries.forEach(function(e) {
-        if (e.isIntersecting) e.target.play().catch(function(){});
-        else e.target.pause();
+        var idx = inViewUgc.indexOf(e.target);
+        if (e.isIntersecting) {
+          if (idx === -1) inViewUgc.push(e.target);
+        } else {
+          if (idx !== -1) inViewUgc.splice(idx, 1);
+          e.target.pause();
+        }
       });
-    }, { rootMargin: '100px' });
+      offerSlots();
+    }, { rootMargin: '0px' });
     root.querySelectorAll('.casa-ugc__item-video').forEach(function(v) { obs.observe(v); });
+
+    /* Overlay open/close fires no IO edge — re-gate this gallery's pool via the
+       shared subscription (open → offerSlots pauses the pool; close → refills to
+       MAX_PLAYING). Self-cleans when root detaches on a theme-editor re-render,
+       since this section has no section:unload handler. */
+    var ugcOverlayUnsub = null;
+    function ugcOverlayRegate() {
+      if (!root.isConnected) { if (ugcOverlayUnsub) { try { ugcOverlayUnsub(); } catch (e) {} } return; }
+      offerSlots();
+    }
+    if (window.casa && window.casa.onOverlayToggle) {
+      ugcOverlayUnsub = window.casa.onOverlayToggle(ugcOverlayRegate);
+    } else {
+      document.addEventListener('DOMContentLoaded', function() {
+        if (window.casa && window.casa.onOverlayToggle && !ugcOverlayUnsub) ugcOverlayUnsub = window.casa.onOverlayToggle(ugcOverlayRegate);
+      });
+    }
+    /* Editor hygiene: drop this gallery's overlay subscription when its section
+       unloads (this section has no other unload handler; the root.isConnected
+       check in ugcOverlayRegate is the backstop). Self-removes after it fires. */
+    document.addEventListener('shopify:section:unload', function onUgcUnload(e) {
+      if (e.target && e.target.contains && e.target.contains(root)) {
+        if (ugcOverlayUnsub) { try { ugcOverlayUnsub(); } catch (err) {} }
+        document.removeEventListener('shopify:section:unload', onUgcUnload);
+      }
+    });
   }
 
   /* ── Lightbox: navigate ALL items (photo blocks + app blocks + custom-liquid) ── */
@@ -215,8 +291,7 @@
       vid.className = 'casa-ugc-modal__video';
       vid.setAttribute('controls', '');
       vid.setAttribute('playsinline', '');
-      vid.setAttribute('autoplay', '');
-      vid.setAttribute('muted', '');  /* required for autoplay in most browsers */
+      vid.muted = true;  /* muted PROPERTY (not a raw autoplay attr) so the explicit vid.play() below is allowed without a user gesture */
 
       if (ownVideo.getAttribute('src')) {
         vid.setAttribute('src', ownVideo.getAttribute('src'));
@@ -376,13 +451,13 @@
       "type": "color",
       "id": "accent_color",
       "label": "Accent color",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "accent_secondary",
       "label": "Accent secondary",
-      "default": "#ec4899"
+      "default": "#5E0A02"
     },
     {
       "type": "header",
@@ -533,7 +608,7 @@
 .casa-ugc__stat-value {
   font-size: clamp(32px, 5vw, 48px);
   font-weight: 300;
-  background: linear-gradient(90deg, var(--cugc-accent, #9333ea), var(--cugc-accent2, #ec4899));
+  background: linear-gradient(90deg, var(--cugc-accent, #B0C3FA), var(--cugc-accent2, #5E0A02));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -594,8 +669,13 @@
 }
 
 .casa-ugc__item-img {
+  /* height: auto + aspect-ratio instead of height: 100% — the item's
+     height comes from its own aspect-ratio, and Safari 26 can fail to
+     resolve a %-height against that (the /cart flat-thumbnail class;
+     immune pattern from .cart-items__media-image in snippets/cart-products.liquid). */
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: 9 / 16;
   object-fit: cover;
 }
 
@@ -608,6 +688,31 @@
   z-index: 1;
 }
 
+/* Belt-and-suspenders: if a device blocks muted autoplay (Low Power Mode,
+   reduced-data) the grid thumbnail stays paused and iOS would paint its native
+   centre play button on this decorative media. Suppress the WebKit media-
+   control pseudo-elements so the poster image is the clean fallback, never a
+   stray button. Scoped to the GRID thumbnail class only — the lightbox modal
+   video (.casa-ugc-modal__video) intentionally keeps its native controls.
+   ONE RULE PER PSEUDO-ELEMENT — a comma-grouped list is dropped in its
+   entirety by any selector the engine doesn't recognise, and
+   `-overlay-play-button` (Chromium-only) would otherwise poison the iOS-only
+   `-start-playback-button` rule. */
+.casa-ugc__item-video::-webkit-media-controls {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.casa-ugc__item-video::-webkit-media-controls-enclosure { display: none !important; }
+.casa-ugc__item-video::-webkit-media-controls-panel { display: none !important; }
+.casa-ugc__item-video::-webkit-media-controls-play-button { display: none !important; }
+.casa-ugc__item-video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.casa-ugc__item-video::-webkit-media-controls-overlay-play-button { display: none !important; }
+
 .casa-ugc__item-img--poster {
   position: relative;
   z-index: 0;
@@ -617,12 +722,12 @@
 /* Fallback gradient backgrounds (shown only when item has no media loaded).
    opacity intentionally removed — it was making real photo/video content
    semi-transparent. The gradient is safely hidden behind media via object-fit. */
-.casa-ugc__item:nth-child(1) { background: linear-gradient(135deg, #9333ea 0%, #ec4899 100%); }
-.casa-ugc__item:nth-child(2) { background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%); }
-.casa-ugc__item:nth-child(3) { background: linear-gradient(135deg, #ec4899 0%, #f97316 100%); }
+.casa-ugc__item:nth-child(1) { background: linear-gradient(135deg, #B0C3FA 0%, #5E0A02 100%); }
+.casa-ugc__item:nth-child(2) { background: linear-gradient(135deg, #F2FFA0 0%, #3b82f6 100%); }
+.casa-ugc__item:nth-child(3) { background: linear-gradient(135deg, #5E0A02 0%, #f97316 100%); }
 .casa-ugc__item:nth-child(4) { background: linear-gradient(135deg, #22c55e 0%, #10b981 100%); }
 .casa-ugc__item:nth-child(5) { background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); }
-.casa-ugc__item:nth-child(6) { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+.casa-ugc__item:nth-child(6) { background: linear-gradient(135deg, #6366f1 0%, #B0C3FA 100%); }
 
 /* ══════════════════════════════════════════════════════════════════════════
    RESPONSIVE
@@ -723,6 +828,10 @@
   background: #000;
   outline: none;
   display: block;
+}
+.casa-ugc-modal__video:focus-visible {
+  outline: 2px solid #B0C3FA;
+  outline-offset: 2px;
 }
 
 .casa-ugc-modal__image {

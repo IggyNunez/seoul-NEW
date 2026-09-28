@@ -56,7 +56,7 @@
           {%- render 'casa-icon', icon: 'truck', size: 16 -%}
         </span>
         <span class="casa-cart-progress__message">
-          You're <strong>{{ remaining_cents | money }}</strong> away from <strong>FREE shipping!</strong>
+          You're <strong>{{ remaining_cents | money_with_currency }}</strong> away from <strong>FREE shipping!</strong>
         </span>
       {%- endif -%}
     </div>
@@ -73,152 +73,77 @@
   </div>
 {%- endif -%}
 
+
 {% stylesheet %}
+  /* Free-shipping progress bar.
+     Class names match casa-cart-progress__* in the markup above —
+     the CSS used to target a stale .casa-shipping-bar__* root, which
+     meant the bar rendered unstyled even when shown. */
   .casa-cart-progress {
-    background: linear-gradient(135deg, var(--cart-bg-secondary, rgba(17, 17, 17, 0.9)), var(--cart-bg, rgba(30, 30, 30, 0.8)));
-    border: 1px solid rgba(147, 51, 234, 0.2);
-    border-radius: var(--casa-radius-xl);
-    padding: var(--casa-space-5) var(--casa-space-6);
-    margin-bottom: var(--casa-space-8);
-    position: relative;
-    overflow: hidden;
-    animation: casa-progress-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
-  .casa-cart-progress::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse at top left, rgba(147, 51, 234, 0.1), transparent 50%);
-    pointer-events: none;
-  }
-
-  @keyframes casa-progress-enter {
-    0% {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    padding: 14px 16px;
+    background: var(--cart-bg-secondary, #FFFFFF);
+    border: 1px solid var(--cart-border, rgba(0,0,0,0.06));
+    border-radius: 10px;
+    margin-bottom: 20px;
   }
 
   .casa-cart-progress__text {
     display: flex;
     align-items: center;
-    gap: var(--casa-space-3);
-    margin-bottom: var(--casa-space-4);
-    font-size: 14px;
-    color: var(--cart-text-muted, var(--casa-text-secondary));
-    position: relative;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--cart-text, var(--casa-ink, #0A0A0F));
+    margin-bottom: 10px;
   }
-
+  .casa-cart-progress__text strong {
+    font-weight: 600;
+    color: var(--cart-text, var(--casa-ink, #0A0A0F));
+  }
   .casa-cart-progress__icon {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg, var(--cart-accent-1, var(--casa-purple)), var(--cart-accent-2, var(--casa-pink)));
-    border-radius: 50%;
-    color: #fff;
-    animation: casa-icon-pulse 2s ease-in-out infinite;
+    color: var(--cart-text, var(--casa-ink, #0A0A0F));
   }
-
   .casa-cart-progress__icon--complete {
-    background: linear-gradient(135deg, var(--casa-green), #34d399);
-    animation: casa-icon-celebrate 0.6s ease both;
+    /* Brand accent, not green (merchant 2026-08-25: "colors should be
+       consistent" — one accent across cart chrome). Rides the same
+       merchant-settable token as the discount rows/chips. 5.4:1 on the
+       white card — above the 3:1 graphics minimum. */
+    color: var(--cart-accent-1, #B0C3FA);
   }
-
-  @keyframes casa-icon-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.4); }
-    50% { box-shadow: 0 0 0 8px rgba(147, 51, 234, 0); }
-  }
-
-  @keyframes casa-icon-celebrate {
-    0% { transform: scale(0.8); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-  }
-
   .casa-cart-progress__message {
     flex: 1;
   }
-
-  .casa-cart-progress__message strong {
-    color: var(--cart-text, var(--casa-text-primary));
-    font-weight: 600;
-  }
-
-  .casa-cart-progress__message--complete strong {
-    color: var(--casa-green);
+  .casa-cart-progress__message--complete {
+    color: var(--cart-text, var(--casa-ink, #0A0A0F));
   }
 
   .casa-cart-progress__track {
     width: 100%;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--casa-radius-full);
+    height: 6px;
+    background: var(--cart-border, rgba(0,0,0,0.08));
+    border-radius: 100px;
     overflow: hidden;
-    position: relative;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
   }
 
   .casa-cart-progress__fill {
     height: 100%;
-    border-radius: var(--casa-radius-full);
-    background: linear-gradient(90deg, var(--cart-accent-1, var(--casa-purple)), var(--cart-accent-2, var(--casa-pink)), var(--cart-accent-1, var(--casa-cyan)));
-    background-size: 200% 100%;
-    animation: casa-progress-gradient 3s ease infinite;
-    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 0 15px rgba(147, 51, 234, 0.5);
+    border-radius: 100px;
+    /* Brand 3-stop gradient — matches drawer's signature; the
+       static 4px → 6px track height + gradient fill makes the
+       "almost there" moment unmistakable. */
+    background: linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0);
+    transition: width 0.6s ease;
   }
 
-  @keyframes casa-progress-gradient {
-    0% { background-position: 0% center; }
-    50% { background-position: 100% center; }
-    100% { background-position: 0% center; }
-  }
-
-  .casa-cart-progress__fill::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.4) 50%,
-      transparent 100%
-    );
-    background-size: 200% 100%;
-    animation: casa-progress-shimmer 1.5s linear infinite;
-  }
-
-  .casa-cart-progress__fill--complete {
-    background: linear-gradient(90deg, #10b981, #34d399, #6ee7b7);
-    background-size: 200% 100%;
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
-  }
-
-  @keyframes casa-progress-shimmer {
-    0% { background-position: -200% center; }
-    100% { background-position: 200% center; }
-  }
+  /* Complete state keeps the SAME brand gradient as the filling state —
+     the old flat-green swap at 100% broke the one-accent rule (merchant
+     2026-08-25) and made the goal moment change color language mid-bar.
+     No override needed; the base .casa-cart-progress__fill gradient
+     simply persists at width: 100%. */
 
   @media (prefers-reduced-motion: reduce) {
-    .casa-cart-progress__fill {
-      transition: none;
-      animation: none;
-    }
-    .casa-cart-progress__fill::after {
-      animation: none;
-    }
-    .casa-cart-progress__icon {
-      animation: none;
-    }
+    .casa-cart-progress__fill { transition: none; }
   }
 {% endstylesheet %}

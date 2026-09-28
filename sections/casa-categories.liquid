@@ -17,8 +17,8 @@
 
   # Background
   assign bg_style = section.settings.background_style | default: 'light'
-  assign bg_color = section.settings.background_color | default: '#ffffff'
-  assign bg_gradient_1 = section.settings.bg_gradient_color_1 | default: '#f8f9fa'
+  assign bg_color = section.settings.background_color | default: '#FAFAF7'
+  assign bg_gradient_1 = section.settings.bg_gradient_color_1 | default: '#E5E3DC'
   assign bg_gradient_2 = section.settings.bg_gradient_color_2 | default: '#e5e7eb'
   assign bg_image = section.settings.background_image
   assign bg_overlay = section.settings.bg_overlay_opacity | default: 50
@@ -28,12 +28,12 @@
   assign hover_effect = section.settings.hover_effect | default: 'lift'
 
   # Colors
-  assign accent_color = section.settings.accent_color | default: '#1a1a1a'
+  assign accent_color = section.settings.accent_color | default: '#1F1F24'
   assign tag_color = section.settings.tag_color | default: accent_color
   assign title_color = section.settings.title_color
   assign subtitle_color = section.settings.subtitle_color
   assign btn_bg = section.settings.btn_bg | default: accent_color
-  assign btn_text = section.settings.btn_text | default: '#ffffff'
+  assign btn_text = section.settings.btn_text | default: '#FAFAF7'
   assign overlay_opacity = section.settings.card_overlay_opacity | default: 40
 
   # Padding
@@ -46,13 +46,25 @@
   # Card content
   assign show_card_title = section.settings.show_card_title
   assign text_position = section.settings.text_position | default: 'inside'
+  assign text_position_mobile_raw = section.settings.text_position_mobile
+  if text_position_mobile_raw == blank or text_position_mobile_raw == ''
+    assign text_position_mobile = text_position
+  else
+    assign text_position_mobile = text_position_mobile_raw
+  endif
+  assign card_style_mobile_raw = section.settings.card_style_mobile
+  if card_style_mobile_raw == blank or card_style_mobile_raw == ''
+    assign card_style_mobile = card_style
+  else
+    assign card_style_mobile = card_style_mobile_raw
+  endif
 
   # Auto text colors based on bg (used as fallback)
   if bg_style == 'dark' or bg_style == 'gradient-dark' or bg_style == 'image'
     assign text_primary_auto = '#ffffff'
     assign text_secondary_auto = 'rgba(255,255,255,0.6)'
   else
-    assign text_primary_auto = '#1a1a1a'
+    assign text_primary_auto = 'var(--casa-border-on-ink)'
     assign text_secondary_auto = '#6b7280'
   endif
 
@@ -84,10 +96,12 @@
 
 <section
   id="casa-cat-{{ section.id }}"
-  class="casa-cat casa-cat--{{ layout }} casa-cat--bg-{{ bg_style }} casa-cat--style-{{ card_style }} casa-cat--text-{{ text_position }}"
+  class="casa-cat casa-cat--{{ layout }} casa-cat--bg-{{ bg_style }} casa-cat--style-{{ card_style }} casa-cat--style-m-{{ card_style_mobile }} casa-cat--text-{{ text_position }} casa-cat--text-m-{{ text_position_mobile }}"
   style="
-    --cc-pad-top: {{ padding_top }}px;
-    --cc-pad-bottom: {{ padding_bottom }}px;
+    {%- if section.settings.override_spacing -%}
+      --cc-pad-top: {{ padding_top }}px;
+      --cc-pad-bottom: {{ padding_bottom }}px;
+    {%- endif -%}
     --cc-columns: {{ columns }};
     --cc-gap: {{ gap }}px;
     --cc-radius: {{ border_radius }}px;
@@ -104,13 +118,22 @@
     --cc-btn-text: {{ btn_text }};
     --cc-overlay-opacity: {{ overlay_opacity | divided_by: 100.0 }};
     --casa-cat-max-w: {% case section.settings.section_width %}{% when 'full' %}100%{% when 'wide' %}1600px{% when 'narrow' %}1200px{% else %}1400px{% endcase %};
+    {%- comment -%}
+      Heading-scale dropdown: merchant picks H1-H6 from Theme Settings -> Typography.
+    {%- endcomment -%}
+    {%- assign _cc_title_h = section.settings.cc_heading_level | default: 'h1' -%}
+    --cc-title-fs:   var(--font-{{ _cc_title_h }}--size);
+    --cc-title-fw:   var(--font-{{ _cc_title_h }}--weight);
+    --cc-title-lh:   var(--font-{{ _cc_title_h }}--line-height);
+    --cc-title-ls:   var(--font-{{ _cc_title_h }}--letter-spacing);
+    --cc-title-case: var(--font-{{ _cc_title_h }}--case);
   "
   data-animation="{{ animation }}"
 >
   {%- comment -%} Background {%- endcomment -%}
   {%- if bg_image != blank and bg_style == 'image' -%}
     <div class="casa-cat__bg">
-      <img src="{{ bg_image | image_url: width: 1920 }}" alt="" class="casa-cat__bg-img" loading="lazy">
+      <img src="{{ bg_image | image_url: width: 1920 }}" width="{{ bg_image.width }}" height="{{ bg_image.height }}" alt="" class="casa-cat__bg-img" loading="lazy">
       <div class="casa-cat__bg-overlay"></div>
     </div>
   {%- endif -%}
@@ -132,6 +155,19 @@
     {%- endif -%}
 
     {%- comment -%} Grid {%- endcomment -%}
+    {%- assign cc_is_carousel = false -%}
+    {%- if layout == 'carousel' or section.settings.mobile_carousel -%}
+      {%- assign cc_is_carousel = true -%}
+    {%- endif -%}
+    <div class="casa-cat__track-wrapper{% if cc_is_carousel %} casa-cat__track-wrapper--carousel{% endif %}{% if section.settings.mobile_carousel and layout != 'carousel' %} casa-cat__track-wrapper--mobile-only{% endif %}">
+      {%- if cc_is_carousel -%}
+        <button type="button" class="casa-cat__overlay-arrow casa-cat__overlay-arrow--prev" data-cc-prev aria-label="Scroll left" disabled>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button type="button" class="casa-cat__overlay-arrow casa-cat__overlay-arrow--next" data-cc-next aria-label="Scroll right">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      {%- endif -%}
     <div class="casa-cat__grid" role="list">
       {%- for block in section.blocks -%}
         {%- assign collection = block.settings.collection -%}
@@ -141,25 +177,39 @@
 
         {%- comment -%} Per-card gradient {%- endcomment -%}
         {%- liquid
-          assign grad_color = block.settings.overlay_color | default: '#000000'
+          assign grad_color = block.settings.overlay_color | default: '#0A0A0F'
           assign grad_r = grad_color | color_extract: 'red'
           assign grad_g = grad_color | color_extract: 'green'
           assign grad_b = grad_color | color_extract: 'blue'
         -%}
 
+        {%- comment -%}
+          Stagger cap: card 5+ all share index 4's delay so late cards
+          don't wait 320ms+ after intersection to fade in.
+        {%- endcomment -%}
+        {%- assign _stagger_i = forloop.index0 | at_most: 4 -%}
         <div
           class="casa-cat__item{% if is_featured %} casa-cat__item--featured{% endif %}"
           style="
             --card-overlay-rgb: {{ grad_r }}, {{ grad_g }}, {{ grad_b }};
             --card-overlay-opacity: {{ card_overlay_dec }};
-            --card-delay: {{ forloop.index0 | times: 80 }}ms;
+            --card-delay: {{ _stagger_i | times: 80 }}ms;
           "
           role="listitem"
           {{ block.shopify_attributes }}
         >
-          {%- comment -%} External text above {%- endcomment -%}
-          {%- if text_position == 'above' and show_card_title -%}
-            <div class="casa-cat__ext-text">
+          {%- comment -%}
+            External text above — rendered if EITHER desktop OR mobile
+            position is "above". CSS shows/hides per breakpoint so the
+            same Liquid output supports both settings.
+            Note: Liquid evaluates `and`/`or` right-to-left with no
+            precedence; use a pre-computed flag for clarity.
+          {%- endcomment -%}
+          {%- assign _show_above = false -%}
+          {%- if show_card_title and text_position == 'above' -%}{%- assign _show_above = true -%}{%- endif -%}
+          {%- if show_card_title and text_position_mobile == 'above' -%}{%- assign _show_above = true -%}{%- endif -%}
+          {%- if _show_above -%}
+            <div class="casa-cat__ext-text casa-cat__ext-text--above">
               <h3 class="casa-cat__ext-title">{{ block.settings.title | default: collection.title | default: 'Collection' }}</h3>
               {%- if block.settings.subtitle != blank -%}
                 <p class="casa-cat__ext-sub">{{ block.settings.subtitle }}</p>
@@ -176,10 +226,20 @@
 
             {%- comment -%} Video {%- endcomment -%}
             {%- if block.settings.video != blank -%}
-              <video class="casa-cat__media casa-cat__media--video" autoplay loop muted playsinline
+              {%- comment -%} perf-justified: playback owned by this section's local IO pause
+                script (geometry-gated, below). No `autoplay` attribute — the native autoplay
+                controller re-issues play() behind the JS owner's back and fights the pause
+                (the documented casa-hero bounce, caeb065). {%- endcomment -%}
+              <video class="casa-cat__media casa-cat__media--video" loop muted playsinline
                 {%- if block.settings.image != blank %} poster="{{ block.settings.image | image_url: width: 800 }}"{% endif %}>
+                {%- comment -%} MP4 only — never the .m3u8: Safari would pick
+                  the HLS stream and pay its adaptive-decode pipeline for a
+                  looping bg video (the homepage scroll jitter). Same fix as
+                  casa-styled-spaces-home.liquid. {%- endcomment -%}
                 {%- for source in block.settings.video.sources -%}
-                  <source src="{{ source.url }}" type="{{ source.mime_type }}">
+                  {%- if source.mime_type == 'video/mp4' -%}
+                    <source src="{{ source.url }}" type="video/mp4">
+                  {%- endif -%}
                 {%- endfor -%}
               </video>
             {%- endif -%}
@@ -188,6 +248,8 @@
             {%- if block.settings.image != blank -%}
               <img
                 src="{{ block.settings.image | image_url: width: 800 }}"
+                width="{{ block.settings.image.width }}"
+                height="{{ block.settings.image.height }}"
                 srcset="{{ block.settings.image | image_url: width: 400 }} 400w, {{ block.settings.image | image_url: width: 600 }} 600w, {{ block.settings.image | image_url: width: 800 }} 800w"
                 sizes="(max-width: 600px) 50vw, 25vw"
                 alt="{{ block.settings.title | default: collection.title | escape }}"
@@ -197,6 +259,8 @@
             {%- elsif collection.featured_image != blank -%}
               <img
                 src="{{ collection.featured_image | image_url: width: 800 }}"
+                width="{{ collection.featured_image.width }}"
+                height="{{ collection.featured_image.height }}"
                 srcset="{{ collection.featured_image | image_url: width: 400 }} 400w, {{ collection.featured_image | image_url: width: 600 }} 600w, {{ collection.featured_image | image_url: width: 800 }} 800w"
                 sizes="(max-width: 600px) 50vw, 25vw"
                 alt="{{ collection.title | escape }}"
@@ -208,10 +272,7 @@
             {%- comment -%} Overlay — controlled per-card {%- endcomment -%}
             <div class="casa-cat__overlay"></div>
 
-            {%- comment -%} Glass content panel (only in glass mode, sits at bottom over the overlay, NOT over the image) {%- endcomment -%}
-            {%- if card_style == 'glass' -%}
-              <div class="casa-cat__glass-panel"></div>
-            {%- endif -%}
+            {%- comment -%} Glass mode: no full-width panel — the title pill provides the glass effect (see card content below). {%- endcomment -%}
 
             {%- comment -%} Badge {%- endcomment -%}
             {%- if block.settings.badge != 'none' and block.settings.badge != blank -%}
@@ -232,17 +293,23 @@
               <span class="casa-cat__badge casa-cat__badge--{{ block.settings.badge }}">{{ badge_text }}</span>
             {%- endif -%}
 
-            {%- comment -%} Card content (inside only) {%- endcomment -%}
-            {%- if text_position == 'inside' -%}
+            {%- comment -%}
+              Card content (inside) — rendered if either breakpoint
+              uses 'inside'. CSS hides the overlay on the breakpoint
+              that uses external text.
+            {%- endcomment -%}
+            {%- if text_position == 'inside' or text_position_mobile == 'inside' -%}
               <div class="casa-cat__content">
                 {%- if show_card_title -%}
-                  <h3 class="casa-cat__name">{{ block.settings.title | default: collection.title | default: 'Collection' }}</h3>
-                  {%- if block.settings.subtitle != blank -%}
-                    <p class="casa-cat__sub">{{ block.settings.subtitle }}</p>
-                  {%- endif -%}
-                  {%- if section.settings.show_product_count and collection != blank -%}
-                    <span class="casa-cat__count">{{ collection.products_count }} {{ section.settings.count_label | default: 'Products' }}</span>
-                  {%- endif -%}
+                  <div class="casa-cat__title-pill">
+                    <h3 class="casa-cat__name">{{ block.settings.title | default: collection.title | default: 'Collection' }}</h3>
+                    {%- if block.settings.subtitle != blank -%}
+                      <p class="casa-cat__sub">{{ block.settings.subtitle }}</p>
+                    {%- endif -%}
+                    {%- if section.settings.show_product_count and collection != blank -%}
+                      <span class="casa-cat__count">{{ collection.products_count }} {{ section.settings.count_label | default: 'Products' }}</span>
+                    {%- endif -%}
+                  </div>
                 {%- endif -%}
                 {%- if section.settings.show_arrow -%}
                   <span class="casa-cat__arrow">
@@ -253,9 +320,17 @@
             {%- endif -%}
           </a>
 
-          {%- comment -%} External text below {%- endcomment -%}
-          {%- if text_position == 'below' and show_card_title -%}
-            <div class="casa-cat__ext-text">
+          {%- comment -%}
+            External text below — rendered if either breakpoint uses
+            'below'. CSS shows/hides per breakpoint.
+            Note: pre-computed flag to avoid Liquid's right-to-left
+            and/or evaluation surprise.
+          {%- endcomment -%}
+          {%- assign _show_below = false -%}
+          {%- if show_card_title and text_position == 'below' -%}{%- assign _show_below = true -%}{%- endif -%}
+          {%- if show_card_title and text_position_mobile == 'below' -%}{%- assign _show_below = true -%}{%- endif -%}
+          {%- if _show_below -%}
+            <div class="casa-cat__ext-text casa-cat__ext-text--below">
               <h3 class="casa-cat__ext-title">{{ block.settings.title | default: collection.title | default: 'Collection' }}</h3>
               {%- if block.settings.subtitle != blank -%}
                 <p class="casa-cat__ext-sub">{{ block.settings.subtitle }}</p>
@@ -268,6 +343,7 @@
         </div>
       {%- endfor -%}
     </div>
+    </div>{%- comment -%} /casa-cat__track-wrapper {%- endcomment -%}
 
     {%- comment -%} Carousel indicators {%- endcomment -%}
     {%- if layout == 'carousel' or section.settings.mobile_carousel -%}
@@ -282,7 +358,7 @@
     {%- if section.settings.show_view_all and section.settings.view_all_url != blank -%}
       <div class="casa-cat__footer">
         <a href="{{ section.settings.view_all_url }}" class="casa-cat__view-all">
-          {{ section.settings.view_all_text | default: 'View All Collections' }}
+          {{ section.settings.view_all_text | default: 'See all' }}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </a>
       </div>
@@ -311,7 +387,13 @@
         return;
       }
 
-      /* Entrance animations via IntersectionObserver */
+      /* Entrance animations via IntersectionObserver.
+         rootMargin '400px' pre-loads the animation 400px BEFORE the
+         item enters the viewport so the 500ms transition + stagger
+         finish before the user sees the card. Threshold 0 (was 0.15)
+         pairs with the rootMargin — we want to trigger as soon as the
+         pre-load box overlaps the viewport, not when 15% of the card
+         itself is visible. */
       if (animation && animation !== 'none') {
         var obs = new IntersectionObserver(function(entries) {
           entries.forEach(function(e) {
@@ -320,36 +402,153 @@
               obs.unobserve(e.target);
             }
           });
-        }, { threshold: 0.15 });
+        }, { threshold: 0, rootMargin: '0px 0px 400px 0px' });
         items.forEach(function(item) { obs.observe(item); });
+        /* Safety net: force visible after 1500ms if observer missed
+           its first callback (fast scroll / off-screen tab init). */
+        setTimeout(function() {
+          items.forEach(function(item) {
+            if (!item.classList.contains('casa-cat__item--visible')) {
+              item.classList.add('casa-cat__item--visible');
+            }
+          });
+        }, 1500);
       } else {
         items.forEach(function(item) { item.classList.add('casa-cat__item--visible'); });
       }
 
-      /* Carousel dot indicators */
-      if (grid && dots.length > 0) {
-        grid.addEventListener('scroll', function() {
+      /* Carousel dot indicators + overlay arrows — ONE rAF-ticking passive
+         scroll listener (pattern: casa-pdp-features.liquid). Item width is
+         layout-invariant while scrolling, so it's measured once and
+         re-measured on resize only — no getComputedStyle/offsetWidth reads
+         inside the scroll path. */
+      var prevOverlay = root.querySelector('[data-cc-prev]');
+      var nextOverlay = root.querySelector('[data-cc-next]');
+      if (grid && (dots.length > 0 || prevOverlay || nextOverlay)) {
+        var ccItemW = 0;
+        function ccMeasureItem() {
           var firstItem = grid.querySelector('.casa-cat__item');
-          if (!firstItem) return;
-          var itemW = firstItem.offsetWidth + parseInt(getComputedStyle(grid).gap || 16);
-          var idx = Math.round(grid.scrollLeft / itemW);
+          ccItemW = firstItem
+            ? firstItem.offsetWidth + (parseInt(getComputedStyle(grid).gap, 10) || 16)
+            : 0;
+        }
+        function ccUpdateDots() {
+          if (!dots.length || !ccItemW) return;
+          var idx = Math.round(grid.scrollLeft / ccItemW);
           dots.forEach(function(dot, i) {
             dot.classList.toggle('casa-cat__dot--active', i === idx);
           });
-        });
+        }
+        function ccUpdateArrows() {
+          if (!prevOverlay && !nextOverlay) return;
+          var sl = grid.scrollLeft;
+          var maxScroll = grid.scrollWidth - grid.clientWidth;
+          var atStart = sl <= 2;
+          var atEnd = sl >= maxScroll - 2;
+          var noOverflow = maxScroll <= 2;
+          if (prevOverlay) {
+            prevOverlay.disabled = atStart;
+            prevOverlay.classList.toggle('is-hidden', noOverflow);
+          }
+          if (nextOverlay) {
+            nextOverlay.disabled = atEnd;
+            nextOverlay.classList.toggle('is-hidden', noOverflow);
+          }
+        }
+        function ccScrollByDir(dir) {
+          if (!ccItemW) ccMeasureItem();
+          if (!ccItemW) return;
+          grid.scrollBy({ left: ccItemW * dir, behavior: 'smooth' });
+        }
+        if (prevOverlay) prevOverlay.addEventListener('click', function(){ ccScrollByDir(-1); });
+        if (nextOverlay) nextOverlay.addEventListener('click', function(){ ccScrollByDir(1); });
+        var ccTicking = false;
+        grid.addEventListener('scroll', function() {
+          if (ccTicking) return;
+          ccTicking = true;
+          requestAnimationFrame(function() {
+            ccTicking = false;
+            ccUpdateDots();
+            ccUpdateArrows();
+          });
+        }, { passive: true });
+        var ccResizeRaf = null;
+        window.addEventListener('resize', function() {
+          if (ccResizeRaf) return;
+          ccResizeRaf = requestAnimationFrame(function() {
+            ccResizeRaf = null;
+            ccMeasureItem();
+            ccUpdateDots();
+            ccUpdateArrows();
+          });
+        }, { passive: true });
+        ccMeasureItem();
+        /* Re-measure after first layout settles (lazy images / fonts). */
+        setTimeout(function() { ccMeasureItem(); ccUpdateArrows(); }, 100);
       }
 
-      /* Video play/pause on visibility */
+      /* Video play/pause on visibility.
+         iOS Safari rejects programmatic muted autoplay unless the muted/inline
+         PROPERTIES (not just the HTML attributes) are set before play() —
+         these decorative category videos otherwise stay paused until tapped.
+         Re-assert at play time; some iOS builds drop the muted flag.
+         IO entries are triggers only — the play/pause decision re-reads real
+         geometry (getBoundingClientRect), never entry.isIntersecting: iOS
+         re-fires observers with STALE flags when the URL bar collapses/expands
+         (see assets/casa-offscreen-pause.js design notes). */
+      function tryPlay(video) {
+        video.muted = true;
+        video.playsInline = true;
+        var p = video.play();
+        if (p && p.catch) p.catch(function(){});
+      }
+      function videoInView(el) {
+        var r = el.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) return false; /* display:none / detached */
+        var vh = window.innerHeight || document.documentElement.clientHeight;
+        var vw = window.innerWidth || document.documentElement.clientWidth;
+        /* Horizontal bounds too: this category strip is a horizontal carousel,
+           so a card scrolled out sideways still vertically overlaps the
+           viewport — without the left/right check its video would keep
+           decoding (and here the callback would actively resume it). */
+        return r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw;
+      }
+      /* Shared overlay gate (casa-offscreen-pause.js): pause category videos
+         while a page-covering overlay (mega-menu / drawer / quick-view /
+         testimonial lightbox) is open. Shim → false until the deferred utility
+         loads (plays as before). */
+      function catOverlayOpen() {
+        return !!(window.casa && window.casa.overlayOpen && window.casa.overlayOpen());
+      }
       var videos = root.querySelectorAll('.casa-cat__media--video');
       if (videos.length && 'IntersectionObserver' in window) {
         var vObs = new IntersectionObserver(function(entries) {
           entries.forEach(function(e) {
-            if (e.isIntersecting) e.target.play().catch(function(){});
+            if (videoInView(e.target) && !catOverlayOpen()) tryPlay(e.target);
             else e.target.pause();
           });
-        }, { rootMargin: '100px' });
+        }, { rootMargin: '0px' }); /* 0 not 100px: a positive margin delays the PAUSE by the whole margin (positive is for lazy-LOADING only) */
         videos.forEach(function(v) { vObs.observe(v); });
       }
+      /* Overlay open/close fires no IO edge. Bind a DOM-fresh re-gate ONCE per
+         page (initCasaCat re-runs on section:load; the callback re-queries every
+         category video so one binding covers all strips and survives re-renders). */
+      function catRegate() {
+        var blocked = catOverlayOpen() || document.hidden;
+        document.querySelectorAll('.casa-cat__media--video').forEach(function(v) {
+          if (blocked) { if (!v.paused) { try { v.pause(); } catch (e) {} } }
+          else if (videoInView(v)) tryPlay(v);
+        });
+      }
+      function catBindOverlayOnce() {
+        var c = window.casa = window.casa || {};
+        if (c.__catOverlayBound) return true;
+        if (!c.onOverlayToggle) return false;
+        c.onOverlayToggle(catRegate);
+        c.__catOverlayBound = true;
+        return true;
+      }
+      if (!catBindOverlayOnce()) document.addEventListener('DOMContentLoaded', catBindOverlayOnce);
     }
 
     initCasaCat();
@@ -443,13 +642,26 @@
     {
       "type": "select",
       "id": "card_style",
-      "label": "Card style",
+      "label": "Card style (desktop)",
       "options": [
         { "value": "gradient", "label": "Gradient Overlay" },
         { "value": "glass", "label": "Glassmorphism" },
         { "value": "minimal", "label": "Minimal (bottom fade)" }
       ],
       "default": "gradient"
+    },
+    {
+      "type": "select",
+      "id": "card_style_mobile",
+      "label": "Card style (mobile)",
+      "info": "Leave blank to use the desktop value",
+      "options": [
+        { "value": "",         "label": "Same as desktop" },
+        { "value": "gradient", "label": "Gradient Overlay" },
+        { "value": "glass",    "label": "Glassmorphism" },
+        { "value": "minimal",  "label": "Minimal (bottom fade)" }
+      ],
+      "default": ""
     },
     {
       "type": "range",
@@ -487,13 +699,26 @@
     {
       "type": "select",
       "id": "text_position",
-      "label": "Text position",
+      "label": "Text position (desktop)",
       "options": [
         { "value": "inside", "label": "Inside card (overlay)" },
         { "value": "above", "label": "Above card" },
         { "value": "below", "label": "Below card" }
       ],
       "default": "inside"
+    },
+    {
+      "type": "select",
+      "id": "text_position_mobile",
+      "label": "Text position (mobile)",
+      "info": "Leave blank to use the desktop value",
+      "options": [
+        { "value": "",       "label": "Same as desktop" },
+        { "value": "inside", "label": "Inside card (overlay)" },
+        { "value": "above",  "label": "Above card" },
+        { "value": "below",  "label": "Below card" }
+      ],
+      "default": ""
     },
     {
       "type": "checkbox",
@@ -521,18 +746,35 @@
       "type": "text",
       "id": "tag",
       "label": "Tag text",
-      "default": "Collections"
+      "default": "Browse"
     },
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "title",
       "label": "Title",
-      "default": "Shop by Category"
+      "info": "Wrap a phrase in <em>...</em> for the brand italic-gradient accent (e.g. \"Light your room. <em>Your way.</em>\").",
+      "default": "Light your room. <em>Your way.</em>"
+    },
+    {
+      "type": "select",
+      "id": "cc_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
     },
     {
       "type": "textarea",
       "id": "subtitle",
-      "label": "Subtitle"
+      "label": "Subtitle",
+      "default": "Mirrors, lamps, sculptures, signs. Start wherever it speaks to you."
     },
     {
       "type": "select",
@@ -567,13 +809,13 @@
       "type": "color",
       "id": "background_color",
       "label": "Custom background color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
       "id": "bg_gradient_color_1",
       "label": "Gradient color 1",
-      "default": "#f8f9fa",
+      "default": "#E5E3DC",
       "info": "For gradient backgrounds"
     },
     {
@@ -606,7 +848,7 @@
       "type": "color",
       "id": "accent_color",
       "label": "Accent color",
-      "default": "#1a1a1a"
+      "default": "#1F1F24"
     },
     {
       "type": "color",
@@ -656,7 +898,7 @@
       "type": "text",
       "id": "view_all_text",
       "label": "Button text",
-      "default": "View All Collections"
+      "default": "Shop All"
     },
     {
       "type": "url",
@@ -673,7 +915,7 @@
       "type": "color",
       "id": "btn_text",
       "label": "Button text color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "header",
@@ -688,6 +930,16 @@
     {
       "type": "header",
       "content": "Spacing"
+    },
+    {
+      "type": "paragraph",
+      "content": "Follows Theme settings → Casa Section Spacing by default. Toggle to override."
+    },
+    {
+      "type": "checkbox",
+      "id": "override_spacing",
+      "label": "Override theme spacing",
+      "default": false
     },
     {
       "type": "range",
@@ -754,7 +1006,7 @@
           "type": "color",
           "id": "overlay_color",
           "label": "Overlay color",
-          "default": "#000000",
+          "default": "#0A0A0F",
           "info": "Tints the image"
         },
         {
@@ -819,18 +1071,22 @@
 
 .casa-cat {
   position: relative;
-  padding: var(--cc-pad-top) 5% var(--cc-pad-bottom);
+  padding: var(--cc-pad-top, var(--casa-section-pt, 80px)) 5% var(--cc-pad-bottom, var(--casa-section-pb, 80px));
   overflow: hidden;
 }
 
-/* Backgrounds */
-.casa-cat--bg-light { background: #fff; }
-.casa-cat--bg-light-gray { background: #f5f5f5; }
-.casa-cat--bg-dark { background: #0a0a0a; }
-.casa-cat--bg-gradient-light { background: linear-gradient(180deg, var(--cc-bg-grad-1) 0%, var(--cc-bg-grad-2) 100%); }
-.casa-cat--bg-gradient-dark { background: linear-gradient(180deg, var(--cc-bg-grad-1) 0%, var(--cc-bg-grad-2) 100%); }
+/* Backgrounds — brand v1 surface lock: Paper or Ink only.
+   The merchant-facing "light", "light-gray", and the gradient variants
+   all resolve to one of the two brand surfaces so an existing setting
+   choice keeps working, just lands on a brand-legal value. See
+   docs/brand-book-v1.html §Surfaces. */
+.casa-cat--bg-light { background: var(--bg-paper, var(--casa-paper)); }
+.casa-cat--bg-light-gray { background: var(--bg-paper, var(--casa-paper)); }
+.casa-cat--bg-dark { background: var(--bg-dark, var(--casa-ink)); }
+.casa-cat--bg-gradient-light { background: var(--bg-paper, var(--casa-paper)); }
+.casa-cat--bg-gradient-dark { background: var(--bg-dark, var(--casa-ink)); }
 .casa-cat--bg-custom { background: var(--cc-bg-color); }
-.casa-cat--bg-image { background: #0a0a0a; }
+.casa-cat--bg-image { background: var(--bg-dark, var(--casa-ink)); }
 
 .casa-cat__bg {
   position: absolute;
@@ -860,6 +1116,16 @@
   margin: 0 auto;
 }
 
+/* Ultrawide guardrail: full-width layouts stop tracking the viewport past
+   1920px so 1fr tiles keep their ≤1920 size instead of scaling up (they hit
+   1013px squares at 3440px without this). min() lets narrower width presets
+   set via --casa-cat-max-w keep winning. No effect ≤1920px. */
+@media screen and (min-width: 1920px) {
+  .casa-cat__container {
+    max-width: min(var(--casa-cat-max-w, 100%), var(--casa-content-max-w, 1920px));
+  }
+}
+
 /* ===== HEADER ===== */
 
 .casa-cat__header {
@@ -880,16 +1146,36 @@
 }
 
 .casa-cat__title {
-  font-size: clamp(28px, 4vw, 48px);
-  font-weight: 300;
-  letter-spacing: -0.5px;
-  line-height: 1.1;
+  /* Brand book v1 §03 locked H2 spec — Inter 500 / -0.015em / 1.10 LH.
+     white-space: nowrap forces single-line per merchant: all section
+     titles must fit on one line. */
+  font-size: clamp(22px, 4vw, 40px);
+  font-weight: 500;
+  line-height: 1.10;
+  letter-spacing: -0.015em;
+  text-transform: none;
   color: var(--cc-text-primary);
   margin: 0 0 12px 0;
+  white-space: nowrap;
+}
+
+/* Italic accent inside title — LARGER than surrounding text (1.15em)
+   per merchant. Italic + brand gradient. line-height: 1 prevents the
+   bigger em from inflating the title's line-height. */
+.casa-cat__title em {
+  font-size: 1.15em;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1;
+  background-image: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .casa-cat__subtitle {
-  font-size: clamp(14px, 1.5vw, 17px);
+  font-size: var(--casa-subtitle-size, 17px);
   color: var(--cc-text-secondary);
   max-width: 560px;
   margin: 0;
@@ -900,10 +1186,73 @@
 
 /* ===== GRID ===== */
 
+.casa-cat__track-wrapper {
+  position: relative;
+}
+
 .casa-cat__grid {
   display: grid;
   grid-template-columns: repeat(var(--cc-columns), 1fr);
   gap: var(--cc-gap);
+}
+
+/* Overlay arrows — only shown in carousel mode */
+.casa-cat__track-wrapper { isolation: isolate; }
+.casa-cat__overlay-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--casa-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+.casa-cat__overlay-arrow:hover:not(:disabled) {
+  background: var(--casa-paper);
+  transform: translateY(-50%) scale(1.05);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.15),
+    0 0 0 4px rgba(176, 195, 250, 0.18),
+    0 0 22px rgba(94, 10, 2, 0.35);
+}
+.casa-cat__overlay-arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.casa-cat__overlay-arrow.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.casa-cat__overlay-arrow--prev { left: -8px; }
+.casa-cat__overlay-arrow--next { right: -8px; }
+
+/* Hide overlay arrows on desktop when wrapper is mobile-only */
+@media (min-width: 749px) {
+  .casa-cat__track-wrapper--mobile-only .casa-cat__overlay-arrow {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .casa-cat__overlay-arrow {
+    width: 40px;
+    height: 40px;
+  }
+  .casa-cat__overlay-arrow--prev { left: 4px; }
+  .casa-cat__overlay-arrow--next { right: 4px; }
 }
 
 /* Masonry */
@@ -923,7 +1272,7 @@
 
 /* Featured layout */
 .casa-cat--featured .casa-cat__grid {
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .casa-cat--featured .casa-cat__item--featured {
@@ -935,10 +1284,15 @@
 .casa-cat--carousel .casa-cat__grid {
   display: flex;
   overflow-x: auto;
+  overflow-y: hidden;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding-bottom: 4px;
+  /* pan-x pan-y — horizontal swipe scrolls the carousel, vertical swipe
+     still scrolls the page. Bare `pan-x` traps a finger that lands here
+     and blocks page scroll. Fixed 2026-07-09; do NOT revert to pan-x. */
+  touch-action: pan-x pan-y;
 }
 
 .casa-cat--carousel .casa-cat__grid::-webkit-scrollbar { display: none; }
@@ -1025,6 +1379,29 @@
   transition: transform 0.5s ease;
 }
 
+/* Belt-and-suspenders: if a device blocks muted autoplay (Low Power Mode,
+   reduced-data) the video stays paused and iOS would paint its native centre
+   play button on this decorative media. Suppress the WebKit media-control
+   pseudo-elements so the poster image is the clean fallback, never a stray
+   button. ONE RULE PER PSEUDO-ELEMENT — a comma-grouped list is dropped in
+   its entirety by any selector the engine doesn't recognise, and
+   `-overlay-play-button` (Chromium-only) would otherwise poison the iOS-only
+   `-start-playback-button` rule. */
+.casa-cat__media--video::-webkit-media-controls {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.casa-cat__media--video::-webkit-media-controls-enclosure { display: none !important; }
+.casa-cat__media--video::-webkit-media-controls-panel { display: none !important; }
+.casa-cat__media--video::-webkit-media-controls-play-button { display: none !important; }
+.casa-cat__media--video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.casa-cat__media--video::-webkit-media-controls-overlay-play-button { display: none !important; }
+
 /* ===== OVERLAY ===== */
 
 /* Gradient style: full overlay using per-card color + opacity */
@@ -1049,29 +1426,9 @@
   z-index: 1;
 }
 
-/* Glass style: light top overlay, glass panel at bottom */
+/* Glass style: title sits in a frosted pill, no bottom panel, no dim overlay */
 .casa-cat--style-glass .casa-cat__overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top,
-    rgba(var(--card-overlay-rgb), calc(var(--card-overlay-opacity) * 0.6)) 0%,
-    transparent 40%
-  );
-  z-index: 1;
-}
-
-.casa-cat__glass-panel {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 45%;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px) saturate(150%);
-  -webkit-backdrop-filter: blur(12px) saturate(150%);
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-  z-index: 2;
-  pointer-events: none;
+  display: none;
 }
 
 /* ===== CARD CONTENT ===== */
@@ -1088,11 +1445,48 @@
   color: #fff;
 }
 
+/* Title pill — passthrough in default modes, frosted glass in glass mode */
+.casa-cat__title-pill {
+  display: block;
+}
+
+.casa-cat--style-glass .casa-cat__title-pill {
+  align-self: flex-start;
+  display: inline-block;
+  padding: 14px 20px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  max-width: calc(100% - 40px);
+}
+
+.casa-cat--style-glass.casa-cat__header--center .casa-cat__title-pill,
+.casa-cat--style-glass .casa-cat__content {
+  /* keep content stack natural */
+}
+
 .casa-cat__name {
   font-size: clamp(16px, 1.4vw, 20px);
   font-weight: 600;
   margin: 0 0 4px 0;
   line-height: 1.2;
+}
+
+.casa-cat--style-glass .casa-cat__name {
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.casa-cat--style-glass .casa-cat__sub {
+  margin: 4px 0 0 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.casa-cat--style-glass .casa-cat__count {
+  margin-top: 4px;
 }
 
 .casa-cat__sub {
@@ -1127,8 +1521,22 @@
   padding: 10px 4px;
 }
 
+/* ===== TEXT POSITION VISIBILITY (desktop default ≥ 901px) =====
+   The Liquid renders all positions used by either breakpoint.
+   These rules show/hide each block based on the active modifier.
+   Mobile rules below override at ≤ 900px. */
+.casa-cat__ext-text--above,
+.casa-cat__ext-text--below { display: none; }
+
+.casa-cat--text-above .casa-cat__ext-text--above { display: block; }
+.casa-cat--text-below .casa-cat__ext-text--below { display: block; }
+
+/* When desktop uses external text, hide the inside overlay content */
+.casa-cat--text-above .casa-cat__content,
+.casa-cat--text-below .casa-cat__content { display: none; }
+
 .casa-cat__ext-title {
-  font-size: 16px;
+  font-size: var(--font-h5--size, 16px);
   font-weight: 600;
   margin: 0 0 2px 0;
   transition: color 0.3s ease;
@@ -1165,9 +1573,9 @@
   color: #fff;
 }
 
-.casa-cat__badge--new { background: #7c3aed; }
+.casa-cat__badge--new { background: #B0C3FA; }
 .casa-cat__badge--sale { background: #ef4444; }
-.casa-cat__badge--trending { background: #f59e0b; color: #0a0a0a; }
+.casa-cat__badge--trending { background: #f59e0b; color: var(--casa-ink); }
 .casa-cat__badge--custom { background: var(--cc-accent); }
 
 /* ===== DOTS (carousel indicators) ===== */
@@ -1203,71 +1611,215 @@
   margin-top: 40px;
 }
 
+/* View-all uses the Casa global utility button system — adaptive
+   neutral pill. --casa-btn-utility-* vars in theme-styles-variables.liquid */
 .casa-cat__view-all {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 28px;
-  background: var(--cc-btn-bg);
-  color: var(--cc-btn-text);
+  padding: var(--casa-btn-utility-padding-y) var(--casa-btn-utility-padding-x);
+  background: var(--casa-btn-utility-bg);
+  color: var(--casa-btn-utility-color);
+  border: none;
+  border-radius: var(--casa-btn-utility-radius);
+  font-family: var(--casa-btn-utility-font-family);
+  font-size: var(--casa-btn-utility-font-size);
+  font-weight: var(--casa-btn-utility-font-weight);
+  text-transform: var(--casa-btn-utility-transform);
+  letter-spacing: var(--casa-btn-utility-tracking);
   text-decoration: none;
-  font-size: 13px;
-  font-weight: 600;
-  border-radius: 24px;
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  transition: background 0.25s ease, transform 0.25s ease;
 }
 
 .casa-cat__view-all:hover {
-  transform: translateY(-2px);
-  opacity: 0.9;
+  background: var(--casa-btn-utility-hover-bg);
+  transform: translateY(-1px);
 }
 
 /* ===== RESPONSIVE ===== */
 
 @media (max-width: 1200px) {
   .casa-cat__grid { --cc-columns: 3; }
-  .casa-cat--featured .casa-cat__grid { grid-template-columns: repeat(3, 1fr); }
+  .casa-cat--featured .casa-cat__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .casa-cat--carousel .casa-cat__item { flex: 0 0 calc(33.333% - var(--cc-gap) * 0.67); }
 }
 
 @media (max-width: 900px) {
   .casa-cat__grid { --cc-columns: 2; }
-  .casa-cat--featured .casa-cat__grid { grid-template-columns: repeat(2, 1fr); }
+  .casa-cat--featured .casa-cat__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .casa-cat--featured .casa-cat__item--featured { grid-column: span 2; grid-row: span 1; }
   .casa-cat--carousel .casa-cat__item { flex: 0 0 calc(50% - var(--cc-gap) * 0.5); }
   .casa-cat--masonry .casa-cat__grid { column-count: 2; }
+  /* Title font-size driven by Horizon heading tokens (auto-swap on mobile). */
+  .casa-cat__subtitle { font-size: var(--casa-subtitle-size, 14px); }
+  .casa-cat { padding-top: var(--cc-pad-top, var(--casa-section-pt-m, 60px)); padding-bottom: var(--cc-pad-bottom, var(--casa-section-pb-m, 60px)); }
+
+  /* ===== Mobile text-position override =====
+     Reset desktop visibility, then re-apply based on the mobile modifier. */
+  .casa-cat .casa-cat__ext-text--above,
+  .casa-cat .casa-cat__ext-text--below { display: none; }
+  .casa-cat .casa-cat__content { display: flex; }
+
+  .casa-cat--text-m-above .casa-cat__ext-text--above { display: block; }
+  .casa-cat--text-m-below .casa-cat__ext-text--below { display: block; }
+
+  .casa-cat--text-m-above .casa-cat__content,
+  .casa-cat--text-m-below .casa-cat__content { display: none; }
+
+  .casa-cat--text-m-inside .casa-cat__content { display: flex; }
+  .casa-cat--text-m-inside .casa-cat__ext-text--above,
+  .casa-cat--text-m-inside .casa-cat__ext-text--below { display: none; }
+
+  /* ===== Mobile card-style override =====
+     The desktop `.casa-cat--style-*` rules use a higher selector than the
+     mobile `.casa-cat--style-m-*` ones, so we re-declare the mobile ones
+     with equal specificity inside the breakpoint to win cleanly. */
+  .casa-cat--style-m-gradient .casa-cat__overlay {
+    display: block;
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top,
+      rgba(var(--card-overlay-rgb), var(--card-overlay-opacity)) 0%,
+      rgba(var(--card-overlay-rgb), calc(var(--card-overlay-opacity) * 0.3)) 100%
+    );
+    z-index: 1;
+  }
+  .casa-cat--style-m-minimal .casa-cat__overlay {
+    display: block;
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top,
+      rgba(var(--card-overlay-rgb), var(--card-overlay-opacity)) 0%,
+      transparent 50%
+    );
+    z-index: 1;
+  }
+  .casa-cat--style-m-glass .casa-cat__overlay { display: none; }
+
+  /* Glass title pill — apply mobile glass styling to the title pill */
+  .casa-cat--style-m-glass .casa-cat__title-pill {
+    align-self: flex-start;
+    display: inline-block;
+    padding: 14px 20px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    max-width: calc(100% - 40px);
+  }
+  .casa-cat--style-m-glass .casa-cat__name {
+    margin: 0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  }
+  .casa-cat--style-m-glass .casa-cat__sub {
+    margin: 4px 0 0 0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  }
+  .casa-cat--style-m-glass .casa-cat__count { margin-top: 4px; }
+
+  /* Reset glass title-pill styling on non-glass mobile styles to undo
+     desktop glass classes leaking through when the mobile style is
+     gradient or minimal. */
+  .casa-cat--style-m-gradient .casa-cat__title-pill,
+  .casa-cat--style-m-minimal .casa-cat__title-pill {
+    align-self: auto;
+    display: block;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 0;
+    box-shadow: none;
+    max-width: none;
+  }
 }
 
 @media (max-width: 600px) {
-  .casa-cat { padding: 48px 16px 48px; }
+  .casa-cat {
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: var(--cc-pad-top, var(--casa-section-pt-m, 48px));
+    padding-bottom: var(--cc-pad-bottom, var(--casa-section-pb-m, 48px));
+  }
   .casa-cat__header { margin-bottom: 28px; }
+  .casa-cat__title {
+    /* Mobile: force "Light your room. Your way." onto a single line.
+       white-space: nowrap inherited from base rule. clamp lowered so
+       the wider em (1.15× size, italic, gradient) still fits. */
+    font-size: clamp(14px, 4.5vw, 22px);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  /* Flush card text labels on mobile */
+  .casa-cat__ext-text {
+    padding: 10px 0 0;
+  }
 
   /* Mobile carousel when enabled */
-  .casa-cat:not(.casa-cat--carousel) .casa-cat__grid {
+  .casa-cat:not(.casa-cat--carousel) .casa-cat__grid,
+  .casa-cat--carousel .casa-cat__grid {
     display: flex;
     overflow-x: auto;
+    overflow-y: hidden;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     gap: 12px;
+    /* pan-x pan-y so a finger on the carousel can still scroll the page
+       vertically. Bare pan-x is a vertical-scroll trap. Fixed 2026-07-09. */
+    touch-action: pan-x pan-y;
+    align-items: flex-start; /* prevent flex stretch making cards portrait */
   }
 
-  .casa-cat:not(.casa-cat--carousel) .casa-cat__grid::-webkit-scrollbar { display: none; }
+  .casa-cat:not(.casa-cat--carousel) .casa-cat__grid::-webkit-scrollbar,
+  .casa-cat--carousel .casa-cat__grid::-webkit-scrollbar { display: none; }
 
-  .casa-cat:not(.casa-cat--carousel) .casa-cat__item {
-    flex: 0 0 200px;
-    scroll-snap-align: start;
+  /* Stop horizontal flex from stretching items to tallest sibling */
+  .casa-cat:not(.casa-cat--carousel) .casa-cat__grid,
+  .casa-cat--carousel .casa-cat__grid {
+    align-items: flex-start;
   }
 
-  .casa-cat:not(.casa-cat--carousel) .casa-cat__item--featured {
-    flex: 0 0 260px;
-  }
-
+  .casa-cat:not(.casa-cat--carousel) .casa-cat__item,
   .casa-cat--carousel .casa-cat__item {
     flex: 0 0 200px;
+    width: 200px;
+    scroll-snap-align: start;
+    align-self: flex-start; /* don't stretch to tallest sibling */
   }
 
-  .casa-cat__card { aspect-ratio: 1/1; }
+  /* Mobile: featured items match regular item width — visual hierarchy
+     was creating mismatched sizing inside a horizontal scroll where
+     scroll snap distance and aspect-ratio look better when uniform. */
+  .casa-cat:not(.casa-cat--carousel) .casa-cat__item--featured,
+  .casa-cat--carousel .casa-cat__item--featured {
+    flex: 0 0 200px;
+    width: 200px;
+  }
+
+  /* Force every card on mobile to 1:1. !important kills the base
+     'flex: 1' rule on .casa-cat__card that lets it grow to fill the
+     item wrapper height when the item has been stretched by a tall
+     sibling. */
+  .casa-cat .casa-cat__card {
+    aspect-ratio: 1 / 1 !important;
+    width: 100% !important;
+    height: auto !important;
+    flex: 0 0 auto !important;
+    align-self: flex-start !important;
+  }
+
+  /* Item wrapper must also collapse to its content (the card),
+     otherwise it stretches to the tallest sibling and the card
+     centers vertically inside it. */
+  .casa-cat__item {
+    height: auto !important;
+    align-self: flex-start !important;
+    justify-content: flex-start !important;
+  }
 
   .casa-cat--masonry .casa-cat__grid {
     display: flex;

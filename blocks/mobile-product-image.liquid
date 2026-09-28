@@ -1,0 +1,163 @@
+{%- comment -%}
+  Mobile Product Image Block
+  Shows the product's featured image inside the content area.
+  Designed for mobile — hidden on desktop by default (toggleable).
+{%- endcomment -%}
+
+{%- assign product_resource = closest.product -%}
+{%- assign current_variant = product_resource.selected_or_first_available_variant -%}
+{%- assign img = current_variant.featured_image | default: product_resource.featured_image -%}
+
+{%- if img != blank -%}
+<div
+  class="casa-mobile-img spacing-style"
+  data-block-id="{{ block.id }}"
+  style="{% render 'spacing-style', settings: block.settings %}"
+  {{ block.shopify_attributes }}
+>
+  <div class="casa-mobile-img__wrap" style="
+    --cmi-radius: {{ block.settings.border_radius | default: 12 }}px;
+    --cmi-max-width: {{ block.settings.max_width | default: 100 }}%;
+    --cmi-ratio: {{ block.settings.image_ratio | default: 'auto' }};
+  ">
+    <img
+      class="casa-mobile-img__image"
+      src="{{ img | image_url: width: 800 }}"
+      width="{{ img.width }}"
+      height="{{ img.height }}"
+      srcset="
+        {{ img | image_url: width: 400 }} 400w,
+        {{ img | image_url: width: 600 }} 600w,
+        {{ img | image_url: width: 800 }} 800w
+      "
+      sizes="(max-width: 749px) calc(100vw - 32px), 50vw"
+      alt="{{ img.alt | default: product_resource.title | escape }}"
+      loading="lazy"
+    >
+  </div>
+</div>
+{%- endif -%}
+
+{% stylesheet %}
+  .casa-mobile-img {
+    width: 100%;
+  }
+
+  .casa-mobile-img__wrap {
+    width: var(--cmi-max-width, 100%);
+    margin: 0 auto;
+    border-radius: var(--cmi-radius, 12px);
+    overflow: hidden;
+  }
+
+  .casa-mobile-img__image {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+    border-radius: var(--cmi-radius, 12px);
+    aspect-ratio: var(--cmi-ratio, auto);
+  }
+{% endstylesheet %}
+
+<style>
+  /* Show/hide per device */
+  {%- unless block.settings.show_desktop -%}
+  @media (min-width: 750px) {
+    [data-block-id="{{ block.id }}"].casa-mobile-img { display: none !important; }
+  }
+  {%- endunless -%}
+  {%- unless block.settings.show_mobile == true or block.settings.show_mobile == nil -%}
+  @media (max-width: 749px) {
+    [data-block-id="{{ block.id }}"].casa-mobile-img { display: none !important; }
+  }
+  {%- endunless -%}
+</style>
+
+{% schema %}
+{
+  "name": "Product image (inline)",
+  "tag": null,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Shows the product image inside the content area. Drag this block between title and description to position it."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_mobile",
+      "label": "Show on mobile",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_desktop",
+      "label": "Show on desktop",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Max width",
+      "min": 40,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Border radius",
+      "min": 0,
+      "max": 24,
+      "step": 2,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "select",
+      "id": "image_ratio",
+      "label": "Image ratio",
+      "options": [
+        { "value": "auto", "label": "Natural" },
+        { "value": "1 / 1", "label": "Square (1:1)" },
+        { "value": "4 / 3", "label": "Landscape (4:3)" },
+        { "value": "3 / 4", "label": "Portrait (3:4)" },
+        { "value": "16 / 9", "label": "Wide (16:9)" }
+      ],
+      "default": "auto"
+    },
+    {
+      "type": "header",
+      "content": "t:content.padding"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "t:settings.top",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "t:settings.bottom",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "default": 8
+    }
+  ],
+  "presets": [
+    {
+      "name": "Product image (inline)",
+      "category": "t:categories.product"
+    }
+  ]
+}
+{% endschema %}

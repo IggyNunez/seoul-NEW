@@ -1,0 +1,104 @@
+{%- comment -%} Casa Title — standalone block for Horizon product-information {%- endcomment -%}
+
+{%- assign product = closest.product -%}
+<div class="cpm__block cpm__block--title" {{ block.shopify_attributes }}>
+  {%- if block.settings.show_collection_link -%}
+    {%- capture casa_bc_handle -%}{%- render 'casa-breadcrumb-collection', product: product -%}{%- endcapture -%}
+    {%- assign casa_bc_handle = casa_bc_handle | strip -%}
+    {%- assign casa_bc_col = collections[casa_bc_handle] -%}
+    {%- if casa_bc_col != blank and casa_bc_col.title != blank -%}
+      <a href="{{ casa_bc_col.url }}" class="cpm__breadcrumb-link">
+        {{ casa_bc_col.title }} &rsaquo;
+      </a>
+    {%- endif -%}
+  {%- endif -%}
+  <h1 class="cpm__title" style="font-weight: {{ block.settings.title_weight | default: 300 }}; --cpm-title-size: {{ block.settings.title_size | default: 32 }}px;">
+    {{ product.title }}
+  </h1>
+</div>
+
+{% stylesheet %}
+.cpm__block--title .cpm__breadcrumb-link {
+  font-size: 13px;
+  color: var(--cpm-text-muted, #6b7280);
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+.cpm__block--title .cpm__breadcrumb-link:hover {
+  color: var(--cpm-accent-1, #B0C3FA);
+}
+.cpm__title {
+  font-size: clamp(16px, 2.5vw + 6px, var(--cpm-title-size, 32px));
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  margin: 0;
+  color: var(--color-foreground, #0a0a0a);
+}
+@media (max-width: 768px) {
+  .cpm__title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: clamp(20px, 6vw, 32px);
+  }
+}
+@media (max-width: 400px) {
+  .cpm__title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: clamp(14px, 4vw, 18px);
+  }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Title",
+  "tag": null,
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_collection_link",
+      "label": "Show collection link",
+      "default": false
+    },
+    {
+      "type": "range",
+      "id": "title_size",
+      "label": "Title size",
+      "min": 20,
+      "max": 56,
+      "step": 2,
+      "unit": "px",
+      "default": 32
+    },
+    {
+      "type": "select",
+      "id": "title_weight",
+      "label": "Title weight",
+      "options": [
+        { "value": "200", "label": "200 — Thin" },
+        { "value": "300", "label": "300 — Light" },
+        { "value": "400", "label": "400 — Regular" },
+        { "value": "500", "label": "500 — Medium" },
+        { "value": "600", "label": "600 — Semi-bold" },
+        { "value": "700", "label": "700 — Bold" }
+      ],
+      "default": "300"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Title",
+      "category": "t:categories.product"
+    }
+  ]
+}
+{% endschema %}

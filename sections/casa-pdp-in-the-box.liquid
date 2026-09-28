@@ -1,0 +1,751 @@
+{%- comment -%}
+  Seoul Glow Lab — PDP "In the box" section
+  Editorial unboxing layout: hero photo on top (or left), then a
+  row of 5 elegant item cards. Each item card has an inline SVG
+  icon (or a merchant-uploaded photo if present), name, and spec.
+
+  Icons chosen for the Bubble Girls accessory set:
+    lamp  · bubble · bulb · cable · manual · sparkle · gift · box
+
+  Built for Bubble Girls v6 PDP. Reusable for any product where
+  customers ask "what's in the box?"
+{%- endcomment -%}
+
+{%- assign s = section.settings -%}
+{%- assign sid = section.id -%}
+
+<section
+  id="casa-box-{{ sid }}"
+  class="casa-box{% if s.layout == 'side' %} casa-box--side{% endif %}"
+  style="
+    --casa-box-paper: {{ s.color_paper | default: '#FAFAF7' }};
+    --casa-box-elevated: {{ s.color_elevated | default: '#FFFFFF' }};
+    --casa-box-tint: {{ s.color_tint | default: '#F4F1EA' }};
+    --casa-box-ink: {{ s.color_ink | default: '#0A0A0F' }};
+    --casa-box-soft: {{ s.color_soft | default: '#54545C' }};
+    --casa-box-mute: {{ s.color_mute | default: '#8B8B92' }};
+    --casa-box-rule: {{ s.color_rule | default: '#E8E8E4' }};
+    --casa-box-pt: {{ s.padding_top | default: 64 }}px;
+    --casa-box-pb: {{ s.padding_bottom | default: 64 }}px;
+  "
+>
+  <div class="casa-box__cap">
+    {%- if s.heading != blank or s.kicker != blank -%}
+      <header class="casa-box__head">
+        <div>
+          {%- if s.kicker != blank -%}
+            <p class="casa-box__kicker">{{ s.kicker }}</p>
+          {%- endif -%}
+          {%- if s.heading != blank -%}
+            <h2 class="casa-box__heading">{{ s.heading }}</h2>
+          {%- endif -%}
+        </div>
+        {%- if s.subtitle != blank -%}
+          <p class="casa-box__subtitle">{{ s.subtitle }}</p>
+        {%- endif -%}
+      </header>
+    {%- endif -%}
+
+    {%- if s.hero_image != blank -%}
+      <figure class="casa-box__hero">
+        <div class="casa-box__hero-frame">
+          {%- comment -%}
+            alt precomputed: a piped fallback inside image_tag's arg list
+            terminates the args — the fallback never applied.
+          {%- endcomment -%}
+          {%- assign _box_hero_alt = s.hero_image.alt | default: 'What is included with the lamp' -%}
+          {{ s.hero_image | image_url: width: 1600 | image_tag:
+              loading: 'lazy',
+              widths: '600, 900, 1200, 1600',
+              sizes: '(min-width: 990px) 88vw, 100vw',
+              class: 'casa-box__hero-img',
+              alt: _box_hero_alt
+          }}
+          {%- if s.hero_badge != blank -%}
+            <span class="casa-box__hero-badge">{{ s.hero_badge }}</span>
+          {%- endif -%}
+        </div>
+        {%- if s.hero_caption != blank -%}
+          <figcaption class="casa-box__hero-caption">
+            <span class="casa-box__hero-caption-rule"></span>
+            <span class="casa-box__hero-caption-text">{{ s.hero_caption }}</span>
+            <span class="casa-box__hero-caption-rule"></span>
+          </figcaption>
+        {%- endif -%}
+      </figure>
+    {%- endif -%}
+
+    {%- if section.blocks.size > 0 -%}
+      {%- assign layout_class = '' -%}
+      {%- if s.layout == 'featured' -%}{%- assign layout_class = ' casa-box__items--featured' -%}{%- endif -%}
+      {%- if s.layout == 'list' -%}{%- assign layout_class = ' casa-box__items--list' -%}{%- endif -%}
+      <div class="casa-box__items{{ layout_class }}">
+        {%- for block in section.blocks -%}
+          {%- assign icon = block.settings.icon | default: 'sparkle' -%}
+          {%- assign item_class = 'casa-box__item' -%}
+          {%- if s.layout == 'featured' and forloop.first -%}
+            {%- assign item_class = 'casa-box__item casa-box__item--featured' -%}
+          {%- elsif s.layout == 'featured' -%}
+            {%- assign item_class = 'casa-box__item casa-box__item--accessory' -%}
+          {%- endif -%}
+          <article class="{{ item_class }}" {{ block.shopify_attributes }}>
+            <span class="casa-box__item-ord">№ {{ forloop.index | prepend: '0' | slice: -2, 2 }}</span>
+            <div class="casa-box__item-glyph">
+              {%- if block.settings.image != blank -%}
+                {%- comment -%} alt precomputed — piped fallback in the arg list never applied (see hero above) {%- endcomment -%}
+                {%- assign _box_item_alt = block.settings.image.alt | default: block.settings.name -%}
+                {{ block.settings.image | image_url: width: 200 | image_tag:
+                    loading: 'lazy',
+                    widths: '100, 160, 200',
+                    sizes: '88px',
+                    class: 'casa-box__item-pic',
+                    alt: _box_item_alt
+                }}
+              {%- else -%}
+                <span class="casa-box__item-icon" aria-hidden="true">
+                  {%- case icon -%}
+                    {%- when 'lamp' -%}
+                      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><circle cx="10" cy="8" r="3"/><circle cx="21" cy="11" r="4.5"/><path d="M10 11 v 4 q 0 6 5 8 h 6"/><path d="M21 15.5 v 7 a 1.5 1.5 0 0 1 -1.5 1.5 h -7 a 1.5 1.5 0 0 1 -1.5 -1.5 v -1"/></svg>
+                    {%- when 'bubble' -%}
+                      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><circle cx="16" cy="16" r="10"/><ellipse cx="12.5" cy="12.5" rx="2.6" ry="1.4" stroke-width="1"/></svg>
+                    {%- when 'bulb' -%}
+                      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><path d="M16 4 a 8 8 0 0 0 -5 14.4 V 22 h 10 v -3.6 A 8 8 0 0 0 16 4 z"/><line x1="12" y1="25" x2="20" y2="25"/><line x1="13" y1="28" x2="19" y2="28"/></svg>
+                    {%- when 'cable' -%}
+                      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><rect x="11" y="4" width="10" height="7" rx="1.2"/><line x1="14" y1="4" x2="14" y2="2"/><line x1="18" y1="4" x2="18" y2="2"/><path d="M16 11 v 6 q 0 6 -6 7"/></svg>
+                    {%- when 'manual' -%}
+                      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><path d="M5 7 v 18 l 11 -2.5 l 11 2.5 v -18 l -11 2.5 z"/><line x1="16" y1="9.5" x2="16" y2="25.5"/></svg>
+                    {%- when 'gift' -%}
+                      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><rect x="5" y="13" width="22" height="14" rx="1"/><rect x="3" y="9" width="26" height="6" rx="1"/><line x1="16" y1="9" x2="16" y2="27"/><path d="M16 9 c -2 -3 -7 -4 -7 -1 c 0 2 4 1 7 1 z"/><path d="M16 9 c 2 -3 7 -4 7 -1 c 0 2 -4 1 -7 1 z"/></svg>
+                    {%- when 'box' -%}
+                      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><path d="M5 10 L 16 5 L 27 10 v 14 L 16 29 L 5 24 z"/><path d="M5 10 L 16 15 L 27 10"/><line x1="16" y1="15" x2="16" y2="29"/></svg>
+                    {%- when 'spark' or 'sparkle' -%}
+                      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><path d="M16 4 v 8 m 0 8 v 8 m -12 -12 h 8 m 8 0 h 8 M 8 8 l 5 5 m 6 6 l 5 5 M 24 8 l -5 5 m -6 6 l -5 5"/></svg>
+                    {%- else -%}
+                      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><circle cx="16" cy="16" r="10"/></svg>
+                  {%- endcase -%}
+                </span>
+              {%- endif -%}
+            </div>
+            <div class="casa-box__item-body">
+              {%- if block.settings.name != blank -%}
+                <p class="casa-box__item-name">{{ block.settings.name }}</p>
+              {%- endif -%}
+              {%- if block.settings.spec != blank -%}
+                <p class="casa-box__item-spec">{{ block.settings.spec }}</p>
+              {%- endif -%}
+              {%- if block.settings.body != blank -%}
+                <p class="casa-box__item-bodytext">{{ block.settings.body }}</p>
+              {%- endif -%}
+            </div>
+          </article>
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+
+    {%- if s.footnote != blank -%}
+      <p class="casa-box__footnote">{{ s.footnote }}</p>
+    {%- endif -%}
+  </div>
+</section>
+
+{% stylesheet %}
+  .casa-box {
+    background: var(--casa-box-paper);
+    color: var(--casa-box-ink);
+    padding: var(--casa-box-pt) 0 var(--casa-box-pb);
+  }
+  .casa-box__cap {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 64px);
+  }
+
+  /* ── header ──────────────────────────────────────── */
+  .casa-box__head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 32px;
+    margin-bottom: clamp(28px, 3vw, 44px);
+    padding-bottom: clamp(16px, 2vw, 24px);
+    border-bottom: 1px solid var(--casa-box-rule);
+  }
+  @media (max-width: 700px) {
+    .casa-box__head { grid-template-columns: 1fr; gap: 12px; }
+  }
+  .casa-box__kicker {
+    display: inline-block;
+    margin: 0 0 12px;
+    font: 500 11px 'JetBrains Mono', monospace;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--casa-box-mute);
+  }
+  .casa-box__heading {
+    font: 300 clamp(28px, 3.5vw, 44px)/1.05 var(--font-body--family);
+    letter-spacing: -0.025em;
+    color: var(--casa-box-ink);
+    margin: 0;
+    max-width: 18ch;
+    text-wrap: balance;
+  }
+  .casa-box__heading em {
+    font-style: italic;
+    font-weight: 500;
+    color: var(--casa-box-ink);
+  }
+  .casa-box__subtitle {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--casa-box-soft);
+    margin: 0;
+    max-width: 36ch;
+    text-align: right;
+  }
+  @media (max-width: 700px) { .casa-box__subtitle { text-align: left; } }
+
+  /* ── hero photo (editorial framed) ──────────────── */
+  .casa-box__hero {
+    margin: 0 0 clamp(36px, 5vw, 56px);
+    text-align: center;
+  }
+  .casa-box__hero-frame {
+    position: relative;
+    margin: 0 auto;
+    max-width: 880px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--casa-box-elevated);
+    border: 1px solid var(--casa-box-rule);
+    box-shadow:
+      0 1px 0 var(--casa-box-rule),
+      0 30px 60px -32px rgba(10, 10, 15, 0.18),
+      0 80px 120px -80px rgba(10, 10, 15, 0.10);
+  }
+  .casa-box__hero-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+  .casa-box__hero-badge {
+    position: absolute;
+    bottom: 18px;
+    left: 18px;
+    background: rgba(255, 255, 255, 0.94);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    color: var(--casa-box-ink);
+    font: 500 10px 'JetBrains Mono', monospace;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    padding: 7px 13px;
+    border-radius: 999px;
+    border: 1px solid var(--casa-box-rule);
+  }
+  .casa-box__hero-caption {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    margin: 28px auto 0;
+    font: 500 11px 'JetBrains Mono', monospace;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--casa-box-mute);
+  }
+  .casa-box__hero-caption-rule {
+    width: 36px;
+    height: 1px;
+    background: var(--casa-box-rule);
+  }
+
+  /* ── items grid (5-up) ─────────────────────────── */
+  .casa-box__items {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: clamp(10px, 1.2vw, 18px);
+  }
+  /* Orphan-row fix: when the grid wraps and the last card lands alone
+     in its row, span the full row width so there's no empty hole.
+     Five tiers — covers 5 / 4 / 3 / 2 / 1 col layouts for any item count. */
+  @media (min-width: 1200px) {
+    .casa-box__item:nth-child(5n + 1):last-child { grid-column: span 5; }
+    .casa-box__item:nth-child(5n + 2):last-child { grid-column: span 4; }
+    .casa-box__item:nth-child(5n + 3):last-child { grid-column: span 3; }
+    .casa-box__item:nth-child(5n + 4):last-child { grid-column: span 2; }
+  }
+  @media (max-width: 1199px) and (min-width: 990px) {
+    .casa-box__items { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .casa-box__item:nth-child(4n + 1):last-child { grid-column: span 4; }
+    .casa-box__item:nth-child(4n + 2):last-child { grid-column: span 3; }
+    .casa-box__item:nth-child(4n + 3):last-child { grid-column: span 2; }
+  }
+  @media (max-width: 989px) and (min-width: 641px) {
+    .casa-box__items { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .casa-box__item:nth-child(3n + 1):last-child { grid-column: span 3; }
+    .casa-box__item:nth-child(3n + 2):last-child { grid-column: span 2; }
+  }
+  /* Phones: hold a 2-column grid all the way down. Previously this
+     collapsed to a single column ≤380px, which stacked every card
+     into one tall run that ate the whole viewport (iPhone SE 375,
+     12 mini 360, etc). An odd last card spans the full row so there's
+     no empty hole; card internals compact at ≤540 / ≤380 (below) so
+     two columns stay comfortable down to 280px. */
+  @media (max-width: 640px) {
+    /* :not([class*="--"]) scopes these to the uniform layout only, so the
+       list / featured variants keep their own column rules and never inherit
+       the odd-last orphan-span on their single-column phones. */
+    .casa-box__items:not([class*="--"]) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .casa-box__items:not([class*="--"]) .casa-box__item:nth-child(odd):last-child { grid-column: span 2; }
+  }
+
+  .casa-box__item {
+    position: relative;
+    background: var(--casa-box-elevated);
+    border: 1px solid var(--casa-box-rule);
+    border-radius: 6px;
+    padding: clamp(16px, 1.4vw, 22px) clamp(12px, 1.2vw, 20px) clamp(16px, 1.4vw, 20px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    min-width: 0;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+  .casa-box__item:hover {
+    transform: translateY(-3px);
+    border-color: var(--casa-box-ink);
+    box-shadow: 0 18px 40px -22px rgba(10, 10, 15, 0.18);
+  }
+  .casa-box__item-ord {
+    position: absolute;
+    top: clamp(10px, 1vw, 14px);
+    right: clamp(10px, 1vw, 14px);
+    font: 500 9px 'JetBrains Mono', monospace;
+    letter-spacing: 0.22em;
+    color: var(--casa-box-mute);
+    white-space: nowrap;
+  }
+  .casa-box__item-glyph {
+    width: clamp(52px, 5.5vw, 68px);
+    height: clamp(52px, 5.5vw, 68px);
+    border-radius: 999px;
+    background: var(--casa-box-tint);
+    display: grid;
+    place-items: center;
+    margin-bottom: clamp(10px, 1vw, 16px);
+    overflow: hidden;
+    position: relative;
+    flex: 0 0 auto;
+  }
+  .casa-box__item-icon {
+    color: var(--casa-box-ink);
+    display: inline-flex;
+    line-height: 0;
+  }
+  .casa-box__item-icon svg {
+    width: clamp(26px, 2.6vw, 32px);
+    height: clamp(26px, 2.6vw, 32px);
+  }
+  .casa-box__item-pic {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .casa-box__item-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: clamp(60px, 6vw, 72px);
+    flex: 1 0 auto;
+    justify-content: flex-start;
+    width: 100%;
+    min-width: 0;
+  }
+  .casa-box__item-name {
+    font: 500 clamp(13px, 1.2vw, 15px)/1.3 var(--font-body--family);
+    color: var(--casa-box-ink);
+    margin: 0;
+    letter-spacing: -0.005em;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+  }
+  .casa-box__item-spec {
+    font: 500 clamp(10.5px, 1vw, 11.5px)/1.55 'JetBrains Mono', monospace;
+    letter-spacing: 0.04em;
+    color: var(--casa-box-mute);
+    margin: 0;
+    text-wrap: balance;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+
+  /* ── footnote ──────────────────────────────────── */
+  .casa-box__footnote {
+    margin: clamp(28px, 3vw, 40px) auto 0;
+    text-align: center;
+    font: 500 10px 'JetBrains Mono', monospace;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--casa-box-mute);
+    max-width: 56ch;
+  }
+
+  @media (max-width: 540px) {
+    .casa-box { padding: 44px 0; }
+    .casa-box__item { padding: 18px 14px 16px; }
+    .casa-box__item-glyph { width: 56px; height: 56px; margin-bottom: 12px; }
+    /* Row-stretch already equalises card heights, so drop the tall
+       body min-height on phones — it was padding every card with empty
+       vertical space and is a big part of why the stack felt huge. */
+    .casa-box__item-body { min-height: 0; gap: 4px; }
+  }
+
+  /* Narrowest phones (≤380px): tighten the tile so two columns never
+     crowd or overflow. Verified clean at 320px and 280px. */
+  @media (max-width: 380px) {
+    .casa-box__items:not([class*="--"]) { gap: 8px; }
+    .casa-box__item { padding: 16px 11px 14px; }
+    .casa-box__item-glyph { width: 50px; height: 50px; margin-bottom: 10px; }
+    .casa-box__item-icon svg { width: 24px; height: 24px; }
+    .casa-box__item-name { font-size: 12.5px; }
+    /* spec + № keep their inherited sizes (10.5px / 9px): the mono-mute
+       colour already sits at the AA contrast floor, so we don't shrink it
+       further. Text wraps rather than clips at this width. */
+    .casa-box__item-ord { top: 8px; right: 8px; }
+  }
+
+  /* ────────────────────────────────────────────────────────────
+     LIST LAYOUT — each item is a horizontal-row card (icon left,
+     content right). Substantive: name + spec + 2-line body copy.
+     Magazine spec-list pattern. Tight, no wasted real estate.
+     Activated by `layout: list` in section settings.
+     ──────────────────────────────────────────────────────────── */
+  .casa-box__items--list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(12px, 1.4vw, 16px);
+  }
+  @media (max-width: 700px) {
+    .casa-box__items--list { grid-template-columns: 1fr; }
+  }
+
+  /* In list mode, every card is a horizontal row regardless of
+     featured/accessory distinction. Override the uniform centered
+     layout. */
+  .casa-box__items--list .casa-box__item {
+    flex-direction: row;
+    text-align: left;
+    align-items: flex-start;
+    gap: 18px;
+    padding: 20px 22px;
+  }
+  .casa-box__items--list .casa-box__item-ord {
+    position: absolute;
+    top: 16px;
+    right: 18px;
+    font-size: 9px;
+  }
+  .casa-box__items--list .casa-box__item-glyph {
+    width: 52px;
+    height: 52px;
+    margin-bottom: 0;
+    flex: 0 0 52px;
+  }
+  .casa-box__items--list .casa-box__item-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+  .casa-box__items--list .casa-box__item-body {
+    align-items: flex-start;
+    text-align: left;
+    min-height: 0;
+    gap: 6px;
+  }
+  .casa-box__items--list .casa-box__item-name {
+    font-size: 16px;
+    font-weight: 500;
+    margin: 0;
+  }
+  .casa-box__items--list .casa-box__item-spec {
+    font: 500 10.5px 'JetBrains Mono', monospace;
+    color: var(--casa-box-mute);
+    letter-spacing: 0.10em;
+    margin: 0;
+  }
+  .casa-box__items--list .casa-box__item-bodytext {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--casa-box-soft);
+    margin: 6px 0 0;
+    max-width: 38ch;
+  }
+
+  /* ────────────────────────────────────────────────────────────
+     FEATURED LAYOUT — one big "lamp" card spans 2 rows on the
+     left, 4 accessory cards form a 2x2 grid on the right.
+     Activated by `layout: featured` in section settings.
+     ──────────────────────────────────────────────────────────── */
+  .casa-box__items--featured {
+    grid-template-columns: minmax(0, 1.35fr) repeat(2, minmax(0, 1fr));
+    grid-auto-rows: minmax(160px, 1fr);
+  }
+  .casa-box__items--featured .casa-box__item--featured {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    padding: clamp(28px, 3vw, 40px) clamp(20px, 2vw, 32px) clamp(28px, 3vw, 36px);
+    justify-content: center;
+  }
+  .casa-box__items--featured .casa-box__item--featured .casa-box__item-glyph {
+    width: clamp(100px, 12vw, 140px);
+    height: clamp(100px, 12vw, 140px);
+    margin-bottom: clamp(20px, 2vw, 28px);
+  }
+  .casa-box__items--featured .casa-box__item--featured .casa-box__item-icon svg {
+    width: clamp(48px, 5vw, 60px);
+    height: clamp(48px, 5vw, 60px);
+    stroke-width: 1.3;
+  }
+  .casa-box__items--featured .casa-box__item--featured .casa-box__item-name {
+    font-size: clamp(20px, 1.9vw, 26px);
+    margin-bottom: 4px;
+  }
+  .casa-box__items--featured .casa-box__item--featured .casa-box__item-spec {
+    font-size: clamp(12px, 1.05vw, 13px);
+  }
+  .casa-box__items--featured .casa-box__item--featured .casa-box__item-ord {
+    top: clamp(14px, 1.4vw, 18px);
+    right: clamp(14px, 1.4vw, 18px);
+    font-size: 10px;
+  }
+
+  @media (max-width: 989px) {
+    /* Tablet — featured card spans both cols on its own row,
+       accessory cards continue as a 2-col grid below. */
+    .casa-box__items--featured {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: auto;
+    }
+    .casa-box__items--featured .casa-box__item--featured {
+      grid-column: 1 / -1;
+      grid-row: auto;
+      padding: clamp(28px, 4vw, 40px) clamp(20px, 3vw, 32px);
+    }
+  }
+  @media (max-width: 380px) {
+    .casa-box__items--featured { grid-template-columns: 1fr; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa PDP In the Box",
+  "tag": "section",
+  "class": "casa-pdp-in-the-box-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Layout"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Card layout",
+      "info": "Featured = one big lamp card + 4 small accessory cards. Uniform = 5 equal cards in a row.",
+      "options": [
+        { "value": "uniform", "label": "Uniform 5-up grid (icon-centered)" },
+        { "value": "featured", "label": "Featured lamp + 4 accessories" },
+        { "value": "list", "label": "Horizontal-row list (icon left, copy right)" }
+      ],
+      "default": "uniform"
+    },
+    {
+      "type": "header",
+      "content": "Header"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker (mono uppercase)",
+      "default": "§ 4 · In the box"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading",
+      "info": "Wrap one accent word in <em>.",
+      "default": "Unbox <em>her, gently.</em>"
+    },
+    {
+      "type": "text",
+      "id": "subtitle",
+      "label": "Subtitle (right side of header)",
+      "default": "Everything she needs — nothing she doesn't."
+    },
+    {
+      "type": "header",
+      "content": "Hero image"
+    },
+    {
+      "type": "image_picker",
+      "id": "hero_image",
+      "label": "Hero image",
+      "info": "Recommended: a styled photo of the gift box opening with the lamp + accessories visible. 16:9 aspect."
+    },
+    {
+      "type": "text",
+      "id": "hero_badge",
+      "label": "Hero top-left badge",
+      "default": "Hand-finished · Studio packed"
+    },
+    {
+      "type": "text",
+      "id": "hero_caption",
+      "label": "Hero caption (mono mute, under image)",
+      "default": "Seoul Glow Lab · Studio · since 2020"
+    },
+    {
+      "type": "header",
+      "content": "Footnote"
+    },
+    {
+      "type": "text",
+      "id": "footnote",
+      "label": "Footnote (mono mute, bottom)",
+      "default": "Ships worldwide · USB-C charging cable region-appropriate"
+    },
+    {
+      "type": "header",
+      "content": "Spacing & colors"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 24,
+      "max": 160,
+      "step": 4,
+      "default": 64,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 24,
+      "max": 160,
+      "step": 4,
+      "default": 64,
+      "unit": "px"
+    },
+    {
+      "type": "color",
+      "id": "color_paper",
+      "label": "Paper",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "color_elevated",
+      "label": "Elevated card",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "color_tint",
+      "label": "Icon-tile tint",
+      "default": "#F4F1EA"
+    },
+    {
+      "type": "color",
+      "id": "color_ink",
+      "label": "Ink (heading + name + icon)",
+      "default": "#0A0A0F"
+    },
+    {
+      "type": "color",
+      "id": "color_soft",
+      "label": "Body soft",
+      "default": "#54545C"
+    },
+    {
+      "type": "color",
+      "id": "color_mute",
+      "label": "Mono mute",
+      "default": "#8B8B92"
+    },
+    {
+      "type": "color",
+      "id": "color_rule",
+      "label": "Rule / border",
+      "default": "#E8E8E4"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "item",
+      "name": "Item",
+      "limit": 6,
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icon (fallback when no photo)",
+          "info": "Pick an icon that fits the accessory. Overridden by Item photo if uploaded.",
+          "options": [
+            { "value": "lamp",    "label": "Lamp (Bubble Girl)" },
+            { "value": "bubble",  "label": "Bubble (glass sphere)" },
+            { "value": "bulb",    "label": "Light bulb" },
+            { "value": "cable",   "label": "USB cable / plug" },
+            { "value": "manual",  "label": "Manual / booklet" },
+            { "value": "gift",    "label": "Gift box" },
+            { "value": "box",     "label": "Cube box" },
+            { "value": "sparkle", "label": "Sparkle" }
+          ],
+          "default": "lamp"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Item photo (overrides icon)",
+          "info": "Square works best."
+        },
+        {
+          "type": "text",
+          "id": "name",
+          "label": "Item name",
+          "default": "Item name"
+        },
+        {
+          "type": "text",
+          "id": "spec",
+          "label": "Spec / one-line description",
+          "info": "Short — fits below the name (e.g. 'G4 · 3.7V · 2W')."
+        },
+        {
+          "type": "textarea",
+          "id": "body",
+          "label": "Body copy (list layout only)",
+          "info": "2-line description that explains why this item matters / justifies value. Only renders in the 'list' layout."
+        }
+      ]
+    }
+  ],
+  "max_blocks": 6,
+  "presets": [
+    {
+      "name": "Casa PDP In the Box",
+      "category": "Product",
+      "blocks": [
+        { "type": "item", "settings": { "icon": "lamp",   "name": "The lamp", "spec": "Hand-painted polymer · weighted base" } },
+        { "type": "item", "settings": { "icon": "bubble", "name": "Clear glass bubble", "spec": "Removable · replaceable" } },
+        { "type": "item", "settings": { "icon": "bulb",   "name": "LED light bulb", "spec": "G4 · 3.7V · 2W · warm white" } },
+        { "type": "item", "settings": { "icon": "cable",  "name": "USB charging cable", "spec": "Up to 12 hr cordless" } },
+        { "type": "item", "settings": { "icon": "manual", "name": "Instruction manual", "spec": "Setup + care · printed" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,34 @@
+{%- comment -%}
+  Casa Installment Fragment
+
+  Minimal section used by the product.installment-fragment.json
+  alternate template. Renders ONLY Shopify's official Shop Pay
+  Installments widget for the current product, with no surrounding
+  layout chrome. Recently Viewed cards fetch this URL and inject
+  the result so RV gets the real branded payment_terms widget
+  instead of static text.
+
+  URL pattern (storefront):
+    /products/{handle}?view=installment-fragment
+
+  Strip everything except the form/widget so the response is small.
+{%- endcomment -%}
+
+{%- assign current_variant = product.selected_or_first_available_variant -%}
+{%- if current_variant != blank and current_variant.price > 0 -%}
+  {%- assign casa_rv_form_id = 'casa-rv-installment-' | append: product.id -%}
+  <div class="casa-rv-installment-fragment">
+    {%- form 'product', product, id: casa_rv_form_id, class: 'casa-rv-installment-fragment__form' -%}
+      <input type="hidden" name="id" value="{{ current_variant.id }}">
+      {{ form | payment_terms }}
+    {%- endform -%}
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Casa Installment Fragment",
+  "tag": "section",
+  "settings": []
+}
+{% endschema %}

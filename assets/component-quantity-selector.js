@@ -257,7 +257,14 @@ export class QuantitySelectorComponent extends Component {
     const { quantityInput } = this.refs;
     const newValue = parseInt(quantityInput.value);
 
-    this.dispatchEvent(new QuantitySelectorUpdateEvent(newValue, Number(quantityInput.dataset.cartLine) || undefined));
+    this.dispatchEvent(
+      new QuantitySelectorUpdateEvent(
+        newValue,
+        Number(quantityInput.dataset.cartLine) || undefined,
+        // RC-4: carry the stable line key so the cart resolves the row by key, not index.
+        quantityInput.dataset.lineKey || undefined
+      )
+    );
   }
 
   /**

@@ -65,8 +65,8 @@ class StickyAddToCartComponent extends Component {
   /** @type {number} */
   #currentQuantity = 1;
 
-  /** @type {boolean} */
-  #hiddenByBottom = false;
+  /** @type {Element | null} */
+  #footerEl = null;
 
   connectedCallback() {
     super.connectedCallback();
@@ -106,8 +106,12 @@ class StickyAddToCartComponent extends Component {
     if (!buyButtonsBlock) return;
 
     // In themes migrated from 2.0, the footer element doesn't exist
-    const footer = document.querySelector('footer') ?? document.querySelector('[class*="footer-group"]');
+    const footer =
+      document.querySelector('footer.casa-footer') ??
+      document.querySelector('footer') ??
+      document.querySelector('[class*="footer-group"]');
     if (!footer) return;
+    this.#footerEl = footer;
 
     // Observer for buy buttons visibility
     this.#buyButtonsIntersectionObserver = new IntersectionObserver((entries) => {
@@ -124,7 +128,6 @@ class StickyAddToCartComponent extends Component {
         }
         // If rect.top >= 0, element is below viewport - don't show sticky bar yet
       } else if (entry.isIntersecting && this.#isStuck) {
-        this.#hiddenByBottom = false;
         this.#hideStickyBar();
       }
     });
@@ -135,17 +138,12 @@ class StickyAddToCartComponent extends Component {
         const [entry] = entries;
         if (!entry) return;
 
+        // Footer observer only HIDES — never re-shows. (See casa-sticky-cart.js
+        // for the full rationale: the old reshow branch re-fired on the iOS
+        // Safari URL-bar viewport-height change and popped the bar back over
+        // the footer.) #showStickyBar() also gates on footer visibility.
         if (entry.isIntersecting && this.#isStuck) {
-          this.#hiddenByBottom = true;
           this.#hideStickyBar();
-        } else if (!entry.isIntersecting && this.#hiddenByBottom) {
-          // Footer out of view - check if we should show sticky bar again
-          const rect = buyButtonsBlock.getBoundingClientRect();
-          // Only show if buy buttons are above the viewport (scrolled past)
-          if (rect.bottom < 0 || rect.top < 0) {
-            this.#hiddenByBottom = false;
-            this.#showStickyBar();
-          }
         }
       },
       {
@@ -166,7 +164,8 @@ class StickyAddToCartComponent extends Component {
     if (!this.#targetAddToCartButton) return;
     this.#targetAddToCartButton.dataset.puppet = 'true';
     this.#targetAddToCartButton.click();
-    const cartIcon = document.querySelector('.header-actions__cart-icon');
+    // Casa: match the live header's .casa-header__cart-icon (stock class kept as fallback).
+    const cartIcon = document.querySelector('.casa-header__cart-icon, .header-actions__cart-icon');
 
     if (this.refs.addToCartButton.dataset.added !== 'true') {
       this.refs.addToCartButton.dataset.added = 'true';
@@ -294,6 +293,8 @@ class StickyAddToCartComponent extends Component {
    * Shows the sticky bar with animation
    */
   #showStickyBar() {
+    // Never show while the footer is on screen — see casa-sticky-cart.js.
+    if (this.#footerEl && this.#footerEl.getBoundingClientRect().top <= window.innerHeight) return;
     const { stickyBar } = this.refs;
     this.#isStuck = true;
     stickyBar.dataset.stuck = 'true';

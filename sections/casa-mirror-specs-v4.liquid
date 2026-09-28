@@ -1,0 +1,124 @@
+{%- comment -%}
+  casa-mirror-specs-v4.liquid
+  Seoul Glow Lab — Chapter 09 "Technical" (OctaMirror v4 PDP)
+
+  The compact, scannable home for every number: a sizes table read from
+  the product's variants (never typed prices), a definition list of specs
+  from settings, and the guarantee / returns / shipping lines. Everything
+  important has one best home; this is the home for the technical rest.
+
+  Used by: templates/product.infinity-octamirror-v4.json
+  Blocks:  none
+  Settings: kicker, heading, spec_lines ("Label | Value" per line),
+            depth_label, service lines, padding.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign spec_lines = s.spec_lines | newline_to_br | split: '<br />'
+  assign svc_lines = s.service_lines | newline_to_br | split: '<br />'
+-%}
+
+<section
+  id="casa-ms-{{ section.id }}"
+  class="casa-ms"
+  data-casa-section="specs"
+  style="--casa-ms-pt: {{ s.padding_top | default: 56 }}px; --casa-ms-pb: {{ s.padding_bottom | default: 56 }}px;"
+>
+  <div class="casa-ms__cap">
+    <header class="casa-ms__head">
+      {%- if s.kicker != blank -%}<p class="casa-ms__mono">{{ s.kicker | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="casa-ms__h2">{{ s.heading }}</h2>{%- endif -%}
+    </header>
+
+    <div class="casa-ms__grid">
+      <div class="casa-ms__col">
+        <p class="casa-ms__mono casa-ms__mono--sub">{{ s.sizes_title | default: 'Sizes' | escape }}</p>
+        <table class="casa-ms__table">
+          <thead><tr><th scope="col">Size</th><th scope="col">Width × height</th><th scope="col">Depth</th><th scope="col">Price</th></tr></thead>
+          <tbody>
+            {%- for v in product.variants -%}
+              {%- assign inch = v.title | split: '/' | first | strip -%}
+              {%- assign cm = v.title | split: '/' | last | strip -%}
+              <tr>
+                <td>{% if v.title contains '11.8' %}Small{% elsif v.title contains '19.7' %}Medium{% else %}Large{% endif %}</td>
+                <td>{{ inch | escape }} × {{ inch | escape }}<span class="casa-ms__cm">{{ cm | escape }} × {{ cm | escape }}</span></td>
+                <td>{{ s.depth_label | default: '5"' | escape }}</td>
+                <td>{{ v.price | money_with_currency }}{% if v.compare_at_price > v.price %} <s class="casa-ms__was">{{ v.compare_at_price | money_with_currency }}</s>{% endif %}</td>
+              </tr>
+            {%- endfor -%}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="casa-ms__col">
+        <p class="casa-ms__mono casa-ms__mono--sub">{{ s.specs_title | default: 'Specifications' | escape }}</p>
+        <dl class="casa-ms__dl">
+          {%- for line in spec_lines -%}
+            {%- assign parts = line | split: '|' -%}
+            {%- if parts.size == 2 -%}
+              <div><dt>{{ parts[0] | strip | escape }}</dt><dd>{{ parts[1] | strip | escape }}</dd></div>
+            {%- endif -%}
+          {%- endfor -%}
+        </dl>
+      </div>
+
+      <div class="casa-ms__col">
+        <p class="casa-ms__mono casa-ms__mono--sub">{{ s.service_title | default: 'Service' | escape }}</p>
+        <dl class="casa-ms__dl">
+          {%- for line in svc_lines -%}
+            {%- assign parts = line | split: '|' -%}
+            {%- if parts.size == 2 -%}
+              <div><dt>{{ parts[0] | strip | escape }}</dt><dd>{{ parts[1] | strip }}</dd></div>
+            {%- endif -%}
+          {%- endfor -%}
+        </dl>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% stylesheet %}
+  .casa-ms { background: var(--bg-paper, #FAFAF7); color: var(--t-on-light, #0A0A0F); padding-block: var(--casa-ms-pt) var(--casa-ms-pb); }
+  .casa-ms__cap { max-width: 1280px; margin-inline: auto; padding-inline: clamp(20px, 5vw, 48px); }
+  .casa-ms__head { margin-bottom: clamp(16px, 3vw, 28px); }
+  .casa-ms__mono { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--t-on-light-muted, #54545C); margin: 0 0 12px; }
+  .casa-ms__mono--sub { margin-bottom: 8px; }
+  .casa-ms__h2 { font-family: var(--casa-pdp-h2-family); font-weight: var(--casa-pdp-h2-weight); font-size: var(--casa-pdp-h2-size); letter-spacing: var(--casa-pdp-h2-tracking); line-height: var(--casa-pdp-h2-line); margin: 0; text-wrap: balance; }
+  .casa-ms__h2 em { font-style: italic; font-weight: 800; background-image: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; padding-right: 0.05em; }
+  .casa-ms__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .casa-ms__table { width: 100%; border-collapse: collapse; font-family: var(--font-body--family); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .casa-ms__table th { text-align: left; font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 400; color: var(--t-on-light-muted, #54545C); padding: 0 8px 8px 0; border-bottom: 1px solid var(--border-on-light, rgba(10,10,15,0.14)); }
+  .casa-ms__table td { padding: 10px 8px 10px 0; border-bottom: 1px solid var(--border-on-light, rgba(10,10,15,0.1)); vertical-align: top; }
+  .casa-ms__cm { display: block; font-size: 12px; color: var(--t-on-light-muted, #54545C); }
+  .casa-ms__was, .casa-ms__was .money { color: var(--t-on-light-muted, #54545C); opacity: 1; margin-left: 6px; }
+  .casa-ms__dl { margin: 0; display: grid; gap: 0; }
+  .casa-ms__dl div { display: grid; grid-template-columns: minmax(0, 40%) minmax(0, 1fr); gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border-on-light, rgba(10,10,15,0.1)); font-family: var(--font-body--family); font-size: 14px; line-height: 1.4; }
+  .casa-ms__dl dt { color: var(--t-on-light-muted, #54545C); }
+  .casa-ms__dl dd { margin: 0; }
+  .casa-ms__dl dd a { color: inherit; text-decoration: underline; text-decoration-color: var(--c-purple, #B0C3FA); text-underline-offset: 3px; }
+  @media (min-width: 990px) {
+    .casa-ms__grid { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 48px; align-items: start; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Mirror Specs v4",
+  "tag": "section",
+  "class": "casa-mirror-specs-section",
+  "settings": [
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "09 · Technical" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "Every number, <em>one place.</em>" },
+    { "type": "text", "id": "sizes_title", "label": "Sizes title", "default": "Sizes" },
+    { "type": "text", "id": "depth_label", "label": "Depth (all sizes)", "default": "5\" · 12.5 cm" },
+    { "type": "text", "id": "specs_title", "label": "Specs title", "default": "Specifications" },
+    { "type": "textarea", "id": "spec_lines", "label": "Specs, one per line: Label | Value", "default": "Control | Remote + Tuya Smart app + voice (Alexa, Google, Siri)\nWi-Fi | 2.4 GHz only\nColours | 1M+\nEffects | 360+, custom multi-colour\nDimming | Yes\nTimer | Sleep / wake\nMusic | Syncs to music and beats\nLEDs | 50,000+ hours · 13+ years at 10 h a day\nPower | Universal adapter 100–240V · 20W · 50Hz, US / EU / UK / AU plugs\nCord | 98 in · 250 cm\nMount | Wall bracket + hook, 2 anchors + 2 screws" },
+    { "type": "text", "id": "service_title", "label": "Service title", "default": "Service" },
+    { "type": "textarea", "id": "service_lines", "label": "Service lines: Label | Value", "default": "Guarantee | 2-year Casa Guarantee: full replacement or refund\nReturns | 30 days from delivery\nShipping | Free express worldwide via UPS / FedEx / DHL\nSupport | <a href=\"mailto:info@seoulglowlab.com\">info@seoulglowlab.com</a>" },
+    { "type": "range", "id": "padding_top", "label": "Top padding", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 56 },
+    { "type": "range", "id": "padding_bottom", "label": "Bottom padding", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 56 }
+  ],
+  "presets": [ { "name": "Casa Mirror Specs v4", "category": "Product" } ]
+}
+{% endschema %}

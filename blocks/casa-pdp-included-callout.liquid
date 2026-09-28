@@ -1,0 +1,189 @@
+{%- doc -%}
+  Seoul Glow Lab — "What's Included" reassurance callout
+  Designed for the Phoenix PDP (5 sunset films + 5 arm modules) but generic
+  enough to be reused for any product that ships a kit. Lives inside the
+  Horizon `product-information` section block_order, directly under the
+  Add-to-Cart button. Addresses post-purchase confusion about kit contents.
+
+  Reference: handoff README §"Top Conversion Fix" — Amalea Chen's review
+  "I only got one color of filters" was the #1 conversion blocker; this
+  card surfaces "all 5 films included" before purchase, not after.
+{%- enddoc -%}
+
+{%- assign s = block.settings -%}
+
+<div
+  class="casa-included spacing-style"
+  id="casa-included-{{ block.id }}"
+  style="
+    --casa-included-accent: {{ s.accent_color | default: '#E8B86A' }};
+    {% render 'spacing-style', settings: s %}
+  "
+  {{ block.shopify_attributes }}
+>
+  <div class="casa-included__icon" aria-hidden="true">
+    {{ s.badge_text | default: '5' }}
+  </div>
+  <div class="casa-included__body">
+    <strong class="casa-included__title">{{ s.heading }}</strong>
+    {%- if s.body != blank -%}
+      <span class="casa-included__copy">{{ s.body }}</span>
+    {%- endif -%}
+  </div>
+</div>
+
+{% stylesheet %}
+  .casa-included {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    margin: 0;
+    background: #FAFAF7;
+    border: 1px solid rgba(10, 10, 15, 0.08);
+    border-radius: 0;
+    font-family: var(--font-body--family, "Inter", system-ui, sans-serif);
+  }
+
+  .casa-included__icon {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--casa-included-accent, #E8B86A);
+    color: #0A0A0F;
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .casa-included__body {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .casa-included__title {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    color: #0A0A0F;
+  }
+
+  .casa-included__title em {
+    font-style: italic;
+    font-weight: 600;
+    color: var(--casa-included-accent, #E8B86A);
+  }
+
+  .casa-included__copy {
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: rgba(10, 10, 15, 0.7);
+  }
+
+  .casa-included__copy p {
+    margin: 0;
+  }
+
+  @media (max-width: 749px) {
+    .casa-included {
+      padding: 12px 14px;
+      gap: 10px;
+    }
+    .casa-included__icon {
+      width: 32px;
+      height: 32px;
+      font-size: 14px;
+    }
+    .casa-included__title {
+      font-size: 13px;
+    }
+    .casa-included__copy {
+      font-size: 12px;
+    }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Included Callout",
+  "tag": null,
+  "settings": [
+    {
+      "type": "header",
+      "content": "Content"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Headline",
+      "info": "Product-specific — enter per template. Pre-2026-05-17 defaulted to Phoenix sunset-film copy which bled onto every product using this block."
+    },
+    {
+      "type": "richtext",
+      "id": "body",
+      "label": "Body"
+    },
+    {
+      "type": "text",
+      "id": "badge_text",
+      "label": "Badge text",
+      "info": "Short number or symbol inside the round badge (e.g. 5, ✓)."
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "info": "Tints the badge and the italic headline accent.",
+      "default": "#E8B86A"
+    },
+    {
+      "type": "header",
+      "content": "t:content.padding"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "t:settings.top",
+      "min": 0, "max": 100, "step": 1, "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "t:settings.bottom",
+      "min": 0, "max": 100, "step": 1, "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "padding-inline-start",
+      "label": "t:settings.left",
+      "min": 0, "max": 100, "step": 1, "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-inline-end",
+      "label": "t:settings.right",
+      "min": 0, "max": 100, "step": 1, "unit": "px",
+      "default": 0
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Included Callout",
+      "category": "t:categories.product"
+    }
+  ]
+}
+{% endschema %}

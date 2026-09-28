@@ -3,10 +3,22 @@
   4-column grid with gradient numbers + countup animation
 {%- endcomment -%}
 
+{%- comment -%} Auto-hide when no stat blocks have values {%- endcomment -%}
+{%- assign _has_content = false -%}
+{%- for block in section.blocks -%}
+  {%- if block.settings.value != blank or block.settings.number != blank or block.settings.title != blank -%}
+    {%- assign _has_content = true -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if _has_content == false and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
 {%- liquid
-  assign bg_color = section.settings.bg_color | default: '#fafafa'
-  assign number_color_1 = section.settings.number_color_1 | default: '#9333ea'
-  assign number_color_2 = section.settings.number_color_2 | default: '#ec4899'
+  assign bg_color = section.settings.bg_color | default: '#FAFAF7'
+  assign number_color_1 = section.settings.number_color_1 | default: '#B0C3FA'
+  assign number_color_2 = section.settings.number_color_2 | default: '#5E0A02'
   assign label_color = section.settings.label_color | default: '#6b7280'
   assign padding_top = section.settings.padding_top | default: 120
   assign padding_bottom = section.settings.padding_bottom | default: 120
@@ -14,6 +26,10 @@
   assign countup_duration = section.settings.countup_duration | default: 2000
 -%}
 
+{%- comment -%}
+  Heading-scale dropdown: merchant picks H1-H6 from Theme Settings -> Typography.
+{%- endcomment -%}
+{%- assign _cs_title_h = section.settings.cs_heading_level | default: 'h1' -%}
 <section
   class="casa-stats"
   style="
@@ -23,6 +39,11 @@
     --cs-label: {{ label_color }};
     --cs-pt: {{ padding_top }}px;
     --cs-pb: {{ padding_bottom }}px;
+    --cs-title-fs:   var(--font-{{ _cs_title_h }}--size);
+    --cs-title-fw:   var(--font-{{ _cs_title_h }}--weight);
+    --cs-title-lh:   var(--font-{{ _cs_title_h }}--line-height);
+    --cs-title-ls:   var(--font-{{ _cs_title_h }}--letter-spacing);
+    --cs-title-case: var(--font-{{ _cs_title_h }}--case);
   "
 >
   {%- if section.settings.title != blank -%}
@@ -90,8 +111,11 @@
     if (!parsed) return;
 
     var startTime = null;
-    el.textContent = parsed.prefix + '0' + parsed.multiplierChar + parsed.suffix;
 
+    /* Reset to "0" is now done INSIDE the first rAF tick (was set
+       synchronously above), so the SSR value stays painted until the
+       browser is genuinely about to animate. Eliminates the visible
+       "flash to 0" the user reported on slow main-thread frames. */
     function step(timestamp) {
       if (!startTime) startTime = timestamp;
       var progress = Math.min((timestamp - startTime) / duration, 1);
@@ -105,7 +129,15 @@
     requestAnimationFrame(step);
   }
 
-  /* IntersectionObserver — only animate when visible */
+  /* Reduced-motion users keep the SSR value — no countup, no flash. */
+  var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reducedMotion) return;
+
+  /* IntersectionObserver — only animate when visible.
+     rootMargin '200px' starts the countup slightly before the user
+     reaches the section so the animation can complete before they
+     read the numbers, instead of starting on entry and finishing
+     800-2000ms later. */
   var observer = new IntersectionObserver(function(entries) {
     entries.forEach(function(entry) {
       if (entry.isIntersecting) {
@@ -113,7 +145,7 @@
         observer.unobserve(entry.target);
       }
     });
-  }, { threshold: 0.3 });
+  }, { threshold: 0, rootMargin: '0px 0px 200px 0px' });
 
   document.querySelectorAll('[data-countup]').forEach(function(el) {
     observer.observe(el);
@@ -133,9 +165,25 @@
       "content": "Content"
     },
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "title",
-      "label": "Title"
+      "label": "Title",
+      "info": "Use <em>...</em> on the keyword for the brand italic-gradient accent."
+    },
+    {
+      "type": "select",
+      "id": "cs_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
     },
     {
       "type": "text",
@@ -171,25 +219,25 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background",
-      "default": "#fafafa"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
       "id": "number_color_1",
       "label": "Number gradient start",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "number_color_2",
       "label": "Number gradient end",
-      "default": "#ec4899"
+      "default": "#5E0A02"
     },
     {
       "type": "color",
       "id": "label_color",
       "label": "Label color",
-      "default": "#6b7280"
+      "default": "#525252"
     },
     {
       "type": "header",
@@ -225,14 +273,12 @@
           "type": "text",
           "id": "number",
           "label": "Number",
-          "info": "Supports formats: 50K+, 4.9, $100M, 87%, 2-Year",
-          "default": "50K+"
+          "info": "Supports formats: 50K+, 4.9, $100M, 87%, 2-Year. Product / store-level — enter per template."
         },
         {
           "type": "text",
           "id": "label",
-          "label": "Label",
-          "default": "Happy Customers"
+          "label": "Label"
         }
       ]
     }
@@ -243,20 +289,15 @@
       "settings": {
         "enable_countup": true
       },
-      "blocks": [
-        { "type": "stat", "settings": { "number": "50K+", "label": "Happy Customers" } },
-        { "type": "stat", "settings": { "number": "4.9", "label": "Average Rating" } },
-        { "type": "stat", "settings": { "number": "87", "label": "Countries Shipped" } },
-        { "type": "stat", "settings": { "number": "100K+", "label": "Products Sold" } }
-      ]
+      "blocks": []
     }
   ]
 }
 {% endschema %}
 
-<style>
+{% stylesheet %}
 .casa-stats {
-  background: var(--cs-bg, #fafafa);
+  background: var(--cs-bg, var(--casa-paper));
   padding: var(--cs-pt, 120px) 80px var(--cs-pb, 120px);
 }
 
@@ -271,14 +312,19 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  color: var(--cs-num-1, #9333ea);
+  color: var(--cs-num-1, #B0C3FA);
   margin-bottom: 8px;
 }
 
 .casa-stats__title {
-  font-size: 32px;
-  font-weight: 300;
-  color: #1a1a2e;
+  /* Heading scale comes from Theme Settings -> Typography via the
+     cs_heading_level dropdown; legacy font-h2 token preserved as fallback. */
+  font-size: var(--cs-title-fs, var(--font-h2--size, 32px));
+  font-weight: var(--cs-title-fw, 300);
+  line-height: var(--cs-title-lh, normal);
+  letter-spacing: var(--cs-title-ls, normal);
+  text-transform: var(--cs-title-case, none);
+  color: var(--color-foreground, var(--casa-ink));
   margin: 0;
 }
 
@@ -294,17 +340,32 @@
 .casa-stats__number {
   font-size: 64px;
   font-weight: 300;
-  background: linear-gradient(135deg, var(--cs-num-1, #9333ea), var(--cs-num-2, #ec4899));
+  /* Brand-book canonical: stats numbers use --grad-primary. Tight
+     -0.035em tracking matches the v2 PDP feature-stat treatment
+     (casa-pdp-features.liquid:631) so the homepage and PDPs share
+     the same stat-number register. Merchant tokens --cs-num-1/-2
+     still allowed for per-instance palette overrides. */
+  letter-spacing: -0.035em;
+  background-image: linear-gradient(135deg, var(--cs-num-1, var(--c-purple, #B0C3FA)), var(--cs-num-2, var(--c-pink, #5E0A02)));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   line-height: 1;
 }
 
 .casa-stats__label {
-  font-size: 16px;
-  color: var(--cs-label, #6b7280);
+  /* Brand "spec register": JetBrains Mono UPPERCASE, 0.08–0.12em
+     tracking, brand --t-on-dark-muted color so labels read as factual
+     spec text rather than competing with the gradient numbers. See
+     locked typography memory: "Mono labels stay distinct: UPPERCASE
+     JetBrains Mono · 0.08–0.12em letter-spacing." */
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cs-label, var(--t-on-dark-muted, rgba(255,255,255,0.65)));
 }
 
 @media (max-width: 900px) {
@@ -335,8 +396,6 @@
   .casa-stats__label {
     font-size: 14px;
   }
-  .casa-stats__title {
-    font-size: 24px;
-  }
+  /* Title font-size handled by Horizon heading tokens. */
 }
-</style>
+{% endstylesheet %}

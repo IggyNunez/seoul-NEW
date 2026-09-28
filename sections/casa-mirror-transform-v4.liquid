@@ -1,0 +1,201 @@
+{%- comment -%}
+  casa-mirror-transform-v4.liquid
+  Seoul Glow Lab — Chapter 02 "Mirror → Infinity" (OctaMirror v4 PDP)
+
+  One scene, one camera, two exact states. The OFF render and the ON render
+  sit on top of each other in a sticky stage; scrolling scrubs the ON layer
+  in, so the customer performs the switch. No labels on the image, no pills,
+  no chrome: a one-line state caption and a plain text switch below the
+  stage. The product is the wow.
+
+  Used by: templates/product.infinity-octamirror-v4.json
+  Blocks:  none
+  Settings: kicker, heading (inline_richtext, one <em>), lede,
+            off_image / on_image (image_picker, identical framing), alts,
+            off_label, on_label, padding.
+
+  Media: 4:5 on phones (cover-cropped from the square render, mirror kept in
+  frame), 1:1 capped at 760px beside the copy on desktop. Both images lazy —
+  the chapter is below the fold and must not race the gallery hero.
+  Motion: passive scroll listener throttled by requestAnimationFrame, armed
+  by IntersectionObserver; reduced motion shows the ON state with the switch.
+  Also mounts the v4 analytics script (one per page; the script guards itself).
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign has_pair = false
+  if s.off_image != blank and s.on_image != blank
+    assign has_pair = true
+  endif
+-%}
+
+<section
+  id="casa-mt-{{ section.id }}"
+  class="casa-mt"
+  data-casa-section="transform"
+  style="--casa-mt-pt: {{ s.padding_top | default: 72 }}px; --casa-mt-pb: {{ s.padding_bottom | default: 56 }}px;"
+>
+  <div class="casa-mt__cap">
+    <header class="casa-mt__head">
+      {%- if s.kicker != blank -%}<p class="casa-mt__mono">{{ s.kicker | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="casa-mt__h2">{{ s.heading }}</h2>{%- endif -%}
+      {%- if s.lede != blank -%}<p class="casa-mt__lede">{{ s.lede | escape }}</p>{%- endif -%}
+    </header>
+  </div>
+
+  {%- if has_pair -%}
+    <div class="casa-mt__scroller" data-casa-mt>
+      <div class="casa-mt__stage">
+        <figure class="casa-mt__frame">
+          {{ s.off_image | image_url: width: 2000 | image_tag:
+            widths: '480, 768, 1080, 1440, 2000',
+            sizes: '(min-width: 990px) 56vw, 100vw',
+            loading: 'lazy',
+            decoding: 'async',
+            class: 'casa-mt__img casa-mt__img--off',
+            alt: s.off_alt | default: 'The mirror switched off, reflecting the room in daylight' }}
+          {{ s.on_image | image_url: width: 2000 | image_tag:
+            widths: '480, 768, 1080, 1440, 2000',
+            sizes: '(min-width: 990px) 56vw, 100vw',
+            loading: 'lazy',
+            decoding: 'async',
+            class: 'casa-mt__img casa-mt__img--on',
+            alt: s.on_alt | default: 'The same mirror switched on: a tunnel of coloured LED reflections' }}
+        </figure>
+        <div class="casa-mt__under">
+          <p class="casa-mt__state" aria-live="polite">
+            <span class="casa-mt__state-off">{{ s.off_label | default: 'Lights off' | escape }}</span>
+            <span class="casa-mt__state-on">{{ s.on_label | default: 'Lights on' | escape }}</span>
+          </p>
+          <div class="casa-mt__switch" role="group" aria-label="Mirror lights">
+            <button type="button" class="casa-mt__sbtn" data-casa-mt-set="0" aria-pressed="false">{{ s.off_label | default: 'Lights off' | escape }}</button>
+            <button type="button" class="casa-mt__sbtn" data-casa-mt-set="1" aria-pressed="true">{{ s.on_label | default: 'Lights on' | escape }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {%- endif -%}
+  {%- comment -%} Analytics mount for the v4 PDP (one per page; the script guards itself). {%- endcomment -%}
+  <div data-casa-analytics data-product-handle="{{ product.handle }}" data-product-id="{{ product.id }}" hidden></div>
+  <script src="{{ 'casa-pdp-analytics-v4.js' | asset_url }}" defer></script>
+</section>
+
+<script>
+  (function () {
+    'use strict';
+    var root = document.getElementById('casa-mt-{{ section.id }}');
+    if (!root || root.dataset.casaMtInit === '1') return;
+    root.dataset.casaMtInit = '1';
+    var scroller = root.querySelector('[data-casa-mt]');
+    if (!scroller) return;
+    var stage = scroller.querySelector('.casa-mt__stage');
+    var btns = Array.prototype.slice.call(root.querySelectorAll('[data-casa-mt-set]'));
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var forced = null;
+
+    function paint(p) {
+      stage.style.setProperty('--casa-mt-p', String(p));
+      var on = p >= 0.5;
+      stage.classList.toggle('is-on', on);
+      btns.forEach(function (b) { b.setAttribute('aria-pressed', String((Number(b.dataset.casaMtSet) === 1) === on)); });
+    }
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        forced = Number(b.dataset.casaMtSet);
+        paint(forced);
+        if (window.casa && window.casa.pdpEvent) window.casa.pdpEvent('transform_toggle', { section: 'transform', label: forced ? 'on' : 'off' });
+      });
+    });
+    if (reduce) { paint(1); return; }
+
+    var ticking = false, armed = false;
+    function measure() {
+      if (forced !== null) return;
+      var r = scroller.getBoundingClientRect();
+      var vh = window.innerHeight || 1;
+      var stageH = stage.offsetHeight || 1;
+      var travel = Math.max(1, r.height - stageH);
+      var p = (vh * 0.5 - r.top - stageH * 0.35) / travel;
+      p = Math.max(0, Math.min(1, p));
+      p = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+      paint(p);
+    }
+    function onScroll() {
+      if (!armed || ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(function () { ticking = false; measure(); });
+    }
+    paint(0);
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { armed = e.isIntersecting; if (!armed) forced = null; if (armed) measure(); });
+      }, { rootMargin: '25% 0px 25% 0px' }).observe(scroller);
+    } else { armed = true; }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    window.requestAnimationFrame(measure);
+  })();
+</script>
+
+{% stylesheet %}
+  .casa-mt { background: var(--bg-dark, #0A0A0F); color: var(--t-on-dark, #fff); padding-block: var(--casa-mt-pt) var(--casa-mt-pb); }
+  .casa-mt__cap { max-width: 1280px; margin-inline: auto; padding-inline: clamp(20px, 5vw, 48px); }
+  .casa-mt__head { max-width: 40ch; margin-bottom: clamp(24px, 4vw, 40px); }
+  .casa-mt__mono { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.6; margin: 0 0 12px; }
+  .casa-mt__h2 { font-family: var(--casa-pdp-h2-family); font-weight: var(--casa-pdp-h2-weight); font-size: var(--casa-pdp-h2-size); letter-spacing: var(--casa-pdp-h2-tracking); line-height: var(--casa-pdp-h2-line); margin: 0; text-wrap: balance; }
+  .casa-mt__h2 em { font-style: italic; font-weight: 800; background-image: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; padding-right: 0.05em; }
+  .casa-mt__lede { font-family: var(--font-body--family); font-size: 16px; line-height: 1.5; opacity: 0.8; margin: 12px 0 0; max-width: 46ch; }
+
+  .casa-mt__scroller { position: relative; height: calc(125vw + 60vh); }
+  .casa-mt__stage { position: sticky; top: var(--casa-chrome-top, 0px); width: 100%; --casa-mt-p: 1; }
+  .casa-mt__frame { position: relative; margin: 0; width: 100%; aspect-ratio: 4 / 5; overflow: hidden; background: #000; }
+  .casa-mt__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; display: block; }
+  .casa-mt__img--on { opacity: var(--casa-mt-p); will-change: opacity; }
+  .casa-mt__under { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px clamp(20px, 5vw, 48px) 0; }
+  .casa-mt__state { position: relative; margin: 0; font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.7; min-width: 9ch; }
+  .casa-mt__state-on { position: absolute; left: 0; top: 0; opacity: 0; }
+  .casa-mt__stage.is-on .casa-mt__state-off { opacity: 0; }
+  .casa-mt__stage.is-on .casa-mt__state-on { opacity: 1; }
+  .casa-mt__switch { display: flex; gap: 18px; }
+  .casa-mt__sbtn { appearance: none; background: none; border: 0; padding: 0; min-height: 44px; color: inherit; font-family: var(--font-body--family); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.55; cursor: pointer; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 6px; }
+  .casa-mt__sbtn[aria-pressed="true"] { opacity: 1; text-decoration-color: var(--c-pink, #5E0A02); }
+  .casa-mt__sbtn:focus-visible { outline: 2px solid var(--c-purple, #B0C3FA); outline-offset: 2px; }
+
+  @media (min-width: 990px) {
+    .casa-mt__scroller { height: calc(min(56vw, 760px) + 60vh); }
+    .casa-mt__stage { display: grid; grid-template-columns: minmax(0, 56%) minmax(0, 44%); align-items: end; max-width: 1920px; margin-inline: auto; }
+    .casa-mt__frame { aspect-ratio: 1 / 1; max-height: 760px; }
+    .casa-mt__img { object-position: 50% 50%; }
+    .casa-mt__under { flex-direction: column; align-items: flex-start; gap: 10px; padding: 0 0 56px 56px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .casa-mt__scroller { height: auto; }
+    .casa-mt__stage { position: relative; }
+    .casa-mt__img--on { transition: none; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Mirror Transform v4",
+  "tag": "section",
+  "class": "casa-mirror-transform-section",
+  "settings": [
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "02 · Mirror → infinity" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "Lights off, a mirror. Lights on, a <em>tunnel.</em>" },
+    { "type": "textarea", "id": "lede", "label": "Lede", "default": "Same wall, same camera. Scroll to switch it on." },
+    { "type": "header", "content": "The pair (identical framing)" },
+    { "type": "image_picker", "id": "off_image", "label": "Off state" },
+    { "type": "text", "id": "off_alt", "label": "Off image alt text", "default": "Infinity OctaMirror switched off, a plain mirror above a console in daylight" },
+    { "type": "image_picker", "id": "on_image", "label": "On state" },
+    { "type": "text", "id": "on_alt", "label": "On image alt text", "default": "The same Infinity OctaMirror switched on, a multicolour LED tunnel lighting the room" },
+    { "type": "text", "id": "off_label", "label": "Off label", "default": "Lights off" },
+    { "type": "text", "id": "on_label", "label": "On label", "default": "Lights on" },
+    { "type": "header", "content": "Layout" },
+    { "type": "range", "id": "padding_top", "label": "Top padding", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 72 },
+    { "type": "range", "id": "padding_bottom", "label": "Bottom padding", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 56 }
+  ],
+  "presets": [ { "name": "Casa Mirror Transform v4", "category": "Product" } ]
+}
+{% endschema %}

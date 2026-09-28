@@ -44,14 +44,49 @@
   {%- endfor -%}
 {%- endcapture -%}
 
-<header class="casa-header{% if section.settings.enable_sticky %} casa-header--sticky{% endif %}{% if section.settings.header_border_style == 'static' %} casa-header--border-static{% elsif section.settings.header_border_style == 'animated' %} casa-header--border-animated{% endif %}{% if section.settings.header_layout == 'widescreen' %} casa-header--widescreen{% endif %}{% if section.settings.nav_uppercase %} casa-header--nav-uppercase{% endif %}" {{ section.shopify_attributes }}>
+<header class="casa-header{% if section.settings.enable_sticky %} casa-header--sticky{% endif %}{% if section.settings.header_border_style == 'static' %} casa-header--border-static{% elsif section.settings.header_border_style == 'animated' %} casa-header--border-animated{% endif %}{% if section.settings.header_layout == 'widescreen' %} casa-header--widescreen{% endif %}{% if section.settings.nav_uppercase %} casa-header--nav-uppercase{% endif %}"
+  {%- comment -%}
+    CSS vars inlined on the <header> so they're available at parse time.
+    The {% style %} block ~1200 lines below also sets these on :root, but
+    by then the browser has already rendered the <header> with the CSS
+    fallback (36px logo), then re-laid-out to the actual height — a 15.6px
+    CLS shift visible on every cold load.
+  {%- endcomment -%}
+  style="--casa-header-height: {{ section.settings.header_height | default: 80 }}px; --casa-logo-height: {{ section.settings.logo_height | default: 36 }}px;"
+  {{ section.shopify_attributes }}>
+  {%- if section.settings.header_border_style == 'animated' -%}
+    <span class="casa-header__border-anim" aria-hidden="true"></span>
+  {%- endif -%}
   <div class="casa-header__inner">
 
     {%- comment -%} ── Left: Logo + Desktop Nav ── {%- endcomment -%}
     <div class="casa-header__left">
       <a href="{{ routes.root_url }}" class="casa-header__logo" aria-label="{{ shop.name }}">
         {%- if section.settings.logo_image != blank -%}
-          {{ section.settings.logo_image | image_url: width: 200 | image_tag: class: 'casa-header__logo-img', alt: section.settings.logo_text | default: shop.name }}
+          {%- liquid
+            # sizes is load-bearing: CSS pins the logo to --casa-logo-height
+            # (width: auto), so the slot is height × aspect ratio. Mobile
+            # breakpoints scale the height down; ultrawide scales it UP
+            # (×1.15 ≥1920px, ×1.3 ≥2560px), hence the tiers. A sizes-less
+            # w-descriptor srcset defaults the slot to 100vw — over-fetch +
+            # the Safari 26 inflated-intrinsic trap (mechanism:
+            # snippets/casa-cart-items.liquid cart image).
+            # alt is precomputed: a piped fallback inside the arg list
+            # (alt: x | default: y) TERMINATES image_tag's args — default
+            # swallows every argument after it.
+            assign _logo_alt = section.settings.logo_text | default: shop.name
+            assign _logo_h = section.settings.logo_height | default: 36
+            assign _logo_slot = _logo_h | times: section.settings.logo_image.aspect_ratio | ceil
+            if _logo_slot < 1
+              # aspect_ratio unavailable → fall back to the src width so we
+              # never emit sizes="0px" (smallest-rendition trap)
+              assign _logo_slot = 200
+            endif
+            assign _logo_uw = _logo_slot | times: 1.3 | ceil
+            assign _logo_xw = _logo_slot | times: 1.15 | ceil
+            assign _logo_sizes = '(min-width: 2560px) ' | append: _logo_uw | append: 'px, (min-width: 1920px) ' | append: _logo_xw | append: 'px, ' | append: _logo_slot | append: 'px'
+          -%}
+          {{ section.settings.logo_image | image_url: width: 600 | image_tag: class: 'casa-header__logo-img', alt: _logo_alt, widths: '160, 320, 480, 600', sizes: _logo_sizes }}
         {%- else -%}
           {{ section.settings.logo_text | default: 'SEOUL GLOW LAB' }}
         {%- endif -%}
@@ -194,16 +229,21 @@
       {%- endif -%}
 
       {%- comment -%} Cart — integrates with Horizon's cart drawer setting {%- endcomment -%}
+      <script src="{{ 'cart-icon.js' | asset_url }}" type="module" fetchpriority="low"></script>
       {%- if settings.cart_type == 'drawer' and template.name != 'cart' -%}
-        <button class="casa-header__btn casa-header__cart-btn" aria-label="{{ 'accessibility.cart' | t }}" onclick="document.querySelector('cart-drawer-component')?.open?.()">
-          {%- render 'casa-icon', icon: 'cart', size: 22 -%}
-          {%- render 'cart-bubble', limit: 100 -%}
-        </button>
+        <cart-icon class="casa-header__cart-icon casa-header__cart-icon--border-{{ section.settings.cart_bubble_border_style | default: 'none' }}">
+          <button class="casa-header__btn casa-header__cart-btn" aria-label="{{ 'accessibility.cart' | t }}" aria-haspopup="dialog" aria-describedby="cart-bubble-text" onclick="document.querySelector('cart-drawer-component')?.open?.()">
+            {%- render 'casa-icon', icon: 'cart', size: 22 -%}
+            {%- render 'cart-bubble', limit: 100, live_region: true -%}
+          </button>
+        </cart-icon>
       {%- else -%}
-        <a href="{{ routes.cart_url }}" class="casa-header__btn casa-header__cart-btn" aria-label="{{ 'accessibility.cart' | t }}">
-          {%- render 'casa-icon', icon: 'cart', size: 22 -%}
-          {%- render 'cart-bubble', limit: 100 -%}
-        </a>
+        <cart-icon class="casa-header__cart-icon casa-header__cart-icon--border-{{ section.settings.cart_bubble_border_style | default: 'none' }}">
+          <a href="{{ routes.cart_url }}" class="casa-header__btn casa-header__cart-btn" aria-label="{{ 'accessibility.cart' | t }}" aria-describedby="cart-bubble-text">
+            {%- render 'casa-icon', icon: 'cart', size: 22 -%}
+            {%- render 'cart-bubble', limit: 100, live_region: true -%}
+          </a>
+        </cart-icon>
       {%- endif -%}
 
       {%- comment -%} Mobile menu toggle {%- endcomment -%}
@@ -230,11 +270,29 @@
   mobile_promo_btn_text: section.settings.mobile_promo_btn_text,
   mobile_quick_links_title: section.settings.mobile_quick_links_title,
   submenu_product_limit: section.settings.submenu_product_limit,
+  submenu_show_badges_override: section.settings.submenu_show_badges_override,
+  submenu_show_badges: section.settings.submenu_show_badges,
+  submenu_show_featured: section.settings.submenu_show_featured,
+  submenu_show_products: section.settings.submenu_show_products,
+  drawer_show_icons: section.settings.drawer_show_icons,
+  submenu_show_icons: section.settings.submenu_show_icons,
   mobile_quick_links_html: mobile_quick_links_html,
   drawer_glassmorphic: section.settings.drawer_glassmorphic,
   drawer_secondary_menu: section.settings.drawer_secondary_menu,
-  drawer_secondary_title: section.settings.drawer_secondary_title
+  drawer_secondary_title: section.settings.drawer_secondary_title,
+  featured_label_support: section.settings.featured_label_support,
+  support_title: section.settings.support_title,
+  support_description: section.settings.support_description,
+  support_email: section.settings.support_email,
+  support_phone: section.settings.support_phone,
+  support_chat_label: section.settings.support_chat_label,
+  support_chat_link: section.settings.support_chat_link,
+  support_btn_text: section.settings.support_btn_text,
+  support_btn_link: section.settings.support_btn_link
 -%}
+
+{%- comment -%} Casa quick-view modal — bound globally so cart drawer upsells can open it {%- endcomment -%}
+{% render 'casa-quickview-modal' %}
 
 {%- comment -%} ── Cart Drawer (Horizon's cart-drawer-component for settings.cart_type == 'drawer') ── {%- endcomment -%}
 {%- if settings.cart_type == 'drawer' and template.name != 'cart' -%}
@@ -319,6 +377,13 @@
         {%- if settings.cart_show_upsell and settings.cart_upsell_collection != blank -%}
           {%- assign upsell_collection = collections[settings.cart_upsell_collection] -%}
           {%- assign upsell_limit = settings.cart_upsell_limit | default: 3 -%}
+          {%- comment -%}
+            The drawer upsell renders as a vertical list, so cap it at 3 — more
+            than that fills the whole drawer (a 6-item list runs ~647px). The
+            merchant's cart_upsell_limit setting is left intact; lower values
+            (1–2) are still honoured, only higher ones are clamped.
+          {%- endcomment -%}
+          {%- if upsell_limit > 3 -%}{%- assign upsell_limit = 3 -%}{%- endif -%}
           {%- if upsell_collection and upsell_collection.products.size > 0 -%}
             {%- assign show_upsells = true -%}
           {%- endif -%}
@@ -327,17 +392,9 @@
         {%- comment -%} ═══ Upsell markup capture (reused in either position) ═══ {%- endcomment -%}
         {%- if show_upsells -%}
           {%- capture upsell_html -%}
-            <div class="cart-upsell cart-upsell--carousel">
+            <div class="cart-upsell">
               <div class="cart-upsell__header">
                 <p class="cart-upsell__title">{{ settings.cart_upsell_title | default: 'You may also like' }}</p>
-                <div class="cart-upsell__nav">
-                  <button type="button" class="cart-upsell__arrow cart-upsell__arrow--prev" aria-label="Previous" disabled>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                  </button>
-                  <button type="button" class="cart-upsell__arrow cart-upsell__arrow--next" aria-label="Next">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                  </button>
-                </div>
               </div>
               <div class="cart-upsell__track">
                 {%- assign cart_product_ids = cart.items | map: 'product_id' -%}
@@ -353,19 +410,21 @@
                     </a>
                     <div class="cart-upsell__info">
                       <a href="{{ product.url }}" class="cart-upsell__name">{{ product.title | truncate: 28 }}</a>
-                      <span class="cart-upsell__price">{{ product.price | money }}</span>
+                      <div class="cart-upsell__buy">
+                        <span class="cart-upsell__price">{{ product.price | money_with_currency }}</span>
+                        <button
+                          type="button"
+                          class="cart-upsell__add"
+                          aria-label="Add {{ product.title | escape }} to cart"
+                          data-upsell-add
+                          data-variant-id="{{ product.selected_or_first_available_variant.id }}"
+                          data-product-url="{{ product.url }}"
+                          data-has-variants="{{ product.has_only_default_variant | json }}"
+                        >
+                          Add
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      type="button"
-                      class="cart-upsell__add"
-                      aria-label="Add {{ product.title | escape }} to cart"
-                      data-upsell-add
-                      data-variant-id="{{ product.selected_or_first_available_variant.id }}"
-                      data-product-url="{{ product.url }}"
-                      data-has-variants="{{ product.has_only_default_variant | json }}"
-                    >
-                      Add
-                    </button>
                   </div>
                   {%- assign shown = shown | plus: 1 -%}
                 {%- endfor -%}
@@ -379,15 +438,18 @@
             {{ empty_cart_drawer_content }}
           {%- else -%}
             {%- liquid
-              assign free_shipping_threshold = settings.free_shipping_threshold | default: 100
-              assign cart_total_cents = cart.total_price
-              assign threshold_cents = free_shipping_threshold | times: 100
-              assign remaining_cents = threshold_cents | minus: cart_total_cents
-              assign progress_percent = cart_total_cents | times: 100 | divided_by: threshold_cents
-              if progress_percent > 100
-                assign progress_percent = 100
+              assign free_shipping_threshold = settings.free_shipping_threshold | default: 0
+              assign always_free_shipping = settings.cart_always_free_shipping
+              if free_shipping_threshold > 0 and always_free_shipping == false
+                assign cart_total_cents = cart.total_price
+                assign threshold_cents = free_shipping_threshold | times: 100
+                assign remaining_cents = threshold_cents | minus: cart_total_cents
+                assign progress_percent = cart_total_cents | times: 100 | divided_by: threshold_cents
+                if progress_percent > 100
+                  assign progress_percent = 100
+                endif
+                assign remaining_amount = remaining_cents | money_without_trailing_zeros
               endif
-              assign remaining_amount = remaining_cents | money_without_trailing_zeros
             -%}
             <div class="cart-drawer__header" id="cart-drawer-header">
               <div class="cart-drawer__header-left">
@@ -395,7 +457,13 @@
                   {{ 'content.cart_title' | t }}
                   <span class="cart-drawer__count">({{ cart.item_count }})</span>
                 </h2>
-                {%- if free_shipping_threshold > 0 -%}
+                {%- if always_free_shipping -%}
+                  <div class="cart-drawer__shipping-inline">
+                    <span class="cart-drawer__shipping-text cart-drawer__shipping-text--success">
+                      ✓ Free shipping on all orders
+                    </span>
+                  </div>
+                {%- elsif free_shipping_threshold > 0 -%}
                   <div class="cart-drawer__shipping-inline">
                     {%- if remaining_cents > 0 -%}
                       <span class="cart-drawer__shipping-text">
@@ -420,7 +488,7 @@
                 </span>
               </button>
             </div>
-            {%- if free_shipping_threshold > 0 -%}
+            {%- if free_shipping_threshold > 0 and always_free_shipping == false -%}
               <div class="cart-drawer__shipping-bar">
                 <div class="cart-drawer__shipping-track">
                   <div class="cart-drawer__shipping-progress" style="--progress: {{ progress_percent }}%;"></div>
@@ -430,7 +498,7 @@
 
             <scroll-hint class="cart-drawer__content" aria-label="{{ 'accessibility.cart' | t }}" style="--header-height: 60px;">
               <div class="cart-drawer__items">
-                {% render 'cart-products', drawer_context: 'drawer' %}
+                {% render 'cart-products' %}
 
                 {%- comment -%} ═══ Upsells - Inside items (when position = inside) ═══ {%- endcomment -%}
                 {%- if show_upsells and upsell_position == 'inside' -%}
@@ -443,17 +511,28 @@
                 {{ upsell_html }}
               {%- endif -%}
 
-              {%- comment -%} ═══ Minimal Trust Line ═══ {%- endcomment -%}
-              {%- if settings.cart_show_trust_badges -%}
-                <p class="cart-cro__trust">
-                  {%- if settings.cart_trust_badge_1 != blank -%}{{ settings.cart_trust_badge_1 }}{%- endif -%}
-                  {%- if settings.cart_trust_badge_2 != blank -%} · {{ settings.cart_trust_badge_2 }}{%- endif -%}
-                  {%- if settings.cart_trust_badge_3 != blank -%} · {{ settings.cart_trust_badge_3 }}{%- endif -%}
-                </p>
-              {%- endif -%}
-
               <div class="cart-drawer__summary">
                 {% render 'cart-summary', section_id: section.id %}
+
+                {%- comment -%}
+                  ═══ Minimal Trust Line — below checkout ═══
+                  Lives INSIDE the sticky .cart-drawer__summary so it is
+                  always on screen with the CHECKOUT button — placed after
+                  it in the scroll flow it only surfaced at full scroll,
+                  hidden behind the sticky block the rest of the time.
+                  The trailing `-%}` on the inner if-tags would eat the
+                  space before the literal `·` separator (Liquid trim
+                  tags trim INTO the rendered text). Keeping the leading
+                  `{%-` to swallow indentation, dropping the trailing
+                  `-%}` so " · " survives intact.
+                {%- endcomment -%}
+                {%- if settings.cart_show_trust_badges -%}
+                  <p class="cart-cro__trust">
+                    {%- if settings.cart_trust_badge_1 != blank %}{{ settings.cart_trust_badge_1 }}{% endif -%}
+                    {%- if settings.cart_trust_badge_2 != blank %} · {{ settings.cart_trust_badge_2 }}{% endif -%}
+                    {%- if settings.cart_trust_badge_3 != blank %} · {{ settings.cart_trust_badge_3 }}{% endif -%}
+                  </p>
+                {%- endif -%}
               </div>
             </scroll-hint>
           {%- endif -%}
@@ -472,14 +551,14 @@
       assign show_popular = true
     endif
   -%}
-  <dialog id="casa-localization-drawer" class="casa-locale-drawer">
+  <div id="casa-localization-drawer" class="casa-locale-drawer">
     <div class="casa-locale-drawer__inner">
       <div class="casa-locale-drawer__header">
         <h2 class="casa-locale-drawer__title">
           {%- render 'casa-icon', icon: 'globe', size: 20 -%}
           Select Your Region
         </h2>
-        <button class="casa-locale-drawer__close" type="button" onclick="document.getElementById('casa-localization-drawer').close()" aria-label="Close">
+        <button class="casa-locale-drawer__close" type="button" onclick="if(typeof closeLocaleDrawer==='function')closeLocaleDrawer();" aria-label="Close">
           {%- render 'casa-icon', icon: 'close', size: 20 -%}
         </button>
       </div>
@@ -566,14 +645,14 @@
             </div>
           {%- endif -%}
 
-          {%- comment -%} Submit Button {%- endcomment -%}
-          <button type="submit" class="casa-locale-submit">
+          {%- comment -%} Submit Button — canonical brand CTA on Ink (Paper bg, Ink text, UPPERCASE Inter 600) {%- endcomment -%}
+          <button type="submit" class="btn btn-primary-on-dark casa-locale-submit">
             Update Region
           </button>
         {%- endform -%}
       </div>
     </div>
-  </dialog>
+  </div>
   <script>
     (function() {
       const dialog = document.getElementById('casa-localization-drawer');
@@ -584,6 +663,36 @@
       const noResults = document.getElementById('casa-no-results');
       const submitBtn = dialog?.querySelector('.casa-locale-submit');
 
+      // ── Manual open/close — bypasses showModal() (broken on iOS) and
+      //    moves both dialog + backdrop to <body> so they escape all
+      //    stacking contexts from .shopify-section wrappers ──
+      var backdrop = null;
+      var dialogMovedToBody = false;
+
+      function openLocaleDrawer() {
+        if (!dialog) return;
+        if (!dialogMovedToBody) {
+          document.body.appendChild(dialog);
+          dialogMovedToBody = true;
+        }
+        if (!backdrop) {
+          backdrop = document.createElement('div');
+          backdrop.className = 'casa-locale-backdrop';
+          backdrop.addEventListener('click', closeLocaleDrawer);
+        }
+        document.body.appendChild(backdrop);
+        dialog.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+      }
+      window.closeLocaleDrawer = function() {
+        if (!dialog) return;
+        dialog.classList.remove('is-open');
+        document.body.style.overflow = '';
+        if (backdrop && backdrop.parentElement) {
+          backdrop.parentElement.removeChild(backdrop);
+        }
+      };
+
       // Wire up the locale buttons to open the drawer
       document.querySelectorAll('[aria-label="Country and language"]').forEach(btn => {
         btn.addEventListener('click', function(e) {
@@ -591,19 +700,32 @@
           const mobileDrawer = document.querySelector('.casa-drawer');
           const overlay = document.querySelector('.casa-drawer-overlay');
           if (mobileDrawer && mobileDrawer.classList.contains('active')) {
-            mobileDrawer.classList.remove('active');
-            overlay?.classList.remove('active');
-            document.body.style.overflow = '';
-            setTimeout(() => dialog?.showModal(), 350);
+            // Use the canonical drawer-close path if available — it
+            // removes ALL the state (drawer class, overlay class,
+            // body.casa-drawer-active, body.style.overflow). Without
+            // removing body.casa-drawer-active the overlay-priority
+            // CSS rule keeps the locale drawer visibility: hidden
+            // even after is-open is added.
+            if (window.CasaNav && typeof window.CasaNav.closeDrawer === 'function') {
+              window.CasaNav.closeDrawer();
+            } else {
+              mobileDrawer.classList.remove('active');
+              overlay?.classList.remove('active');
+              document.body.classList.remove('casa-drawer-active');
+              document.body.style.overflow = '';
+            }
+            setTimeout(openLocaleDrawer, 350);
           } else {
-            dialog?.showModal();
+            openLocaleDrawer();
           }
         });
       });
 
-      // Close on backdrop click
-      dialog?.addEventListener('click', function(e) {
-        if (e.target === this) this.close();
+      // Escape key closes
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && dialog && dialog.classList.contains('is-open')) {
+          closeLocaleDrawer();
+        }
       });
 
       // Country selection - auto-submit on click
@@ -653,6 +775,26 @@
 {%- comment -%} ── Navigation JS ── {%- endcomment -%}
 <script defer src="{{ 'casa-navigation.js' | asset_url }}"></script>
 
+{%- comment -%} Store current collection in sessionStorage for breadcrumb tracking {%- endcomment -%}
+<script>
+(function() {
+  var path = window.location.pathname;
+  if (!path.match(/^\/collections\/[^/]+/)) return;
+  if (path.indexOf('/products/') !== -1) return;
+  var KEY = 'casa_last_collection';
+  function store() {
+    try {
+      var handle = path.split('/collections/')[1].replace(/\/$/, '').split('/')[0].split('?')[0];
+      var titleEl = document.querySelector('h1, .collection-hero__title, .casa-col-main__title, [data-collection-title]');
+      var title = titleEl ? titleEl.textContent.trim() : handle.replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+      sessionStorage.setItem(KEY, JSON.stringify({ handle: handle, title: title, url: '/collections/' + handle }));
+    } catch(e) {}
+  }
+  if (document.readyState !== 'loading') store();
+  else document.addEventListener('DOMContentLoaded', store);
+})();
+</script>
+
 {%- comment -%} ── Sticky Header + Height CSS Variables ── {%- endcomment -%}
 <script>
   (function() {
@@ -671,10 +813,17 @@
     var sectionWrapper = header.closest('.shopify-section');
 
     // Set CSS variables for header height (on both body and :root for maximum compatibility)
+    // Writes to body/:root invalidate style for the entire document —
+    // only touch the properties when the measured value actually changed.
+    var lastHeaderH = -1;
+    var lastGroupH = -1;
     function updateHeaderHeight() {
       var targetEl = headerGroup || sectionWrapper || header;
       var headerH = header.offsetHeight;
       var groupH = targetEl.offsetHeight;
+      if (headerH === lastHeaderH && groupH === lastGroupH) return;
+      lastHeaderH = headerH;
+      lastGroupH = groupH;
 
       // Set on body
       document.body.style.setProperty('--header-height', headerH + 'px');
@@ -697,9 +846,16 @@
     window.addEventListener('load', updateHeaderHeight);
 
     // Use ResizeObserver to detect header size changes (e.g., from theme editor)
+    // The sticky-pin var must follow too: --casa-chrome-top is what the PDP's
+    // sticky columns pin against, and until 2026-09-01 it was only re-synced on
+    // window resize — a header group that changed height after load (unequal
+    // announcement slides, editor edits, font swap) left the pin stale and
+    // opened a white band between the header and the pinned gallery.
+    var chromeTopSync = null;
     if (typeof ResizeObserver !== 'undefined') {
       var resizeObserver = new ResizeObserver(function() {
         updateHeaderHeight();
+        if (chromeTopSync) chromeTopSync();
       });
       resizeObserver.observe(header);
       if (headerGroup && headerGroup !== header) {
@@ -728,19 +884,192 @@
         header.style.zIndex = '1000';
       }
 
-      // Recalculate on scroll (throttled)
-      var scrollTimeout;
-      window.addEventListener('scroll', function() {
-        if (!scrollTimeout) {
-          scrollTimeout = setTimeout(function() {
-            updateHeaderHeight();
-            scrollTimeout = null;
-          }, 100);
-        }
-      }, { passive: true });
-
-      // Recalculate on resize
+      // No scroll listener for HEIGHT here on purpose: header height never
+      // changes from scrolling, and each tick forced two layout reads plus
+      // four body/:root custom-property writes mid-scroll. Real size changes
+      // (resize, theme editor, announcement edits) are covered by the
+      // ResizeObserver above and the resize listener below. (The auto-hide
+      // listener added below reads scrollY only — no layout reads, no
+      // custom-property writes.)
       window.addEventListener('resize', updateHeaderHeight, { passive: true });
+
+      /* ── Nav auto-hide ────────────────────────────────────────────────
+         Merchant 2026-08-13: the promo strip stays pinned, but the nav row
+         slides away while reading and returns the moment they scroll up.
+         Reclaims 72px of the 100px sticky chrome while browsing.
+
+         CRITICAL — hide with `transform`, NEVER by collapsing height or
+         display. `--header-group-height` is measured from offsetHeight and
+         feeds `--casa-vh-fit`, which every viewport-fit section sizes
+         against; a transform leaves offsetHeight untouched, so nothing
+         re-flows. Collapsing the height would resize every one of those
+         sections continuously while the page scrolls.
+
+         The nav is deliberately NOT promoted (no will-change / translateZ):
+         this repo has a documented fast-scroll bleed from compositing the
+         header group. Transform alone, let the browser decide.
+
+         Only runs when the nav is a distinct child of a header GROUP: the
+         group owns z-index 1000 against the page, so re-stacking the nav
+         (1) under the strip (2) is safe inside that context. Without a
+         group the nav IS the stacking root and must not be demoted, so
+         auto-hide is skipped and the header behaves exactly as before. */
+      var navEl = (sectionWrapper && sectionWrapper !== headerGroup) ? sectionWrapper : header;
+      var stripEl = null;
+      if (headerGroup) {
+        for (var ci = 0; ci < headerGroup.children.length; ci++) {
+          if (!headerGroup.children[ci].contains(header)) { stripEl = headerGroup.children[ci]; break; }
+        }
+      }
+
+      if (headerGroup && navEl !== headerGroup && stripEl) {
+        // The nav slides up behind the strip, so the strip must paint over it.
+        if (getComputedStyle(stripEl).position === 'static') stripEl.style.position = 'relative';
+        stripEl.style.zIndex = '2';
+        navEl.style.zIndex = '1';
+
+        var reduceMotionMql = window.matchMedia('(prefers-reduced-motion: reduce)');
+        var applyNavTransition = function() {
+          navEl.style.transition = reduceMotionMql.matches
+            ? 'none'
+            : 'transform .28s cubic-bezier(.22, .61, .36, 1)';
+        };
+        applyNavTransition();
+        if (reduceMotionMql.addEventListener) {
+          reduceMotionMql.addEventListener('change', applyNavTransition);
+        }
+
+        var navHidden = false;
+        var lastNavY = window.pageYOffset || 0;
+        var navTicking = false;
+        var NAV_HIDE_AFTER = 240; // never hide within the first screenful
+        var NAV_DELTA = 8;        // hysteresis: trackpad jitter can't flicker it
+
+        // Anything that pins the header's geometry or traps focus must keep
+        // the nav on screen: the mega menu is position:fixed anchored to
+        // --header-group-height, and the drawers lock the body.
+        /* Only a KEYBOARD focus should pin the nav open. Closing the mobile
+           drawer correctly returns focus to the burger button - which lives
+           inside the nav - so a plain contains(activeElement) test latched
+           true and the auto-hide never fired again for the rest of the page
+           (measured 2026-08-18: hidden stayed "false" through a full scroll;
+           blur that button and hiding resumes immediately). :focus-visible is
+           exactly the "focus that deserves a visible ring" signal - true when
+           tabbed to, false after a tap - so keyboard users keep the guard and
+           a returned focus no longer kills the feature. */
+        var focusPinsNav = function() {
+          var a = document.activeElement;
+          if (!a || !navEl.contains(a)) return false;
+          try { return a.matches(':focus-visible'); }
+          catch (e) { return true; } // no :focus-visible support -> old behaviour
+        };
+
+        var navBlocked = function() {
+          return document.body.classList.contains('casa-mega-open') ||
+            document.body.classList.contains('casa-drawer-active') ||
+            document.body.style.overflow === 'hidden' ||
+            focusPinsNav();
+        };
+
+        /* --casa-chrome-top = the chrome that is actually ON SCREEN right
+           now: the whole group normally, just the promo strip once the nav
+           has slid away. Sticky page columns (PDP gallery / details, see
+           assets/casa-pdp.css) pin against THIS, so when the nav goes they
+           rise to sit under the strip instead of leaving a 72px band of
+           empty background where the nav used to be (merchant, 2026-08-13).
+
+           Deliberately a SEPARATE variable from --header-group-height:
+           that one stays constant and keeps feeding --casa-vh-fit, so
+           section heights never re-flow mid-scroll. Only the pin offset
+           moves. */
+        var setChromeTop = function(px) {
+          document.documentElement.style.setProperty('--casa-chrome-top', px + 'px');
+          document.body.style.setProperty('--casa-chrome-top', px + 'px');
+        };
+        var syncChromeTop = function() {
+          setChromeTop(navHidden ? stripEl.offsetHeight : headerGroup.offsetHeight);
+        };
+        chromeTopSync = syncChromeTop; // ResizeObserver above re-syncs the pin on any real chrome resize
+        syncChromeTop();
+        window.addEventListener('resize', syncChromeTop, { passive: true });
+
+        /* The nav hides with a TRANSFORM, so the group's box never shrinks -
+           that is the whole point (offsetHeight feeds --casa-vh-fit and must
+           stay constant). But a box that still exists still HIT-TESTS: with
+           the nav slid away the group kept swallowing every tap in the 72px
+           desktop / 54px phone band it had vacated, and anything scrolling
+           through that band looked tappable while being dead. Measured on
+           WebKit 2026-08-18: 18/18 sample points across home, collection, PDP
+           and cart returned #header-group, burying the PDP gallery arrow, the
+           collection sort select and the mobile Filters button.
+
+           Fix without touching layout: stop the GROUP from hit-testing while
+           the nav is hidden and hand hit-testing back to its children, so the
+           promo strip stays fully clickable and the off-screen nav (whose box
+           has moved out of the band) captures nothing. Restored verbatim on
+           reveal by clearing the inline values. */
+        var setGroupHitTesting = function(hide) {
+          headerGroup.style.pointerEvents = hide ? 'none' : '';
+          for (var gi = 0; gi < headerGroup.children.length; gi++) {
+            headerGroup.children[gi].style.pointerEvents = hide ? 'auto' : '';
+          }
+        };
+
+        var setNavHidden = function(hide) {
+          if (hide === navHidden) return;
+          navHidden = hide;
+          navEl.style.transform = hide ? 'translateY(-100%)' : '';
+          navEl.setAttribute('data-nav-hidden', hide ? 'true' : 'false');
+          setGroupHitTesting(hide);
+          syncChromeTop();
+        };
+
+        /* The mobile drawer, search and localization panels are all rendered
+           INSIDE this section, so they sit inside the stacking context the
+           z-index above creates - the drawer asks for 99999 and it can never
+           escape. With the nav demoted to 1 they painted UNDER the promo
+           strip: the announcement covered the drawer's logo and close button
+           on 30/30 hit-test samples (merchant recording, 2026-08-18).
+
+           Only the auto-hide needs the nav below the strip, and the auto-hide
+           is suppressed for as long as a drawer is open - so lift the nav back
+           over the strip for exactly that window and drop it again on close.
+           Reveal explicitly too, rather than leaning on the focusin handler
+           happening to fire first. */
+        var syncDrawerStacking = function() {
+          var drawerOpen = document.body.classList.contains('casa-drawer-active');
+          navEl.style.zIndex = drawerOpen ? '3' : '1';
+          if (drawerOpen) setNavHidden(false);
+        };
+        if (typeof MutationObserver !== 'undefined') {
+          new MutationObserver(syncDrawerStacking)
+            .observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        }
+        syncDrawerStacking();
+
+        var onNavScroll = function() {
+          var y = window.pageYOffset || 0;
+          var dy = y - lastNavY;
+          // Below the threshold we keep lastNavY so small moves accumulate
+          // rather than being discarded — that's what makes it hysteresis
+          // and not just a dead zone.
+          if (Math.abs(dy) < NAV_DELTA) return;
+          lastNavY = y;
+          if (navBlocked() || y <= NAV_HIDE_AFTER) { setNavHidden(false); return; }
+          setNavHidden(dy > 0);
+        };
+
+        window.addEventListener('scroll', function() {
+          if (navTicking) return;
+          navTicking = true;
+          requestAnimationFrame(function() { onNavScroll(); navTicking = false; });
+        }, { passive: true });
+
+        // A keyboard user must never tab into an off-screen nav.
+        document.addEventListener('focusin', function(e) {
+          if (navEl.contains(e.target)) setNavHidden(false);
+        });
+      }
     }
   })();
 
@@ -755,6 +1084,11 @@
         var link = item.querySelector('.casa-header__nav-link');
         if (link) link.setAttribute('aria-expanded', 'false');
       });
+      // Videos beneath the frost re-blur the panel on every video frame;
+      // casa-offscreen-pause gates on body.casa-mega-open (same pattern as
+      // the mobile drawer's casa-drawer-active). Refresh on close resumes.
+      document.body.classList.remove('casa-mega-open');
+      if (window.casa && window.casa.offscreenPauseRefresh) window.casa.offscreenPauseRefresh();
     }
 
     navItems.forEach(function(item) {
@@ -766,10 +1100,31 @@
         e.preventDefault();
         e.stopPropagation();
         var wasOpen = item.classList.contains('is-open');
+        // Switching straight from another open panel is NOT the same gesture
+        // as opening from closed. Every panel is fixed in the same box, so
+        // letting the outgoing fade-out and incoming fade-in run together
+        // stacks two translucent Ink surfaces — the composite dips to 69%
+        // and the page shows through both mid-swap (the "it minimizes and
+        // shows the background" report). body.casa-mega-switching drops the
+        // transition for exactly the frame the swap commits in; see the rule
+        // in casa-mega-menu.liquid.
+        var switching = !wasOpen && !!document.querySelector('.casa-nav-item.is-open');
+        if (switching) document.body.classList.add('casa-mega-switching');
         closeAll();
         if (!wasOpen) {
           item.classList.add('is-open');
           link.setAttribute('aria-expanded', 'true');
+          document.body.classList.add('casa-mega-open');
+          if (window.casa && window.casa.offscreenPauseRefresh) window.casa.offscreenPauseRefresh();
+        }
+        if (switching) {
+          // Commit the transition-less swap in THIS frame before handing
+          // transitions back. Without the forced layout read the class
+          // removal coalesces into the same style recalc, the panels never
+          // see transition:none, and both crossfade exactly as before —
+          // same trap as the drawer paint-stall fix (ce5bfc7).
+          void item.offsetWidth;
+          document.body.classList.remove('casa-mega-switching');
         }
       });
     });
@@ -784,48 +1139,93 @@
       }
     });
 
-    // Escape key closes
+    // Scroll closes the menu. The open panel carries a 16px
+    // backdrop-filter (was 48px until 2026-07-15 — at 48px the panel
+    // layer dropped whole frames even on a STATIC page at 240Hz);
+    // page content scrolling beneath it forces a full re-blur of the
+    // panel every frame — the 2026-07-09 recording shows the backdrop
+    // rendering WHITE behind the panel mid-scroll on a 240Hz display.
+    // backdrop-filter isn't in the panel's transition list, so closing
+    // drops the blur instantly and the fade-out is cheap opacity only.
+    window.addEventListener('scroll', function() {
+      if (document.querySelector('.casa-nav-item.is-open')) closeAll();
+    }, { passive: true });
+
+    // Escape key closes. Guarded: closeAll() now also clears the video-pause
+    // body class and re-gates all governed videos — skip when nothing is open.
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') closeAll();
+      if (e.key === 'Escape' && document.querySelector('.casa-nav-item.is-open')) closeAll();
     });
   })();
 
   // Upsell Add to Cart / Quick-Buy Handler
   (function() {
+    function cartSectionIds() {
+      var ids = Array.prototype.map.call(
+        document.querySelectorAll('cart-items-component[data-section-id]'),
+        function(el) { return el.getAttribute('data-section-id'); }
+      ).filter(Boolean);
+      return ids.filter(function(id, i) { return ids.indexOf(id) === i; });
+    }
+
+    function cartCountFromSections(sections) {
+      if (!sections) return null;
+      for (var id in sections) {
+        if (!Object.prototype.hasOwnProperty.call(sections, id)) continue;
+        var doc = new DOMParser().parseFromString(sections[id] || '', 'text/html');
+        var count = parseInt((doc.querySelector('[ref="cartItemCount"]') || {}).textContent || '', 10);
+        if (!Number.isNaN(count)) return count;
+      }
+      return null;
+    }
+
+    function waitForCartItemsToSettle() {
+      return Promise.all(Array.prototype.map.call(document.querySelectorAll('cart-items-component'), function(component) {
+        if (component && typeof component.flushPendingCartUpdates === 'function') {
+          return component.flushPendingCartUpdates();
+        }
+      }));
+    }
+
     function directAddToCart(btn, variantId) {
       btn.classList.add('is-loading');
       btn.disabled = true;
 
-      fetch('/cart/add.js', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ items: [{ id: parseInt(variantId), quantity: 1 }] })
+      waitForCartItemsToSettle().then(function() {
+        var sections = cartSectionIds();
+        return fetch('/cart/add.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({
+            items: [{ id: parseInt(variantId), quantity: 1 }],
+            sections: sections.join(','),
+            sections_url: window.location.pathname
+          })
+        });
       })
       .then(function(response) {
         if (!response.ok) throw new Error('Add to cart failed');
         return response.json();
       })
-      .then(function() {
+      .then(function(data) {
         btn.classList.remove('is-loading');
         btn.classList.add('is-success');
+        document.dispatchEvent(new CustomEvent('cart:update', {
+          bubbles: true,
+          detail: {
+            resource: data,
+            sourceId: 'casa-header-upsell',
+            data: {
+              source: 'quick-add',
+              itemCount: cartCountFromSections(data.sections),
+              variantId: variantId,
+              sections: data.sections || {}
+            }
+          }
+        }));
         var cartDrawer = document.querySelector('cart-drawer-component');
-        if (cartDrawer && typeof cartDrawer.refresh === 'function') {
-          cartDrawer.refresh();
-        } else {
-          fetch(window.location.pathname + '?sections=casa-header')
-            .then(function(r) { return r.json(); })
-            .then(function(sections) {
-              var html = sections['casa-header'];
-              if (html) {
-                var parser = new DOMParser();
-                var doc = parser.parseFromString(html, 'text/html');
-                var newCartInner = doc.querySelector('.cart-drawer__inner');
-                var currentCartInner = document.querySelector('.cart-drawer__inner');
-                if (newCartInner && currentCartInner) {
-                  currentCartInner.innerHTML = newCartInner.innerHTML;
-                }
-              }
-            }).catch(function() { window.location.reload(); });
+        if (cartDrawer && typeof cartDrawer.open === 'function') {
+          cartDrawer.open();
         }
         setTimeout(function() { btn.classList.remove('is-success'); btn.disabled = false; }, 1200);
       })
@@ -927,35 +1327,26 @@
       btn.classList.add('is-loading');
       btn.disabled = true;
 
-      // Close cart drawer first so modal is visible (especially on mobile)
+      // Close the cart drawer so the Casa quick-view modal can take focus on mobile
       closeCartDrawer();
 
-      Promise.resolve(getOrCreateQuickAdd()).then(function(qa) {
-        if (!qa || typeof qa.fetchProductPage !== 'function') {
-          // Quick-add custom element not available — fetch + inject manually
-          return manualQuickBuy(btn, productUrl);
-        }
+      // Fire the Casa quick-view modal (lightweight — renders option pickers inline,
+      // fetches product.js not the full product page, dispatches cart:update so the
+      // drawer re-renders after Add).
+      if (window.__casaQuickViewBound) {
+        window.dispatchEvent(new CustomEvent('quickview:open', {
+          detail: { productUrl: productUrl }
+        }));
+      } else {
+        // Shouldn't happen — the modal snippet is rendered from casa-header — but
+        // if the JS somehow hasn't bound yet, fall back to the product page.
+        window.location.href = productUrl;
+      }
 
-        return qa.fetchProductPage(productUrl).then(function(doc) {
-          if (!doc) { btn.classList.remove('is-loading'); btn.disabled = false; return; }
-          var gridElement = doc.querySelector('[data-product-grid-content]');
-          if (!gridElement) { return manualQuickBuy(btn, productUrl); }
-
-          var freshContent = gridElement.cloneNode(true);
-          return qa.updateQuickAddModal(freshContent).then(function() {
-            var dialogComponent = document.getElementById('quick-add-dialog');
-            if (dialogComponent && typeof dialogComponent.showDialog === 'function') {
-              dialogComponent.showDialog();
-            }
-            setTimeout(initVariantCarousel, 200);
-            btn.classList.remove('is-loading');
-            btn.disabled = false;
-          });
-        });
-      }).catch(function(err) {
-        console.error('Quick-buy error:', err);
-        manualQuickBuy(btn, productUrl);
-      });
+      setTimeout(function() {
+        btn.classList.remove('is-loading');
+        btn.disabled = false;
+      }, 300);
     }
 
     function manualQuickBuy(btn, productUrl) {
@@ -1027,80 +1418,182 @@
     });
   })();
 
-  // Upsell Carousel Navigation
+  // (Upsell carousel-navigation JS removed — the drawer upsell is now a static
+  // vertical list; no scroll arrows, so no carousel JS is needed. The
+  // add-to-cart handler for [data-upsell-add] lives above and is unaffected.)
+</script>
+
+<script>
+  /* ─────────────────────────────────────────────────────────────────
+     MEGA MENU video lazy-load — saves ~15 MB on cold homepage load.
+
+     casa-mega-menu.liquid renders one or two .casa-mega-featured-video
+     elements per top-level nav link configured with a promo or
+     lifestyle video URL. The menus are hidden via opacity:0 +
+     visibility:hidden until the user hovers the parent nav link.
+     Without lazy-load, every <video src> auto-fetched its MP4 on page
+     load regardless of menu visibility — costing 15 MB on the trace.
+
+     Strategy: emit videos with preload="none" and data-src instead of
+     src. First pointerover (hover or touch-with-mouse) on the header
+     nav swaps data-src → src across all data-casa-mega-lazy-video
+     elements, then calls .load() so they're ready when the menu opens.
+     Mobile users without a hover-capable pointer never trigger the
+     load — videos stay unfetched forever (mobile drawer doesn't
+     contain video anyway).
+
+     Save-Data / 2G / prefers-reduced-motion: bail out entirely and
+     remove the <video> elements; the menu still renders the featured
+     card with its image or text placeholder, no degradation.
+     ───────────────────────────────────────────────────────────────── */
   (function() {
-    function initUpsellCarousel() {
-      document.querySelectorAll('.cart-upsell--carousel').forEach(function(upsell) {
-        var track = upsell.querySelector('.cart-upsell__track');
-        var prev = upsell.querySelector('.cart-upsell__arrow--prev');
-        var next = upsell.querySelector('.cart-upsell__arrow--next');
-        if (!track || !prev || !next) return;
+    if (window.__casaMegaVideoLazyInit) return;
+    window.__casaMegaVideoLazyInit = true;
 
-        function updateArrows() {
-          prev.disabled = track.scrollLeft <= 2;
-          next.disabled = track.scrollLeft + track.offsetWidth >= track.scrollWidth - 2;
+    var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var saveData = (navigator.connection && navigator.connection.saveData) === true;
+    var slowNet = navigator.connection && /2g|slow-2g/.test(navigator.connection.effectiveType || '');
+
+    function getVideos() {
+      return document.querySelectorAll('video[data-casa-mega-lazy-video]');
+    }
+
+    if (reducedMotion || saveData || slowNet) {
+      getVideos().forEach(function(v) { v.remove(); });
+      return;
+    }
+
+    /* iOS Safari rejects programmatic muted autoplay unless the muted/inline
+       PROPERTIES (not just the HTML attributes) are set before play() is
+       called on a JS-assigned src. The mega-menu featured videos are
+       decorative loop+muted previews (no controls, no sound) revealed on
+       menu hover/focus, so this is the same bug as casa-hero — without it the
+       video stays paused and iOS paints its native centre play button.
+       Re-assert at play time too; some iOS builds drop the muted flag. */
+    function tryPlay(v) {
+      v.muted = true;
+      v.playsInline = true;
+      var p = v.play();
+      if (p && p.catch) p.catch(function() {});
+    }
+
+    function loadAllMegaVideos() {
+      getVideos().forEach(function(v) {
+        if (v.dataset.casaMegaLoaded) return;
+        v.dataset.casaMegaLoaded = '1';
+        v.muted = true;
+        v.defaultMuted = true;
+        v.playsInline = true;
+        v.setAttribute('muted', '');
+        v.setAttribute('playsinline', '');
+        v.setAttribute('webkit-playsinline', '');
+        v.querySelectorAll('source[data-src]').forEach(function(s) {
+          if (!s.src) s.src = s.dataset.src;
+        });
+        /* metadata only — dimensions + first frame get ready, but the MP4
+           body isn't fetched (and the video is NOT played) until its menu
+           actually opens. The old code played every mega video here on the
+           first cursor pass over the nav: the menus are opacity:0 +
+           visibility:hidden, but a hidden playing video still DECODES — N
+           looping 1080p decoders for the rest of the session, feeding the
+           scroll jitter. */
+        v.preload = 'metadata';
+        v.load();
+      });
+      syncMenuPlayback();
+    }
+
+    /* Playback follows the menu's is-open class — the same signal the CSS
+       uses to reveal .casa-mega-menu (its ONLY reveal rule), so play/pause
+       exactly tracks what the user can see. These are interaction-driven
+       videos: per the casa-offscreen-pause contract they must NOT carry
+       data-casa-pause — geometry can't see menu visibility (a closed menu's
+       rect still sits inside the viewport). */
+    function syncMenuPlayback() {
+      getVideos().forEach(function(v) {
+        var item = v.closest('.casa-nav-item');
+        var open = item && item.classList.contains('is-open') && !document.hidden;
+        if (open) {
+          /* Restart from the top whenever playback (re)starts. Safari can
+             refuse a gesture-less resume play() (per-site "Never Auto-Play",
+             Low Power Mode, background-tab return) and would otherwise park
+             the video on whatever mid-reel frame it paused at — the reel
+             spends ~half its loop with the mirror composed off-centre. The
+             asset's frame 0 is the centered head-on beat, so first paint
+             (preload=metadata), every menu open, and any refused-play
+             resting state all show the hero composition. */
+          if (v.paused && v.currentTime > 0 && v.readyState >= 1) v.currentTime = 0;
+          tryPlay(v);
         }
-
-        prev.addEventListener('click', function() {
-          var item = track.querySelector('.cart-upsell__item');
-          if (item) track.scrollBy({ left: -(item.offsetWidth + 10), behavior: 'smooth' });
-        });
-
-        next.addEventListener('click', function() {
-          var item = track.querySelector('.cart-upsell__item');
-          if (item) track.scrollBy({ left: item.offsetWidth + 10, behavior: 'smooth' });
-        });
-
-        track.addEventListener('scroll', updateArrows, { passive: true });
-        updateArrows();
+        else if (!v.paused) v.pause();
       });
     }
 
-    // Init now and after cart refreshes
-    if (document.readyState !== 'loading') initUpsellCarousel();
-    else document.addEventListener('DOMContentLoaded', initUpsellCarousel);
+    var nav = document.querySelector('.casa-header__nav');
+    if (!nav) return;
 
-    // Re-init when cart content is updated (observer on cart-drawer__inner)
-    var observer = new MutationObserver(function() { setTimeout(initUpsellCarousel, 100); });
-    var cartInner = document.querySelector('.cart-drawer__inner');
-    if (cartInner) observer.observe(cartInner, { childList: true, subtree: true });
+    /* Watch is-open on the nav items that own a mega video. attributeFilter
+       keeps this observer silent except on actual menu open/close. */
+    if ('MutationObserver' in window) {
+      var itemObserver = new MutationObserver(syncMenuPlayback);
+      nav.querySelectorAll('.casa-nav-item').forEach(function(item) {
+        if (item.querySelector('video[data-casa-mega-lazy-video]')) {
+          itemObserver.observe(item, { attributes: true, attributeFilter: ['class'] });
+        }
+      });
+    }
+    /* Tab hidden with a menu open: mouseout never fires — pause explicitly. */
+    document.addEventListener('visibilitychange', syncMenuPlayback);
+
+    /* pointerover bubbles, fires once on first cursor entry, then
+       removes itself. Covers mouse, pen, and stylus on touch devices
+       that emit pointer events (iPad with trackpad, etc). Pure-touch
+       mobile users emit pointerdown/pointerup but not pointerover —
+       which is what we want: those users never hover the menu open,
+       so they never need the videos. */
+    nav.addEventListener('pointerover', loadAllMegaVideos, { once: true });
+
+    /* Keyboard accessibility: also load on first focus inside the nav.
+       A keyboard user tabbing through the nav links would otherwise
+       never trigger the videos. */
+    nav.addEventListener('focusin', loadAllMegaVideos, { once: true });
   })();
 </script>
 
 {%- comment -%} ── CSS Custom Properties from Settings ── {%- endcomment -%}
 {%- liquid
-  assign header_bg = section.settings.header_bg_color | default: '#0a0a0f'
+  assign header_bg = section.settings.header_bg_color | default: '#0A0A0F'
   assign header_bg_opacity = section.settings.header_bg_opacity | default: 80 | divided_by: 100.0
-  assign header_border = section.settings.header_border_color | default: '#ffffff'
+  assign header_border = section.settings.header_border_color | default: '#FAFAF7'
   assign header_border_opacity = section.settings.header_border_opacity | default: 8 | divided_by: 100.0
-  assign header_text = section.settings.header_text_color | default: '#ffffff'
+  assign header_text = section.settings.header_text_color | default: '#FAFAF7'
   assign header_text_opacity = section.settings.header_text_opacity | default: 85 | divided_by: 100.0
-  assign mega_bg = section.settings.mega_bg_color | default: '#0f0f14'
+  assign mega_bg = section.settings.mega_bg_color | default: '#0A0A0F'
   assign mega_bg_opacity = section.settings.mega_bg_opacity | default: 95 | divided_by: 100.0
-  assign mega_border = section.settings.mega_border_color | default: '#ffffff'
-  assign glow_primary = section.settings.glow_accent_primary | default: '#9333ea'
-  assign glow_secondary = section.settings.glow_accent_secondary | default: '#ec4899'
+  assign mega_border = section.settings.mega_border_color | default: '#FAFAF7'
+  assign glow_primary = section.settings.glow_accent_primary | default: '#B0C3FA'
+  assign glow_secondary = section.settings.glow_accent_secondary | default: '#5E0A02'
   assign lifestyle_primary = section.settings.lifestyle_accent_primary | default: '#f59e0b'
   assign lifestyle_secondary = section.settings.lifestyle_accent_secondary | default: '#d97706'
-  assign support_primary = section.settings.support_accent_primary | default: '#06b6d4'
-  assign support_secondary = section.settings.support_accent_secondary | default: '#0891b2'
-  assign drawer_bg = section.settings.drawer_bg_color | default: '#0a0a0f'
-  assign drawer_accent = section.settings.drawer_accent_color | default: '#9333ea'
+  assign support_primary = section.settings.support_accent_primary | default: '#F2FFA0'
+  assign support_secondary = section.settings.support_accent_secondary | default: '#F2FFA0'
+  assign drawer_bg = section.settings.drawer_bg_color | default: '#0A0A0F'
+  assign drawer_accent = section.settings.drawer_accent_color | default: '#B0C3FA'
 
   comment
     Glassmorphic drawer controls
   endcomment
-  assign glass_tint = section.settings.drawer_glass_tint | default: '#ffffff'
+  assign glass_tint = section.settings.drawer_glass_tint | default: '#FAFAF7'
   assign glass_opacity = section.settings.drawer_glass_opacity | default: 45
   assign glass_blur = section.settings.drawer_glass_blur | default: 60
-  assign glass_text = section.settings.drawer_glass_text | default: '#000000'
+  assign glass_text = section.settings.drawer_glass_text | default: '#0A0A0F'
   assign glass_text_muted = section.settings.drawer_glass_text_muted | default: '#555555'
   assign glass_icon_bg = section.settings.drawer_glass_icon_bg | default: '#e5e5e5'
-  assign glass_icon_active = section.settings.drawer_glass_icon_active | default: '#1a1a1a'
+  assign glass_icon_active = section.settings.drawer_glass_icon_active | default: '#1F1F24'
   assign glass_border = section.settings.drawer_glass_border | default: '#d4d4d4'
-  assign glass_card_bg = section.settings.drawer_glass_card_bg | default: '#ffffff'
-  assign glass_btn_bg = section.settings.drawer_glass_btn_bg | default: '#1a1a1a'
-  assign glass_btn_text = section.settings.drawer_glass_btn_text | default: '#ffffff'
+  assign glass_card_bg = section.settings.drawer_glass_card_bg | default: '#FAFAF7'
+  assign glass_btn_bg = section.settings.drawer_glass_btn_bg | default: '#1F1F24'
+  assign glass_btn_text = section.settings.drawer_glass_btn_text | default: '#FAFAF7'
 
   comment
     Convert glass_opacity from 0-100 to 0-1 for CSS
@@ -1114,11 +1607,19 @@
   assign header_height = section.settings.header_height | default: 80
   assign logo_height = section.settings.logo_height | default: 36
 -%}
-<style>
+{% style %}
   /* Global sizing variables - accessible to mega menu & drawer */
   :root {
     --casa-header-height: {{ header_height }}px;
     --casa-logo-height: {{ logo_height }}px;
+
+    /* Anchor-offset fallbacks read by html { scroll-padding-top } in base.css.
+       Emitted here with the merchant's real configured header_height so a cold
+       deep-link (e.g. /policies/shipping-policy#returns) lands correctly BEFORE
+       the header JS runs. The JS overrides both on :root once it measures the
+       live pinned height (which also folds in the announcement bar). */
+    --header-height: {{ header_height }}px;
+    --header-group-height: {{ header_height }}px;
 
     /* Glassmorphic Drawer Controls (on :root so drawer/submenu can inherit) */
     --casa-glass-tint: {{ glass_tint }};
@@ -1139,6 +1640,13 @@
     --casa-glass-card-bg-rgb: {{ glass_card_bg | color_extract: 'red' }}, {{ glass_card_bg | color_extract: 'green' }}, {{ glass_card_bg | color_extract: 'blue' }};
     --casa-glass-btn-bg: {{ glass_btn_bg }};
     --casa-glass-btn-text: {{ glass_btn_text }};
+
+    /* Submenu price typography (used in casa-submenu-panel "Popular in X" list).
+       Lives on :root because the submenu panel renders OUTSIDE the .casa-header
+       element, so .casa-header-scoped variables don't reach it. */
+    --casa-submenu-price-size: {{ section.settings.submenu_price_size | default: 13 }}px;
+    --casa-submenu-compare-price-size: {{ section.settings.submenu_compare_price_size | default: 11 }}px;
+    --casa-submenu-price-weight: {{ section.settings.submenu_price_weight | default: 600 }};
   }
 
   .casa-header {
@@ -1153,6 +1661,9 @@
     --casa-header-border: {{ header_border | color_modify: 'alpha', header_border_opacity }};
     --casa-header-text: {{ header_text }};
     --casa-header-text-muted: {{ header_text | color_modify: 'alpha', header_text_opacity }};
+    --casa-cart-bubble-bg: {{ section.settings.cart_bubble_bg | default: '#B0C3FA' }};
+    --casa-cart-bubble-text: {{ section.settings.cart_bubble_text | default: '#FAFAF7' }};
+    --casa-cart-bubble-border: {{ section.settings.cart_bubble_border_color | default: '#B0C3FA' }};
 
     /* Mega Menu Colors */
     --casa-mega-bg: {{ mega_bg | color_modify: 'alpha', mega_bg_opacity }};
@@ -1187,9 +1698,9 @@
 
   /* ── Cart Drawer CSS Variables (must be in <style> for Liquid processing) ── */
   {%- liquid
-    assign cart_accent = section.settings.cart_accent_primary | default: '#9333ea'
-    assign cart_accent_secondary = section.settings.cart_accent_secondary | default: '#a855f7'
-    assign cart_bg = section.settings.cart_bg_color | default: '#ffffff'
+    assign cart_accent = section.settings.cart_accent_primary | default: '#B0C3FA'
+    assign cart_accent_secondary = section.settings.cart_accent_secondary | default: '#B0C3FA'
+    assign cart_bg = section.settings.cart_bg_color | default: '#FAFAF7'
     assign cart_text = section.settings.cart_text_color | default: '#1f2937'
     assign cart_border = section.settings.cart_border_color | default: '#e5e7eb'
     assign cart_accent_rgb = cart_accent | color_to_rgb | remove: 'rgb(' | remove: ')'
@@ -1202,7 +1713,7 @@
     --cart-drawer-border: {{ cart_border }};
     --cart-drawer-text: {{ cart_text }};
   }
-</style>
+{% endstyle %}
 
 {% stylesheet %}
   /* ── Section Group & Wrapper ── */
@@ -1211,6 +1722,14 @@
     position: relative;
     z-index: 1000;
   }
+
+  /* NOTE: do NOT promote #header-group with will-change / transform / contain
+     / isolation to "fix" scroll jank. Any of those makes the group a
+     BACKDROP-ROOT, and the nested position:fixed mega-menu's backdrop-filter
+     (blur 48px) then has nothing to sample and renders SEE-THROUGH — regressed
+     the frosted dropdown 2026-07-05, reverted. The fast-scroll header
+     bleed-through was fixed by cutting compositor load (backdrop-filter off
+     hidden UI chrome, assets/casa-base.css), NOT by promoting this group. */
 
   /* ── Header Container ── */
   .casa-header {
@@ -1227,38 +1746,78 @@
     border-bottom: 1px solid var(--casa-header-border, rgba(255, 255, 255, 0.08));
   }
 
-  /* Border - animated gradient */
-  .casa-header--border-animated::after {
-    content: '';
+  /* Border — animated gradient.
+     GPU-composited via transform, NOT background-position — Ignacio's
+     2026-05-18 flicker fix (matches casa-announcement's casa-an-shimmer).
+     Animating background-position forces a full repaint every frame (the
+     browser can't promote it to a GPU layer); the gradient stutters as it
+     slides = the visible flicker. transform: translateX on an oversized
+     child layer is compositor-only (zero paint) — same shimmer, no flicker.
+     The .casa-header__border-anim wrapper supplies the overflow clip so the
+     sticky <header> itself is never clipped (clipping it would trap the
+     position:fixed mega-menu and the sticky header group). */
+  .casa-header__border-anim {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 1px;
+    height: 2px;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .casa-header__border-anim::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 300%;
     background: linear-gradient(90deg,
-      var(--casa-glow-primary, #9333ea),
-      var(--casa-glow-secondary, #ec4899),
-      var(--casa-support-primary, #06b6d4),
-      var(--casa-glow-secondary, #ec4899),
-      var(--casa-glow-primary, #9333ea));
-    background-size: 300% 100%;
+      var(--casa-glow-primary, #B0C3FA),
+      var(--casa-glow-secondary, #5E0A02),
+      var(--casa-support-primary, #F2FFA0),
+      var(--casa-glow-secondary, #5E0A02),
+      var(--casa-glow-primary, #B0C3FA));
+    will-change: transform;
+    /* perf-justified: transform is compositor-only (zero per-frame paint);
+       always-visible header chrome, no closed state to gate a play-state on. */
     animation: casa-border-shimmer 4s linear infinite;
   }
 
   @keyframes casa-border-shimmer {
-    0% { background-position: 100% 0; }
-    100% { background-position: -100% 0; }
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-66.6667%); }
   }
 
-  /* Glassmorphism via ::before to avoid creating a containing block
-     for position:fixed mega menu (backdrop-filter creates one) */
+  @media (prefers-reduced-motion: reduce) {
+    .casa-header__border-anim::before { animation: none; }
+  }
+
+  /* Header background layer (kept on ::before so it does not create a
+     containing block for the position:fixed mega menu).
+
+     NO backdrop-filter — deliberately removed 2026-07-05. Two reasons:
+     (1) The header bg resolves fully OPAQUE (--casa-header-bg =
+         rgb(10,10,15) at every scroll position), so a blur sitting behind
+         an opaque layer is invisible — it rendered nothing.
+     (2) `will-change: backdrop-filter` promoted this pseudo to its own
+         compositor layer, which intermittently DROPPED its paint over the
+         page's constantly-repainting content (bg videos + header shimmers)
+         — flashing the header see-through on real GPUs (Chrome / high-
+         refresh): the merchant's "header shows what's below, then not"
+         report. Supersedes the 2026-05-17 blur-20→10 + will-change
+         mitigation, which only REDUCED that flicker (Ignacio's Class 1).
+     Removing the filter is zero visual change on an opaque bar and makes
+     the see-through flicker physically impossible. A translucent frosted
+     header would reintroduce backdrop-filter, which is inherently flicker-
+     prone over the animated content behind THIS header — use a near-opaque
+     bg, not a blurred pseudo, if that look is ever wanted. */
   .casa-header::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: var(--casa-header-bg, rgba(10, 10, 15, 0.8));
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: var(--casa-header-bg, rgb(10, 10, 15));
     z-index: -1;
   }
   .casa-header__inner {
@@ -1383,11 +1942,106 @@
     color: var(--casa-header-text-muted, rgba(255, 255, 255, 0.7));
     cursor: pointer;
     transition: color 0.2s;
-    padding: 4px;
+    /* 44x44 minimum hit area (Apple HIG / Google MWG mobile tap target).
+       The icon SVG size is unchanged — only the tappable box grows via
+       padding + min dimensions, so the header looks identical but the
+       search/account/cart icons are no longer a 28px fat-finger target. */
+    padding: 10px;
     position: relative;
-    min-width: 28px;
-    min-height: 28px;
+    min-width: 44px;
+    min-height: 44px;
     flex-shrink: 0;
+  }
+
+  /* Casa-styled cart count bubble */
+  .casa-header__cart-icon .cart-bubble__background {
+    background: var(--casa-cart-bubble-bg, #B0C3FA);
+  }
+  .casa-header__cart-icon .cart-bubble__text {
+    color: var(--casa-cart-bubble-text, #ffffff);
+  }
+
+  /* Hide bubble decoration when there's no count */
+  .casa-header__cart-icon:has(.cart-bubble__text-count:empty) .cart-bubble::before,
+  .casa-header__cart-icon:has(.cart-bubble.visually-hidden) .cart-bubble::before,
+  .casa-header__cart-icon--border-none .cart-bubble::before {
+    display: none;
+  }
+
+  /* Static ring */
+  .casa-header__cart-icon--border-static .cart-bubble {
+    box-shadow: 0 0 0 2px var(--casa-cart-bubble-border, #B0C3FA);
+  }
+
+  /* Pulse ring — soft expanding halo */
+  .casa-header__cart-icon--border-pulse .cart-bubble::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 2px solid var(--casa-cart-bubble-border, #B0C3FA);
+    /* perf-justified: the empty-cart block above display:none's this
+       ::before, so the keyframes only tick while the badge is visible. */
+    animation: casa-bubble-pulse 1.6s ease-out infinite;
+    pointer-events: none;
+  }
+  @keyframes casa-bubble-pulse {
+    0%   { transform: scale(1);   opacity: 0.85; }
+    70%  { transform: scale(1.6); opacity: 0;    }
+    100% { transform: scale(1.6); opacity: 0;    }
+  }
+
+  /* Rotating gradient — conic spin */
+  .casa-header__cart-icon--border-rotate .cart-bubble::before {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      var(--casa-cart-bubble-border, #B0C3FA),
+      #5E0A02,
+      #F2FFA0,
+      var(--casa-cart-bubble-border, #B0C3FA)
+    );
+    /* perf-justified: the empty-cart block above display:none's this
+       ::before, so the keyframes only tick while the badge is visible. */
+    animation: casa-bubble-rotate 3s linear infinite;
+    z-index: -1;
+    pointer-events: none;
+  }
+  .casa-header__cart-icon--border-rotate .cart-bubble {
+    isolation: isolate;
+  }
+  @keyframes casa-bubble-rotate {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Glow halo — slow breathing shadow */
+  .casa-header__cart-icon--border-glow .cart-bubble {
+    /* perf-justified: gated by the empty-cart rule below — the box-shadow
+       keyframes only tick while the badge is actually visible. */
+    animation: casa-bubble-glow 2.4s ease-in-out infinite;
+  }
+  /* Glow animates the bubble itself, not ::before, so the empty-cart
+     display:none block above doesn't cover it — without this gate the
+     box-shadow keyframes tick forever on the clipped .visually-hidden
+     bubble. Mirrors the :has() pattern used for pulse/rotate above. */
+  .casa-header__cart-icon--border-glow:has(.cart-bubble.visually-hidden) .cart-bubble {
+    animation: none;
+  }
+  @keyframes casa-bubble-glow {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--casa-cart-bubble-border, #B0C3FA) 60%, transparent); }
+    50%      { box-shadow: 0 0 0 6px color-mix(in srgb, var(--casa-cart-bubble-border, #B0C3FA) 0%,  transparent); }
+  }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .casa-header__cart-icon--border-pulse .cart-bubble::before,
+    .casa-header__cart-icon--border-rotate .cart-bubble::before,
+    .casa-header__cart-icon--border-glow .cart-bubble {
+      animation: none;
+    }
   }
   .casa-header__btn svg {
     width: 20px;
@@ -1405,7 +2059,7 @@
     right: -8px;
     min-width: 18px;
     height: 18px;
-    background: var(--casa-accent-primary, #9333ea);
+    background: var(--casa-accent-primary, #B0C3FA);
     color: white;
     font-size: 10px;
     font-weight: 600;
@@ -1425,7 +2079,7 @@
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--casa-glow-primary, #9333ea), var(--casa-glow-secondary, #ec4899));
+    background: linear-gradient(135deg, var(--casa-glow-primary, #B0C3FA), var(--casa-glow-secondary, #5E0A02));
     color: white;
     font-size: 12px;
     font-weight: 600;
@@ -1435,7 +2089,7 @@
     text-transform: uppercase;
   }
   .casa-header__account-btn:hover .casa-header__account-avatar {
-    box-shadow: 0 0 12px rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.5);
+    box-shadow: 0 0 12px rgba(var(--casa-glow-primary-rgb, 176, 195, 250), 0.5);
   }
 
   /* Locale/Currency selector button */
@@ -1461,8 +2115,15 @@
   .casa-desktop-only { display: flex; }
   .casa-mobile-only { display: none; }
 
-  /* ── Mobile/Tablet: Switch to hamburger menu under 1000px ── */
-  @media (max-width: 999px) {
+  /* ── Mobile/Tablet: Switch to hamburger menu under 1100px ──
+     Threshold tuned in-browser (preview 152924782746, EUR): with the
+     current 7-item nav the last link ("Rewards") collides with the
+     currency selector at ~1073px and the layout settles to a stable
+     ~17px clearance from ~1100px up. Switching to the burger at
+     ≤1099px clears the overlap band (1000–1073px) with real breathing
+     room. If the menu gains/loses items or labels change length,
+     re-measure (see git history for this comment). ── */
+  @media (max-width: 1099px) {
     .casa-header {
       padding: 0 20px;
       height: calc(var(--casa-header-height, 80px) * 0.85);
@@ -1542,12 +2203,8 @@
     }
   }
 
-  /* ── Tight Desktop (1000–1399px) — hide locale, compact logo ── */
-  @media (min-width: 1000px) and (max-width: 1399px) {
-    .casa-header__locale-btn {
-      display: none !important;
-    }
-
+  /* ── Tight Desktop (1100–1399px) — compact logo (locale stays visible) ── */
+  @media (min-width: 1100px) and (max-width: 1399px) {
     .casa-header__logo {
       font-size: 18px;
       letter-spacing: calc(var(--casa-logo-spacing, 4px) * 0.75);
@@ -1595,7 +2252,9 @@
     --cart-drawer-padding-desktop: 24px 32px;
     --cart-drawer-text-secondary: #6b7280;
     --cart-drawer-text-muted: #9ca3af;
-    --cart-drawer-success: #10b981;
+    /* --cart-drawer-success removed 2026-08-25 — its only consumer was the
+       shipping-progress gradient end, now brand purple ("colors should be
+       consistent": no green in cart chrome). */
   }
 
   /* ── Main Dialog Container ── */
@@ -1637,8 +2296,17 @@
     height: 4px;
     background: linear-gradient(90deg, var(--cart-drawer-accent), var(--cart-drawer-accent-secondary), var(--cart-drawer-accent));
     background-size: 200% 100%;
+    /* A closed dialog element is display:none so this doesn't tick when
+       shut; the [open] play-state gate below keeps that true if the drawer
+       ever migrates to the house div+.is-open pattern (ios-dialog lint).
+       perf-justified: paused by default, runs only while [open]. */
     animation: cart-shimmer 3s ease-in-out infinite;
+    animation-play-state: paused;
     z-index: 10;
+  }
+
+  .cart-drawer__dialog[open]::before {
+    animation-play-state: running;
   }
 
   @keyframes cart-shimmer {
@@ -1655,15 +2323,29 @@
     flex-direction: column;
   }
 
-  /* ═══ COMPACT CART ITEMS (Drawer-specific) ═══ */
-  /* ── 3-col drawer grid: image | details (with inline qty) | price ── */
+  /* ═══ CART ITEMS (Drawer-specific) ═══ */
+  /* ── DEFAULT = 3-col card: thumbnail | title | price (top-right). This is the
+     side-by-side card the drawer has always used, and what desktop + 360/375px+
+     phones keep. Only at genuinely cramped widths (container ≤280px ≈ ≤320px
+     phones) does it switch to the compact 2-col stack in the @container block
+     below — that's the one width where the 3-col starved the title to a sliver. ── */
   .cart-drawer .cart-items__table-row {
     grid-template-columns: 56px minmax(0, 1fr) auto;
-    grid-template-areas: 'media details price';
+    grid-template-areas:
+      'media details price'
+      'media edd     edd'
+      'media qty     qty';
     column-gap: 10px;
     padding-bottom: 12px;
     margin-bottom: 12px;
   }
+
+  /* Full-width rows under the title/price: the delivery estimate, then the compact stepper.
+     grid-area re-places the cells the base grid put at 1/-1 so each spans the content columns
+     and left-aligns with the title. margin-top owns the vertical rhythm (no row-gap, so a gift
+     card's hidden --empty edd cell adds no phantom gap above the stepper). */
+  .cart-drawer .cart-items__edd-cell { grid-area: edd; margin-top: 4px; }
+  .cart-drawer .cart-items__inline-qty-cell { grid-area: qty; margin-top: 4px; }
 
   .cart-drawer .cart-items__media-container {
     width: 56px;
@@ -1673,13 +2355,22 @@
     font-size: 13px;
     font-weight: 700;
     line-height: 1.3;
+    /* Cap product names at 2 lines + ellipsis at ALL widths (merchant preference).
+       The 3-col title column is only ~135px, so without this a long name wraps to
+       ~6 lines and makes a tall card. Applies to both the 3-col and compact layouts,
+       so the compact override no longer needs its own clamp. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .cart-drawer .cart-items__inline-price {
     display: none;
   }
 
-  /* Stack price + compare-at vertically in drawer */
+  /* DEFAULT: price top-right, stacked (current over compare-at) — the 3-col card.
+     The narrow @container override above flips it to a left-aligned inline row. */
   .cart-drawer .cart-items__price {
     display: flex;
     flex-direction: column;
@@ -1692,6 +2383,33 @@
   .cart-drawer .cart-items__compare-price {
     font-size: 10px;
     color: var(--compare-price-color, #6b7280);
+  }
+
+  /* Compact 2-col stack — ONLY when the drawer is genuinely cramped (small phones,
+     ≤320px viewport ≈ ≤280px container). Placed AFTER the default title/price rules
+     so these overrides win by source order (equal specificity). Title takes the full
+     width so a long name can't wrap to 10+ lines / blow the card to ~400px; price,
+     delivery estimate and stepper each drop to their own row. 375px+ phones and
+     desktop keep the 3-col card. */
+  @container cart-items (max-width: 280px) {
+    .cart-drawer .cart-items__table-row {
+      grid-template-columns: 56px minmax(0, 1fr);
+      grid-template-areas:
+        'media details'
+        'media price'
+        'media edd'
+        'media qty';
+      column-gap: 11px;
+    }
+
+    .cart-drawer .cart-items__price {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: flex-start;
+      gap: 2px 6px;
+      margin-top: 3px;
+    }
   }
 
   .cart-drawer .cart-items__details > * + * {
@@ -1711,35 +2429,66 @@
   /* Hide original quantity row — use compact inline qty in details instead */
   .cart-drawer .cart-items__quantity { display: none; }
 
-  /* Show inline qty controls inside details cell */
+  /* Compact qty controls — now live in their own full-width .cart-items__inline-qty-cell
+     grid row (vertical spacing is on that cell), not inside the details cell. */
   .cart-drawer .cart-items__inline-qty {
     display: flex;
     align-items: center;
     gap: 4px;
-    margin-top: 6px;
   }
 
   .cart-drawer .cart-items__quantity-controls {
     gap: 4px;
+    margin-bottom: 8px;
   }
 
   .cart-drawer .quantity-selector {
-    height: 24px;
+    height: 28px;
     min-width: auto;
     border-radius: 6px;
+    flex: 0 0 auto;
   }
 
   .cart-drawer .quantity-selector__button {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     padding: 0;
   }
 
-  .cart-drawer .quantity-selector__input {
-    width: 24px;
-    height: 24px;
-    font-size: 11px;
+  /* The stepper's +/- controls render as .quantity-minus / .quantity-plus
+     (NOT .quantity-selector__button), so the rule above never reached them and
+     they defaulted to 44px each — making the whole pill ~126px and crowding the
+     remove button against the card edge. Size the real buttons directly: 32px
+     drops the stepper to ~96px (still clears WCAG 2.5.8's 24px min tap target,
+     though below the 44px mobile ideal). */
+  .cart-drawer .cart-items__inline-qty .quantity-selector button {
+    width: 32px;
+    min-width: 32px;
     padding: 0;
+  }
+
+  .cart-drawer .quantity-selector__input,
+  .cart-drawer .quantity-selector input[type='number'] {
+    width: 28px;
+    height: 28px;
+    /* Compact density on desktop — 12px digit in a 28×28 cell. */
+    font-size: 12px !important;
+    padding: 0;
+    min-width: 24px !important;
+    max-width: 28px !important;
+  }
+  /* Mobile: bump to 16px to suppress iOS Safari focus auto-zoom
+     (which never zooms back out, leaving the drawer wider than
+     viewport). 16px digit needs a slightly wider cell to fit
+     two-digit quantities — bumping width 28 → 36px on mobile. */
+  @media screen and (max-width: 749px) {
+    .cart-drawer .quantity-selector__input,
+    .cart-drawer .quantity-selector input[type='number'] {
+      width: 30px;
+      font-size: 16px !important;
+      min-width: 30px !important;
+      max-width: 30px !important;
+    }
   }
 
   .cart-drawer .cart-items__remove {
@@ -1752,12 +2501,24 @@
     height: 14px;
   }
 
+  /* Hide Shop Pay / PayPal / Google Pay / Apple Pay accelerated checkout
+     buttons inside the cart drawer at all viewports. Only the single
+     CHECKOUT button should appear in the drawer; accelerated checkout
+     stays on the main /cart page where there's real estate for it. */
+  .cart-drawer .additional-checkout-buttons,
+  .cart-drawer .dynamic-checkout__content,
+  .cart-drawer #dynamic-checkout-cart,
+  .cart-drawer shopify-accelerated-checkout-cart {
+    display: none !important;
+  }
+
   /* ═══ Quick-Buy Modal — Variant List (vertical compact layout) ═══ */
 
   /* ═══ UPSELLS - Horizontal Carousel ═══ */
   .cart-upsell {
-    padding: 12px 16px;
+    padding: 12px 16px 16px;
     border-top: 1px solid var(--cart-drawer-border);
+    margin-bottom: 4px;
   }
 
   .cart-upsell__header {
@@ -1776,63 +2537,44 @@
     margin: 0;
   }
 
-  .cart-upsell__nav {
-    display: flex;
-    gap: 4px;
-  }
-
-  .cart-upsell__arrow {
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.04);
-    border: 1px solid var(--cart-drawer-border);
-    border-radius: 50%;
-    cursor: pointer;
-    color: var(--cart-drawer-text-secondary);
-    transition: all 0.15s ease;
-    padding: 0;
-  }
-
-  .cart-upsell__arrow:hover:not(:disabled) {
-    background: rgba(var(--cart-drawer-accent-rgb), 0.1);
-    border-color: rgba(var(--cart-drawer-accent-rgb), 0.3);
-    color: var(--cart-drawer-accent);
-  }
-
-  .cart-upsell__arrow:disabled {
-    opacity: 0.3;
-    cursor: default;
-  }
-
+  /* Vertical list (was a horizontal carousel + nav arrows). A cart drawer is
+     only ~356px wide even on desktop, so it never had room for two cards side
+     by side — the carousel only ever showed one card plus tiny arrows. A
+     stacked list shows every upsell at once, needs no arrows, and structurally
+     can't overflow or let one card occlude another. Capped by the merchant's
+     cart_upsell_limit (default 3), so it stays short. */
   .cart-upsell__track {
     display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    scroll-behavior: smooth;
-  }
-
-  .cart-upsell__track::-webkit-scrollbar {
-    display: none;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .cart-upsell__item {
-    display: flex;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     padding: 10px;
     background: rgba(0, 0, 0, 0.02);
     border: 1px solid var(--cart-drawer-border);
     border-radius: 8px;
-    flex: 0 0 85%;
-    scroll-snap-align: start;
     min-width: 0;
+  }
+
+  /* Price ⟷ ADD on one row; ADD wraps under the price only when the row is
+     genuinely too narrow for both (a wide currency like VND at ≤~360px). */
+  .cart-upsell__buy {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    margin-top: 4px;
+  }
+
+  /* keep ADD right-aligned when it wraps onto its own line */
+  .cart-upsell__add {
+    margin-inline-start: auto;
   }
 
   .cart-upsell__image {
@@ -1841,7 +2583,7 @@
     border-radius: 6px;
     overflow: hidden;
     flex-shrink: 0;
-    background: #f5f5f5;
+    background: var(--casa-border-on-paper);
   }
 
   .cart-upsell__image img {
@@ -1884,14 +2626,21 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--cart-drawer-accent, #9333ea);
-    background-color: var(--cart-drawer-accent, #9333ea);
+    background: var(--cart-drawer-accent, #B0C3FA);
+    background-color: var(--cart-drawer-accent, #B0C3FA);
     color: #fff;
     border: none;
     border-radius: 6px;
     cursor: pointer;
+    /* Brand-book home-decor CTA convention: UPPERCASE Inter 600 with
+       generous tracking ("ADD", not "Add"). Keeps the drawer CTA
+       language consistent with the PDP "ADD TO CART" pattern and the
+       sticky CHECKOUT button below. */
+    font-family: var(--font-body--family, 'Inter', system-ui, sans-serif);
     font-size: 11px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
     transition: all 0.15s ease;
     flex-shrink: 0;
     white-space: nowrap;
@@ -1914,17 +2663,31 @@
   }
 
   .cart-upsell__add.is-success {
-    background: #10b981;
+    /* Was green #10b981 — brand purple per the one-accent rule
+       (merchant 2026-08-25). White label on #B0C3FA = 5.4:1. */
+    background: var(--casa-purple, #B0C3FA);
   }
 
-  /* ═══ Trust Line - Minimal ═══ */
+  /* ═══ Trust Line - Minimal — sits below checkout button ═══
+     Flex child of the sticky .cart-drawer__summary. The gap that
+     actually applies there is NOT this file's 20px — the dead stock
+     header's snippet (header-actions.liquid:643) still ships its
+     .cart-drawer__summary block in the compiled bundle and wins the
+     same-specificity cascade, so the live gap is var(--gap-sm)
+     (0.7rem = 11.2px; browser-verified 2026-07-20). Subtracting the
+     same token nets a deterministic 8px under the CHECKOUT button
+     regardless of root font-size. If the dead header cluster is ever
+     deleted, this file's gap: 20px activates — retune this calc.
+     Color matches the cart muted token: #9ca3af was 2.31:1 on Paper
+     (AA fail at 10px). */
   .cart-cro__trust {
     font-size: 10px;
-    color: #9ca3af;
+    line-height: 1.5;
+    color: var(--cart-text-muted, #525252);
     text-align: center;
-    padding: 8px 16px;
+    padding: 0;
     margin: 0;
-    border-top: 1px solid var(--cart-drawer-border);
+    margin-block-start: calc(8px - var(--gap-sm, 0.7rem));
   }
 
   /* ── Compact Header ── */
@@ -1986,7 +2749,11 @@
     font-weight: 600;
   }
   .cart-drawer__shipping-inline .cart-drawer__shipping-text--success {
-    color: #10b981;
+    /* Brand purple, not green (merchant 2026-08-25: "colors should be
+       consistent" — one accent across cart chrome; the earlier
+       purple-applied/green-achieved split lasted one commit). #B0C3FA on
+       the white header = 5.4:1, AA at 11px/600. */
+    color: var(--casa-purple, #B0C3FA);
     font-weight: 600;
   }
 
@@ -2030,7 +2797,8 @@
     font-weight: 600;
   }
   .cart-drawer__shipping-text--success {
-    color: #10b981;
+    /* Brand purple — see the .cart-drawer__shipping-inline rule above. */
+    color: var(--casa-purple, #B0C3FA);
   }
 
   .cart-drawer__shipping-track {
@@ -2043,8 +2811,14 @@
   .cart-drawer__shipping-progress {
     height: 100%;
     width: var(--progress, 0%);
-    background: linear-gradient(90deg, var(--cart-drawer-accent), var(--cart-drawer-success));
+    /* Ink → brand purple (was → green #10b981; merchant 2026-08-25:
+       "colors should be consistent" — no green in cart chrome). */
+    background: linear-gradient(90deg, var(--cart-drawer-accent), var(--casa-purple, #B0C3FA));
     border-radius: 3px;
+    /* perf-justified: --progress is a Liquid-set percentage, so scaleX
+       needs a unitless fraction (calc can't divide by %) and would distort
+       the 3px end-cap radius + ::after shimmer. Fires only on discrete
+       cart mutations while the drawer is open — 3px-tall bar, negligible. */
     transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
   }
@@ -2053,7 +2827,18 @@
     position: absolute;
     inset: 0;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    /* perf-justified: paused by default, runs only while the owning
+       drawer is [open] (rule below); the closed dialog is display:none. */
     animation: shimmer 2s infinite;
+    animation-play-state: paused;
+  }
+  .cart-drawer__dialog[open] .cart-drawer__shipping-progress::after {
+    animation-play-state: running;
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
 
   @keyframes shimmer {
@@ -2088,7 +2873,7 @@
   .cart-drawer__items .cart-items__table-row {
     padding: 16px;
     margin-bottom: 16px;
-    background: #ffffff;
+    background: var(--casa-paper);
     border: 1px solid var(--cart-drawer-border);
     border-radius: 12px;
     transition: all 0.2s;
@@ -2112,7 +2897,7 @@
   .cart-drawer__items .cart-items__media-container {
     border-radius: 8px;
     overflow: hidden;
-    background: #f9fafb;
+    background: var(--casa-border-on-paper);
   }
 
   .cart-drawer__items .cart-items__title {
@@ -2140,10 +2925,15 @@
     color: var(--cart-drawer-text-muted);
   }
 
-  /* Quantity selector styling */
+  /* Quantity selector styling.
+     Brand-strict: Paper #FAFAF7 (matches the line-item card it sits
+     inside, zero color drift) + hairline #E5E5E5 border so only the
+     border distinguishes it as interactive. Was rendering on the
+     stock --casa-border-on-paper token (~#E5E3DC warm grey-beige)
+     which read as off-brand input chrome. */
   .cart-drawer__items .quantity-selector {
-    background: #f9fafb;
-    border: 1px solid var(--cart-drawer-border);
+    background: #FAFAF7;
+    border: 1px solid #E5E5E5;
     border-radius: 6px;
   }
 
@@ -2163,6 +2953,22 @@
     opacity: 1;
   }
 
+  /* Horizon's <scroll-hint> (assets/scrolling.js ScrollHint#update) writes a
+     scroll-aware mask-image as an INLINE style that fades the top and bottom
+     10% of the scroll container to hint overflow. Casa's drawer keeps the
+     sticky .cart-drawer__summary INSIDE the scroll-hint, so the bottom fade
+     erases the summary's own pixels — the CHECKOUT button rendered with a
+     white wash over its lower half (only when the cart overflows, which is
+     why 1-item carts looked fine; worst on phones where the 10% zone is
+     ~80px). The fade can never do its real job here — the opaque sticky
+     summary permanently covers the container's bottom edge — so disable the
+     mask for the cart drawer only. !important is required to beat the JS
+     inline style. Other scroll-hint instances keep stock behavior. */
+  scroll-hint.cart-drawer__content {
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+  }
+
   /* ── Summary Section ── */
   .cart-drawer__summary {
     --cart-drawer-summary-padding: 24px;
@@ -2174,7 +2980,7 @@
     align-items: stretch;
     gap: 20px;
     padding: var(--cart-drawer-summary-padding);
-    background: #ffffff;
+    background: var(--casa-paper);
     border-top: 1px solid var(--cart-drawer-border);
   }
 
@@ -2209,10 +3015,19 @@
     font-size: 14px;
   }
 
+  /* Keep the compare-at strike inline beside the amount, wrapping to a 2nd line
+     only when the drawer is genuinely too narrow for the currency. Self-contained
+     (mirrors the base rule in cart-summary.liquid) so this 0,2,0 drawer override
+     doesn't silently depend on the base for flex-direction/wrap. column-gap 8px =
+     inline spacing; row-gap 1px = tight stack matching the /cart page. */
   .cart-drawer__summary .cart__total-prices {
     display: flex;
+    flex-flow: row wrap;
+    justify-content: flex-end;
     align-items: baseline;
-    gap: 8px;
+    column-gap: 8px;
+    row-gap: 1px;
+    min-width: 0;
   }
 
   .cart-drawer__summary .cart__total-value {
@@ -2221,73 +3036,56 @@
     font-weight: 700;
   }
 
-  .cart-drawer__summary .cart__total-compare {
-    font-size: 13px;
-  }
-
+  /* Drawer subtotal was-price. Bumped 14px → 16px so it reads as a real
+     secondary price under the 18px subtotal instead of a tiny afterthought
+     (the merchant flagged the size mismatch). This .cart-drawer__summary rule
+     (0,2,0) is what actually wins in the drawer — the .cart__total-compare rule
+     in cart-summary.liquid is a lower-specificity base fallback. */
   .cart-drawer__summary .cart__total-compare {
     color: var(--compare-price-color, #6b7280);
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 400;
     text-decoration: line-through;
   }
 
-  /* Checkout button - premium gradient CTA */
+  /* Checkout button — Ink brand primary (mirrors assets/casa-buttons.css .btn-primary).
+     Was a "premium gradient CTA"; with the merchant's cart accent set to #000000
+     the gradient + gloss rendered as a grey wash, off the brand's quiet-chrome
+     Ink-CTA rule. Solid Ink is correct. Uses brand tokens so it tracks the button
+     system + the merchant's Ink setting (casa_surface_ink), not the ad-hoc accent.
+     `!important` on the fill is retained ON PURPOSE: it must beat the legacy
+     `.cart-drawer .cart__checkout-button` --cro-accent purple gradient in
+     snippets/header-actions.liquid (specificity 0,2,0, no !important) which would
+     otherwise out-specify .btn-primary and resurface purple. */
   .cart-drawer__summary .cart__checkout-button,
   .cart-drawer .cart__checkout-button,
   .cart-drawer-component .cart__checkout-button,
   .cart__checkout-button.button {
-    background: linear-gradient(135deg, var(--cart-drawer-accent, #9333ea), var(--cart-drawer-accent-secondary, #a855f7)) !important;
+    background: var(--bg-dark, #0A0A0F) !important;
     border: none !important;
-    border-radius: 14px;
-    color: white !important;
-    font-weight: 700;
-    font-size: 15px;
-    letter-spacing: 0.3px;
-    padding: 18px 28px;
+    border-radius: var(--r-lg, 12px);
+    color: var(--t-on-dark, #ffffff) !important;
+    font-family: var(--font-body--family);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    text-transform: var(--button-text-case-primary, uppercase);
+    padding: 16px 32px;
     cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-    box-shadow:
-      0 4px 14px rgba(var(--cart-drawer-accent-rgb), 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: transform var(--d-base) var(--ease-out), box-shadow var(--d-base) var(--ease-out), background var(--d-base) var(--ease-out);
   }
-  .cart-drawer__summary .cart__checkout-button::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent 60%);
-    opacity: 1;
-  }
-  .cart-drawer__summary .cart__checkout-button::after {
-    content: '';
-    position: absolute;
-    inset: -50%;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.15),
-      transparent
-    );
-    transform: translateX(-100%) rotate(25deg);
-    transition: transform 0.6s ease;
-  }
-  .cart-drawer__summary .cart__checkout-button:hover::after {
-    transform: translateX(100%) rotate(25deg);
-  }
-  .cart-drawer__summary .cart__checkout-button:hover {
-    transform: translateY(-3px);
-    box-shadow:
-      0 12px 28px rgba(var(--cart-drawer-accent-rgb), 0.45),
-      0 4px 10px rgba(var(--cart-drawer-accent-rgb), 0.25),
-      inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  .cart-drawer__summary .cart__checkout-button:hover,
+  .cart-drawer .cart__checkout-button:hover {
+    background: #1f1f25 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(10, 10, 15, 0.18);
   }
   .cart-drawer__summary .cart__checkout-button:active {
-    transform: translateY(-1px);
-    box-shadow:
-      0 6px 16px rgba(var(--cart-drawer-accent-rgb), 0.35),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transform: scale(0.98);
+  }
+  .cart-drawer__summary .cart__checkout-button:focus-visible {
+    outline: 2px solid var(--c-purple, #B0C3FA);
+    outline-offset: 2px;
   }
   .cart-drawer__summary .cart__checkout-button:disabled {
     opacity: 0.5;
@@ -2296,12 +3094,19 @@
     box-shadow: none;
   }
 
-  /* Discount input styling */
+  /* Discount input styling.
+     Brand-strict: Paper #FAFAF7 + hairline #E5E5E5. Matches the
+     quantity selector pattern above so both inputs in the drawer
+     speak the same surface language.
+     Sized as secondary (40px tall, .btn-sm proportions) — discount
+     code is opt-in, must not compete with the CHECKOUT primary CTA. */
   .cart-drawer__summary .cart-discount__input {
-    background: #f9fafb;
-    border: 1px solid var(--cart-drawer-border);
+    background: #FAFAF7;
+    border: 1px solid #E5E5E5;
     border-radius: 8px;
     color: var(--cart-drawer-text);
+    height: 40px;
+    padding: 8px 14px;
   }
   .cart-drawer__summary .cart-discount__input:focus {
     border-color: var(--cart-drawer-accent);
@@ -2309,16 +3114,26 @@
     box-shadow: 0 0 0 3px rgba(var(--cart-drawer-accent-rgb), 0.1);
   }
 
+  /* Apply button: .btn-sm proportions so it reads as secondary to
+     CHECKOUT. Was sized only 1px smaller than CHECKOUT (14px vs 15px
+     font, same uppercase weight) which made the eye treat them as
+     equal-priority CTAs. */
   .cart-drawer__summary .cart-discount__button {
     background: var(--cart-drawer-accent);
     border: none;
     border-radius: 8px;
     color: white;
-    font-weight: 500;
-    transition: all 0.2s;
+    font-family: var(--font-body--family, 'Inter', system-ui, sans-serif);
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    height: 40px;
+    padding: 0 18px;
+    transition: opacity 0.15s ease;
   }
   .cart-drawer__summary .cart-discount__button:hover {
-    background: var(--cart-drawer-accent-secondary);
+    opacity: 0.9;
   }
 
   /* Note accordion */
@@ -2332,7 +3147,7 @@
   }
 
   .cart-drawer__summary .cart-note__instructions {
-    background: #f9fafb;
+    background: var(--casa-border-on-paper);
     border: 1px solid var(--cart-drawer-border);
     border-radius: 8px;
     color: var(--cart-drawer-text);
@@ -2374,11 +3189,28 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
+    text-align: center;
   }
-  .cart-drawer__heading--empty::before {
-    content: none;
-    display: none;
+
+  .cart-drawer__empty-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    opacity: 0.85;
+  }
+  .cart-drawer__empty-logo-img {
+    max-width: 140px;
+    height: auto;
+    display: block;
+  }
+  .cart-drawer__empty-logo-text {
+    font-family: var(--font-heading--family);
+    font-size: 18px;
+    font-weight: 300;
+    letter-spacing: 0.22em;
+    color: var(--cart-drawer-text, var(--casa-ink));
   }
 
   .cart-drawer:not(:has(.cart-form)) .cart-drawer__content {
@@ -2424,34 +3256,45 @@
      ══════════════════════════════════════════════════════════════════════════ */
   .casa-locale-drawer {
     position: fixed;
+    inset: 0;
+    margin: auto;
+    z-index: 10001;
     border: none;
     border-radius: 16px;
-    background: linear-gradient(145deg, rgba(15, 15, 20, 0.98), rgba(10, 10, 15, 0.99));
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    /* Flat Ink per brand book — surfaces are Paper or Ink only, no gradient on chrome. */
+    background: var(--bg-dark, var(--casa-ink));
     box-shadow:
       0 0 0 1px rgba(255, 255, 255, 0.08),
       0 20px 60px rgba(0, 0, 0, 0.5),
-      0 0 80px rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.1);
+      0 0 80px rgba(var(--casa-glow-primary-rgb, 176, 195, 250), 0.1);
     color: white;
     max-width: 420px;
     width: 90vw;
     max-height: 80vh;
+    max-height: 80dvh;
     padding: 0;
     overflow: hidden;
+    display: none;
   }
 
-  .casa-locale-drawer::backdrop {
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+  .casa-locale-drawer.is-open {
+    display: flex;
+  }
+
+  .casa-locale-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0, 0, 0, 0.75);
   }
 
   .casa-locale-drawer__inner {
     display: flex;
     flex-direction: column;
     height: 100%;
-    max-height: 80vh;
+    width: 100%;
+    box-sizing: border-box;
+    max-height: min(80vh, 80dvh);
   }
 
   .casa-locale-drawer__header {
@@ -2467,7 +3310,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 16px;
+    font-size: var(--font-h5--size, 16px);
     font-weight: 500;
     margin: 0;
     color: white;
@@ -2542,7 +3385,7 @@
   .casa-locale-drawer .casa-locale-search__input:focus,
   .casa-locale-drawer input.casa-locale-search__input:focus {
     outline: none;
-    border-color: var(--casa-glow-primary, #9333ea);
+    border-color: var(--casa-glow-primary, #B0C3FA);
     background-color: rgba(255, 255, 255, 0.08);
     color: white;
   }
@@ -2551,19 +3394,27 @@
   .casa-locale-countries {
     flex: 1;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding: 12px 20px;
     min-height: 200px;
-    max-height: 340px;
+    /* No max-height — list fills available drawer space and scrolls
+       internally so the submit button stays pinned to the bottom edge
+       instead of leaving dead space. */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
   }
   .casa-locale-countries::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
   }
   .casa-locale-countries::-webkit-scrollbar-track {
     background: transparent;
   }
   .casa-locale-countries::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    background: rgba(94, 10, 2, 0.28);
+    border-radius: 4px;
+  }
+  .casa-locale-countries::-webkit-scrollbar-thumb:hover {
+    background: rgba(94, 10, 2, 0.45);
   }
 
   /* Section Labels */
@@ -2572,10 +3423,12 @@
   }
   .casa-locale-section__label {
     display: block;
-    font-size: 10px;
+    /* 12px / 0.12em letter-spacing — brand-book hairline-uppercase pattern.
+       Was 10px / 1.5px which was below the readable floor on Retina. */
+    font-size: 12px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
+    letter-spacing: 0.12em;
     color: rgba(255, 255, 255, 0.4);
     margin-bottom: 10px;
     padding-left: 4px;
@@ -2609,8 +3462,8 @@
     border-color: rgba(255, 255, 255, 0.08);
   }
   .casa-locale-country.is-selected {
-    background: rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.15);
-    border-color: rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.3);
+    background: rgba(var(--casa-glow-primary-rgb, 176, 195, 250), 0.15);
+    border-color: rgba(var(--casa-glow-primary-rgb, 176, 195, 250), 0.3);
     color: white;
   }
   .casa-locale-country__check {
@@ -2626,8 +3479,8 @@
     transition: all 0.15s;
   }
   .casa-locale-country.is-selected .casa-locale-country__check {
-    background: var(--casa-glow-primary, #9333ea);
-    border-color: var(--casa-glow-primary, #9333ea);
+    background: var(--casa-glow-primary, #B0C3FA);
+    border-color: var(--casa-glow-primary, #B0C3FA);
     color: white;
   }
   .casa-locale-country__name {
@@ -2689,7 +3542,7 @@
   }
   .casa-locale-language__select:focus {
     outline: none;
-    border-color: var(--casa-glow-primary, #9333ea);
+    border-color: var(--casa-glow-primary, #B0C3FA);
   }
   .casa-locale-language__select option {
     background: #1a1a20;
@@ -2704,24 +3557,13 @@
     pointer-events: none;
   }
 
-  /* Submit Button */
+  /* Submit Button — visual styles inherit from .btn .btn-primary-on-dark
+     (assets/casa-buttons.css). This rule only contributes drawer-specific
+     layout: margin and flex-shrink so it pins to the drawer's bottom edge. */
   .casa-locale-submit {
     margin: 16px 20px 20px;
-    padding: 14px 24px;
-    background: linear-gradient(135deg, var(--casa-glow-primary, #9333ea), var(--casa-glow-secondary, #ec4899));
-    border: none;
-    border-radius: 10px;
-    color: white;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
     flex-shrink: 0;
-  }
-  .casa-locale-submit:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 20px rgba(var(--casa-glow-primary-rgb, 147, 51, 234), 0.4);
+    width: calc(100% - 40px);
   }
 
   /* Noscript fallback selects */
@@ -2779,8 +3621,12 @@
       max-width: 1800px;
     }
 
+    /* Widescreen layout stops tracking the viewport past 1920px: uncapped,
+       logo and cart end up ~3000px apart on a 34" ultrawide and the header
+       ignores the ~1920px band the page content sits in (merchant-approved
+       cap 2026-07-12). Only binds above ~2400px viewports at this tier. */
     .casa-header--widescreen .casa-header__inner {
-      max-width: none;
+      max-width: 2200px;
     }
 
     .casa-header__left {
@@ -2816,8 +3662,12 @@
       max-width: 2200px;
     }
 
+    /* Widescreen stays at the 2200px ceiling. Kept as belt-and-braces: the
+       ≥1920 widescreen rule already persists upward, but if that rule were
+       ever reverted, the base max-width: none (same specificity, earlier in
+       source) would win here without this duplicate. */
     .casa-header--widescreen .casa-header__inner {
-      max-width: none;
+      max-width: 2200px;
     }
 
     .casa-header__left {
@@ -2859,8 +3709,10 @@
       height: calc(var(--casa-header-height, 80px) * 1.2);
     }
 
+    /* Ladder stops at 2200px — the old 2800px rung put the logo and cart
+       ~3000px apart on 34" ultrawides (merchant-approved cap 2026-07-12). */
     .casa-header__inner {
-      max-width: 2800px;
+      max-width: 2200px;
     }
 
     .casa-header__left {
@@ -2930,8 +3782,8 @@
       "id": "header_layout",
       "label": "Header layout",
       "options": [
-        { "value": "boxed", "label": "Boxed (max-width 1600px)" },
-        { "value": "widescreen", "label": "Widescreen (full width)" }
+        { "value": "boxed", "label": "Boxed (1600px, up to 2200px ultrawide)" },
+        { "value": "widescreen", "label": "Widescreen (caps at 2200px on ultrawide)" }
       ],
       "default": "boxed"
     },
@@ -3046,7 +3898,7 @@
       "type": "color",
       "id": "header_border_color",
       "label": "Header border color (static)",
-      "default": "#ffffff",
+      "default": "#FAFAF7",
       "info": "Only applies when border style is 'Static'"
     },
     {
@@ -3064,7 +3916,7 @@
       "type": "color",
       "id": "header_text_color",
       "label": "Text color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "range",
@@ -3075,6 +3927,39 @@
       "step": 5,
       "default": 85,
       "unit": "%"
+    },
+    {
+      "type": "color_background",
+      "id": "cart_bubble_bg",
+      "label": "Cart count background",
+      "info": "Solid color or gradient",
+      "default": "#B0C3FA"
+    },
+    {
+      "type": "color",
+      "id": "cart_bubble_text",
+      "label": "Cart count text",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "select",
+      "id": "cart_bubble_border_style",
+      "label": "Cart count border style",
+      "options": [
+        { "value": "none", "label": "None" },
+        { "value": "static", "label": "Static ring" },
+        { "value": "pulse", "label": "Pulse ring" },
+        { "value": "rotate", "label": "Rotating gradient" },
+        { "value": "glow", "label": "Glow halo" }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "color",
+      "id": "cart_bubble_border_color",
+      "label": "Cart count border / glow color",
+      "info": "Used for the ring and pulse styles",
+      "default": "#B0C3FA"
     },
 
     { "type": "header", "content": "Colors — Mega Menu" },
@@ -3098,7 +3983,7 @@
       "type": "color",
       "id": "mega_border_color",
       "label": "Mega menu border color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
 
     { "type": "header", "content": "Colors — Glow Variant Accents" },
@@ -3183,7 +4068,7 @@
       "type": "color",
       "id": "drawer_glass_tint",
       "label": "Glass tint color",
-      "default": "#ffffff",
+      "default": "#FAFAF7",
       "info": "The glass panel color (white = light glass, dark = smoky glass)"
     },
     {
@@ -3211,7 +4096,7 @@
       "type": "color",
       "id": "drawer_glass_text",
       "label": "Glass — Text color",
-      "default": "#000000",
+      "default": "#0A0A0F",
       "info": "Primary text, titles, nav labels"
     },
     {
@@ -3232,7 +4117,7 @@
       "type": "color",
       "id": "drawer_glass_icon_active",
       "label": "Glass — Icon active / accent",
-      "default": "#1a1a1a",
+      "default": "#1F1F24",
       "info": "Icon bg on tap + featured link color"
     },
     {
@@ -3246,21 +4131,21 @@
       "type": "color",
       "id": "drawer_glass_card_bg",
       "label": "Glass — Card background",
-      "default": "#ffffff",
+      "default": "#FAFAF7",
       "info": "Featured card, quick link pills, social icons"
     },
     {
       "type": "color",
       "id": "drawer_glass_btn_bg",
       "label": "Glass — Button color",
-      "default": "#1a1a1a",
+      "default": "#1F1F24",
       "info": "View All button background"
     },
     {
       "type": "color",
       "id": "drawer_glass_btn_text",
       "label": "Glass — Button text",
-      "default": "#ffffff",
+      "default": "#FAFAF7",
       "info": "View All button text color"
     },
 
@@ -3283,7 +4168,7 @@
       "type": "color",
       "id": "cart_bg_color",
       "label": "Cart drawer background",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
@@ -3303,7 +4188,7 @@
       "type": "text",
       "id": "video_url",
       "label": "Promo video URL (CDN link)",
-      "default": "https://cdn.shopify.com/videos/c/o/v/85534bd822ad46409138cb421f6df8a2.mp4",
+      "default": "https://cdn.shopify.com/videos/c/o/v/bef87b2056594bb6853695ee3ab00ea9.mp4",
       "info": "Paste a direct video URL. Used in mega menu and mobile drawer when no promo image is set."
     },
 
@@ -3407,13 +4292,12 @@
       "type": "text",
       "id": "promo_title",
       "label": "Promo title",
-      "default": "Infinity Mirror Collection"
+      "info": "Header mega-menu promo card — enter per instance. Pre-2026-05-17 defaulted to 'Infinity Mirror Collection' which is a product-line claim, not store-wide."
     },
     {
       "type": "text",
       "id": "promo_subtitle",
-      "label": "Promo subtitle",
-      "default": "Transform any room with our mesmerizing LED infinity mirrors."
+      "label": "Promo subtitle"
     },
     {
       "type": "url",
@@ -3591,6 +4475,109 @@
       "max": 12,
       "step": 1,
       "default": 6
+    },
+    {
+      "type": "header",
+      "content": "Submenu product prices"
+    },
+    {
+      "type": "paragraph",
+      "content": "Font sizes for the price text in the 'Popular in [Category]' list. Applies to the submenu panels opened from the mobile drawer."
+    },
+    {
+      "type": "range",
+      "id": "submenu_price_size",
+      "label": "Current price size",
+      "min": 10,
+      "max": 24,
+      "step": 1,
+      "unit": "px",
+      "default": 13
+    },
+    {
+      "type": "range",
+      "id": "submenu_compare_price_size",
+      "label": "Compare-at price size",
+      "info": "The strikethrough 'before' price",
+      "min": 8,
+      "max": 20,
+      "step": 1,
+      "unit": "px",
+      "default": 11
+    },
+    {
+      "type": "select",
+      "id": "submenu_price_weight",
+      "label": "Current price weight",
+      "options": [
+        { "value": "400", "label": "400 (Normal)" },
+        { "value": "500", "label": "500 (Medium)" },
+        { "value": "600", "label": "600 (Semi-bold)" },
+        { "value": "700", "label": "700 (Bold)" }
+      ],
+      "default": "600"
+    },
+    {
+      "type": "header",
+      "content": "Submenu product badges"
+    },
+    {
+      "type": "paragraph",
+      "content": "By default, badges in the 'Popular in [Category]' list follow Theme Settings → Casa Product Cards → Show product badges. Toggle the override to control them just for the submenu."
+    },
+    {
+      "type": "checkbox",
+      "id": "submenu_show_badges_override",
+      "label": "Override theme badge setting",
+      "info": "When OFF, the submenu uses the global Theme Settings. When ON, the toggle below takes effect.",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "submenu_show_badges",
+      "label": "Show product badges",
+      "default": true,
+      "visible_if": "{{ section.settings.submenu_show_badges_override }}"
+    },
+    {
+      "type": "header",
+      "content": "Submenu sections"
+    },
+    {
+      "type": "paragraph",
+      "content": "Hide parts of the submenu panel globally. For per-link control, set the collection metafield casa.hide_submenu_featured or casa.hide_submenu_products to true."
+    },
+    {
+      "type": "checkbox",
+      "id": "submenu_show_featured",
+      "label": "Show featured banner image",
+      "info": "The image at the top of each submenu panel. Already auto-hides for page-typed links (Help, Rewards, etc.) since they don't have a collection image.",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "submenu_show_products",
+      "label": "Show 'Popular in [Category]' products list",
+      "info": "The bottom product list inside each submenu panel.",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Drawer icons"
+    },
+    {
+      "type": "checkbox",
+      "id": "drawer_show_icons",
+      "label": "Show icons on main menu items",
+      "info": "Top-level drawer items (Shop All, Lighting, Help, etc.). When off, the icon column is hidden — leaves text-only menu items.",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "submenu_show_icons",
+      "label": "Show icons inside submenu panels",
+      "info": "Icons next to child links like Track Order, Contact Us, FAQ.",
+      "default": true
     }
   ],
   "blocks": [
@@ -3672,7 +4659,7 @@
           "type": "text",
           "id": "products_title",
           "label": "Section title",
-          "info": "e.g. Trending Now, Best Sellers, New Drops",
+          "info": "e.g. Trending Now, Bestsellers, New Drops",
           "placeholder": "Trending Now"
         },
         {
@@ -3743,25 +4730,25 @@
     {
       "name": "Casa Header",
       "blocks": [
-        { "type": "quick_link", "settings": { "variant": "glow", "text": "New Arrivals", "url": "/collections/new-arrivals", "icon": "sparkles" } },
-        { "type": "quick_link", "settings": { "variant": "glow", "text": "Best Sellers", "url": "/collections/best-sellers", "icon": "star" } },
-        { "type": "quick_link", "settings": { "variant": "glow", "text": "Sale", "url": "/collections/sale", "icon": "tag" } },
-        { "type": "quick_link", "settings": { "variant": "glow", "text": "Gift Guide", "url": "/pages/gift-guide", "icon": "gift" } },
-        { "type": "quick_link", "settings": { "variant": "glow", "text": "Inspiration", "url": "/pages/inspiration", "icon": "eye" } },
+        { "type": "quick_link", "settings": { "variant": "glow", "text": "New Arrivals", "url": "/collections/new", "icon": "sparkles" } },
+        { "type": "quick_link", "settings": { "variant": "glow", "text": "Bestsellers", "url": "/collections/best-sellers", "icon": "star" } },
+        { "type": "quick_link", "settings": { "variant": "glow", "text": "Sale", "url": "/collections/all", "icon": "tag" } },
+        { "type": "quick_link", "settings": { "variant": "glow", "text": "Gift Guide", "url": "/collections/holiday-gift-ideas", "icon": "gift" } },
+        { "type": "quick_link", "settings": { "variant": "glow", "text": "Inspiration", "url": "/collections/lighting", "icon": "eye" } },
         { "type": "quick_link", "settings": { "variant": "lifestyle", "text": "Trending", "url": "/collections/trending", "icon": "zap" } },
-        { "type": "quick_link", "settings": { "variant": "lifestyle", "text": "Room Ideas", "url": "/pages/room-ideas", "icon": "eye" } },
-        { "type": "quick_link", "settings": { "variant": "lifestyle", "text": "Color Guide", "url": "/pages/color-guide", "icon": "palette" } },
-        { "type": "quick_link", "settings": { "variant": "lifestyle", "text": "What's New", "url": "/collections/new-arrivals", "icon": "sparkles" } },
-        { "type": "quick_link", "settings": { "variant": "lifestyle", "text": "Gift Guide", "url": "/pages/gift-guide", "icon": "gift" } },
+        { "type": "quick_link", "settings": { "variant": "lifestyle", "text": "Room Ideas", "url": "/collections/living-room-picks", "icon": "eye" } },
+        { "type": "quick_link", "settings": { "variant": "lifestyle", "text": "Color Guide", "url": "/collections/all", "icon": "palette" } },
+        { "type": "quick_link", "settings": { "variant": "lifestyle", "text": "What's New", "url": "/collections/new", "icon": "sparkles" } },
+        { "type": "quick_link", "settings": { "variant": "lifestyle", "text": "Gift Guide", "url": "/collections/holiday-gift-ideas", "icon": "gift" } },
         { "type": "quick_link", "settings": { "variant": "support", "text": "FAQ", "url": "/pages/faq", "icon": "search" } },
         { "type": "quick_link", "settings": { "variant": "support", "text": "Shipping Info", "url": "/policies/shipping-policy", "icon": "truck" } },
         { "type": "quick_link", "settings": { "variant": "support", "text": "Returns", "url": "/policies/refund-policy", "icon": "refresh" } },
-        { "type": "quick_link", "settings": { "variant": "support", "text": "Warranty", "url": "/pages/warranty", "icon": "shield-check" } },
+        { "type": "quick_link", "settings": { "variant": "support", "text": "Warranty", "url": "/policies/refund-policy", "icon": "shield-check" } },
         { "type": "quick_link", "settings": { "variant": "support", "text": "Order Status", "url": "/account", "icon": "package" } },
-        { "type": "quick_link", "settings": { "variant": "mobile", "text": "New Arrivals", "url": "/collections/new-arrivals", "icon": "sparkles" } },
-        { "type": "quick_link", "settings": { "variant": "mobile", "text": "Best Sellers", "url": "/collections/best-sellers", "icon": "star" } },
-        { "type": "quick_link", "settings": { "variant": "mobile", "text": "Sale", "url": "/collections/sale", "icon": "tag" } },
-        { "type": "quick_link", "settings": { "variant": "mobile", "text": "Gift Guide", "url": "/pages/gift-guide", "icon": "gift" } }
+        { "type": "quick_link", "settings": { "variant": "mobile", "text": "New Arrivals", "url": "/collections/new", "icon": "sparkles" } },
+        { "type": "quick_link", "settings": { "variant": "mobile", "text": "Bestsellers", "url": "/collections/best-sellers", "icon": "star" } },
+        { "type": "quick_link", "settings": { "variant": "mobile", "text": "Sale", "url": "/collections/all", "icon": "tag" } },
+        { "type": "quick_link", "settings": { "variant": "mobile", "text": "Gift Guide", "url": "/collections/holiday-gift-ideas", "icon": "gift" } }
       ]
     }
   ]

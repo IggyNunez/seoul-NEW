@@ -4,7 +4,24 @@
   {% content_for 'blocks' %}
 {% endcapture %}
 
-{% render 'section', section: section, children: children %}
+{%- liquid
+  assign casa_hide_low_rating_review_widget = false
+
+  if request.page_type == 'product' and product != blank and children contains 'jdgm-review-widget'
+    assign casa_review_rating = product.metafields.reviews.rating.value.rating | default: product.metafields.reviews.rating.value
+
+    if casa_review_rating != blank
+      assign casa_review_rating_number = casa_review_rating | plus: 0
+      if casa_review_rating_number < 4.0
+        assign casa_hide_low_rating_review_widget = true
+      endif
+    endif
+  endif
+-%}
+
+{% unless casa_hide_low_rating_review_widget %}
+  {% render 'section', section: section, children: children %}
+{% endunless %}
 
 {% schema %}
 {

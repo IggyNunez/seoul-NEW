@@ -1,0 +1,402 @@
+
+{%- comment -%}
+  _casa-mirror-gallery-v3.liquid — OctaMirror v3 ONLY. A copy of the stock
+  _product-media-gallery block whose snippet adds the curated order,
+  captions + counter row and the Lights off / on switch. Rendered as the
+  static media-gallery block by sections/casa-product-information-v3.liquid.
+  The stock block and snippet are untouched.
+{%- endcomment -%}
+{% render 'casa-mirror-gallery-content-v3',
+  media_presentation: block.settings.media_presentation,
+  block_settings: block.settings,
+  block_id: block.id,
+  block_shopify_attributes: block.shopify_attributes,
+  show_discount_badge: block.settings.show_discount_badge,
+  show_custom_badges: block.settings.show_custom_badges
+%}
+
+{% schema %}
+{
+  "name": "Casa Mirror Gallery v3",
+  "tag": null,
+  "settings": [
+    {
+      "type": "select",
+      "id": "media_presentation",
+      "label": "t:settings.type",
+      "options": [
+        {
+          "value": "grid",
+          "label": "t:options.grid"
+        },
+        {
+          "value": "carousel",
+          "label": "t:options.carousel"
+        }
+      ],
+      "default": "grid",
+      "info": "t:info.carousel_layout_on_mobile"
+    },
+    {
+      "type": "header",
+      "content": "t:content.grid",
+      "visible_if": "{{ block.settings.media_presentation == 'grid' }}"
+    },
+    {
+      "type": "select",
+      "id": "media_columns",
+      "label": "t:settings.columns",
+      "options": [
+        {
+          "value": "one",
+          "label": "t:options.one_number"
+        },
+        {
+          "value": "two",
+          "label": "t:options.two_number"
+        }
+      ],
+      "default": "one",
+      "visible_if": "{{ block.settings.media_presentation == 'grid' }}"
+    },
+    {
+      "type": "range",
+      "id": "image_gap",
+      "label": "t:settings.gap",
+      "min": 0,
+      "max": 100,
+      "unit": "px",
+      "step": 1,
+      "default": 0,
+      "visible_if": "{{ block.settings.media_presentation == 'grid' }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "large_first_image",
+      "label": "t:settings.full_width_first_image",
+      "default": false,
+      "visible_if": "{{ block.settings.media_presentation == 'grid' and block.settings.media_columns == 'two' }}"
+    },
+    {
+      "type": "header",
+      "content": "t:content.carousel"
+    },
+    {
+      "type": "select",
+      "id": "icons_style",
+      "label": "t:settings.icons",
+      "options": [
+        {
+          "value": "arrow",
+          "label": "t:options.arrows"
+        },
+        {
+          "value": "chevron",
+          "label": "t:options.chevrons"
+        },
+        {
+          "value": "arrows_large",
+          "label": "t:options.large_arrows"
+        },
+        {
+          "value": "chevron_large",
+          "label": "t:options.large_chevrons"
+        }
+      ],
+      "default": "arrow",
+      "visible_if": "{{ block.settings.media_presentation == 'carousel' }}"
+    },
+    {
+      "type": "select",
+      "id": "slideshow_controls_style",
+      "label": "t:settings.desktop_pagination",
+      "options": [
+        {
+          "value": "dots",
+          "label": "t:options.dots"
+        },
+        {
+          "value": "counter",
+          "label": "t:options.counter"
+        },
+        {
+          "value": "thumbnails",
+          "label": "t:options.thumbnails"
+        }
+      ],
+      "visible_if": "{{ block.settings.media_presentation == 'carousel' }}"
+    },
+    {
+      "type": "select",
+      "id": "slideshow_mobile_controls_style",
+      "label": "t:settings.mobile_pagination",
+      "options": [
+        {
+          "value": "dots",
+          "label": "t:options.dots"
+        },
+        {
+          "value": "counter",
+          "label": "t:options.counter"
+        },
+        {
+          "value": "hint",
+          "label": "t:options.hint"
+        },
+        {
+          "value": "thumbnails",
+          "label": "t:options.thumbnails"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "t:content.thumbnails",
+      "visible_if": "{{ block.settings.slideshow_controls_style == 'thumbnails' or block.settings.slideshow_mobile_controls_style == 'thumbnails' }}"
+    },
+    {
+      "type": "select",
+      "id": "thumbnail_position",
+      "label": "t:settings.desktop_position",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:options.left"
+        },
+        {
+          "value": "bottom",
+          "label": "t:options.bottom"
+        },
+        {
+          "value": "right",
+          "label": "t:options.right"
+        }
+      ],
+      "default": "bottom",
+      "visible_if": "{{ block.settings.slideshow_controls_style == 'thumbnails' }}"
+    },
+    {
+      "type": "range",
+      "id": "thumbnail_width",
+      "label": "t:settings.width_desktop",
+      "min": 44,
+      "max": 72,
+      "step": 1,
+      "unit": "px",
+      "default": 64,
+      "visible_if": "{{ block.settings.slideshow_controls_style == 'thumbnails' }}"
+    },
+    {
+      "type": "range",
+      "id": "thumbnail_radius",
+      "label": "t:settings.corner_radius",
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "unit": "px",
+      "default": 0,
+      "visible_if": "{{ block.settings.slideshow_controls_style == 'thumbnails' or block.settings.slideshow_mobile_controls_style == 'thumbnails' }}"
+    },
+    {
+      "type": "header",
+      "content": "t:content.media"
+    },
+    {
+      "type": "select",
+      "id": "aspect_ratio",
+      "label": "t:settings.aspect_ratio",
+      "options": [
+        {
+          "value": "adapt",
+          "label": "t:options.auto"
+        },
+        {
+          "value": "1/1.25",
+          "label": "t:options.portrait"
+        },
+        {
+          "value": "1",
+          "label": "t:options.square"
+        },
+        {
+          "value": "2/1",
+          "label": "t:options.landscape"
+        }
+      ],
+      "default": "adapt"
+    },
+    {
+      "type": "checkbox",
+      "id": "constrain_to_viewport",
+      "label": "t:settings.limit_media_to_screen_height",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "media_fit",
+      "label": "t:settings.media_fit",
+      "options": [
+        {
+          "value": "cover",
+          "label": "t:options.cover"
+        },
+        {
+          "value": "contain",
+          "label": "t:options.contain"
+        }
+      ],
+      "default": "cover",
+      "visible_if": "{{ block.settings.aspect_ratio == 'adapt' and block.settings.constrain_to_viewport == true }}"
+    },
+    {
+      "type": "range",
+      "id": "media_radius",
+      "label": "t:settings.border_radius",
+      "min": 0,
+      "max": 32,
+      "step": 1,
+      "unit": "px",
+      "default": 4
+    },
+    {
+      "type": "checkbox",
+      "id": "extend_media",
+      "label": "t:settings.extend_media_to_screen_edge",
+      "default": true,
+      "visible_if": "{{ section.settings.content_width == 'content-center-aligned' }}"
+    },
+    {
+      "type": "checkbox",
+      "id": "zoom",
+      "label": "t:settings.enable_zoom",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "video_autoplay",
+      "label": "Autoplay videos",
+      "info": "Plays muted on scroll into view. Browsers require muted for autoplay.",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "video_loop",
+      "label": "t:settings.enable_video_looping",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "hide_variants",
+      "default": false,
+      "label": "t:settings.hide_unselected_variant_media"
+    },
+    {
+      "type": "header",
+      "content": "t:content.padding"
+    },
+    {
+      "type": "range",
+      "id": "padding-block-start",
+      "label": "t:settings.top",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-block-end",
+      "label": "t:settings.bottom",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-inline-start",
+      "label": "t:settings.left",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding-inline-end",
+      "label": "t:settings.right",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "Badges"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_discount_badge",
+      "label": "Show discount % badge",
+      "info": "Auto-calculated sale badge on product image",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_custom_badges",
+      "label": "Show custom badges",
+      "info": "Badges from product tags (Bestseller) and custom.badges metafield",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Casa curated gallery",
+      "info": "Optional. Re-orders the product's media into a story without touching the product in admin. Leave every field blank to keep the stock gallery."
+    },
+    {
+      "type": "text",
+      "id": "casa_media_order",
+      "label": "Slide order (media positions, comma-separated)",
+      "info": "1-based positions in the product's media list, e.g. 1,9,12,3. Media not listed is left out of the gallery. Blank = product order."
+    },
+    {
+      "type": "textarea",
+      "id": "casa_captions",
+      "label": "Slide captions (one line per slide, in slide order)",
+      "info": "Shown under the gallery with a 1 / N counter. Keep each under ~60 characters. Blank lines are allowed."
+    },
+    {
+      "type": "text",
+      "id": "casa_toggle_on",
+      "label": "Lights-on media position (for the off/on toggle)",
+      "info": "1-based position of the LIGHTS-ON photo. Pair it with the lights-off position below and the slide gets an Off / On switch under the gallery. Both photos must share the same framing."
+    },
+    {
+      "type": "text",
+      "id": "casa_toggle_off",
+      "label": "Lights-off media position (same framing)"
+    },
+    {
+      "type": "text",
+      "id": "casa_toggle_label_off",
+      "label": "Toggle label — off",
+      "default": "Lights off"
+    },
+    {
+      "type": "text",
+      "id": "casa_toggle_label_on",
+      "label": "Toggle label — on",
+      "default": "Lights on"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Mirror Gallery v3"
+    }
+  ]
+}
+{% endschema %}

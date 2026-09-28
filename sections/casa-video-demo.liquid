@@ -8,6 +8,22 @@
   Video sources (priority): Shopify-hosted video > video_url picker > manual URL text.
 {%- endcomment -%}
 
+{%- comment -%} Auto-hide when no video cards have URLs {%- endcomment -%}
+{%- assign _has_content = false -%}
+{%- assign _vid_ids = "1,2,3,4,5,6,7,8" | split: "," -%}
+{%- for vid in _vid_ids -%}
+  {%- assign _hosted_key = "video_hosted_" | append: vid -%}
+  {%- assign _picker_key = "video_picker_" | append: vid -%}
+  {%- assign _url_key    = "video_url_"    | append: vid -%}
+  {%- if section.settings[_hosted_key] != blank or section.settings[_picker_key] != blank or section.settings[_url_key] != blank -%}
+    {%- assign _has_content = true -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if _has_content == false and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
 {%- liquid
   assign s = section.settings
 
@@ -16,16 +32,24 @@
   assign subtitle = s.subtitle
   assign accent_word = s.accent_word
   assign accent_style = s.accent_style | default: 'gradient'
-  assign accent_color = s.accent_color | default: '#9333ea'
-  assign accent_color_2 = s.accent_color_2 | default: '#ec4899'
+  assign accent_color = s.accent_color | default: '#B0C3FA'
+  assign accent_color_2 = s.accent_color_2 | default: '#5E0A02'
 
   assign padding_top = s.padding_top | default: 100
   assign padding_bottom = s.padding_bottom | default: 100
   assign padding_mobile_top = s.padding_mobile_top | default: 60
   assign padding_mobile_bottom = s.padding_mobile_bottom | default: 60
 
-  assign bg_color = s.bg_color | default: '#0a0a0f'
-  assign text_color = s.text_color | default: '#ffffff'
+  assign bg_color = s.bg_color | default: '#0A0A0F'
+  assign text_color = s.text_color | default: '#FAFAF7'
+
+  # WCAG-AA: the eyebrow tag renders brand purple #B0C3FA, only 3.67:1 on Ink (fails AA).
+  # On a dark background swap to the lighter #B0C3FA (~4.8:1 on Ink); light bg keeps #B0C3FA.
+  assign vtm_tag_color = '#B0C3FA'
+  assign _vtm_bright = bg_color | color_brightness
+  if _vtm_bright < 128
+    assign vtm_tag_color = '#B0C3FA'
+  endif
 
   assign layout_width = s.layout_width | default: 'page'
   assign card_width = s.card_width | default: 220
@@ -35,11 +59,20 @@
   # Build title with accent word
   assign display_title = title
   if accent_word != blank and title != blank
-    assign accent_html = '<span class="casa-vtm-section__accent casa-vtm-section__accent--' | append: accent_style | append: '">' | append: accent_word | append: '</span>'
+    assign accent_class = 'casa-vtm-section__accent casa-vtm-section__accent--' | append: accent_style
+    if accent_style == 'shimmer'
+      assign accent_class = accent_class | append: ' text-grad-shimmer'
+    endif
+    assign accent_html = '<span class="' | append: accent_class | append: '">' | append: accent_word | append: '</span>'
     assign display_title = title | replace: accent_word, accent_html
   endif
 -%}
 
+{%- comment -%}
+  Heading-scale dropdown: merchant picks H1-H6 from Theme Settings -> Typography.
+{%- endcomment -%}
+{%- assign _cvts_title_h = section.settings.cvts_heading_level | default: 'h2' -%}
+{%- assign _cvts_accent_h = section.settings.cvts_accent_heading_level | default: 'inherit' -%}
 <section
   class="casa-vtm-section"
   id="casa-vtm-section-{{ section.id }}"
@@ -53,6 +86,32 @@
     --cvts-card-width: {{ card_width }}px;
     --cvts-accent-1: {{ accent_color }};
     --cvts-accent-2: {{ accent_color_2 }};
+    --vtm-accent: {{ vtm_tag_color }};
+    {%- comment -%} When level is 'h2', map to the brand book v1
+      casa-pdp-h2-* tokens instead of Horizon's --font-h2--*. The
+      Horizon h2 typography defaults often exceed brand spec
+      (700 weight, 48px+ size). Brand book §08 anti-pattern:
+      "Heavy 800-weight on every section heading." {%- endcomment -%}
+    {%- if _cvts_title_h == 'h2' -%}
+    --cvts-title-fs:   var(--casa-pdp-h2-size);
+    --cvts-title-fw:   var(--casa-pdp-h2-weight);
+    --cvts-title-lh:   var(--casa-pdp-h2-line);
+    --cvts-title-ls:   var(--casa-pdp-h2-tracking);
+    --cvts-title-case: none;
+    {%- else -%}
+    --cvts-title-fs:   var(--font-{{ _cvts_title_h }}--size);
+    --cvts-title-fw:   var(--font-{{ _cvts_title_h }}--weight);
+    --cvts-title-lh:   var(--font-{{ _cvts_title_h }}--line-height);
+    --cvts-title-ls:   var(--font-{{ _cvts_title_h }}--letter-spacing);
+    --cvts-title-case: var(--font-{{ _cvts_title_h }}--case);
+    {%- endif -%}
+    {%- if _cvts_accent_h != 'inherit' -%}
+    --cvts-accent-fs:   var(--font-{{ _cvts_accent_h }}--size);
+    --cvts-accent-fw:   var(--font-{{ _cvts_accent_h }}--weight);
+    --cvts-accent-lh:   var(--font-{{ _cvts_accent_h }}--line-height);
+    --cvts-accent-ls:   var(--font-{{ _cvts_accent_h }}--letter-spacing);
+    --cvts-accent-case: var(--font-{{ _cvts_accent_h }}--case);
+    {%- endif -%}
   "
 >
   <div class="casa-vtm-section__container{% if layout_width == 'full' %} casa-vtm-section__container--full{% endif %}">
@@ -239,8 +298,14 @@
   {%- endfor -%}
 </section>
 
-{%- comment -%} Modal — rendered once, populated by JS {%- endcomment -%}
-<div class="casa-vtm-section__modal" id="casa-vtm-section-modal-{{ section.id }}" aria-hidden="true">
+{%- comment -%}
+  Modal — rendered once, populated by JS.
+  `inert` removes the close button + controls from tab order while
+  modal is closed. Required because aria-hidden alone leaves focusable
+  children tabbable — a WCAG 2.1 fail flagged by Lighthouse.
+  JS toggles both aria-hidden and inert in lockstep on open/close.
+{%- endcomment -%}
+<div class="casa-vtm-section__modal" id="casa-vtm-section-modal-{{ section.id }}" aria-hidden="true" inert>
   <div class="casa-vtm-section__backdrop"></div>
   <div class="casa-vtm-section__player">
     <button type="button" class="casa-vtm-section__close" aria-label="Close video">
@@ -254,6 +319,17 @@
     <button type="button" class="casa-vtm-section__modal-next" aria-label="Next video">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
     </button>
+    {%- comment -%}
+      Instagram-Story-style tap zones. Cover the left/right halves of
+      the player so the shopper can tap anywhere on a half to advance.
+      Chevron buttons (z-index 3), close (z-index 2), mute, and product
+      bar all sit ABOVE the tap zones, so their hit areas still win.
+      aria-hidden + tabindex=-1 because the visible chevrons already
+      provide the same action with proper labels for keyboard / screen
+      reader users — the tap zones are a touch/mouse convenience layer.
+    {%- endcomment -%}
+    <button type="button" class="casa-vtm-section__tap-zone casa-vtm-section__tap-zone--prev" aria-hidden="true" tabindex="-1"></button>
+    <button type="button" class="casa-vtm-section__tap-zone casa-vtm-section__tap-zone--next" aria-hidden="true" tabindex="-1"></button>
     <div class="casa-vtm-section__video-wrap"></div>
     <button type="button" class="casa-vtm-section__mute" aria-label="Toggle mute" style="display:none;">
       <svg class="casa-vtm-section__mute-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -289,8 +365,8 @@
       nextBtn.style.display = 'none';
       return;
     }
-    prevBtn.style.display = row.scrollLeft > 10 ? 'flex' : 'none';
-    nextBtn.style.display = row.scrollLeft < row.scrollWidth - row.clientWidth - 10 ? 'flex' : 'none';
+    prevBtn.style.display = 'flex';
+    nextBtn.style.display = 'flex';
   }
 
   if (row && prevBtn && nextBtn) {
@@ -299,10 +375,63 @@
     updateArrows();
 
     prevBtn.addEventListener('click', function() {
-      row.scrollBy({ left: -row.clientWidth * 0.6, behavior: 'smooth' });
+      if (row.scrollLeft <= 10) {
+        row.scrollTo({ left: row.scrollWidth, behavior: 'smooth' });
+      } else {
+        row.scrollBy({ left: -row.clientWidth * 0.6, behavior: 'smooth' });
+      }
     });
     nextBtn.addEventListener('click', function() {
-      row.scrollBy({ left: row.clientWidth * 0.6, behavior: 'smooth' });
+      if (row.scrollLeft >= row.scrollWidth - row.clientWidth - 10) {
+        row.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        row.scrollBy({ left: row.clientWidth * 0.6, behavior: 'smooth' });
+      }
+    });
+
+    /* ── Swipe / drag support ──
+       Capture is deferred until the pointer has actually moved past
+       DRAG_THRESHOLD. Capturing on pointerdown re-targets pointerup
+       AND the synthetic click to `row`, so a clean tap on a card
+       never reached the card's click handler — the @CasaDiLumo
+       modal never opened. */
+    var startX = 0, startScroll = 0, armed = false, isDragging = false;
+    var DRAG_THRESHOLD = 6;
+    row.addEventListener('pointerdown', function(e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      armed = true;
+      isDragging = false;
+      startX = e.clientX;
+      startScroll = row.scrollLeft;
+    });
+    row.addEventListener('pointermove', function(e) {
+      if (!armed) return;
+      var dx = e.clientX - startX;
+      if (!isDragging && Math.abs(dx) > DRAG_THRESHOLD) {
+        isDragging = true;
+        row.setPointerCapture(e.pointerId);
+        row.style.scrollSnapType = 'none';
+        row.style.cursor = 'grabbing';
+      }
+      if (isDragging) {
+        e.preventDefault();
+        row.scrollLeft = startScroll - dx;
+      }
+    });
+    row.addEventListener('pointerup', function(e) {
+      armed = false;
+      if (isDragging) {
+        isDragging = false;
+        if (row.hasPointerCapture(e.pointerId)) row.releasePointerCapture(e.pointerId);
+        row.style.scrollSnapType = 'x mandatory';
+        row.style.cursor = '';
+      }
+    });
+    row.addEventListener('pointercancel', function(e) {
+      armed = false;
+      isDragging = false;
+      row.style.scrollSnapType = 'x mandatory';
+      row.style.cursor = '';
     });
   }
 
@@ -321,12 +450,14 @@
   var currentCardIndex = 0;
 
   function updateModalNav() {
-    if (modalPrev) modalPrev.disabled = currentCardIndex <= 0;
-    if (modalNext) modalNext.disabled = currentCardIndex >= allCards.length - 1;
+    if (modalPrev) modalPrev.disabled = false;
+    if (modalNext) modalNext.disabled = false;
   }
 
   function openCardByIndex(idx) {
-    if (idx < 0 || idx >= allCards.length) return;
+    if (allCards.length === 0) return;
+    if (idx < 0) idx = allCards.length - 1;
+    if (idx >= allCards.length) idx = 0;
     currentCardIndex = idx;
     var card = allCards[idx];
     if (card) card.click();
@@ -345,6 +476,45 @@
     });
   }
 
+  /* ── Instagram-Story tap zones ──
+     Tap anywhere on the right half of the player → next video.
+     Tap anywhere on the left half → previous. The transparent
+     button overlays sit inside `.casa-vtm-section__player` at
+     z-index 1 (below the corner controls), so corner taps (close,
+     mute, product link) and chevron taps still hit their own
+     targets. */
+  var tapPrev = modal.querySelector('.casa-vtm-section__tap-zone--prev');
+  var tapNext = modal.querySelector('.casa-vtm-section__tap-zone--next');
+  if (tapPrev) {
+    tapPrev.addEventListener('click', function(e) {
+      e.stopPropagation();
+      openCardByIndex(currentCardIndex - 1);
+    });
+  }
+  if (tapNext) {
+    tapNext.addEventListener('click', function(e) {
+      e.stopPropagation();
+      openCardByIndex(currentCardIndex + 1);
+    });
+  }
+
+  /* ── Offscreen-pause gate ──
+     Governed background videos (video[data-casa-pause]) keep decoding
+     beneath the lightbox scrim unless told otherwise — the quick-view
+     lesson (535db60f). body.casa-vtm-open is read by
+     assets/casa-offscreen-pause.js (cross-checked against a live open
+     modal so a stranded class self-heals); the refresh applies it now.
+     On close, keep the class while ANOTHER video lightbox is still open
+     — the selector covers both the block and section variants. */
+  function syncVideoGate(opening) {
+    if (opening) {
+      document.body.classList.add('casa-vtm-open');
+    } else if (!document.querySelector('.casa-vtm__modal--open, .casa-vtm-section__modal--open')) {
+      document.body.classList.remove('casa-vtm-open');
+    }
+    if (window.casa && window.casa.offscreenPauseRefresh) window.casa.offscreenPauseRefresh();
+  }
+
   /* ── Detect URL type ── */
   function parseUrl(url) {
     var yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
@@ -354,8 +524,19 @@
     return { type: 'direct', id: url };
   }
 
+  /* ── Focus management ──
+     Restore-to-trigger on close (WCAG 2.4.3): remember what had focus
+     before the modal opened, move focus to the close button on open,
+     hand it back on close. `wasOpen` guards prev/next re-entry
+     (openCardByIndex re-runs open() while the modal is up) so focus
+     isn't yanked off the nav button and the trigger isn't overwritten
+     with a modal control. */
+  var lastTrigger = null;
+
   /* ── Open modal ── */
   function open(url) {
+    var wasOpen = modal.classList.contains('casa-vtm-section__modal--open');
+    if (!wasOpen) lastTrigger = document.activeElement;
     var info = parseUrl(url);
     wrap.innerHTML = '';
     muteBtn.style.display = 'none';
@@ -390,11 +571,16 @@
 
     modal.classList.add('casa-vtm-section__modal--open');
     modal.setAttribute('aria-hidden', 'false');
+    modal.removeAttribute('inert');
     document.body.style.overflow = 'hidden';
+    syncVideoGate(true);
+    if (!wasOpen && closeBtn) closeBtn.focus();
   }
 
   /* ── Open modal with Shopify-hosted video ── */
   function openHosted(sourcesJson) {
+    var wasOpen = modal.classList.contains('casa-vtm-section__modal--open');
+    if (!wasOpen) lastTrigger = document.activeElement;
     wrap.innerHTML = '';
     muteBtn.style.display = 'flex';
     var vid = document.createElement('video');
@@ -428,18 +614,29 @@
     updateMuteIcon(true);
     modal.classList.add('casa-vtm-section__modal--open');
     modal.setAttribute('aria-hidden', 'false');
+    modal.removeAttribute('inert');
     document.body.style.overflow = 'hidden';
+    syncVideoGate(true);
+    if (!wasOpen && closeBtn) closeBtn.focus();
   }
 
   /* ── Close modal ── */
   function close() {
     modal.classList.remove('casa-vtm-section__modal--open');
     modal.setAttribute('aria-hidden', 'true');
+    modal.setAttribute('inert', '');
     document.body.style.overflow = '';
     wrap.innerHTML = '';
     currentVideo = null;
     muteBtn.style.display = 'none';
     productBar.style.display = 'none';
+    syncVideoGate(false);
+    /* inert just blurred focus to <body>; hand it back to the card
+       that opened the modal (skip if the DOM re-rendered it away). */
+    if (lastTrigger && lastTrigger.focus && document.contains(lastTrigger)) {
+      lastTrigger.focus();
+    }
+    lastTrigger = null;
   }
 
   /* ── Mute toggle ── */
@@ -494,6 +691,30 @@
     if (e.key === 'ArrowLeft') openCardByIndex(currentCardIndex - 1);
     if (e.key === 'ArrowRight') openCardByIndex(currentCardIndex + 1);
   });
+
+  /* ── Modal swipe support ── */
+  var mStartX = 0, mSwiping = false;
+  modal.addEventListener('touchstart', function(e) {
+    mStartX = e.touches[0].clientX;
+    mSwiping = true;
+  }, { passive: true });
+  modal.addEventListener('touchend', function(e) {
+    if (!mSwiping) return;
+    mSwiping = false;
+    var diff = mStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) openCardByIndex(currentCardIndex + 1);
+      else openCardByIndex(currentCardIndex - 1);
+    }
+  });
+
+  /* ── Click on video wrap to advance ── */
+  if (wrap) {
+    wrap.addEventListener('click', function(e) {
+      if (e.target.closest('.casa-vtm-section__mute') || e.target.closest('.casa-vtm-section__close')) return;
+      openCardByIndex(currentCardIndex + 1);
+    });
+  }
 })();
 </script>
 
@@ -513,9 +734,25 @@
       "label": "Tag text"
     },
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "title",
-      "label": "Title"
+      "label": "Title",
+      "info": "Wrap a phrase in <em>...</em> for the brand italic-gradient accent."
+    },
+    {
+      "type": "select",
+      "id": "cvts_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h2"
     },
     {
       "type": "url",
@@ -528,6 +765,22 @@
       "id": "accent_word",
       "label": "Accent word in title",
       "info": "This word will be highlighted with the chosen accent style"
+    },
+    {
+      "type": "select",
+      "id": "cvts_accent_heading_level",
+      "label": "Accent heading scale",
+      "info": "Heading scale for the accent word. Inherit matches the title.",
+      "options": [
+        { "value": "inherit", "label": "Inherit (match title)" },
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "inherit"
     },
     {
       "type": "select",
@@ -546,14 +799,14 @@
       "type": "color",
       "id": "accent_color",
       "label": "Accent color 1",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "accent_color_2",
       "label": "Accent color 2",
       "info": "Used for gradient/shimmer end color",
-      "default": "#ec4899"
+      "default": "#5E0A02"
     },
     {
       "type": "textarea",
@@ -569,7 +822,7 @@
         { "value": "center", "label": "Center" },
         { "value": "right", "label": "Right" }
       ],
-      "default": "center"
+      "default": "left"
     },
     {
       "type": "url",
@@ -585,13 +838,13 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background color",
-      "default": "#0a0a0f"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
       "id": "text_color",
       "label": "Text color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "header",
@@ -1065,11 +1318,30 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 .casa-vtm-section {
-  background: var(--cvts-bg, #0a0a0f);
+  background: var(--cvts-bg, var(--casa-ink));
   color: var(--cvts-text, #ffffff);
   padding: var(--cvts-padding-top) 0 var(--cvts-padding-bottom);
   position: relative;
   overflow: hidden;
+}
+
+/* Purple seam bloom — mirrors the footer's top bloom so the color
+   at the touching line is identical on both sides. Same 800x400
+   centered ellipse, same 12% peak, same 70% falloff as
+   .casa-footer::before. */
+.casa-vtm-section::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  /* Decorative radial glow — capped at 800px but shrinks to parent
+     width on mobile so it never overflows the viewport. */
+  width: min(800px, 100%);
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(176, 195, 250, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* ── Container ── */
@@ -1077,10 +1349,21 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
+  position: relative;
+  z-index: 1;
 }
 .casa-vtm-section__container--full {
   max-width: none;
   padding: 0 40px;
+}
+
+/* Ultrawide guardrail: the "full" layout stops tracking the viewport past
+   1920px so the video rail centers instead of stretching edge-to-edge on
+   2560/3440px monitors. The default (page) layout is already capped above. */
+@media screen and (min-width: 1920px) {
+  .casa-vtm-section__container--full {
+    max-width: var(--casa-content-max-w, 1920px);
+  }
 }
 
 /* ── Header ── */
@@ -1096,53 +1379,80 @@
   display: inline-block;
   font-size: 12px;
   font-weight: 600;
-  color: #9333ea;
+  color: var(--vtm-accent, #B0C3FA);
   text-transform: uppercase;
   letter-spacing: 2px;
   margin-bottom: 16px;
 }
 
 .casa-vtm-section__title {
-  font-size: clamp(28px, 5vw, 42px);
-  font-weight: 300;
+  /* Heading scale comes from Theme Settings -> Typography via the
+     cvts_heading_level dropdown; fallback uses the brand-locked
+     casa-pdp-h2-* tokens so this section's H2 matches every other
+     PDP section heading (2026-05-15 cross-section unify). */
+  font-size:      var(--cvts-title-fs, var(--casa-pdp-h2-size, clamp(36px, 4.5vw, 56px)));
+  font-weight:    var(--cvts-title-fw, var(--casa-pdp-h2-weight, 600));
+  line-height:    var(--cvts-title-lh, var(--casa-pdp-h2-line, 1.05));
+  letter-spacing: var(--cvts-title-ls, var(--casa-pdp-h2-tracking, -0.02em));
+  text-transform: var(--cvts-title-case, none);
   color: var(--cvts-text, #ffffff);
   margin: 0 0 16px 0;
-  letter-spacing: -0.5px;
-  line-height: 1.2;
+}
+
+/* Italic accent inside title — LARGER (1.15em) per merchant. Italic
+   600 weight + brand gradient. line-height: 1 keeps the title row from
+   inflating with the bigger em. Matches the sibling section H2 em rule
+   (casa-products-grid / casa-brand-story / casa-categories). */
+.casa-vtm-section__title em {
+  font-size: 1.15em;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1;
+  background-image: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Accent: optional independent heading scale via cvts_accent_heading_level
+   ('inherit' default leaves all properties alone so the title's scale wins). */
+.casa-vtm-section__accent {
+  font-size: var(--cvts-accent-fs, inherit);
+  font-weight: var(--cvts-accent-fw, inherit);
+  line-height: var(--cvts-accent-lh, inherit);
+  letter-spacing: var(--cvts-accent-ls, inherit);
+  text-transform: var(--cvts-accent-case, inherit);
 }
 
 /* Accent word styles */
 .casa-vtm-section__accent--gradient {
-  background: linear-gradient(135deg, var(--cvts-accent-1, #9333ea), var(--cvts-accent-2, #ec4899));
+  /* background-image (longhand) keeps background-clip:text working
+     -- see casa-brand-tokens Bug 1. */
+  background-image: linear-gradient(135deg, var(--cvts-accent-1, #B0C3FA), var(--cvts-accent-2, #5E0A02));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 .casa-vtm-section__accent--solid {
-  color: var(--cvts-accent-1, #9333ea);
+  color: var(--cvts-accent-1, #B0C3FA);
 }
 .casa-vtm-section__accent--underline {
   text-decoration: underline;
-  text-decoration-color: var(--cvts-accent-1, #9333ea);
+  text-decoration-color: var(--cvts-accent-1, #B0C3FA);
   text-underline-offset: 6px;
   text-decoration-thickness: 3px;
 }
 .casa-vtm-section__accent--glow {
-  color: var(--cvts-accent-1, #9333ea);
-  text-shadow: 0 0 20px var(--cvts-accent-1, #9333ea), 0 0 40px rgba(147, 51, 234, 0.3);
+  color: var(--cvts-accent-1, #B0C3FA);
+  text-shadow: 0 0 20px var(--cvts-accent-1, #B0C3FA), 0 0 40px rgba(176, 195, 250, 0.3);
 }
-.casa-vtm-section__accent--shimmer {
-  background: linear-gradient(90deg, var(--cvts-accent-1, #9333ea) 0%, var(--cvts-accent-2, #ec4899) 50%, var(--cvts-accent-1, #9333ea) 100%);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: vtm-shimmer 3s ease-in-out infinite;
-}
-@keyframes vtm-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
+/* .casa-vtm-section__accent--shimmer: visual handled by .text-grad-shimmer
+   brand utility class (assets/casa-buttons.css) — uses --grad-shimmer
+   5-stop loop (purple→pink→cyan→pink→purple) per brand book.
+   The local @keyframes vtm-shimmer (3-stop ping-pong) is no longer
+   used and has been removed. Brand class also provides
+   prefers-reduced-motion override. */
 
 .casa-vtm-section__subtitle {
   font-size: 16px;
@@ -1162,7 +1472,11 @@
 
 .casa-vtm-section__row {
   display: flex;
+  /* Fallback for older browsers — slight start clip when overflowing */
   justify-content: center;
+  /* Modern: 'safe center' falls back to start when content overflows,
+     preventing the first card from being cut off at scrollLeft=0. */
+  justify-content: safe center;
   gap: 16px;
   overflow-x: auto;
   overflow-y: hidden;
@@ -1188,7 +1502,7 @@
   background: rgba(255,255,255,0.12);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  color: #fff;
+  color: var(--casa-text-on-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1235,8 +1549,13 @@
 
 /* ── Thumbnail ── */
 .casa-vtm-section__thumb {
+  /* height: auto + aspect-ratio instead of height: 100% — the card's
+     height comes from its own aspect-ratio, and Safari 26 can fail to
+     resolve a %-height against that (the /cart flat-thumbnail class;
+     immune pattern from .cart-items__media-image in snippets/cart-products.liquid). */
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: 9 / 16;
   object-fit: cover;
   display: block;
 }
@@ -1257,7 +1576,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #0a0a0a;
+  color: var(--casa-ink);
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   transition: transform 0.2s ease, background 0.2s ease;
   pointer-events: none;
@@ -1267,7 +1586,7 @@
 }
 .casa-vtm-section__card:hover .casa-vtm-section__play {
   transform: translate(-50%, -50%) scale(1.1);
-  background: #fff;
+  background: var(--casa-paper);
 }
 
 /* ── Author name ── */
@@ -1278,7 +1597,7 @@
   right: 0;
   padding: 28px 10px 10px;
   background: linear-gradient(transparent, rgba(0,0,0,0.65));
-  color: #fff;
+  color: var(--casa-text-on-ink);
   font-size: 12px;
   font-weight: 600;
   text-align: left;
@@ -1325,7 +1644,7 @@
   background: rgba(0,0,0,0.6);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  color: #fff;
+  color: var(--casa-text-on-ink);
   font-size: 9px;
   font-weight: 600;
   padding: 3px 6px;
@@ -1366,9 +1685,12 @@
 .casa-vtm-section__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  /* No backdrop-filter: this is a full-viewport surface with a VIDEO
+     playing above it — the exact stack that dropped the quick-view
+     overlay layer for whole frames at 240Hz (535db60f: full-viewport
+     blur + an animating layer above it). The player card is opaque, so
+     nothing rides on the frost; a deeper dim carries the separation. */
+  background: rgba(0, 0, 0, 0.72);
 }
 
 /* ── Player card ── */
@@ -1379,7 +1701,7 @@
   aspect-ratio: 9 / 16;
   border-radius: 20px;
   overflow: hidden;
-  background: #000;
+  background: var(--casa-ink);
   box-shadow: 0 24px 64px rgba(0,0,0,0.4);
   z-index: 1;
   transform: scale(0.92);
@@ -1415,7 +1737,7 @@
   background: rgba(255,255,255,0.15);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  color: #fff;
+  color: var(--casa-text-on-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1437,7 +1759,7 @@
   background: rgba(255,255,255,0.12);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  color: #fff;
+  color: var(--casa-text-on-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1464,6 +1786,40 @@
   .casa-vtm-section__modal-prev { left: 8px; }
   .casa-vtm-section__modal-next { right: 8px; }
 }
+
+/* Instagram-Story tap zones.
+   Cover the left/right halves of the player (with a 64px bottom inset
+   to leave the product-link bar tappable, and starting 48px from the
+   top to leave the close button untouched). Sit at z-index 1 — BELOW
+   close (2), mute (2), product bar (2), and chevron buttons (3), so
+   those targeted controls keep winning their hit areas while the rest
+   of the half becomes a generous tap target.
+
+   Transparent, no hover, no focus ring (their action is mirrored on
+   the visible chevron buttons that DO show focus). On iOS Safari we
+   suppress the dark tap-highlight overlay so taps don't flash a gray
+   rectangle. */
+.casa-vtm-section__tap-zone {
+  position: absolute;
+  top: 48px;
+  bottom: 64px;
+  width: 50%;
+  z-index: 1;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  /* Defensive: keep iOS from emitting synthetic mouse events twice. */
+  touch-action: manipulation;
+}
+.casa-vtm-section__tap-zone--prev { left: 0; }
+.casa-vtm-section__tap-zone--next { right: 0; }
+/* tabindex=-1 on the button means these can't be keyboard-focused, so
+   no `:focus` override is needed — the default browser outline would
+   only ever show on a programmatic .focus() call we never make. */
 .casa-vtm-section__close:hover {
   background: rgba(255,255,255,0.3);
 }
@@ -1481,7 +1837,7 @@
   background: rgba(255,255,255,0.15);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  color: #fff;
+  color: var(--casa-text-on-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1504,7 +1860,7 @@
   justify-content: space-between;
   padding: 12px 56px 12px 16px; /* right padding clears the mute button */
   background: linear-gradient(transparent, rgba(0,0,0,0.7));
-  color: #fff;
+  color: var(--casa-text-on-ink);
   text-decoration: none;
   font-size: 13px;
   transition: opacity 0.2s ease;
@@ -1549,6 +1905,25 @@
   .casa-vtm-section__tag {
     font-size: 11px;
     margin-bottom: 12px;
+  }
+
+  /* Mobile cap. Without this, the title inherits Horizon's H1 token
+     (~56px on this site), which makes "Instagram @CasaDiLumo"
+     (~21 chars) overflow both edges on phones — was being cut off
+     left and right at smaller screen widths. Clamp keeps a strong
+     display feel while ensuring the longest word ("@CasaDiLumo",
+     11 chars) always fits at every phone width down to 320px.
+     The accent inherits the same size so the gradient word matches
+     the rest of the title. text-wrap: balance from casa-base.css
+     handles where the line break lands. */
+  .casa-vtm-section__title {
+    font-size: clamp(28px, 7.5vw, 48px);
+  }
+  .casa-vtm-section__accent,
+  .casa-vtm-section__title em {
+    /* Same overflow guard as the span accent: "@CasaDiLumo" at 1.15em
+       re-breaks the 320px fit the clamp above was sized for. */
+    font-size: inherit;
   }
 
   .casa-vtm-section__subtitle {

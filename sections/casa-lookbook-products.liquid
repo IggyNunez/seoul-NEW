@@ -3,15 +3,30 @@
   Curated product showcase for lookbook pages
 {% endcomment %}
 
+{%- comment -%} Auto-hide when no collection or manual products exist {%- endcomment -%}
+{%- assign _has_content = false -%}
+{%- if section.settings.collection != blank -%}
+  {%- assign _has_content = true -%}
+{%- endif -%}
+{%- for block in section.blocks -%}
+  {%- if block.type == 'product' and block.settings.product != blank -%}
+    {%- assign _has_content = true -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if _has_content == false and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
 {%- liquid
   assign section_id = section.id
   assign title = section.settings.title
   assign description = section.settings.description
   assign collection = section.settings.collection
   assign columns = section.settings.columns | default: 2
-  assign bg_color = section.settings.bg_color | default: '#0a0a0a'
-  assign text_color = section.settings.text_color | default: '#ffffff'
-  assign accent_color = section.settings.accent_color | default: '#9333ea'
+  assign bg_color = section.settings.bg_color | default: '#0A0A0F'
+  assign text_color = section.settings.text_color | default: '#FAFAF7'
+  assign accent_color = section.settings.accent_color | default: '#B0C3FA'
   assign card_bg = section.settings.card_bg | default: '#141414'
   assign card_border_radius = section.settings.card_border_radius | default: 12
   assign show_rating = section.settings.show_rating
@@ -124,7 +139,7 @@
   </div>
 </section>
 
-<style>
+{% stylesheet %}
   /* ── Casa Lookbook Products ── */
   .casa-lb-prod {
     background-color: var(--casa-lb-prod-bg);
@@ -208,7 +223,7 @@
     text-transform: uppercase;
     border-radius: 4px;
     background: var(--casa-lb-prod-accent);
-    color: #fff;
+    color: var(--casa-text-on-ink);
   }
 
   /* Image */
@@ -217,12 +232,18 @@
     width: 100%;
     aspect-ratio: 3 / 4;
     overflow: hidden;
-    background: #1a1a1a;
+    background: var(--casa-border-on-ink);
   }
 
   .casa-lb-prod__card-image img {
+    /* height: auto + aspect-ratio instead of height: 100% — the card-image
+       wrapper's height comes from its own aspect-ratio, and Safari 26 can
+       fail to resolve a %-height against that (the /cart flat-thumbnail
+       class; immune pattern from .cart-items__media-image in
+       snippets/cart-products.liquid). */
     width: 100%;
-    height: 100%;
+    height: auto;
+    aspect-ratio: 3 / 4;
     object-fit: cover;
     transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     display: block;
@@ -271,7 +292,7 @@
   }
 
   .casa-lb-prod__price--sale {
-    color: #ec4899;
+    color: #5E0A02;
   }
 
   .casa-lb-prod__compare-price {
@@ -287,8 +308,8 @@
     text-transform: uppercase;
     padding: 3px 8px;
     border-radius: 3px;
-    background: rgba(236, 72, 153, 0.15);
-    color: #ec4899;
+    background: rgba(94, 10, 2, 0.15);
+    color: #5E0A02;
   }
 
   /* Rating */
@@ -341,7 +362,7 @@
   .casa-lb-prod__card:hover .casa-lb-prod__card-btn {
     background: var(--casa-lb-prod-accent);
     border-color: var(--casa-lb-prod-accent);
-    color: #fff;
+    color: var(--casa-text-on-ink);
   }
 
   /* Footer — View Collection */
@@ -360,14 +381,14 @@
     letter-spacing: 0.12em;
     text-transform: uppercase;
     text-decoration: none;
-    color: #fff;
+    color: var(--casa-text-on-ink);
     background: var(--casa-lb-prod-accent);
     border-radius: 6px;
     transition: background 0.3s ease, transform 0.3s ease;
   }
 
   .casa-lb-prod__view-collection:hover {
-    background: color-mix(in srgb, var(--casa-lb-prod-accent), #000 15%);
+    background: color-mix(in srgb, var(--casa-lb-prod-accent), var(--casa-ink) 15%);
     transform: translateY(-2px);
   }
 
@@ -415,7 +436,7 @@
       padding: 16px 24px;
     }
   }
-</style>
+{% endstylesheet %}
 
 {% schema %}
 {
@@ -454,19 +475,19 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background color",
-      "default": "#0a0a0a"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
       "id": "text_color",
       "label": "Text color",
-      "default": "#ffffff"
+      "default": "#FAFAF7"
     },
     {
       "type": "color",
       "id": "accent_color",
       "label": "Accent color",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
@@ -500,7 +521,7 @@
       "type": "text",
       "id": "button_text",
       "label": "Card button text",
-      "default": "Shop Now"
+      "default": "SHOP NOW"
     },
     {
       "type": "url",
@@ -549,6 +570,6 @@
       "blocks": []
     }
   ],
-  "templates": ["page"]
+  "enabled_on": { "templates": ["page"] }
 }
 {% endschema %}

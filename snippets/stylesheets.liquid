@@ -1,5 +1,11 @@
 {{ 'overflow-list.css' | asset_url | preload_tag: as: 'style' }}
 {{ 'base.css' | asset_url | stylesheet_tag: preload: true }}
+{%- comment -%} casa-base.css / casa-tokens.css are already render-blocking <link>s at the top of <head> (fetched at highest priority regardless), so `preload: true` on them just burned two of the 2-preload budget and competed with the hero LCP image. Dropped. {%- endcomment -%}
 {{ 'casa-base.css' | asset_url | stylesheet_tag }}
+{{ 'casa-tokens.css' | asset_url | stylesheet_tag }}
+{{ 'casa-buttons.css' | asset_url | stylesheet_tag }}
 {{ 'casa-animations.css' | asset_url | stylesheet_tag }}
-{{ 'casa-pdp.css' | asset_url | stylesheet_tag }}
+{%- comment -%} casa-pdp.css is ~37 KB of PDP-only CSS — load it ONLY on product pages so it doesn't render-block the homepage / collection / cart. The few of its rules that also render off-PDP (product cards, mega-menu prices, .casa-collection-link, accordion RTE prose) are copied into casa-base.css (global). NOTE: `stylesheet_tag` is a FILTER, not the {% stylesheet %} TAG, so wrapping it in {% if %} is valid — the "stylesheet must not be nested" rule does not apply. {%- endcomment -%}
+{%- if request.page_type == 'product' -%}
+  {{ 'casa-pdp.css' | asset_url | stylesheet_tag }}
+{%- endif -%}

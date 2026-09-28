@@ -1,0 +1,395 @@
+{%- comment -%}
+  Seoul Glow Lab — PDP "Why this lamp" benefit grid
+  3-card row: image + tag pill + headline (with italic-em accent)
+   + body + mono stat. Paper surface, no brand gradient on the
+  body — italic-in-ink only for accent words.
+  Built for Bubble Girls v5 PDP; reusable on any non-Portal
+  (Daylit/Editorial) PDP that needs to surface 3 benefits.
+{%- endcomment -%}
+
+{%- assign s = section.settings -%}
+{%- assign sid = section.id -%}
+
+<section
+  id="casa-why-{{ sid }}"
+  class="casa-why{% if s.surface == 'warm' %} casa-why--warm{% endif %}"
+  style="
+    --casa-why-paper: {{ s.color_paper | default: '#FAFAF7' }};
+    --casa-why-cream: {{ s.color_cream | default: '#FFFFFF' }};
+    --casa-why-ink: {{ s.color_ink | default: '#0A0A0F' }};
+    --casa-why-soft: {{ s.color_soft | default: '#54545C' }};
+    --casa-why-mute: {{ s.color_mute | default: '#8B8B92' }};
+    --casa-why-warm: {{ s.color_warm | default: '#8B8B92' }};
+    --casa-why-rule: {{ s.color_rule | default: '#E8E8E4' }};
+    --casa-why-pt: {{ s.padding_top | default: 64 }}px;
+    --casa-why-pb: {{ s.padding_bottom | default: 64 }}px;
+  "
+>
+  <div class="casa-why__cap">
+    {%- if s.heading != blank or s.kicker != blank -%}
+      <header class="casa-why__head">
+        {%- if s.kicker != blank -%}
+          <p class="casa-why__kicker">{{ s.kicker }}</p>
+        {%- endif -%}
+        {%- if s.heading != blank -%}
+          <h2 class="casa-why__heading">{{ s.heading }}</h2>
+        {%- endif -%}
+      </header>
+    {%- endif -%}
+
+    <div class="casa-why__grid">
+      {%- for block in section.blocks -%}
+        <article class="casa-why__card" {{ block.shopify_attributes }}>
+          {%- if block.settings.image != blank -%}
+            <div class="casa-why__card-img">
+              {%- comment -%}
+                alt precomputed: a piped fallback inside image_tag's arg
+                list terminates the args — the fallback never applied. No
+                | escape: image_tag escapes attribute values itself.
+              {%- endcomment -%}
+              {%- assign _why_alt = block.settings.image.alt | default: block.settings.headline -%}
+              {{ block.settings.image | image_url: width: 800 | image_tag:
+                  loading: 'lazy',
+                  widths: '400, 600, 800',
+                  sizes: '(min-width: 900px) 33vw, 100vw',
+                  class: 'casa-why__img',
+                  alt: _why_alt
+              }}
+              {%- if block.settings.tag != blank -%}
+                <span class="casa-why__card-tag">{{ block.settings.tag }}</span>
+              {%- endif -%}
+            </div>
+          {%- endif -%}
+
+          <div class="casa-why__card-text">
+            {%- if block.settings.headline != blank -%}
+              <h3 class="casa-why__card-headline">{{ block.settings.headline }}</h3>
+            {%- endif -%}
+            {%- if block.settings.body != blank -%}
+              <p class="casa-why__card-body">{{ block.settings.body }}</p>
+            {%- endif -%}
+            {%- if block.settings.stat != blank -%}
+              <span class="casa-why__card-stat">{{ block.settings.stat }}</span>
+            {%- endif -%}
+          </div>
+        </article>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+{% stylesheet %}
+  .casa-why {
+    background: var(--casa-why-paper);
+    color: var(--casa-why-ink);
+    padding: var(--casa-why-pt) 0 var(--casa-why-pb);
+  }
+  .casa-why--warm { background: var(--casa-why-cream); }
+
+  .casa-why__cap {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 64px);
+  }
+
+  .casa-why__head {
+    text-align: center;
+    max-width: 720px;
+    margin: 0 auto clamp(28px, 3vw, 44px);
+  }
+  .casa-why__kicker {
+    display: inline-block;
+    margin: 0 0 14px;
+    font: 500 11px 'JetBrains Mono', monospace;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--casa-why-warm);
+  }
+  .casa-why__heading {
+    font: 300 clamp(28px, 3.5vw, 44px)/1.05 var(--font-body--family);
+    letter-spacing: -0.025em;
+    color: var(--casa-why-ink);
+    margin: 0;
+    text-wrap: balance;
+  }
+  .casa-why__heading em {
+    font-style: italic;
+    font-weight: 500;
+    color: var(--casa-why-ink);
+  }
+
+  .casa-why__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+  @media (max-width: 900px) {
+    .casa-why__grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 540px) {
+    .casa-why__grid { grid-template-columns: 1fr; }
+  }
+
+  .casa-why__card {
+    background: var(--casa-why-paper);
+    border: 1px solid var(--casa-why-rule);
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .casa-why--warm .casa-why__card { background: var(--casa-why-paper); }
+
+  .casa-why__card-img {
+    position: relative;
+    aspect-ratio: 5 / 3.6;
+    overflow: hidden;
+    background: var(--casa-why-cream);
+  }
+  .casa-why__img {
+    /* height: auto + aspect-ratio instead of height: 100% — the wrapper's
+       height comes from its own aspect-ratio, and Safari 26 can fail to
+       resolve a %-height against that (the /cart flat-thumbnail class;
+       immune pattern from .cart-items__media-image in snippets/cart-products.liquid). */
+    width: 100%;
+    height: auto;
+    aspect-ratio: 5 / 3.6;
+    object-fit: cover;
+    display: block;
+  }
+  .casa-why__card-tag {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(8px);
+    color: var(--casa-why-ink);
+    font: 600 10px 'JetBrains Mono', monospace;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 6px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--casa-why-rule);
+  }
+
+  .casa-why__card-text {
+    padding: 22px 24px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .casa-why__card-headline {
+    font: 500 19px/1.25 var(--font-body--family);
+    letter-spacing: -0.01em;
+    color: var(--casa-why-ink);
+    margin: 0;
+  }
+  .casa-why__card-headline em {
+    font-style: italic;
+    font-weight: 600;
+  }
+  .casa-why__card-body {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--casa-why-soft);
+    margin: 0;
+  }
+  .casa-why__card-stat {
+    margin-top: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font: 600 11px 'JetBrains Mono', monospace;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--casa-why-warm);
+  }
+  .casa-why__card-stat::before {
+    content: '';
+    width: 18px;
+    height: 1px;
+    background: var(--casa-why-warm);
+  }
+
+  @media (max-width: 540px) {
+    .casa-why { padding: 48px 0; }
+    .casa-why__card-text { padding: 18px 18px 20px; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa PDP Why",
+  "tag": "section",
+  "class": "casa-pdp-why-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Header"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker (mono uppercase)",
+      "default": "§ 1 · Why these lamps"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading",
+      "info": "Wrap one accent word in <em>…</em> for italic ink emphasis.",
+      "default": "Three reasons <em>she's our bestseller.</em>"
+    },
+    {
+      "type": "header",
+      "content": "Surface & spacing"
+    },
+    {
+      "type": "select",
+      "id": "surface",
+      "label": "Surface",
+      "options": [
+        { "value": "paper", "label": "Paper (#FAFAF7)" },
+        { "value": "warm", "label": "Paper-elevated (#FFFFFF)" }
+      ],
+      "default": "paper"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 24,
+      "max": 160,
+      "step": 4,
+      "default": 64,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 24,
+      "max": 160,
+      "step": 4,
+      "default": 64,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "color_paper",
+      "label": "Paper",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "color_cream",
+      "label": "Paper-elevated",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "color_ink",
+      "label": "Ink (heading + body)",
+      "default": "#0A0A0F"
+    },
+    {
+      "type": "color",
+      "id": "color_soft",
+      "label": "Body soft",
+      "default": "#54545C"
+    },
+    {
+      "type": "color",
+      "id": "color_mute",
+      "label": "Mono mute",
+      "default": "#8B8B92"
+    },
+    {
+      "type": "color",
+      "id": "color_warm",
+      "label": "Warm accent (kicker, stat)",
+      "default": "#8B8B92"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "benefit",
+      "name": "Benefit card",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image"
+        },
+        {
+          "type": "text",
+          "id": "tag",
+          "label": "Pill tag",
+          "info": "Short uppercase pill (e.g. 'No plug', 'No app').",
+          "default": "No plug"
+        },
+        {
+          "type": "inline_richtext",
+          "id": "headline",
+          "label": "Headline",
+          "info": "Wrap one word in <em>…</em> for italic accent.",
+          "default": "Cordless. <em>12-hour battery.</em>"
+        },
+        {
+          "type": "textarea",
+          "id": "body",
+          "label": "Body",
+          "default": "USB-rechargeable, runs up to 12 hours from a single charge. Move her bedside, to the bath ledge, to the dinner table — no outlet to plan around."
+        },
+        {
+          "type": "text",
+          "id": "stat",
+          "label": "Stat label",
+          "default": "USB-C · 12 hr run"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 4,
+  "presets": [
+    {
+      "name": "Casa PDP Why",
+      "category": "Product",
+      "blocks": [
+        {
+          "type": "benefit",
+          "settings": {
+            "tag": "No plug",
+            "headline": "Cordless. <em>12-hour battery.</em>",
+            "body": "USB-rechargeable, runs up to 12 hours from a single charge. Move her bedside, to the bath ledge, to the dinner table — no outlet to plan around.",
+            "stat": "USB-C · 12 hr run"
+          }
+        },
+        {
+          "type": "benefit",
+          "settings": {
+            "tag": "No app",
+            "headline": "Tap to dim. <em>Three warm levels.</em>",
+            "body": "Touch her base. Three brightness steps, all warm-white. No wall switch, no app, no remote — closer to candle than office.",
+            "stat": "Touch-dim · 3 levels"
+          }
+        },
+        {
+          "type": "benefit",
+          "settings": {
+            "tag": "Hand-finished",
+            "headline": "Hand-painted. <em>No two identical.</em>",
+            "body": "Polymer-glass body cast in the studio, sanded smooth, hand-painted, then sealed. The brushwork is the signature — every girl ships unique.",
+            "stat": "Studio-finished · since 2020"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -6,11 +6,18 @@
     assign primary_font_bold = primary_font | font_modify: 'weight', 'bold'
     assign primary_font_italic = primary_font | font_modify: 'style', 'italic'
     assign primary_font_bold_italic = primary_font_bold | font_modify: 'style', 'italic'
+    # Light (weight 300) variant for the PDP title block (.cpm__title)
+    # which uses font-weight: 300 by default. Without a real @font-face
+    # at 300, the browser synthesizes Light from Regular — fallback
+    # and loaded-Inter produce visibly different glyphs and the swap
+    # flickers (user-reported by Elie 2026-05-14).
+    assign primary_font_light = primary_font | font_modify: 'weight', '300'
 
     assign primary_font_face_id = '[primary_font_family]-[primary_font_weight]-[primary_font_style]|' | replace: '[primary_font_family]', primary_font.family | replace: '[primary_font_weight]', primary_font.weight | replace: '[primary_font_style]', primary_font.style
     assign primary_font_bold_face_id = '[primary_font_bold_family]-[primary_font_bold_weight]-[primary_font_bold_style]|' | replace: '[primary_font_bold_family]', primary_font_bold.family | replace: '[primary_font_bold_weight]', primary_font_bold.weight | replace: '[primary_font_bold_style]', primary_font_bold.style
     assign primary_font_italic_face_id = '[primary_font_italic_family]-[primary_font_italic_weight]-[primary_font_italic_style]|' | replace: '[primary_font_italic_family]', primary_font_italic.family | replace: '[primary_font_italic_weight]', primary_font_italic.weight | replace: '[primary_font_italic_style]', primary_font_italic.style
     assign primary_font_bold_italic_face_id = '[primary_font_bold_italic_family]-[primary_font_bold_italic_weight]-[primary_font_bold_italic_style]|' | replace: '[primary_font_bold_italic_family]', primary_font_bold_italic.family | replace: '[primary_font_bold_italic_weight]', primary_font_bold_italic.weight | replace: '[primary_font_bold_italic_style]', primary_font_bold_italic.style
+    assign primary_font_light_face_id = '[primary_font_light_family]-[primary_font_light_weight]-[primary_font_light_style]|' | replace: '[primary_font_light_family]', primary_font_light.family | replace: '[primary_font_light_weight]', primary_font_light.weight | replace: '[primary_font_light_style]', primary_font_light.style
 
     assign secondary_font = settings.type_subheading_font
     assign secondary_font_bold = secondary_font | font_modify: 'weight', 'bold'
@@ -42,83 +49,112 @@
     assign accent_font_italic_face_id = '[accent_font_italic_family]-[accent_font_italic_weight]-[accent_font_italic_style]|' | replace: '[accent_font_italic_family]', accent_font_italic.family | replace: '[accent_font_italic_weight]', accent_font_italic.weight | replace: '[accent_font_italic_style]', accent_font_italic.style
     assign accent_font_bold_italic_face_id = '[accent_font_bold_italic_family]-[accent_font_bold_italic_weight]-[accent_font_bold_italic_style]|' | replace: '[accent_font_bold_italic_family]', accent_font_bold_italic.family | replace: '[accent_font_bold_italic_weight]', accent_font_bold_italic.weight | replace: '[accent_font_bold_italic_style]', accent_font_bold_italic.style
 
+    # Body (primary) + subheading (secondary) promoted to font-display: block
+    # 2026-05-14 per Elie report: "title flicker is gone but other text still
+    # flickers." Consistent with the dddc63e revert which already chose block
+    # for headings/accent. Trade-off: up to 3s blank if Inter ever fails to
+    # arrive — mitigated by fetchpriority=high preload on all weights and
+    # Shopify CDN's edge cache (fonts.shopifycdn.com is the same edge as
+    # cdn.shopify.com, sub-100ms typical).
     unless rendered_fonts contains primary_font_face_id
-      echo primary_font | font_face: font_display: 'swap'
+      render 'casa-font-face', font: primary_font
       assign rendered_fonts = rendered_fonts | append: primary_font_face_id
     endunless
 
     unless rendered_fonts contains primary_font_bold_face_id
-      echo primary_font_bold | font_face: font_display: 'swap'
+      render 'casa-font-face', font: primary_font_bold
       assign rendered_fonts = rendered_fonts | append: primary_font_bold_face_id
     endunless
 
     unless rendered_fonts contains primary_font_italic_face_id
-      echo primary_font_italic | font_face: font_display: 'swap'
+      render 'casa-font-face', font: primary_font_italic
       assign rendered_fonts = rendered_fonts | append: primary_font_italic_face_id
     endunless
 
     unless rendered_fonts contains primary_font_bold_italic_face_id
-      echo primary_font_bold_italic | font_face: font_display: 'swap'
+      render 'casa-font-face', font: primary_font_bold_italic
       assign rendered_fonts = rendered_fonts | append: primary_font_bold_italic_face_id
     endunless
 
+    # Light (300) variant — same prominence as a heading weight on PDPs
+    # (the .cpm__title block uses it as the visible product title), so
+    # use font_display: block like the heading slot. With fetchpriority
+    # high preload on the Light file in snippets/fonts.liquid, this
+    # rarely actually blocks paint — it just guarantees no mid-paint
+    # swap if Inter Light arrives after first paint.
+    unless rendered_fonts contains primary_font_light_face_id
+      render 'casa-font-face', font: primary_font_light
+      assign rendered_fonts = rendered_fonts | append: primary_font_light_face_id
+    endunless
+
     unless rendered_fonts contains secondary_font_face_id
-      echo secondary_font | font_face: font_display: 'swap'
+      render 'casa-font-face', font: secondary_font
       assign rendered_fonts = rendered_fonts | append: secondary_font_face_id
     endunless
 
     unless rendered_fonts contains secondary_font_bold_face_id
-      echo secondary_font_bold | font_face: font_display: 'swap'
+      render 'casa-font-face', font: secondary_font_bold
       assign rendered_fonts = rendered_fonts | append: secondary_font_bold_face_id
     endunless
 
     unless rendered_fonts contains secondary_font_italic_face_id
-      echo secondary_font_italic | font_face: font_display: 'swap'
+      render 'casa-font-face', font: secondary_font_italic
       assign rendered_fonts = rendered_fonts | append: secondary_font_italic_face_id
     endunless
 
     unless rendered_fonts contains secondary_font_bold_italic_face_id
-      echo secondary_font_bold_italic | font_face: font_display: 'swap'
+      render 'casa-font-face', font: secondary_font_bold_italic
       assign rendered_fonts = rendered_fonts | append: secondary_font_bold_italic_face_id
     endunless
 
+    # All four font slots (body/subheading/heading/accent) use font-display:
+    # block as of 2026-05-14 (Elie report: "title flicker is gone but other
+    # text still flickers"). The block policy makes the browser wait up to
+    # 3s for Inter to arrive — with fetchpriority="high" preload on every
+    # weight, Inter almost always arrives before first paint and there is
+    # no visible flicker.
+    #
+    # Trade-off: if Inter ever fails to load within 3s (slow network, CDN
+    # outage), affected text is blank for up to 3s then falls back to
+    # Inter Fallback (Arial @ size-adjust 107%). On Shopify's CDN that
+    # window almost never fires.
     unless rendered_fonts contains tertiary_font_face_id
-      echo tertiary_font | font_face: font_display: 'swap'
+      render 'casa-font-face', font: tertiary_font
       assign rendered_fonts = rendered_fonts | append: tertiary_font_face_id
     endunless
 
     unless rendered_fonts contains tertiary_font_bold_face_id
-      echo tertiary_font_bold | font_face: font_display: 'swap'
+      render 'casa-font-face', font: tertiary_font_bold
       assign rendered_fonts = rendered_fonts | append: tertiary_font_bold_face_id
     endunless
 
     unless rendered_fonts contains tertiary_font_italic_face_id
-      echo tertiary_font_italic | font_face: font_display: 'swap'
+      render 'casa-font-face', font: tertiary_font_italic
       assign rendered_fonts = rendered_fonts | append: tertiary_font_italic_face_id
     endunless
 
     unless rendered_fonts contains tertiary_font_bold_italic_face_id
-      echo tertiary_font_bold_italic | font_face: font_display: 'swap'
+      render 'casa-font-face', font: tertiary_font_bold_italic
       assign rendered_fonts = rendered_fonts | append: tertiary_font_bold_italic_face_id
     endunless
 
     unless rendered_fonts contains accent_font_face_id
-      echo accent_font | font_face: font_display: 'swap'
+      render 'casa-font-face', font: accent_font
       assign rendered_fonts = rendered_fonts | append: accent_font_face_id
     endunless
 
     unless rendered_fonts contains accent_font_bold_face_id
-      echo accent_font_bold | font_face: font_display: 'swap'
+      render 'casa-font-face', font: accent_font_bold
       assign rendered_fonts = rendered_fonts | append: accent_font_bold_face_id
     endunless
 
     unless rendered_fonts contains accent_font_italic_face_id
-      echo accent_font_italic | font_face: font_display: 'swap'
+      render 'casa-font-face', font: accent_font_italic
       assign rendered_fonts = rendered_fonts | append: accent_font_italic_face_id
     endunless
 
     unless rendered_fonts contains accent_font_bold_italic_face_id
-      echo accent_font_bold_italic | font_face: font_display: 'swap'
+      render 'casa-font-face', font: accent_font_bold_italic
       assign rendered_fonts = rendered_fonts | append: accent_font_bold_italic_face_id
     endunless
   %}
@@ -126,6 +162,7 @@
   :root {
     /* Page Layout */
     --sidebar-width: 25rem;
+    --pdp-sidebar-width: 30rem;
     --narrow-content-width: 36rem;
     --normal-content-width: 42rem;
     --wide-content-width: 46rem;
@@ -154,17 +191,60 @@
     --letter-spacing-sm: 0.06em;
     --letter-spacing-md: 0.13em;
 
-    /* Font families */
-    --font-body--family: {{ settings.type_body_font.family }}, {{ settings.type_body_font.fallback_families }};
+    /* Font families
+       Injection of `Inter Fallback` is gated on the font actually
+       being Inter — `Inter Fallback` is metric-matched to Inter
+       only (size-adjust 113%, see snippets/fonts.liquid). For any
+       other family the user picks from Shopify settings, the stack
+       falls back to the default `family, fallback_families`
+       pattern (no metric match, but no mismatched-metric harm
+       either).
+
+       2026-05-12 fix for whole-page flash on first paint: prior
+       stack was `Inter, sans-serif` with no metric-matched
+       intermediate. On first paint, body/heading text rendered in
+       browser-default sans-serif (zero size-adjust, zero ascent
+       override). When real Inter loaded ~100-300ms later, every
+       text element re-rendered at slightly different metrics —
+       visible page-wide flash. Adding `Inter Fallback` before the
+       generic fallback means the intermediate render uses Arial @
+       113% (or San Francisco / Segoe / Roboto via the local() chain
+       in fonts.liquid), much closer to Inter's metrics. The swap
+       to real Inter becomes near-imperceptible. */
+    {%- if settings.type_body_font.family == 'Inter' -%}
+      --font-body--family: '{{ settings.type_body_font.family }} Casa', 'Inter Fallback', {{ settings.type_body_font.fallback_families }};
+    {%- else -%}
+      --font-body--family: '{{ settings.type_body_font.family }} Casa', {{ settings.type_body_font.fallback_families }};
+    {%- endif -%}
     --font-body--style: {{ settings.type_body_font.style }};
     --font-body--weight: {{ settings.type_body_font.weight }};
-    --font-subheading--family: {{ settings.type_subheading_font.family }}, {{ settings.type_subheading_font.fallback_families }};
+    {%- if settings.type_subheading_font.family == 'Inter' -%}
+      --font-subheading--family: '{{ settings.type_subheading_font.family }} Casa', 'Inter Fallback', {{ settings.type_subheading_font.fallback_families }};
+    {%- else -%}
+      --font-subheading--family: '{{ settings.type_subheading_font.family }} Casa', {{ settings.type_subheading_font.fallback_families }};
+    {%- endif -%}
     --font-subheading--style: {{ settings.type_subheading_font.style }};
     --font-subheading--weight: {{ settings.type_subheading_font.weight }};
-    --font-heading--family: {{ settings.type_heading_font.family }}, {{ settings.type_heading_font.fallback_families }};
+    {%- if settings.type_heading_font.family == 'Inter' -%}
+      --font-heading--family: '{{ settings.type_heading_font.family }} Casa', 'Inter Fallback', {{ settings.type_heading_font.fallback_families }};
+      {%- comment -%}
+        Italic twin of the heading stack — the hero <em> accent uses it
+        so its pre-load fallback is 'Inter Fallback Italic' (Arial
+        italic @ size-adjust 113%, calibrated in fonts.liquid), not the
+        upright 107% face, which over-widens italics.
+      {%- endcomment -%}
+      --font-heading-italic--family: '{{ settings.type_heading_font.family }} Casa', 'Inter Fallback Italic', {{ settings.type_heading_font.fallback_families }};
+    {%- else -%}
+      --font-heading--family: '{{ settings.type_heading_font.family }} Casa', {{ settings.type_heading_font.fallback_families }};
+      --font-heading-italic--family: '{{ settings.type_heading_font.family }} Casa', {{ settings.type_heading_font.fallback_families }};
+    {%- endif -%}
     --font-heading--style: {{ settings.type_heading_font.style }};
     --font-heading--weight: {{ settings.type_heading_font.weight }};
-    --font-accent--family: {{ settings.type_accent_font.family }}, {{ settings.type_accent_font.fallback_families }};
+    {%- if settings.type_accent_font.family == 'Inter' -%}
+      --font-accent--family: '{{ settings.type_accent_font.family }} Casa', 'Inter Fallback', {{ settings.type_accent_font.fallback_families }};
+    {%- else -%}
+      --font-accent--family: '{{ settings.type_accent_font.family }} Casa', {{ settings.type_accent_font.fallback_families }};
+    {%- endif -%}
     --font-accent--style: {{ settings.type_accent_font.style }};
     --font-accent--weight: {{ settings.type_accent_font.weight }};
 
@@ -626,6 +706,15 @@
     --variant-picker-border-style: {{ settings.variant_swatch_border_style }};
     --variant-picker-border-opacity: {{ settings.variant_swatch_border_opacity | append: '%' }};
 
+    /* Card Swatches (collection/grid product cards) */
+    --card-swatch-size: {{ settings.card_swatch_size | default: 36 }}px;
+    --card-swatch-gap: {{ settings.card_swatch_gap | default: 6 }}px;
+    --card-swatch-radius: {{ settings.card_swatch_radius | default: 8 }}px;
+    --card-swatch-size-mobile: {{ settings.card_swatch_size_mobile | default: 36 }}px;
+    --card-swatch-gap-mobile: {{ settings.card_swatch_gap_mobile | default: 8 }}px;
+
+  
+
     /* Variant Picker Buttons */
     --variant-picker-button-radius: {{ settings.variant_button_radius | append: 'px' }};
     --variant-picker-button-border-width: {{ settings.variant_button_border_width | append: 'px' }};
@@ -687,26 +776,105 @@
     /* ── Global Price Colors ── */
     --compare-price-color: {{ settings.compare_price_color | default: '#6b7280' }};
     --sale-price-color: {{ settings.sale_price_color | default: '#ef4444' }};
-    --savings-badge-bg: {{ settings.savings_badge_bg | default: '#fef2f2' }};
-    --savings-badge-text: {{ settings.savings_badge_text | default: '#dc2626' }};
+    --savings-badge-bg: {{ settings.casa_savings_bg | default: '#fef2f2' }};
+    --savings-badge-text: {{ settings.casa_savings_text | default: '#dc2626' }};
+    --savings-badge-border: {{ settings.casa_savings_border | default: 'rgba(239, 68, 68, 0.2)' }};
+    --savings-badge-border-width: {{ settings.casa_savings_border_width | default: 1 }}px;
+    --savings-badge-radius: {{ settings.casa_savings_radius | default: 6 }}px;
+
+    /* ── Casa Surfaces ──
+       Two-surface system locked by the brand book. Every section
+       should bind its background to one of these tokens (or to a
+       contextual derivative below) — never hardcode hex. See
+       Theme Settings → Casa Surfaces. */
+    --casa-ink:                {{ settings.casa_surface_ink   | default: '#0A0A0F' }};
+    --casa-paper:              {{ settings.casa_surface_paper | default: '#FAFAF7' }};
+    --casa-text-on-ink:        {{ settings.casa_text_on_ink   | default: '#FAFAF7' }};
+    --casa-text-on-paper:      {{ settings.casa_text_on_paper | default: '#0A0A0F' }};
+    --casa-muted-on-ink:       {{ settings.casa_muted_on_ink  | default: '#a3a3a3' }};
+    --casa-muted-on-paper:     {{ settings.casa_muted_on_paper| default: '#525252' }};
+    --casa-border-on-ink:      {{ settings.casa_border_on_ink | default: '#1f1f24' }};
+    --casa-border-on-paper:    {{ settings.casa_border_on_paper | default: '#E5E3DC' }};
+
+    /* ── Casa Global Pricing ── */
+    --casa-price-size: {{ settings.casa_price_size_desktop | default: 18 }}px;
+    --casa-price-weight: {{ settings.price_font_weight | default: '600' }};
+    {%- if settings.casa_price_color != blank %}--casa-price-color: {{ settings.casa_price_color }};{% endif -%}
+    {%- if settings.casa_compare_price_color != blank %}--compare-price-color: {{ settings.casa_compare_price_color }};{% endif -%}
+    {%- if settings.casa_sale_price_color != blank %}--sale-price-color: {{ settings.casa_sale_price_color }};{% endif -%}
+    {%- if settings.casa_installment_color != blank %}--casa-installment-color: {{ settings.casa_installment_color }};{% endif -%}
+    --casa-compare-size: {{ settings.casa_compare_size_desktop | default: 14 }}px;
+    --casa-savings-size: {{ settings.casa_savings_size_desktop | default: 12 }}px;
+    --casa-installment-size: {{ settings.casa_installment_size_desktop | default: 13 }}px;
 
     /* ── Casa Global Spacing ── */
     --casa-section-pt: {{ settings.casa_section_padding_top | default: 60 }}px;
     --casa-section-pb: {{ settings.casa_section_padding_bottom | default: 60 }}px;
     --casa-section-pt-m: {{ settings.casa_section_padding_top_mobile | default: 40 }}px;
     --casa-section-pb-m: {{ settings.casa_section_padding_bottom_mobile | default: 40 }}px;
-    --casa-content-max-w: {{ settings.casa_content_max_width | default: 1400 }}px;
+    --casa-content-max-w: {{ settings.casa_content_max_width | default: 1920 }}px;
     --casa-content-px: {{ settings.casa_content_padding | default: 40 }}px;
     --casa-grid-gap: {{ settings.casa_grid_gap | default: 24 }}px;
     --casa-grid-row-gap: {{ settings.casa_grid_row_gap | default: 32 }}px;
 
-    /* ── Casa Global Typography ── */
+    /* ── Casa Global Typography ──
+       Section headings + subtitles flow through the per-section
+       "Title heading scale" dropdown (Theme Settings → Typography
+       canonical H1-H6) for new merchant work. The casa-heading-* /
+       casa-subtitle-* tokens below remain as second-tier fallbacks
+       so any section that hasn't been migrated, or any merchant who
+       leaves the heading-scale dropdown unset, still picks up these
+       values. Removed 2026-05-05: --casa-subheading-weight /
+       --casa-subheading-transform / --casa-subheading-ls /
+       --casa-body-lh — zero consumers, dead since the heading-scale
+       sweep landed. */
     --casa-heading-weight: {{ settings.casa_heading_weight | default: '300' }};
     --casa-heading-transform: {{ settings.casa_heading_transform | default: 'none' }};
-    --casa-subheading-weight: {{ settings.casa_subheading_weight | default: '600' }};
-    --casa-subheading-transform: {{ settings.casa_subheading_transform | default: 'uppercase' }};
-    --casa-subheading-ls: {{ settings.casa_subheading_letter_spacing | default: 2 }}px;
-    --casa-body-lh: {{ settings.casa_body_line_height | default: 1.6 }};
+    --casa-heading-size: {{ settings.casa_heading_size_desktop | default: 48 }}px;
+    --casa-subtitle-size: {{ settings.casa_subtitle_size_desktop | default: 17 }}px;
+
+    /* ── Casa Utility Buttons (section view-all, secondary CTAs) ──
+       Single source of truth for "supporting" button typography across
+       every Casa section. Font family driven by Horizon's existing
+       button-font-family-secondary setting for site-wide consistency.
+
+       Adaptive neutral pills: defaults to black-on-white for light
+       sections; the .casa-*--bg-dark / --bg-gradient-dark overrides
+       below flip to white-on-black for dark sections. Brand purple
+       stays reserved for the hero spotlight — supporting buttons
+       stay neutral so product imagery isn't crowded. */
+    /* Brand v1 alignment (2026-05-04): font-size, padding, radius,
+       and letter-spacing now match the brand book .btn baseline.
+       Was previously a compact pill (12px font / 999px radius); now
+       a brand-canonical rounded rectangle. Black-on-light /
+       white-on-dark color cascade preserved (utility buttons stay
+       neutral; brand purple reserved for hero spotlight). */
+    --casa-btn-utility-font-family: var(--button-font-family-secondary);
+    --casa-btn-utility-font-size: 14px;
+    --casa-btn-utility-font-weight: 600;
+    /* Defers to Horizon's secondary button-text-case theme setting
+       (utility buttons are secondary CTAs — "View all", "See more"). */
+    --casa-btn-utility-transform: var(--button-text-case-secondary, uppercase);
+    --casa-btn-utility-tracking: 0.06em;
+    --casa-btn-utility-padding-y: 16px;
+    --casa-btn-utility-padding-x: 32px;
+    --casa-btn-utility-radius: 12px;
+    /* Default = light section (black pill, white text) */
+    --casa-btn-utility-bg: #000000;
+    --casa-btn-utility-color: #ffffff;
+    --casa-btn-utility-hover-bg: #1a1a1a;
+  }
+
+  /* Dark section override — white pill, black text. Vars cascade so
+     any utility button inside one of these sections picks up the
+     adapted values automatically. */
+  .casa-products-grid--bg-dark,
+  .casa-products-grid--bg-gradient-dark,
+  .casa-cat--bg-dark,
+  .casa-cat--bg-gradient-dark {
+    --casa-btn-utility-bg: #ffffff;
+    --casa-btn-utility-color: #000000;
+    --casa-btn-utility-hover-bg: rgba(255, 255, 255, 0.88);
   }
 
 {% endstyle %}
@@ -723,5 +891,84 @@
     -webkit-text-fill-color: var(--color-foreground, #ffffff) !important;
     transition: background-color 5000s ease-in-out 0s;
     caret-color: var(--color-foreground, #ffffff);
+  }
+
+  /* ── Casa Global Price Color Overrides (applies to base theme too) ── */
+  {%- if settings.casa_price_color != blank -%}
+  .price { color: {{ settings.casa_price_color }}; }
+  {%- endif -%}
+  {%- if settings.casa_compare_price_color != blank -%}
+  .compare-at-price, .price s, .price del, .price .price__was { color: {{ settings.casa_compare_price_color }} !important; }
+  {%- endif -%}
+  {%- if settings.casa_sale_price_color != blank -%}
+  .price--on-sale .price, .price--on-sale .price__current { color: {{ settings.casa_sale_price_color }}; }
+  {%- endif -%}
+  {%- comment -%} Save badge styled as purple pill in casa-pdp.css — settings override intentionally disabled {%- endcomment -%}
+
+  /* ── Global "% off" sale badge kill-switch ──
+     When the merchant turns OFF settings.card_show_sale_badge, hide
+     sale badges everywhere — Casa product cards (which already respect
+     this setting in Liquid), AND Horizon native price blocks used in
+     "You may also like" / related-products sections (which previously
+     required per-instance toggling). Single source of truth. */
+  {%- unless settings.card_show_sale_badge -%}
+  .price-save-badge,
+  .badge--sale,
+  [class*="badge"][class*="sale"] { display: none !important; }
+  {%- endunless -%}
+
+  /* ── Global product badges kill-switch (master toggle) ──
+     When settings.card_show_badges is OFF, hide ALL product card
+     badges site-wide — new, sold out, bestseller, custom, etc.
+     Casa cards already respect this in Liquid; this rule extends the
+     same control to Horizon's native product cards used in recommendations,
+     related products, and any other surface using standard
+     .product-card__badges container or .badge--* variants.
+     Excludes review/rating/trust badges via :not() so we don't
+     accidentally hide non-product-attribute UI. */
+  {%- unless settings.card_show_badges -%}
+  .product-card__badges,
+  .product-card__badge,
+  .casa-product-card__badge,
+  [class*="product-card"] .badge--new,
+  [class*="product-card"] .badge--featured,
+  [class*="product-card"] .badge--soldout,
+  [class*="product-card"] .badge--sold-out,
+  [class*="product-card"] .badge--custom,
+  [class*="product-card"] .badge--bestseller,
+  /* Broad catch-all: any class containing "badge--" inside any
+     product-card wrapper. Future badge variants (.badge--limited,
+     .badge--lowstock, .badge--free-gift, etc.) are auto-included
+     without editing this rule. Same exclusions for non-product-attribute
+     badge UI (review/rating/trust). */
+  [class*="product-card"] [class*="badge--"]:not([class*="rating"]):not([class*="trust"]):not([class*="review"]),
+  .product-card .badge:not(.rating-badge):not(.trust-badge):not([class*="rating"]):not([class*="trust"]) { display: none !important; }
+  {%- endunless -%}
+
+  /* ── Casa Mobile Price + Typography Overrides ── */
+  @media (max-width: 749px) {
+    :root {
+      --casa-price-size: {{ settings.casa_price_size_mobile | default: 15 }}px;
+      --casa-compare-size: {{ settings.casa_compare_size_mobile | default: 12 }}px;
+      --casa-savings-size: {{ settings.casa_savings_size_mobile | default: 11 }}px;
+      --casa-installment-size: {{ settings.casa_installment_size_mobile | default: 11 }}px;
+      --casa-heading-size: {{ settings.casa_heading_size_mobile | default: 28 }}px;
+      --casa-subtitle-size: {{ settings.casa_subtitle_size_mobile | default: 14 }}px;
+    }
+  }
+
+  /* Force accelerated checkout buttons into a horizontal row */
+  .additional-checkout-buttons [data-shopify-buttoncontainer],
+  .additional-checkout-buttons ul[role="list"],
+  .additional-checkout-buttons > div > div {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .additional-checkout-buttons [data-shopify-buttoncontainer] > *,
+  .additional-checkout-buttons ul[role="list"] > *,
+  .additional-checkout-buttons > div > div > * {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
   }
 </style>

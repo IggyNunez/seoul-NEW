@@ -1,0 +1,364 @@
+{% doc %}
+  Compact OctaMirror ownership answers, real packaging photos and an on-page contact form.
+  @param {object[]} blocks - Merchant-configured assurance blocks.
+  @param {string} instance_id - Owning section ID for unique form and panel IDs.
+{% enddoc %}
+{% liquid
+  assign support_panel_id = 'casa-v7-assurance-contact-' | append: instance_id
+  assign support_form_id = 'CasaV7AssuranceForm-' | append: instance_id
+  assign support_return_url = request.path | append: '?variant=' | append: product.selected_or_first_available_variant.id
+  if template.suffix != blank
+    assign support_return_url = support_return_url | append: '&view=' | append: template.suffix
+  endif
+  assign support_return_url = support_return_url | append: '#' | append: support_panel_id
+%}
+    <casa-assurance-v7 data-product-id="{{ product.id }}">
+      <section id="casa-v7-assurance" class="casa-v7-assurance" aria-label="{{ 'casa_assurance.section_label' | t }}" data-build="20260915-crate-corner-repair-1">
+        <div class="casa-v7-assurance__grid">
+          {% for block in blocks %}
+            {% if block.type == 'assurance' %}
+              <article class="casa-v7-assurance__item casa-v7-assurance__item--{{ block.settings.icon }}" {{ block.shopify_attributes }}>
+                <div class="casa-v7-assurance__icon" aria-hidden="true">
+                  {% case block.settings.icon %}
+                    {% when 'crate' %}
+                      <svg viewBox="0 0 64 64"><path d="m10 18 22-9 22 9v28L32 55 10 46V18Z"/><path d="m10 18 22 10 22-10M32 28v27M21 14l22 10"/></svg>
+                    {% when 'support' %}
+                      <svg viewBox="0 0 64 64"><path d="M16 35v-8a16 16 0 0 1 32 0v8M16 32h-3a5 5 0 0 0-5 5v6a5 5 0 0 0 5 5h6V32h-3ZM48 32h3a5 5 0 0 1 5 5v6a5 5 0 0 1-5 5h-6V32h3ZM45 48c-2 6-7 8-15 8"/><circle cx="27" cy="56" r="2"/></svg>
+                    {% else %}
+                      <svg viewBox="0 0 64 64"><path d="M32 7 51 14v15c0 12-7 22-19 28C20 51 13 41 13 29V14l19-7Z"/><path d="m23 31 6 6 13-15"/></svg>
+                  {% endcase %}
+                </div>
+                <div class="casa-v7-assurance__content">
+                  <h3>{{ block.settings.title | escape }}</h3>
+                  <p>{{ block.settings.body }}</p>
+                  {% if block.settings.icon == 'crate' %}
+                    <div class="casa-v7-assurance__photos">
+                      <figure>
+                        <button type="button" data-crate-photo="{{ 'octa-crate-closed-detail-v7.jpg' | asset_url }}" aria-label="{{ 'casa_assurance.crate_closed_enlarge' | t }}">
+                          <img src="{{ 'octa-crate-closed-detail-v7-preview.jpg' | asset_url }}" width="768" height="576" loading="lazy" decoding="async" alt="{{ 'casa_assurance.crate_closed_alt' | t }}">
+                          <span aria-hidden="true">+</span>
+                        </button>
+                        <figcaption>{{ 'casa_assurance.crate_closed_caption' | t }}</figcaption>
+                      </figure>
+                      <figure>
+                        <button type="button" data-crate-photo="{{ 'octa-crate-open-repaired-v7.jpg' | asset_url }}" aria-label="{{ 'casa_assurance.crate_open_enlarge' | t }}">
+                          <img src="{{ 'octa-crate-open-repaired-v7-preview.jpg' | asset_url }}" width="768" height="576" loading="lazy" decoding="async" alt="{{ 'casa_assurance.crate_open_alt' | t }}">
+                          <span aria-hidden="true">+</span>
+                        </button>
+                        <figcaption>{{ 'casa_assurance.crate_open_caption' | t }}</figcaption>
+                      </figure>
+                    </div>
+                    <p class="casa-v7-assurance__photo-note">{{ 'casa_assurance.crate_image_note' | t }}</p>
+                  {% endif %}
+                  {% if block.settings.link_label != blank %}
+                    {% if block.settings.icon == 'support' %}
+                      <a class="casa-v7-assurance__action" href="#{{ support_panel_id }}" data-assurance-trigger aria-controls="{{ support_panel_id }}">
+                        {{ block.settings.link_label | escape }} <span aria-hidden="true">+</span>
+                      </a>
+                    {% else %}
+                      <details class="casa-v7-assurance__details">
+                        <summary class="casa-v7-assurance__action">
+                          {{ block.settings.link_label | escape }} <span class="casa-v7-assurance__plus" aria-hidden="true">+</span>
+                        </summary>
+                        <div class="casa-v7-assurance__answer">
+                          {% if block.settings.details != blank %}
+                            {{ block.settings.details }}
+                          {% elsif block.settings.icon == 'crate' %}
+                            <p>{{ 'casa_assurance.shipping_details' | t }}</p>
+                          {% else %}
+                            <p>{{ 'casa_assurance.guarantee_details' | t }}</p>
+                          {% endif %}
+                        </div>
+                      </details>
+                    {% endif %}
+                  {% endif %}
+                </div>
+              </article>
+            {% endif %}
+          {% endfor %}
+        </div>
+        <div id="{{ support_panel_id }}" class="casa-v7-assurance__contact" data-assurance-panel role="region" aria-labelledby="{{ support_panel_id }}-title">
+          <div class="casa-v7-assurance__contact-head">
+            <div>
+              <h3 id="{{ support_panel_id }}-title" tabindex="-1">{{ 'casa_assurance.ask_question' | t }}</h3>
+              <p>{{ 'casa_assurance.contact_intro' | t: product: product.title }}</p>
+            </div>
+            <button type="button" class="casa-v7-assurance__close" data-assurance-close hidden>{{ 'actions.close' | t }} <span aria-hidden="true">×</span></button>
+          </div>
+          {% form 'contact', id: support_form_id, class: 'casa-v7-assurance__form', return_to: support_return_url %}
+            <input type="hidden" name="contact[id]" value="{{ support_form_id }}">
+            <input type="hidden" name="contact[Product]" value="{{ product.title | escape }}">
+            <input type="hidden" name="contact[Variant ID]" value="{{ product.selected_or_first_available_variant.id }}" data-assurance-variant>
+            <input type="hidden" name="contact[Product URL]" value="{{ shop.url }}{{ product.url }}?variant={{ product.selected_or_first_available_variant.id }}" data-assurance-product-url>
+            {% if form.errors and form.id == support_form_id %}
+              <div class="casa-v7-assurance__form-status" id="{{ support_form_id }}-errors" role="alert" tabindex="-1" data-assurance-result>
+                {{ form.errors | default_errors }}
+              </div>
+            {% elsif form.posted_successfully? and form.id == support_form_id %}
+              <p class="casa-v7-assurance__form-status" role="status" tabindex="-1" data-assurance-result>{{ 'blocks.contact_form.post_success' | t }}</p>
+            {% endif %}
+            <div class="casa-v7-assurance__fields">
+              <div class="casa-v7-assurance__field">
+                <label for="{{ support_form_id }}-name">{{ 'casa_assurance.name_optional' | t }}</label>
+                <input id="{{ support_form_id }}-name" type="text" name="contact[name]" autocomplete="name" value="{{ form.name | default: customer.name | escape }}">
+              </div>
+              <div class="casa-v7-assurance__field">
+                <label for="{{ support_form_id }}-email">{{ 'blocks.contact_form.email' | t }}</label>
+                <input id="{{ support_form_id }}-email" type="email" name="contact[email]" autocomplete="email" autocapitalize="off" spellcheck="false" required value="{{ form.email | default: customer.email | escape }}"{% if form.errors contains 'email' and form.id == support_form_id %} aria-invalid="true" aria-describedby="{{ support_form_id }}-errors"{% endif %}>
+              </div>
+              <div class="casa-v7-assurance__field casa-v7-assurance__field--message">
+                <label for="{{ support_form_id }}-body">{{ 'casa_assurance.your_question' | t }}</label>
+                <textarea id="{{ support_form_id }}-body" name="contact[body]" rows="4" required>{{ form.body | escape }}</textarea>
+              </div>
+            </div>
+            <button type="submit" class="casa-v7-assurance__submit">{{ 'casa_assurance.send_question' | t }}</button>
+          {% endform %}
+        </div>
+        <dialog class="casa-v7-assurance__dialog" aria-label="{{ 'casa_assurance.packaging_photos' | t }}">
+          <button type="button" data-crate-close autofocus>{{ 'actions.close' | t }} <span aria-hidden="true">×</span></button>
+          <img alt="" width="3072" height="2304">
+        </dialog>
+      </section>
+    </casa-assurance-v7>
+
+{% stylesheet %}
+
+  casa-assurance-v7 { display:block; }
+  .casa-v7-assurance { margin-top:40px; padding-top:28px; border-top:1px solid #ddd9e1; }
+  .casa-v7-assurance__grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:clamp(24px,3vw,44px); align-items:start; }
+  .casa-v7-assurance__item { min-width:0; }
+  .casa-v7-assurance__icon { display:grid; place-items:center; width:48px; height:48px; margin-bottom:16px; border:1px solid #e5d6f0; border-radius:12px; color:#7136a5; background:#f7f1fb; }
+  .casa-v7-assurance__icon svg { width:30px; height:30px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .casa-v7-assurance h3 { font-size:18px; line-height:1.35; margin:0 0 8px; }
+  .casa-v7-assurance p { font-size:15px; line-height:1.6; color:#5b5661; margin:0 0 8px; }
+  .casa-v7-assurance__action { display:flex; width:fit-content; max-width:100%; align-items:center; gap:10px; min-height:44px; padding:8px 0; color:#7136a5; background:transparent; font:500 14px/1.5 var(--font-body--family,Inter,sans-serif); cursor:pointer; list-style:none; text-decoration:none; }
+  .casa-v7-assurance__action:hover { color:#4e2377; text-decoration:underline; text-underline-offset:4px; }
+  .casa-v7-assurance__action::-webkit-details-marker { display:none; }
+  .casa-v7-assurance__plus { display:inline-block; font-size:20px; }
+  .casa-v7-assurance__details[open] .casa-v7-assurance__plus { transform:rotate(45deg); }
+  .casa-v7-assurance__answer { padding:12px 0 0; border-top:1px solid #e6e2e8; }
+  .casa-v7-assurance :is(a,summary,button,input,textarea):focus-visible { outline:2px solid #7136a5; outline-offset:4px; }
+  .casa-v7-assurance__photos { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:18px 0 4px; }
+  .casa-v7-assurance__photos figure { margin:0; min-width:0; }
+  .casa-v7-assurance__photos button { display:block; position:relative; width:100%; padding:0; border:0; border-radius:4px; background:#f2eff4; overflow:hidden; cursor:zoom-in; }
+  .casa-v7-assurance__photos img { display:block; width:100%; height:auto; aspect-ratio:4/3; object-fit:contain; }
+  .casa-v7-assurance__photos button > span { position:absolute; right:8px; bottom:8px; display:grid; place-items:center; width:28px; height:28px; border-radius:50%; color:#fff; background:#16121cd9; font:22px/1 sans-serif; }
+  .casa-v7-assurance__photos figcaption { padding-top:8px; color:#5b5661; font-size:13px; line-height:1.45; }
+  .casa-v7-assurance .casa-v7-assurance__photo-note { margin:10px 0 4px; font-size:12px; line-height:1.5; }
+  .casa-v7-assurance__dialog { width:fit-content; max-width:calc(100vw - 24px); max-height:calc(100dvh - 24px); margin:auto; padding:12px; border:0; border-radius:8px; background:#fff; color:#17121d; }
+  .casa-v7-assurance__dialog::backdrop { background:#0a0715d9; }
+  .casa-v7-assurance__dialog img { display:block; width:auto; height:auto; max-width:100%; max-height:calc(100dvh - 100px); object-fit:contain; }
+  .casa-v7-assurance__dialog > button { display:flex; align-items:center; gap:12px; margin:0 0 8px auto; min-height:44px; padding:4px 8px; border:0; background:transparent; color:inherit; font:500 14px/1.4 var(--font-body--family,Inter,sans-serif); cursor:pointer; }
+  .casa-v7-assurance__dialog > button span { font-size:24px; }
+  .casa-v7-assurance__contact {
+    grid-column: 1 / -1;
+    min-width: 0;
+    padding-top: 28px;
+    border-top: 1px solid var(--proof-rule);
+    scroll-margin-top: 130px;
+  }
+
+  .casa-v7-assurance__contact[hidden],
+  .casa-v7-assurance__close[hidden] { display: none; }
+
+  .casa-v7-assurance__contact-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .casa-v7-assurance__contact-head h3 {
+    margin: 0;
+    color: var(--proof-ink);
+    font: 600 22px/1.2 var(--font-heading--family, 'Inter', sans-serif);
+    letter-spacing: -0.01em;
+    scroll-margin-top: 130px;
+  }
+
+  .casa-v7-assurance__contact-head p {
+    margin: 10px 0 0;
+    color: var(--proof-muted);
+    font-size: 16px;
+    line-height: 1.55;
+  }
+
+  .casa-v7-assurance__close {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 8px;
+    border: 0;
+    background: transparent;
+    color: var(--proof-ink);
+    font: 500 14px/1.5 var(--font-body--family, 'Inter', sans-serif);
+    cursor: pointer;
+  }
+
+  .casa-v7-assurance__close span { font-size: 24px; }
+
+  .casa-v7-assurance__form { max-width: 760px; }
+
+  .casa-v7-assurance__fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .casa-v7-assurance__field { min-width: 0; }
+  .casa-v7-assurance__field--message { grid-column: 1 / -1; }
+
+  .casa-v7-assurance__field label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--proof-ink);
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .casa-v7-assurance__field :is(input, textarea) {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    padding: 12px;
+    border: 1px solid #c7c7c0;
+    border-radius: 10px;
+    background: #fff;
+    color: var(--proof-ink);
+    font: 400 16px/1.5 var(--font-body--family, 'Inter', sans-serif);
+  }
+
+  .casa-v7-assurance__field textarea { resize: vertical; }
+
+  .casa-v7-assurance__submit {
+    min-height: 48px;
+    margin-top: 20px;
+    padding: 16px 24px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--proof-ink);
+    color: #fff;
+    font: 600 14px/1.2 var(--font-body--family, 'Inter', sans-serif);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .casa-v7-assurance__form-status {
+    margin: 0 0 20px;
+    padding: 16px;
+    border: 1px solid var(--proof-purple);
+    border-radius: 10px;
+    color: var(--proof-ink);
+    font-size: 16px;
+    line-height: 1.55;
+  }
+
+
+  .casa-v7-assurance__contact { margin-top:28px; }
+  @media(max-width:700px) {
+    .casa-v7-assurance__grid { grid-template-columns:1fr; gap:24px; }
+    .casa-v7-assurance__item { display:grid; grid-template-columns:40px minmax(0,1fr); gap:14px; }
+    .casa-v7-assurance__item + .casa-v7-assurance__item { border-top:1px solid #e6e2e8; padding-top:24px; }
+    .casa-v7-assurance__icon { width:40px; height:40px; margin:0; border-radius:10px; }
+    .casa-v7-assurance__icon svg { width:26px; height:26px; }
+    .casa-v7-assurance__content { min-width:0; }
+  }
+  @media(max-width:479px) {
+    .casa-v7-assurance__fields { grid-template-columns:1fr; }
+    .casa-v7-assurance__photos { gap:10px; }
+  }
+{% endstylesheet %}
+
+{% javascript %}
+  class CasaAssuranceV7 extends HTMLElement {
+    connectedCallback() {
+      this.abort?.abort();
+      this.abort = new AbortController();
+      const options = { signal: this.abort.signal };
+      this.panel = this.querySelector('[data-assurance-panel]');
+      this.triggers = Array.from(this.querySelectorAll('[data-assurance-trigger]'));
+      this.form = this.panel?.querySelector('form');
+      if (!this.panel || !this.form || !this.triggers.length) return;
+
+      const result = this.panel.querySelector('[data-assurance-result]');
+      const returnedToPanel = [this.panel.id, this.form.id].some(id => location.hash === `#${id}`);
+      this.setOpen(Boolean(result || returnedToPanel));
+      this.querySelector('[data-assurance-close]').hidden = false;
+      this.triggers.forEach(trigger => trigger.addEventListener('click', event => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        this.setOpen(true);
+        this.syncContext();
+        this.panel.querySelector('h3').focus();
+      }, options));
+      this.querySelector('[data-assurance-close]').addEventListener('click', () => this.closePanel(), options);
+      this.panel.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          this.closePanel();
+        }
+      }, options);
+      window.addEventListener('hashchange', () => {
+        if (location.hash === `#${this.panel.id}`) this.setOpen(true);
+      }, options);
+      document.addEventListener('variant:update', event => {
+        if (String(event.detail?.data?.productId) === this.dataset.productId && event.detail?.resource?.id) {
+          this.syncContext(event.detail.resource.id);
+        }
+      }, options);
+      this.form.addEventListener('submit', () => this.syncContext(), { ...options, capture: true });
+      this.syncContext();
+      const dialog = this.querySelector('dialog');
+      this.querySelectorAll('[data-crate-photo]').forEach(button => button.addEventListener('click', () => {
+        const source = button.querySelector('img');
+        const image = dialog.querySelector('img');
+        image.src = button.dataset.cratePhoto || source.currentSrc || source.src;
+        image.alt = source.alt;
+        this.photoTrigger = button;
+        dialog.showModal();
+      }, options));
+      this.querySelector('[data-crate-close]').addEventListener('click', () => dialog.close(), options);
+      dialog.addEventListener('click', event => {
+        if (event.target !== dialog) return;
+        const rect = dialog.getBoundingClientRect();
+        if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
+      }, options);
+      dialog.addEventListener('close', () => this.photoTrigger?.focus(), options);
+      if (result) result.focus();
+    }
+
+    setOpen(open) {
+      this.panel.hidden = !open;
+      this.triggers.forEach(trigger => trigger.setAttribute('aria-expanded', String(open)));
+    }
+
+    closePanel() {
+      this.setOpen(false);
+      this.triggers[0].focus();
+    }
+
+    syncContext(variantId) {
+      const variantInput = this.form.querySelector('[data-assurance-variant]');
+      const returnUrl = new URL(location.href);
+      const variant = variantId || returnUrl.searchParams.get('variant') || variantInput.value;
+      if (variant) returnUrl.searchParams.set('variant', variant);
+      returnUrl.searchParams.delete('contact_posted');
+      returnUrl.hash = this.panel.id;
+      this.form.elements.namedItem('return_to').value = returnUrl.pathname + returnUrl.search + returnUrl.hash;
+      variantInput.value = variant;
+      const productUrl = new URL(returnUrl.pathname, returnUrl.origin);
+      if (variant) productUrl.searchParams.set('variant', variant);
+      this.form.querySelector('[data-assurance-product-url]').value = productUrl.href;
+    }
+
+    disconnectedCallback() { this.abort?.abort(); }
+  }
+
+  if (!customElements.get('casa-assurance-v7')) customElements.define('casa-assurance-v7', CasaAssuranceV7);
+
+{% endjavascript %}

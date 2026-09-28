@@ -1,0 +1,135 @@
+/* casa-mirror-gallery-v4.css — loaded only by sections/casa-product-information-v4.liquid
+   (OctaMirror v4 template). Off/on image layer + caption row for the curated gallery. */
+/* --------------------------------------------------------------------------
+   CASA CURATED GALLERY — off/on pair + caption row
+   Driven by the casa_* settings on blocks/_casa-mirror-gallery-v4.liquid and
+   rendered by snippets/casa-mirror-gallery-content-v4.liquid.
+   -------------------------------------------------------------------------- */
+slideshow-slide[data-casa-gal-toggle-slide] {
+  position: relative;
+}
+.casa-gal-off {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 360ms ease;
+}
+.casa-gal-off__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: var(--product-media-fit, contain);
+  object-position: center;
+  border-radius: var(--media-radius, 0);
+}
+slideshow-slide[data-casa-off] .casa-gal-off {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .casa-gal-off { transition: none; }
+}
+
+.casa-gal-cap {
+  padding: 10px clamp(16px, 4vw, 24px) 0;
+  color: var(--casa-ink, #0A0A0F);
+}
+.casa-gal-cap__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  min-height: 28px;
+}
+.casa-gal-cap__count {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+  color: var(--t-on-light-muted, #54545C);
+  flex: 0 0 auto;
+}
+.casa-gal-cap__sep { margin: 0 3px; opacity: 0.6; }
+.casa-gal-cap__text {
+  flex: 1 1 160px;
+  min-width: 0;
+  font-family: var(--font-body--family, 'Inter', sans-serif);
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--t-on-light, #0A0A0F);
+  text-wrap: pretty;
+}
+.casa-gal-cap__toggle[hidden],
+.casa-gal-cap__text[hidden] {
+  display: none;
+}
+.casa-gal-cap__toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  border: 1px solid rgba(10, 10, 15, 0.22);
+  border-radius: 999px;
+  padding: 2px;
+  gap: 2px;
+  background: #fff;
+}
+.casa-gal-cap__tbtn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--t-on-light-muted, #54545C);
+  font-family: var(--font-body--family, 'Inter', sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.casa-gal-cap__tbtn[aria-pressed="true"] {
+  background: var(--casa-ink, #0A0A0F);
+  color: #fff;
+}
+.casa-gal-cap__tbtn:focus-visible {
+  outline: 2px solid var(--c-purple, #B0C3FA);
+  outline-offset: 2px;
+}
+@media screen and (max-width: 749px) {
+  /* The toggle is a full row on phones so the 44px target never fights the caption. */
+  .casa-gal-cap__toggle { width: 100%; justify-content: stretch; }
+  .casa-gal-cap__tbtn { flex: 1 1 0; min-height: 44px; }
+}
+
+/* v4: the hero pair fades slower than a tap toggle — it is the page's opening moment. */
+slideshow-slide[data-casa-gal-hero] .casa-gal-off { transition-duration: 900ms; }
+/* v4: extra slides (customer photos, install still) sit in the same frame as product media. */
+.casa-gal-extra { width: 100%; height: 100%; display: block; }
+.casa-gal-extra__img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; border-radius: var(--media-radius, 0); }
+/* v4: chapter chips under the caption row — the gallery's table of contents. */
+.casa-gal-chips { display: flex; gap: 6px; overflow-x: auto; padding: 10px 0 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.casa-gal-chips::-webkit-scrollbar { display: none; }
+.casa-gal-chip { flex: 0 0 auto; appearance: none; border: 1px solid rgba(10, 10, 15, 0.18); background: #fff; color: var(--t-on-light-muted, #54545C); font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; min-height: 34px; padding: 0 12px; border-radius: 999px; cursor: pointer; }
+.casa-gal-chip[aria-pressed="true"] { background: var(--casa-ink, #0A0A0F); color: #fff; border-color: var(--casa-ink, #0A0A0F); }
+.casa-gal-chip:focus-visible { outline: 2px solid var(--c-purple, #B0C3FA); outline-offset: 2px; }
+
+/* v4: the stock counter counts product media only (6), our caption row counts every slide (9) — keep one. */
+media-gallery:has([data-casa-gal-cap]) .slideshow-controls__counter { display: none !important; }
+
+/* v4: chips are tap targets on phones (the base rule above is later in the cascade, so this must come last). */
+@media screen and (max-width: 749px) {
+  .casa-gal-chips .casa-gal-chip { min-height: 44px; }
+}
+
+/* v4 polish: quiet chrome under the gallery — text, hairline, no pills. */
+.casa-gal-cap { padding-top: 12px; }
+.casa-gal-cap__toggle { border: 0; background: transparent; padding: 0; gap: 18px; }
+.casa-gal-cap__tbtn { padding: 0; min-height: 44px; border-radius: 0; background: transparent !important; color: var(--t-on-light-muted, #54545C) !important; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 6px; }
+.casa-gal-cap__tbtn[aria-pressed="true"] { color: var(--casa-ink, #0A0A0F) !important; text-decoration-color: var(--c-pink, #5E0A02); }
+@media screen and (max-width: 749px) { .casa-gal-cap__toggle { width: auto; } .casa-gal-cap__tbtn { flex: 0 0 auto; } }
+.casa-gal-chips { gap: 0 18px; padding-top: 6px; }
+.casa-gal-chip { border: 0; background: transparent; padding: 0; min-height: 44px; border-radius: 0; font-size: 11px; color: var(--t-on-light-muted, #54545C); text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 6px; }
+.casa-gal-chip[aria-pressed="true"] { background: transparent; color: var(--casa-ink, #0A0A0F); border: 0; text-decoration-color: var(--c-pink, #5E0A02); }
+@media screen and (max-width: 749px) { .casa-gal-chips .casa-gal-chip { min-height: 44px; } }

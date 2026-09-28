@@ -1,0 +1,128 @@
+{%- comment -%}
+  casa-mirror-owners-v4.liquid
+  Seoul Glow Lab — Chapter 08 "Owner proof" (OctaMirror v4 PDP)
+
+  The questions people actually ask before buying, answered in owners'
+  own words from Judge.me reviews — including the honest ones
+  (two-person hang, 2.4 GHz Wi-Fi). Live rating and count come from the
+  reviews.rating metafields, never typed in. Ends with a link that scrolls
+  to the full Judge.me widget lower on the page.
+
+  Used by: templates/product.infinity-octamirror-v4.json
+  Blocks:  qa (question, quote, by, date)
+  Settings: kicker, heading, lede, all_label, padding.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign rating = product.metafields.reviews.rating.value.rating | default: product.metafields.reviews.rating.value
+  assign count = product.metafields.reviews.rating_count.value
+-%}
+
+<section
+  id="casa-mo-{{ section.id }}"
+  class="casa-mo"
+  data-casa-section="owners"
+  style="--casa-mo-pt: {{ s.padding_top | default: 64 }}px; --casa-mo-pb: {{ s.padding_bottom | default: 64 }}px;"
+>
+  <div class="casa-mo__cap">
+    <header class="casa-mo__head">
+      {%- if s.kicker != blank -%}<p class="casa-mo__mono">{{ s.kicker | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="casa-mo__h2">{{ s.heading }}</h2>{%- endif -%}
+      {%- if rating != blank and count != blank and count > 0 -%}
+        <p class="casa-mo__rating"><span class="casa-mo__stars" aria-hidden="true">★</span><span>{{ rating | round: 1 }} average from {{ count }} Judge.me reviews</span></p>
+      {%- endif -%}
+      {%- if s.lede != blank -%}<p class="casa-mo__lede">{{ s.lede | escape }}</p>{%- endif -%}
+    </header>
+
+    <ul class="casa-mo__list" role="list">
+      {%- for block in section.blocks -%}
+        {%- assign b = block.settings -%}
+        <li class="casa-mo__item" {{ block.shopify_attributes }}>
+          <div class="casa-mo__body">
+            {%- if b.question != blank -%}<p class="casa-mo__q">{{ b.question | escape }}</p>{%- endif -%}
+            <blockquote class="casa-mo__quote"><p>“{{ b.quote | strip | escape }}”</p></blockquote>
+            <p class="casa-mo__by">{{ b.by | escape }}{% if b.date != blank %} · {{ b.date | escape }}{% endif %} · Judge.me review</p>
+          </div>
+        </li>
+      {%- endfor -%}
+    </ul>
+
+    <p class="casa-mo__all">
+      <a class="btn btn-tertiary casa-mo__link" href="#casa-judgeme" data-casa-mo-all>{{ s.all_label | default: 'Read every review' | escape }}</a>
+    </p>
+  </div>
+</section>
+
+<script>
+  (function () {
+    'use strict';
+    var root = document.getElementById('casa-mo-{{ section.id }}');
+    if (!root || root.dataset.casaMoInit === '1') return;
+    root.dataset.casaMoInit = '1';
+    var a = root.querySelector('[data-casa-mo-all]');
+    if (!a) return;
+    a.addEventListener('click', function (ev) {
+      var w = document.querySelector('.jdgm-rev-widg') || Array.prototype.slice.call(document.querySelectorAll('.shopify-section')).filter(function (x) { return /judge/i.test(x.id); }).pop();
+      if (w) { ev.preventDefault(); w.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      if (window.casa && window.casa.pdpEvent) window.casa.pdpEvent('reviews_jump', { section: 'owners', label: 'all' });
+    });
+  })();
+</script>
+
+{% stylesheet %}
+  .casa-mo { background: var(--bg-paper, #FAFAF7); color: var(--t-on-light, #0A0A0F); padding-block: var(--casa-mo-pt) var(--casa-mo-pb); }
+  .casa-mo__cap { max-width: 1280px; margin-inline: auto; padding-inline: clamp(20px, 5vw, 48px); }
+  .casa-mo__head { max-width: 44ch; margin-bottom: clamp(20px, 4vw, 36px); }
+  .casa-mo__mono { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--t-on-light-muted, #54545C); margin: 0 0 12px; }
+  .casa-mo__h2 { font-family: var(--casa-pdp-h2-family); font-weight: var(--casa-pdp-h2-weight); font-size: var(--casa-pdp-h2-size); letter-spacing: var(--casa-pdp-h2-tracking); line-height: var(--casa-pdp-h2-line); margin: 0; text-wrap: balance; }
+  .casa-mo__h2 em { font-style: italic; font-weight: 800; background-image: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; padding-right: 0.05em; }
+  .casa-mo__rating { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; font-family: var(--font-body--family); font-size: 14px; }
+  .casa-mo__stars { color: #0A0A0F; letter-spacing: 0.08em; font-size: 13px; }
+  .casa-mo__lede { font-family: var(--font-body--family); font-size: 16px; line-height: 1.5; color: var(--t-on-light-muted, #54545C); margin: 12px 0 0; max-width: 46ch; }
+
+  .casa-mo__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--border-on-light, rgba(10,10,15,0.14)); }
+  .casa-mo__item { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 22px 0; border-bottom: 1px solid var(--border-on-light, rgba(10,10,15,0.14)); }
+  .casa-mo__q { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--c-purple, #B0C3FA); margin: 0 0 8px; }
+  .casa-mo__quote { margin: 0; }
+  .casa-mo__quote p { font-family: var(--font-body--family); font-size: 17px; line-height: 1.42; margin: 0; text-wrap: pretty; max-width: 40ch; }
+  .casa-mo__by { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--t-on-light-muted, #54545C); margin: 10px 0 0; }
+  .casa-mo__all { margin: 22px 0 0; }
+  .casa-mo__link:focus-visible { outline: 2px solid var(--c-purple, #B0C3FA); outline-offset: 2px; }
+
+  @media (min-width: 990px) {
+    .casa-mo__list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 48px; }
+    .casa-mo__item { padding: 28px 0; }
+    .casa-mo__quote p { font-size: 19px; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Mirror Owners v4",
+  "tag": "section",
+  "class": "casa-mirror-owners-section",
+  "settings": [
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "08 · Owners + answers" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "The questions you're asking, answered by <em>people who own one.</em>" },
+    { "type": "textarea", "id": "lede", "label": "Lede", "default": "Verbatim quotes from Judge.me reviews of this mirror, including the ones that say it took two people." },
+    { "type": "text", "id": "all_label", "label": "Link label", "default": "Read every review" },
+    { "type": "range", "id": "padding_top", "label": "Top padding", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 64 },
+    { "type": "range", "id": "padding_bottom", "label": "Bottom padding", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 64 }
+  ],
+  "blocks": [
+    {
+      "type": "qa",
+      "name": "Question + owner answer",
+      "settings": [
+        { "type": "text", "id": "question", "label": "The question" },
+        { "type": "textarea", "id": "quote", "label": "Owner's words (verbatim)" },
+        { "type": "text", "id": "by", "label": "Reviewer name as published" },
+        { "type": "text", "id": "date", "label": "Review month" }
+      ]
+    }
+  ],
+  "max_blocks": 8,
+  "presets": [ { "name": "Casa Mirror Owners v4", "category": "Product" } ]
+}
+{% endschema %}

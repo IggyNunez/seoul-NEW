@@ -1,0 +1,1851 @@
+{%- comment -%}
+  Seoul Glow Lab — Apōllō Moods
+  Editorial "ways to live with it" panel. Replaces a photo-driven mood
+  grid that visually under-delivered (the merchant's product scene
+  photos all looked like generic dim rooms with a glowing pole, so they
+  read identically rather than as distinct moods).
+
+  Each mood card is a full CSS+SVG composition: a room-corner scene
+  with wall-wash in the mood's color and an Apōllō silhouette anchored
+  in the corner. No merchant images required, so the artwork can never
+  drift from the copy. Brand book v1: Ink surface, Paper text, brand
+  trinity (purple / pink / cyan) for the three default moods.
+
+  Default 3 cards (Calm · Layered · Vivid). Up to 4 supported via
+  blocks. Fully responsive — 3-up desktop, 2-up tablet, 1-up mobile.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign moods = section.blocks
+  assign sid = section.id
+-%}
+
+<section
+  id="casa-am-{{ sid }}"
+  class="casa-am{% if s.card_style == 'emit' %} casa-am--emit{% endif %}"
+  data-casa-anim-gate
+  style="
+    --am-paper:  {{ s.color_paper  | default: '#FAFAF7' }};
+    --am-ink:    {{ s.color_ink    | default: '#0A0A0F' }};
+    --am-ink-2:  {{ s.color_ink_2  | default: '#13131A' }};
+    --am-purple: {{ s.color_purple | default: '#B0C3FA' }};
+    --am-pink:   {{ s.color_pink   | default: '#5E0A02' }};
+    --am-cyan:   {{ s.color_cyan   | default: '#F2FFA0' }};
+    --am-pt: {{ s.padding_top    | default: 36 }}px;
+    --am-pb: {{ s.padding_bottom | default: 36 }}px;
+  "
+>
+  {%- comment -%}
+    Phoenix-only ambient overlay. Mirrors §04 Arms Showcase's active
+    arm pattern via a `casa-phoenix-pattern-change` CustomEvent so the
+    sunset gradient continues into §05's top half. Hidden on non-
+    Phoenix templates (Apollo etc.) — markup only emitted when the
+    template handle contains 'phoenix'. CSS is also scoped to
+    :root.is-phoenix in the stylesheet block below.
+  {%- endcomment -%}
+  {%- if template contains 'phoenix' -%}
+    <div class="casa-am__ambient" aria-hidden="true">
+      {%- for i in (0..4) -%}
+        <div class="casa-am__amb" data-amb-index="{{ i }}"></div>
+      {%- endfor -%}
+    </div>
+  {%- endif -%}
+
+  <header class="casa-am__head">
+    {%- if s.kicker  != blank -%}<p class="casa-am__mono">{{ s.kicker }}</p>{%- endif -%}
+    {%- if s.heading != blank -%}<h2 class="casa-am__h2">{{ s.heading }}</h2>{%- endif -%}
+    {%- if s.lede    != blank -%}<p class="casa-am__lede">{{ s.lede }}</p>{%- endif -%}
+  </header>
+
+  <div class="casa-am__stage">
+  <div class="casa-am__viewport" data-am-viewport>
+  <div class="casa-am__grid" data-count="{{ moods.size }}" data-am-track data-am-cloned="1" style="--mq-count: {{ moods.size }};">
+    {%- comment -%}
+      Cards are rendered TWICE so the mobile marquee always has a
+      seamless loop. The second pass adds `casa-am__card--clone`
+      (CSS hides clones above 640px so desktop sees only the
+      originals) and `aria-hidden="true"` so screen readers don't
+      announce duplicates. The track-level data-am-cloned="1"
+      tells the JS not to clone again. 2026-05-16: moved clone
+      generation from JS to Liquid so the loop is seamless on
+      first paint (JS was racing the CSS animation and not
+      always firing on every mobile load).
+    {%- endcomment -%}
+    {%- for pass in (1..2) -%}
+    {%- for block in moods -%}
+      {%- liquid
+        assign b = block.settings
+        assign hex  = b.color_hex          | default: '#5E0A02'
+        assign hex2 = b.color_hex_secondary | default: hex
+        assign hex3 = b.color_hex_tertiary  | default: hex2
+      -%}
+      <article
+        class="casa-am__card{% if pass == 2 %} casa-am__card--clone{% endif %}"
+        data-mood-style="{{ b.mood_style | default: 'single' }}"
+        {% if pass == 1 %}{{ block.shopify_attributes }}{% else %}aria-hidden="true"{% endif %}
+        style="
+          --am-c:  {{ hex }};
+          --am-c2: {{ hex2 }};
+          --am-c3: {{ hex3 }};
+        "
+      >
+        {%- comment -%}
+          Scene art. When the merchant provides a real photo (b.image),
+          we render that cropped to the scene area; the CSS lamp/walls
+          become the fallback for any block that has no image.
+        {%- endcomment -%}
+        <div class="casa-am__scene{% if b.image != blank %} casa-am__scene--photo{% endif %}" aria-hidden="true">
+          {%- if b.image != blank -%}
+            <img
+              class="casa-am__photo"
+              src="{{ b.image | image_url: width: 800 }}"
+              srcset="{{ b.image | image_url: width: 400 }} 400w, {{ b.image | image_url: width: 600 }} 600w, {{ b.image | image_url: width: 800 }} 800w, {{ b.image | image_url: width: 1200 }} 1200w"
+              sizes="(max-width: 640px) 33vw, (max-width: 1024px) 30vw, 30vw"
+              alt="{{ b.name | default: 'Apōllō mood' | escape }}"
+              loading="lazy"
+              width="{{ b.image.width }}"
+              height="{{ b.image.height }}"
+              style="object-position: {{ b.image_focus | default: 'center' | escape }};"
+            >
+          {%- else -%}
+          <div class="casa-am__walls"></div>
+          <div class="casa-am__wallwash"></div>
+          <div class="casa-am__floor"></div>
+
+          <svg viewBox="0 0 280 500" class="casa-am__lamp" preserveAspectRatio="xMidYMax meet">
+            <defs>
+              <filter id="am-rim-{{ sid }}-{{ pass }}-{{ forloop.index }}" x="-300%" y="-5%" width="700%" height="110%">
+                <feGaussianBlur stdDeviation="1.2" />
+              </filter>
+              <linearGradient id="am-rim-grad-{{ sid }}-{{ pass }}-{{ forloop.index }}" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stop-color="currentColor" stop-opacity="0" />
+                <stop offset="14%"  stop-color="currentColor" stop-opacity="1" />
+                <stop offset="92%"  stop-color="currentColor" stop-opacity="1" />
+                <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+
+            {%- comment -%} Floor contact ellipses {%- endcomment -%}
+            <ellipse cx="140" cy="486" rx="125" ry="2.5" fill="rgba(0,0,0,0.45)" />
+            <ellipse cx="140" cy="486" rx="55"  ry="3"   fill="rgba(0,0,0,0.65)" />
+
+            {%- comment -%} Legs (matte black) {%- endcomment -%}
+            <path d="M 143 392 L 28 451 L 28 455 L 143 396 Z" fill="#15151B" />
+            <path d="M 143 396 L 28 455 L 28 459 L 143 400 Z" fill="#050508" />
+            <path d="M 143 392 L 28 451" fill="none" stroke="rgba(255,255,255,0.32)" stroke-width="0.6" stroke-linecap="round" />
+
+            <path d="M 137 392 L 252 451 L 252 455 L 137 396 Z" fill="#15151B" />
+            <path d="M 137 396 L 252 455 L 252 459 L 137 400 Z" fill="#050508" />
+            <path d="M 137 392 L 252 451" fill="none" stroke="rgba(255,255,255,0.32)" stroke-width="0.6" stroke-linecap="round" />
+
+            {%- comment -%} Pole — flat top, matte black {%- endcomment -%}
+            <path d="M 137 6 L 143 6 L 143 395 L 137 395 Z"
+                  fill="#15151B"
+                  stroke="rgba(255,255,255,0.32)" stroke-width="0.5" stroke-linejoin="round" />
+
+            {%- comment -%} Pole side rims — picks up scene color via currentColor {%- endcomment -%}
+            <rect x="135.6" y="6" width="1.6" height="389"
+                  fill="url(#am-rim-grad-{{ sid }}-{{ pass }}-{{ forloop.index }})"
+                  filter="url(#am-rim-{{ sid }}-{{ pass }}-{{ forloop.index }})" opacity="0.9" />
+            <rect x="142.8" y="6" width="1.6" height="389"
+                  fill="url(#am-rim-grad-{{ sid }}-{{ pass }}-{{ forloop.index }})"
+                  filter="url(#am-rim-{{ sid }}-{{ pass }}-{{ forloop.index }})" opacity="0.9" />
+          </svg>
+          {%- endif -%}
+        </div>
+
+        {%- comment -%} ── Editorial meta ── {%- endcomment -%}
+        <div class="casa-am__meta">
+          {%- if b.badge != blank -%}
+            <span class="casa-am__badge">{{ b.badge }}</span>
+          {%- endif -%}
+
+          <h3 class="casa-am__name">{{ b.name | default: 'Mood' }}</h3>
+
+          {%- if b.use_when != blank -%}
+            <p class="casa-am__usewhen">
+              <span class="casa-am__usewhen-key">USE WHEN</span>
+              <span class="casa-am__usewhen-val">{{ b.use_when }}</span>
+            </p>
+          {%- endif -%}
+
+          {%- if b.description != blank -%}
+            <p class="casa-am__desc">{{ b.description }}</p>
+          {%- endif -%}
+
+          {%- if b.color_label != blank -%}
+            <div class="casa-am__chips">
+              <span class="casa-am__chip" style="background: {{ hex }};"></span>
+              {%- if b.color_hex_secondary != blank -%}
+                <span class="casa-am__chip" style="background: {{ hex2 }};"></span>
+              {%- endif -%}
+              {%- if b.color_hex_tertiary != blank -%}
+                <span class="casa-am__chip" style="background: {{ hex3 }};"></span>
+              {%- endif -%}
+              <span class="casa-am__chip-label">{{ b.color_label }}</span>
+            </div>
+          {%- endif -%}
+        </div>
+      </article>
+    {%- endfor -%}
+    {%- endfor -%}
+  </div>
+  </div>
+  </div>
+</section>
+
+{% stylesheet %}
+.casa-am {
+  background: var(--am-ink);
+  color: var(--am-paper);
+  padding: var(--am-pt) 0 var(--am-pb);
+  font-family: var(--font-body--family);
+  overflow: hidden;
+}
+.casa-am *,
+.casa-am *::before,
+.casa-am *::after { box-sizing: border-box; }
+
+/* ─── Phoenix-only ambient overlay (mirrors §04 arms) ──────────────
+   These rules are scoped to :root.is-phoenix so only the Phoenix PDP
+   gets the cross-section gradient continuation; Apollo / Octa /
+   other PDPs using casa-apollo-moods are unaffected. The overlay
+   sits behind every content layer at z-index 0 and uses the same
+   blob architecture as §04: 5 radial-gradient blobs with mix-blend-
+   mode: screen, transform-driven positioning, and @property
+   --am-amb-color for smooth colour interpolation between patterns.
+
+   §05 paints into BOTH gaps now (2026-05-18 19th pass):
+   - §04↔§05 gap above (was already shipping in commit 09b8d4e)
+   - §05↔§06 gap below (mirror — blobs at PHX_AMB_ANCHOR_Y >100%
+     spill into the gap, and the section's overflow allows their
+     bottoms to paint outside §05's box).
+   §04's ambient extends 340px DOWN past its bottom (z-index 2);
+   §06's casa-form has a Phoenix-only ::before that extends its
+   sunset radial 340px UP past its top. Both overlays meet §05's
+   bleed at the gap, so the cross-section gradient reads continuous
+   from §04 → §05 → §06 with no flat-ink seam between. */
+:root.is-phoenix .casa-am {
+  /* Positioned context for the ambient blob layer + per-card halos.
+     Under the seam-matched gradient architecture, §05 paints its own
+     slice (--phx-seam-3 → --phx-seam-4) and meets §04 / §06 at their
+     shared seam vars — no cross-section bleed is needed, so the
+     previous vertical clip-path (inset(-340px 0 -340px 0)) and the
+     overflow: visible / z-index: 1 stack tricks are gone. Mobile
+     marquee L/R fade stays on the .casa-am__viewport via its
+     horizontal -webkit-mask-image. */
+  position: relative;
+  isolation: isolate;
+}
+@property --am-amb-color {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: #E8B86A;
+}
+:root.is-phoenix .casa-am__ambient {
+  position: absolute;
+  /* Contained to §05 — no cross-section bleed needed under the
+     seam-matched gradient architecture. §05's bg meets §04 / §06
+     at matching seam vars; the ambient layer just adds local film
+     hue accents through `lighten` blend on the orbs below. */
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+:root.is-phoenix .casa-am__amb {
+  position: absolute;
+  /* `lighten` blend (same as §04) so overlapping films give the
+     brightest channel mix (pink-lavender), not white. Carries the
+     gradient across the §04↔§05 boundary at matching visual weight. */
+  width: 100%;
+  aspect-ratio: 1;
+  top: 0;
+  left: 0;
+  transform: translate(50%, 50%) translate(-50%, -50%);
+  border-radius: 50%;
+  --am-amb-color: #E8B86A;
+  background: radial-gradient(
+    circle,
+    var(--am-amb-color) 0%,
+    transparent 65%
+  );
+  mix-blend-mode: lighten;
+  opacity: 1;
+  filter: blur(36px);
+  will-change: transform;
+  /* §04 fires `casa-phoenix-pattern-change` every rAF frame during a
+     pattern swap, carrying the CURRENT (interpolated) arm angles.
+     The §05 listener applies them straight to transform — a CSS
+     transform transition would queue/clash with the per-frame writes
+     and the blob would lag behind §04. Colour still transitions via
+     the registered @property --am-amb-color so the fade stays smooth. */
+  transition:
+    --am-amb-color 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+:root.is-phoenix .casa-am__head,
+:root.is-phoenix .casa-am__viewport {
+  position: relative;
+  z-index: 1;
+}
+/* Phoenix-only text-shadow on chrome H2 / lede / kicker so the white
+   text stays readable when the sunset gradient peaks behind the
+   heading. Apollo PDP uses the same section file but doesn't have
+   the bright ambient overlay, so we scope to :root.is-phoenix to
+   leave Apollo alone. The shadow renders even on gradient-clipped
+   <em>s in the H2 (text-shadow is drawn from glyph outline, not
+   from fill alpha) so each italic mood word also gets a dark
+   halo. Per merchant 2026-05-18 — "makes the text disappear, which
+   we don't want." */
+:root.is-phoenix .casa-am__h2 {
+  text-shadow: 0 2px 12px rgba(10, 10, 15, 0.6), 0 0 24px rgba(10, 10, 15, 0.45);
+}
+:root.is-phoenix .casa-am__lede,
+:root.is-phoenix .casa-am__mono {
+  text-shadow: 0 1px 8px rgba(10, 10, 15, 0.55), 0 0 18px rgba(10, 10, 15, 0.4);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root.is-phoenix .casa-am__amb {
+    transition: none;
+    transition-delay: 0ms;
+  }
+}
+
+.casa-am__head {
+  max-width: 720px;
+  margin: 0 auto clamp(16px, 2.5vw, 28px);
+  padding: 0 clamp(20px, 5vw, 64px);
+}
+.casa-am__mono {
+  /* Brand-default quiet kicker — inherit color + opacity 0.5 per
+     brand book §03 .section .kicker. Cross-section unify pass
+     (2026-05-15): the mono number is chrome, not a moment register.
+     Brand color expression on this heading lives in the H2 italic-em
+     trinity accent, one per heading. */
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: inherit;
+  opacity: 0.5;
+  margin: 0 0 16px;
+}
+.casa-am__h2 {
+  /* Brand-locked PDP H2 tokens so this heading matches every other
+     section on the Apollo PDP (2026-05-15 cross-section unify). */
+  font-family:    var(--casa-pdp-h2-family);
+  font-size:      var(--casa-pdp-h2-size);
+  font-weight:    var(--casa-pdp-h2-weight);
+  letter-spacing: var(--casa-pdp-h2-tracking);
+  line-height:    var(--casa-pdp-h2-line);
+  margin: 0 0 16px;
+  color: var(--am-paper);
+  text-wrap: balance;
+}
+/* Italic-gradient accent on every mood word in the H2.
+   Brand book v1 §08 normally caps gradient accents at one per
+   heading (multiple = visual noise). This section deliberately
+   overrides that for a specific design intent: each mood word
+   in the title (Calm / Cool / Vivid) mirrors its corresponding
+   card label below, so the title reads as a color-coded preview
+   of the three cards. Per-em overrides via :nth-of-type below.
+   Weight 600 — brand book §08 calls out 800 on section
+   headings as anti-pattern. 2026-05-15. */
+.casa-am__h2 em,
+.casa-am__h2 .grad {
+  font-style: italic;
+  font-weight: 600;
+  /* Gradient accent reads larger than surrounding text — merchant
+     directive 2026-05-15 (brand book emphasis register). */
+  font-size: 1.25em;
+  background: linear-gradient(90deg, var(--am-purple), var(--am-pink), var(--am-cyan), var(--am-purple));
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  /* perf-justified: single small text node, GPU-cheap background-
+     position drift, paused via prefers-reduced-motion below */
+  animation: amHueDrift 10s linear infinite;
+}
+/* Per-mood gradient words in the H2 — match each card's color
+   token pair so the heading reads "Calm/Cool/Vivid" in the same
+   palette as the card labels below, all on the same 10s
+   `amHueDrift` clock so they pulse in sync.
+   Heading is `<em>Calm.</em> <em>Cool.</em> <em>Vivid.</em>`,
+   targeted by nth-of-type. Shopify's inline_richtext sanitizer
+   only preserves a fixed allow-list of inline tags (em, strong,
+   i, b, u, a, br) — span+class is stripped at render, which is
+   why an earlier .grad--calm/.grad--cool span approach (commit
+   023807e) silently rendered as plain white text. 2026-05-15. */
+/* IMPORTANT: use `background-image:` here, NOT the `background:`
+   shorthand. The shorthand resets ALL background-* properties to
+   their defaults, including `background-clip`, which would drop
+   the `background-clip: text` set on the base rule above. Without
+   `clip: text` the gradient renders on the em's BOX (full
+   rectangle) instead of clipping to the text glyphs — and with
+   `color: transparent` and `-webkit-text-fill-color: transparent`
+   from the base rule, that means the text reads as invisible.
+   Was previously using `background:` shorthand (commit 575047b)
+   which silently broke Calm and Cool. Fixed 2026-05-15. */
+.casa-am__h2 em:nth-of-type(1) {
+  background-image: linear-gradient(90deg, #F59E0B, #F97316, #F59E0B);
+  background-size: 200% 100%;
+}
+.casa-am__h2 em:nth-of-type(2) {
+  background-image: linear-gradient(90deg, #F2FFA0, #6366F1, #F2FFA0);
+  background-size: 200% 100%;
+}
+/* 3rd em (Vivid) inherits the base `.casa-am__h2 em` brand-trinity
+   gradient set above — no override needed. */
+@media (prefers-reduced-motion: reduce) {
+  .casa-am__h2 em,
+  .casa-am__h2 .grad { animation: none !important; }
+}
+.casa-am__lede {
+  font-size: clamp(13px, 1.4vw, 16px);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.75);
+  max-width: 56ch;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* Desktop/tablet (>640px): cards are STATIC in a 3-up grid that
+   spans the full content width, with a slow levitation animation
+   for "alive" feel. Mobile (<=640px): cards become a horizontal
+   marquee. 2026-05-16: reverted the always-on marquee after
+   merchant feedback that desktop cards should stay in place
+   side-by-side and just levitate gently up/down. */
+.casa-am__viewport {
+  position: relative;
+}
+.casa-am__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  padding: 0 clamp(20px, 5vw, 64px);
+  max-width: 1440px;
+  margin: 0 auto;
+}
+.casa-am__grid[data-count="1"] { grid-template-columns: minmax(0, 1fr); }
+.casa-am__grid[data-count="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.casa-am__grid[data-count="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+/* Marquee clones — Liquid renders a second pass for the mobile
+   marquee loop; hidden on desktop/tablet so the static 3-up grid
+   renders correctly. Specificity-bumped (.casa-am__card chained)
+   so this rule wins over the base `.casa-am__card { display: flex }`
+   declared later in source order. Without the chain, clones leak
+   into the desktop grid as a second row of 3. */
+.casa-am__card.casa-am__card--clone { display: none; }
+
+/* Gradient border + card surface — padding-box / border-box dual-
+   background technique. Inner layer paints the card's solid surface;
+   outer layer paints the per-mood gradient that shows through the 1px
+   transparent border. Same hue logic as the bottom color band so the
+   border + band read as one continuous frame around the card. */
+/* Registered angle property for the conic-gradient border. Browsers
+   that don't support @property fall back to a static gradient (the
+   conic still renders at from 0deg). Safari 16.4+, Chrome 85+,
+   Firefox 128+. */
+@property --am-orbit {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  /* inherits: true so the card's animated --am-orbit cascades into
+     ::after (the bottom band). The band's gradient position is then
+     calc'd from --am-orbit (see below), giving perfect phase sync
+     between the orbiting ring and the band — both share one clock. */
+  inherits: true;
+}
+
+.casa-am__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  overflow: hidden;
+  /* 2px border so the orbiting ring reads as a deliberate frame
+     instead of a 1px hint that disappears as it moves. */
+  border: 2px solid transparent;
+  /* Inner padding-box layer = solid card surface. Outer border-box
+     layer = conic-gradient that rotates via --am-orbit. Stops are
+     CONTINUOUS — no `transparent` gaps — with intensity variation
+     via color-mix(c, ink) at the dim valleys. Two bright peaks
+     (c1 at 0%/100%, c2 at 25%/75%) and one dim valley (c1 mixed
+     with ink-2 at 50%) per cycle. As it rotates, the eye sees a
+     bright peak sweeping around with the dim opposite — no fade-
+     out dead zones. 2026-05-15 redesign: merchant flagged that
+     the transparent gaps looked like the gradient was breaking
+     up at certain angles. */
+  background:
+    linear-gradient(var(--am-ink-2), var(--am-ink-2)) padding-box,
+    conic-gradient(
+      from var(--am-orbit),
+      var(--am-c)  0%,
+      var(--am-c2) 25%,
+      color-mix(in srgb, var(--am-c) 35%, var(--am-ink-2)) 50%,
+      var(--am-c2) 75%,
+      var(--am-c)  100%
+    ) border-box;
+  /* Tunable base period for the orbit — slow on desktop/tablet (luxe,
+     calm), slightly faster on mobile via the marquee override below.
+     All three cards inherit this single var so they remain phase-
+     locked. 2026-05-15: bumped from 10s to 14s after merchant
+     flagged the rotation still felt fast at 10s. */
+  --am-orbit-dur: 14s;
+  /* The orbiting conic-gradient border is DESKTOP-ONLY — it is re-applied
+     in the ≥641px rule below (alongside amLevitate). On mobile (≤640px) the
+     §05 strip is an auto-scrolling marquee, and animating a conic-gradient
+     repaints the border ring of all six cards EVERY frame (conic gradients
+     can't be GPU-composited), which competes with the scroll and makes the
+     rotation visibly laggy. Mobile keeps the conic border STATIC — still
+     premium, just not spinning — so the marquee scrolls smoothly. The
+     emit/Phoenix style already drops the border on mobile separately. */
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+              box-shadow 0.4s ease;
+  isolation: isolate;
+}
+/* Levitation — slow vertical bob on desktop/tablet only, staggered
+   per card so they don't all rise/fall in unison. Uses the
+   `translate` longhand (not `transform`) so it composes with the
+   `transform: translateY(-4px)` hover lift without overriding it.
+   2026-05-16 added at merchant request: "they can levitate up
+   and down slowly". */
+@media (min-width: 641px) and (prefers-reduced-motion: no-preference) {
+  .casa-am__card {
+    /* perf-justified: compositor-only `translate` on 3 cards, no
+       layout/paint impact, paused via prefers-reduced-motion above. */
+    animation:
+      amBorderOrbit var(--am-orbit-dur) linear infinite,
+      amLevitate 6s ease-in-out infinite;
+  }
+  /* Stagger so the trio reads as 3 distinct moods, not a single block. */
+  .casa-am__card:nth-of-type(2) { animation-delay: 0s, 1.2s; }
+  .casa-am__card:nth-of-type(3) { animation-delay: 0s, 2.4s; }
+}
+@keyframes amLevitate {
+  0%, 100% { translate: 0 0; }
+  50%      { translate: 0 -10px; }
+}
+.casa-am__card[data-mood-style="vivid"] {
+  /* Vivid uses the full brand trinity (purple → pink → cyan) — the
+     three hues themselves provide the visual variation, so no
+     intensity dimming needed. Continuous flow: c1 → c2 → c3 → c2 → c1. */
+  background:
+    linear-gradient(var(--am-ink-2), var(--am-ink-2)) padding-box,
+    conic-gradient(
+      from var(--am-orbit),
+      var(--am-c)  0%,
+      var(--am-c2) 25%,
+      var(--am-c3) 50%,
+      var(--am-c2) 75%,
+      var(--am-c)  100%
+    ) border-box;
+}
+@keyframes amBorderOrbit {
+  to { --am-orbit: 360deg; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .casa-am__card { animation: none !important; }
+}
+.casa-am__card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.45),
+    0 0 60px color-mix(in srgb, var(--am-c) 18%, transparent);
+}
+
+/* ────────── EMIT-MODE (Phoenix opts in via card_style=emit) ──────────
+   Cards drop the orbiting conic-gradient ring + the bottom phase-locked
+   band and instead emit their --am-c / --am-c2 colors outward as large
+   soft box-shadow halos. Three cards' halos overlap in the gutters and
+   the area around the trio, blending into one continuous sunset wash
+   that lives BEHIND the cards — no separate backdrop pseudo-element
+   needed (the section root's solid ink fills any pixel the emissions
+   don't reach).
+
+   Scoped to .casa-am--emit so the canonical Apollo PDP (orbit default)
+   stays untouched. Merchant 2026-05-18 8th pass on Phoenix §05:
+   "Cards emit sunset colors as gradients into the background, which all
+   blend together." */
+.casa-am--emit .casa-am__card {
+  /* No border, no card bg. The 1px colored border that used to live
+     here aligned at the same y on every card across the marquee and
+     read as two continuous horizontal lines running through the
+     carousel (merchant 2026-05-18 12th pass). Card bg also dropped
+     to transparent — the card's solid ink-2 surface created the same
+     line-aligned visual against the section's gradient ink bg. The
+     photo inside the card carries the photo visuals; the halo
+     box-shadow alone defines each card's outer presence. */
+  background: transparent;
+  border: 0;
+  /* Kill the orbit animation; keep levitate (the desktop-only rule
+     re-applies amLevitate as a single animation, line ~387). */
+  animation: none;
+  /* Emission halo — three concentric soft shadows in the card's gradient
+     colors. Three cards × three layers each → ~9 overlapping soft
+     gradient washes filling the section. */
+  box-shadow:
+    0 0 60px 10px  color-mix(in srgb, var(--am-c)  36%, transparent),
+    0 0 140px 30px color-mix(in srgb, var(--am-c2) 24%, transparent),
+    0 0 260px 60px color-mix(in srgb, var(--am-c)  14%, transparent);
+}
+/* Meta strip (per-card name + use-when caption block at the card
+   bottom) keeps the ink-2 wash in orbit mode because it pairs with
+   the rotating bottom band. In emit mode that ink-2 strip stops
+   abruptly at the meta block's top, drawing another horizontal line
+   across the carousel. Make it transparent so the text floats on
+   the section bg + halo wash. */
+.casa-am--emit .casa-am__meta { background: transparent; }
+/* Drop the photo-area hairline (1px rgba(255,255,255,0.04) border at
+   the bottom of .casa-am__scene from the base rule). That hairline
+   draws a 1px line at the photo / meta seam of every card, and since
+   the seam is at the same y on every card, the marquee renders them
+   as one continuous line across the carousel — the "bottom border"
+   the merchant flagged 2026-05-18 13th-and-14th passes. */
+.casa-am--emit .casa-am__scene { border-bottom: 0; }
+/* Re-apply the levitate loop for emit-mode (the base-rule reset above
+   cleared the desktop-mode keyframe chain). */
+@media (min-width: 641px) and (prefers-reduced-motion: no-preference) {
+  .casa-am--emit .casa-am__card {
+    /* perf-justified: compositor-only translate on 3 cards, no layout/paint impact, paused via the prefers-reduced-motion guard at line ~420 (matches .casa-am--emit cards too via .casa-am__card selector). */
+    animation: amLevitate 6s ease-in-out infinite;
+  }
+  .casa-am--emit .casa-am__card:nth-of-type(2) { animation-delay: 1.2s; }
+  .casa-am--emit .casa-am__card:nth-of-type(3) { animation-delay: 2.4s; }
+}
+.casa-am--emit .casa-am__card:hover {
+  /* Hover ramps the halo intensity — card "lights up" the room a bit
+     harder when the viewer leans in. */
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.45),
+    0 0 80px 15px  color-mix(in srgb, var(--am-c)  50%, transparent),
+    0 0 180px 40px color-mix(in srgb, var(--am-c2) 34%, transparent),
+    0 0 320px 80px color-mix(in srgb, var(--am-c)  20%, transparent);
+}
+/* Bottom color band is part of the orbit-mode design language (its phase
+   is locked to --am-orbit); drop it in emit-mode so the card edges read
+   as soft halo rather than capped by a hard 4px stripe. */
+.casa-am--emit .casa-am__card::after { display: none; }
+
+/* Mobile marquee — trim halo radii so at ~200px card widths the glow
+   doesn't smear into adjacent cards and wash out the photos. */
+@media (max-width: 640px) {
+  /* Merchant 2026-05-18 18th pass: "Now it looks like the cards are
+     conjoined. They're supposed to be individual cards floating and
+     rotating horizontally that are not connected and emitting the
+     gradient color depending on the color in the image that goes
+     into the background and over the text as well. The gradients
+     kind of just blend together and fill out that section."
+
+     Backing out the aggressive masking (viewport vertical mask +
+     inset card vignette + photo top/bottom mask) — that fused the
+     three cards into one washed shape. Going back to the desktop
+     model: each card is its own object with a BIG colored halo
+     around it; the halos overlap heavily in gutters and above/below
+     the row, painting the whole section background with the blended
+     sunset gradient. Cards remain distinct (their photos render
+     clean, rounded card shape visible), but the section AROUND
+     them is filled with their emitted color.
+
+     To accommodate the bigger halo on mobile without clip-line at
+     section edges, bump section padding to ~80px each side. That's
+     still tighter than the original 36+48 = 84, but enough room for
+     the halo's outer fade to land inside section bounds. */
+  .casa-am--emit .casa-am__card {
+    background: transparent;
+    border: 0;
+    /* MASSIVE halos — the per-card color variation in the section
+       wash must come from the cards themselves, not from a static
+       top-to-bottom bg gradient (the static gradient created a
+       visible 3-band layout: amber band above heading, photo band,
+       coral band below cards — merchant 2026-05-18 23rd pass:
+       "the title and small paragraph are separate from the rotating
+       carousel of cards, and then the tiny bottom part is also
+       separate. That's not supposed to be like that. They're all
+       supposed to blend together as one").
+       Bumped to 250/500/800px blur with 80/160/240px spread so each
+       card's emission reach extends ~1040px outward from the card
+       center — easily covers the whole section vertically (~300-400px
+       tall) and the gutters between cards (~80px). With 3 cards × 3
+       halo layers each = 9 overlapping soft sunset washes filling
+       every pixel of the section ABOVE and BELOW the cards. As the
+       marquee scrolls, the dominant card's halo shifts the bg
+       color exactly as the merchant described ("a changing
+       background colour of light sunset colours that are produced
+       by the lamps"). Opacity per stop tuned so 3 stacked halos
+       at full strength don't oversaturate to white. */
+    box-shadow:
+      0 0 250px 80px  color-mix(in srgb, var(--am-c)  32%, transparent),
+      0 0 500px 160px color-mix(in srgb, var(--am-c2) 22%, transparent),
+      0 0 800px 240px color-mix(in srgb, var(--am-c)  12%, transparent);
+  }
+  /* In-card pseudo elements that align at the same y on every card
+     stay dropped — they were creating the per-card horizontal bands.
+     Merchant 2026-05-18 20th pass: "don't apply the gradient on top
+     of the image and the text box — its just supposed to be
+     surrounding it and the surrounding section". The photo and meta
+     are kept completely clean (no overlays, no amber wash) — color
+     comes only from the card's box-shadow halo emanating OUT into
+     the section bg. */
+  .casa-am--emit .casa-am__scene--photo { background: transparent; }
+  .casa-am--emit .casa-am__scene--photo::before,
+  .casa-am--emit .casa-am__scene--photo::after { display: none; }
+  /* The card's scene also has a faint white hairline at the bottom
+     in orbit-mode base CSS — already dropped in the emit-mode rule
+     above for desktop. Keep it dropped on mobile too. */
+  .casa-am--emit .casa-am__scene { border-bottom: 0; }
+
+  /* Meta is fully transparent — no amber wash overlaying the mood
+     name and use-when caption. Color surrounds the card via halo,
+     not on top of text. (Merchant 20th pass — see above.) */
+  .casa-am--emit .casa-am__meta {
+    background: transparent;
+  }
+
+  /* Marquee viewport just has the horizontal fade from the base
+     rule for left/right entry/exit. NO vertical mask — that's what
+     made the cards look conjoined into one shape. NO clip-path
+     either: the previous inset(-240px 0 -240px 0) was meant to
+     allow vertical bleed, but it created a HARD CUT at exactly
+     240px past viewport that sliced through the cards' box-shadow
+     halos while they were still at ~14% intensity — producing the
+     two visible dark horizontal bands above and below the carousel
+     (merchant 2026-05-18 21st pass: "those black lines at the top
+     and bottom must be gone"). With overflow: visible alone, the
+     halos fade naturally to 0% before any clip kicks in. The
+     section root's own clip-path (inset(-340px 0 -340px 0) on
+     :root.is-phoenix .casa-am) is the only vertical bound now,
+     and at 340px past viewport edges the box-shadow's outermost
+     stop (200px blur + 40px spread = 240px reach) has long since
+     reached zero opacity — so that clip is invisible. */
+  .casa-am--emit .casa-am__viewport {
+    overflow: visible;
+  }
+  /* Section-wide sunset wash (merchant 2026-05-18 22nd pass:
+     "cards look like they're in their own section. They're meant
+     to be part of the 3 ways to live section where the gradients
+     are meant to blend into the background, no blurring above
+     and below the cards").
+     Approach: paint the ENTIRE section background with a vertical
+     sunset gradient that runs edge-to-edge — amber at the heading
+     end, transitioning through orange + coral down to purple at
+     the card-row end. Because the gradient hits section top AND
+     bottom at full opacity (no fade-to-ink band anywhere), there
+     is NO visible boundary above or below the cards — the heading
+     area sits on the SAME color wash as the card row, reading as
+     one unified section. The cards' own box-shadow halos still
+     add localized per-card intensity ON TOP of this baseline
+     wash, so each card still emits its own color, they just no
+     longer fade into a black void. Also drops padding-top/bottom
+     hard so the heading sits close to the cards (no big dead
+     gap) and section ends quickly after the marquee. */
+  .casa-am--emit {
+    padding-top:    24px;
+    padding-bottom: 28px;
+    /* SOLID ink section bg (merchant 25th pass: "we want sunset
+       vibes to be emitted from the cards not RGB surrounding them
+       and the sunset emissions should be blended together from
+       each background"). The per-card box-shadow halos above are
+       the ONLY source of sunset color — 9 overlapping soft washes
+       from 3 cards × 3 halo layers cover the section, painting
+       the bg as a blend of the cards' emissions. Any static bg
+       gradient creates layout-aligned horizontal bands (23rd pass
+       rejection), and any static uniform tint dilutes the cards'
+       emission contrast (you can't tell where one card's color
+       ends and the next begins). Solid ink lets the halos do all
+       the work cleanly. */
+    background: var(--am-ink);
+  }
+  /* Tighten head margin so heading + body sit close to the card
+     row — the unified-section read depends on minimal dead space
+     between the editorial block and the marquee. */
+  .casa-am--emit .casa-am__head {
+    margin-bottom: 16px;
+  }
+}
+/* Bold color band at card bottom — single decisive gesture in the mood
+   gradient. Single-tone moods get a two-color gradient via --am-c2;
+   vivid extends to --am-c3 for the full brand trinity stripe. */
+.casa-am__card::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 4px;
+  /* SAME color stops as the border conic-gradient, rendered as a
+     linear-gradient on the band. Background-position is calc'd from
+     the inherited --am-orbit so the band's color phase is locked
+     1:1 with the border's rotation. No separate animation — the
+     parent card's amBorderOrbit drives both, so band + ring read
+     as one continuous color flow around the card.
+     Direction is 270deg (right-to-left) because the conic rotates
+     CLOCKWISE — on the card's bottom edge, clockwise motion goes
+     RIGHT-to-LEFT visually, and the conic's tail (c2 → transparent)
+     trails CLOCKWISE behind the c1 head, which on the bottom edge
+     means the tail extends to the LEFT of the head. A 90deg band
+     puts c2 to the RIGHT of c1 — mirror-flipped from the ring,
+     which is what looked "out of sync, a bit odd". 270deg flips
+     the band so c2 sits to the LEFT of c1, matching the ring's
+     bottom-edge layout. */
+  /* Stops match the conic ring above exactly (continuous, no
+     transparent gaps, intensity variation via ink-mix at the
+     valley). Keeps band + ring reading as one seamless flow. */
+  background: linear-gradient(
+    270deg,
+    var(--am-c)  0%,
+    var(--am-c2) 25%,
+    color-mix(in srgb, var(--am-c) 35%, var(--am-ink-2)) 50%,
+    var(--am-c2) 75%,
+    var(--am-c)  100%
+  );
+  background-size: 400% 100%;
+  /* Sync the band visually AND spatially to the ring's bottom-edge
+     arc. With background-size 400%, the visible 100% of the band
+     shows exactly 25% of the gradient pattern — matching the 25%
+     of the conic-gradient visible along the bottom edge of a
+     square card (bottom edge = 90° of 360° on the conic). At
+     orbit=0, bg-position 50% places gradient 50% (c1, comet head)
+     at the band's visual center, pixel-aligned with the conic's
+     50% stop at angular 180° (bottom-center). The 133.333%
+     multiplier (= 400% / 3) keeps gradient_pos shifting by 100%
+     per orbit cycle, so 2 c1 events pass through the band center
+     per cycle — matching the ring's 2 c1 events at south.
+     2026-05-15: bumped from 200%/200% to 400%/133.333% after
+     merchant flagged the band reading busier than the ring's
+     bottom-edge arc (more colors visible at once on the band
+     than fit in the ring's 90° bottom arc). */
+  background-position: calc(50% + var(--am-orbit) / 360deg * 133.333%) 50%;
+  z-index: 4;
+  pointer-events: none;
+}
+.casa-am__card[data-mood-style="vivid"]::after {
+  /* Match the vivid conic above — continuous trinity, no transparents. */
+  background: linear-gradient(
+    270deg,
+    var(--am-c)  0%,
+    var(--am-c2) 25%,
+    var(--am-c3) 50%,
+    var(--am-c2) 75%,
+    var(--am-c)  100%
+  );
+  /* Same 400% bg-size as the default ::after — visible band shows
+     25% of the gradient, matching the conic's bottom-edge arc. */
+  background-size: 400% 100%;
+}
+/* No prefers-reduced-motion override needed for ::after — when the
+   parent's amBorderOrbit is paused (prefers-reduced-motion below),
+   --am-orbit stays at 0deg and the band's position stays static. */
+
+/* Used by the section H2 em (line ~220) and per-card .casa-am__name
+   (line ~638). Independent of the band's orbit-driven motion above. */
+@keyframes amHueDrift {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* ─────────── Scene art ─────────── */
+/* Scene aspect matches the source photos (all 3 are 1200×1200 exact
+   squares) so the room photography shows uncropped. Image dominance
+   is achieved by going 1-up on mobile (full-width card so 1:1 scene
+   is 358px on iPhone 14 = big and uncropped) rather than by forcing
+   a portrait crop. Locked 2026-05-12 evening — supersedes the brief
+   3/4 portrait lock after merchant flagged the crops. */
+.casa-am__scene {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 100%, rgba(0,0,0,0.55) 0%, transparent 70%),
+    linear-gradient(180deg, #0A0A10 0%, #050509 60%, #08080E 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+/* Real-photo mode — the merchant uploaded a scene shot, so we drop
+   the CSS room and just show the photo. Slight inner shadow at the
+   bottom keeps the seam to the meta block clean. */
+.casa-am__scene--photo {
+  background: #08080E;
+}
+.casa-am__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  /* Photo sits flush inside the card frame from first paint. Was
+     `scale(1.06)` + scroll-driven `amPhotoLand` animation that
+     zoomed down to scale(1) on entry — but the 6% overshoot was
+     visible at the card's rounded corners during the few seconds
+     before the animation completed, and the merchant flagged it
+     as the corners "shifting into" the card after load. Removed
+     the entry zoom entirely (2026-05-17). */
+  transform: scale(1);
+  z-index: 0;
+}
+/* Duotone color-grade overlay — every photo gets re-tinted toward its
+   mood color, so the three cards visually announce their hue from across
+   the room. mix-blend-mode 'soft-light' preserves photo detail while
+   biasing the saturation toward the mood. */
+.casa-am__scene--photo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--am-c);
+  mix-blend-mode: soft-light;
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 1;
+}
+.casa-am__card[data-mood-style="layered"] .casa-am__scene--photo::before {
+  background: linear-gradient(135deg, var(--am-c) 0%, var(--am-c2) 100%);
+  opacity: 0.5;
+}
+.casa-am__card[data-mood-style="vivid"] .casa-am__scene--photo::before {
+  background: linear-gradient(135deg, var(--am-c) 0%, var(--am-c2) 50%, var(--am-c3) 100%);
+  opacity: 0.4;
+}
+/* Subtle bottom fade so the photo blends into the meta block */
+.casa-am__scene--photo::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 30%;
+  background: linear-gradient(180deg, transparent 0%, rgba(10,10,15,0.55) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+/* Two corner walls meeting at the vertical seam — gives depth */
+.casa-am__walls {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg,
+      rgba(255,255,255,0.018) 0%,
+      rgba(255,255,255,0.04) 49.7%,
+      transparent 50%,
+      rgba(255,255,255,0.04) 50.3%,
+      rgba(255,255,255,0.018) 100%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.casa-am__walls::after {
+  /* faint vertical seam */
+  content: '';
+  position: absolute;
+  top: 0; bottom: 18%;
+  left: 50%;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.06) 30%, rgba(255,255,255,0.06) 80%, transparent);
+  transform: translateX(-50%);
+}
+.casa-am__floor {
+  /* Soft darkening at the floor of the scene. The previous "horizon
+     line" pseudo-element was removed because at narrow viewport widths
+     it cut visibly across the lamp's legs (the legs end higher in the
+     scene than the floor's top edge). The gradient alone gives enough
+     depth without an artificial seam. */
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 18%;
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.5) 70%, rgba(0,0,0,0.85) 100%);
+  pointer-events: none;
+}
+
+/* ─────────── Wall wash (the colored back-projected light) ─────────── */
+.casa-am__wallwash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* Default: single-tone wash (Calm) */
+.casa-am__wallwash::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  max-width: 280px;
+  height: 82%;
+  background:
+    radial-gradient(ellipse 50% 100% at 50% 50%,
+      color-mix(in srgb, var(--am-c) 70%, transparent) 0%,
+      color-mix(in srgb, var(--am-c) 35%, transparent) 35%,
+      transparent 78%);
+  filter: blur(28px);
+}
+/* Layered: split wash — primary on left wall, secondary on right */
+[data-mood-style="layered"] .casa-am__wallwash::before {
+  background:
+    radial-gradient(ellipse 38% 80% at 32% 50%,
+      color-mix(in srgb, var(--am-c) 75%, transparent) 0%,
+      color-mix(in srgb, var(--am-c) 30%, transparent) 35%,
+      transparent 70%),
+    radial-gradient(ellipse 38% 80% at 68% 50%,
+      color-mix(in srgb, var(--am-c2) 75%, transparent) 0%,
+      color-mix(in srgb, var(--am-c2) 30%, transparent) 35%,
+      transparent 70%);
+}
+/* Vivid: full brand-gradient wash + slow shimmer */
+[data-mood-style="vivid"] .casa-am__wallwash::before {
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--am-c) 65%, transparent),
+      color-mix(in srgb, var(--am-c2) 65%, transparent) 50%,
+      color-mix(in srgb, var(--am-c3) 65%, transparent));
+  -webkit-mask: radial-gradient(ellipse 55% 100% at 50% 50%, #000 0%, #000 35%, transparent 78%);
+          mask: radial-gradient(ellipse 55% 100% at 50% 50%, #000 0%, #000 35%, transparent 78%);
+}
+@keyframes amVividShimmer {
+  0%   { filter: blur(28px) hue-rotate(0deg);   transform: translateX(-50%) scale(1); }
+  100% { filter: blur(34px) hue-rotate(15deg);  transform: translateX(-50%) scale(1.04); }
+}
+/* amVividShimmer animates filter: blur()+hue-rotate(), which re-runs the
+   blur convolution and forces a full re-rasterization of the wash every
+   frame — it is NOT a cheap GPU composite (the old "GPU-accelerated" note
+   was wrong for an animated blur radius). On mobile (≤640px) the §05 strip
+   is an auto-scrolling marquee, so this per-frame repaint competes with the
+   scroll on the main thread and the rotation visibly stutters. Run the
+   shimmer ONLY at ≥641px, where the section is a static 3-up grid (no
+   scroll) and the repaint is affordable. Mobile keeps the static blur(28px)
+   wash inherited from the base .casa-am__wallwash::before rule. */
+@media (min-width: 641px) {
+  [data-mood-style="vivid"] .casa-am__wallwash::before {
+    /* perf-justified: desktop ≥641px only (static 3-up grid, no marquee scroll), fires on 1 of 3 mood cards, paused via prefers-reduced-motion below */
+    animation: amVividShimmer 10s ease-in-out infinite alternate;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-mood-style="vivid"] .casa-am__wallwash::before { animation: none; }
+}
+
+/* ─────────── Lamp SVG ─────────── */
+.casa-am__lamp {
+  position: absolute;
+  left: 50%;
+  bottom: 7%;
+  transform: translateX(-50%);
+  width: 86%;
+  max-width: 280px;
+  height: 90%;
+  color: var(--am-c);
+  filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.7));
+  z-index: 1;
+}
+/* Vivid card cycles the lamp through the brand trinity to match the wallwash.
+   amVividHue animates `color` (SVG currentColor) on an element that carries a
+   blur-based drop-shadow filter — every color step repaints the SVG and re-runs
+   the shadow convolution on the CPU. It is NOT a cheap compositor-level
+   animation (the old "compositor-level" note was wrong for a filtered SVG).
+   So it is visibility-gated: the IntersectionObserver in the javascript block
+   below toggles .casa-am--anim on the section root, and the animation only
+   runs while the section is on screen. Reduced-motion never adds the class
+   (JS bail), and the reduced-motion override below backstops it by
+   disabling the keyframes outright. */
+.casa-am--anim [data-mood-style="vivid"] .casa-am__lamp {
+  /* perf-justified: gated via IntersectionObserver — .casa-am--anim is only
+     present while the section is on screen (and never under reduced motion),
+     so the filtered-SVG repaint stops the moment the section scrolls away. */
+  animation: amVividHue 10s ease-in-out infinite alternate;
+}
+@keyframes amVividHue {
+  0%   { color: var(--am-c); }
+  50%  { color: var(--am-c2); }
+  100% { color: var(--am-c3); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-mood-style="vivid"] .casa-am__lamp { animation: none; }
+}
+
+/* ─────────── Meta block ─────────── */
+.casa-am__meta {
+  flex: 1;                    /* fill remaining card height so chips can bottom-align */
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--am-ink-2);
+  position: relative;
+  z-index: 2;
+}
+.casa-am__badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--am-c) 14%, transparent);
+  color: var(--am-c);
+  border: 1px solid color-mix(in srgb, var(--am-c) 28%, transparent);
+}
+/* Mood name carries the italic-gradient signature, but per-card now —
+   each name's gradient matches the card's bottom band + border so the
+   three cards each have their own hue identity. Calm = amber→orange,
+   Cool = cyan→indigo, Vivid = purple→pink→cyan. */
+.casa-am__name {
+  font-size: clamp(28px, 3.4vw, 40px);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: -0.025em;
+  line-height: 1.0;
+  margin: 4px 0 0;
+  background: linear-gradient(90deg, var(--am-c), var(--am-c2), var(--am-c));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  text-wrap: balance;
+  /* perf-justified: 3 small text nodes, GPU-cheap background-position drift,
+     paused via prefers-reduced-motion below */
+  animation: amHueDrift 10s linear infinite;
+}
+.casa-am__card[data-mood-style="vivid"] .casa-am__name {
+  background: linear-gradient(90deg, var(--am-c), var(--am-c2), var(--am-c3), var(--am-c));
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+          background-clip: text;
+}
+@media (prefers-reduced-motion: reduce) {
+  .casa-am__name { animation: none !important; }
+}
+.casa-am__usewhen {
+  margin: 4px 0 0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+}
+.casa-am__usewhen-key {
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.16em;
+}
+.casa-am__usewhen-val {
+  text-transform: uppercase;
+  color: var(--am-c);
+  letter-spacing: 0.1em;
+  font-weight: 500;
+}
+/* Description hidden globally per merchant 2026-05-12 evening
+   ("reduce the grey text below mood names — we might not need that
+   text"). The italic-gradient mood name + use-when row + chip-label
+   already carry the per-mood signal; description was the bulk of
+   the meta strip and competed with image dominance. */
+.casa-am__desc { display: none; }
+/* The bold color band at .casa-am__card::after carries the per-mood
+   color now; the old dotted-chip strip is reduced to a single small
+   mono caption. The dots are hidden — they were noisy redundancy. */
+.casa-am__chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;           /* push label to the bottom of the card so all 3 align */
+  padding-top: 10px;
+}
+.casa-am__chip { display: none; }
+.casa-am__chip-label {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--am-c);
+  font-weight: 500;
+}
+
+/* ─────────── Responsive ─────────── */
+/* Tablet / small laptop — same 3-up grid, slightly tighter gap +
+   padding. Cards still levitate (animation rule above applies at
+   ≥641px). Hide description for image dominance. */
+@media (max-width: 1024px) {
+  .casa-am__grid {
+    gap: 18px;
+    padding: 0 20px;
+  }
+  .casa-am__head { margin-bottom: 28px; }
+  .casa-am__meta { padding: 12px 14px 14px; gap: 6px; }
+  .casa-am__name { font-size: clamp(24px, 3.4vw, 34px); }
+  .casa-am__desc { display: none; }
+}
+/* Phone (≤640px) — cards become a horizontal marquee instead of
+   the static 3-up grid. JS clones the cards once so the loop is
+   seamless. Levitation animation is disabled here automatically
+   because the rule above is gated to ≥641px. */
+@media (max-width: 640px) {
+  .casa-am__viewport {
+    /* Native horizontal scroll: free iOS swipe-momentum, free keyboard
+       arrow-key scroll, free a11y. Auto-rotation is JS-driven in the
+       javascript block below via rAF that bumps scrollLeft at the same
+       pace the old `amMarquee` keyframe used (7s per one-set width).
+       Pause-on-pointerdown / resume-on-release is handled there too.
+       2026-05-19. */
+    overflow-x: auto;
+    overflow-y: hidden;
+    /* Permit BOTH pan axes: horizontal so the native overflow-x carousel
+       swipe still works, AND vertical so a touch that STARTS on the strip
+       can still scroll the page. `pan-x` alone (the old value) restricts the
+       gesture to horizontal only — the browser then refuses to vertically
+       scroll the page for any finger-down inside the section, so the user
+       gets stuck ("freezes the cards, won't let me scroll past"). The
+       browser's native axis-locking picks carousel-vs-page per swipe
+       direction; overscroll-behavior-x: contain still stops horizontal
+       scroll-chaining (e.g. edge back-swipe). Fixed 2026-07-09 — do NOT
+       revert to `pan-x`; that reintroduces the vertical-scroll trap. */
+    touch-action: pan-x pan-y;
+    overscroll-behavior-x: contain;
+    /* Hide the scrollbar — visual identity of this section is
+       contemplative ticker, not a list with a chrome bar. */
+    scrollbar-width: none;
+    /* Fade the left + right edges so cards entering/leaving the viewport
+       feel like they materialize, not pop in. NOTE: for the default orbit
+       marquee this fade is RELOCATED to the non-scrolling .casa-am__stage
+       wrapper below — a mask on the scroll container forces iOS to
+       re-rasterize the whole strip every frame it auto-scrolls (visible
+       jitter). The rule is overridden to none for orbit and now only takes
+       effect for emit/Phoenix, whose viewport is bespoke (left untouched). */
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, black 5%, black 95%, transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0, black 5%, black 95%, transparent 100%);
+  }
+  .casa-am__viewport::-webkit-scrollbar { display: none; }
+  /* Orbit (default): keep the strip scroller mask-free so it stays on the
+     GPU fast-scroll path; the identical edge fade is painted by the parent
+     .casa-am__stage instead, which doesn't scroll — so nothing re-rasters
+     per frame. Emit/Phoenix keep the base mask on their viewport above. */
+  .casa-am:not(.casa-am--emit) .casa-am__viewport {
+    -webkit-mask-image: none;
+            mask-image: none;
+  }
+  .casa-am:not(.casa-am--emit) .casa-am__stage {
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, black 5%, black 95%, transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0, black 5%, black 95%, transparent 100%);
+  }
+  .casa-am__grid,
+  .casa-am__grid[data-count="1"],
+  .casa-am__grid[data-count="2"],
+  .casa-am__grid[data-count="3"],
+  .casa-am__grid[data-count="4"] {
+    --mq-card: 200px;
+    --mq-gap: 14px;
+    --mq-shift: calc(var(--mq-count, 3) * (var(--mq-card) + var(--mq-gap)));
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    grid-template-columns: none;
+    gap: var(--mq-gap);
+    padding: 0;
+    margin: 0;
+    width: max-content;
+    max-width: none;
+    /* No CSS animation — auto-rotation is JS-driven (rAF bumps the
+       parent viewport's scrollLeft at the same 7s-per-one-set pace).
+       This unlocks native horizontal swipe with free iOS momentum
+       and removes the previous keyframe/`amMarquee` entirely. */
+  }
+  .casa-am__card {
+    flex: 0 0 var(--mq-card);
+    width: var(--mq-card);
+    /* Orbit slightly faster on phones so the ring's color flow
+       reads in the brief moment each card is on screen. */
+    --am-orbit-dur: 9s;
+  }
+  /* Clones become visible on phone (display: none at the base rule).
+     Specificity matches the desktop hide rule so this override wins.
+     Clones are essential to the wrap-around: at the moment the auto-
+     scroller reaches one-set width, JS instantly resets scrollLeft
+     by mqShift; the visual is unchanged because clone-N occupies the
+     same on-screen position that original-N did one set earlier. */
+  .casa-am__card.casa-am__card--clone { display: flex; }
+  .casa-am__head {
+    margin-bottom: 20px;
+    padding: 0 24px;
+  }
+  .casa-am__lede {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+}
+/* The mobile marquee no longer uses a CSS keyframe — auto-rotation
+   is JS-driven via rAF + scrollLeft on .casa-am__viewport (see the
+   javascript block below). prefers-reduced-motion is honored
+   inside the rAF tick itself, so no CSS override is needed. The
+   loop is also visibility-gated: the IntersectionObserver in the
+   same block starts it when the section enters the viewport and
+   cancels it on exit, so it never burns frames off screen. */
+/* Phone-only chrome compaction — these rules were orphaned outside
+   a media query in an earlier edit; rewrapped 2026-05-15. */
+@media (max-width: 640px) {
+  .casa-am__lamp  { width: 78%; max-width: 150px; bottom: 8%; height: 88%; }
+  .casa-am__meta  { padding: 8px 6px 10px; gap: 3px; }
+  /* MOOD 01/02/03 pill hidden — gradient name carries the
+     identifier role at the 3-up phone scale. */
+  .casa-am__badge { display: none; }
+  .casa-am__name {
+    /* Italic-gradient mood name is the hero gesture. */
+    font-size: clamp(20px, 5.4vw, 28px);
+    margin-top: 0;
+    line-height: 0.95;
+    /* Freeze the gradient shimmer on phones. The marquee auto-scrolls here,
+       and the 6 visible names (3 originals + 3 clones) each repainting their
+       background-clip:text gradient every frame competes with the scroll and
+       adds jitter. The static gradient stays — only the drift stops. Desktop
+       (static 3-up grid, no scroll) keeps the amHueDrift shimmer. */
+    animation: none;
+  }
+  /* Hide the "USE WHEN" key prefix on phones — at 118px column with
+     "DINNER PARTIES" / "BEDROOM HUSH" values, the prefix forced
+     ellipsis truncation that looked broken. Value alone reads as a
+     clean mono caption under each mood name. */
+  .casa-am__usewhen {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 0;
+    font-size: 9px;
+    margin-top: 2px;
+  }
+  .casa-am__usewhen-key { display: none; }
+  .casa-am__usewhen-val {
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  /* Chips strip hidden on phones — the gradient band + name already
+     name the color identity. */
+  .casa-am__chips { display: none; }
+}
+/* Ultra-narrow phones (≤380px = iPhone SE etc.) — already edge-to-edge
+   from the <640 rule; just tighten meta padding so the text strip is
+   even more compact relative to the small image. */
+@media (max-width: 380px) {
+  .casa-am__lamp { max-width: 120px; }
+  .casa-am__meta { padding: 8px 6px 10px; }
+}
+
+/* Short / phone-height viewports — iPhone SE 375×667 etc. Drop section
+   padding hard so the whole 3-up grid + head fits one frame, no scroll.
+   max-height-shorthand-justified: section root carries 0 side padding by
+   design — the .casa-am__head rule provides the side gutter via its own
+   clamp(20px, 5vw, 64px). */
+@media (max-height: 720px) and (max-width: 480px) {
+  .casa-am { padding: 32px 0; }
+  .casa-am__head { margin-bottom: 20px; }
+}
+/* Short laptops (≈1366×768 / 1280×720) — section was overrunning a
+   900px viewport before the 1:1 + padding cut. This trims the chrome
+   one more step AND caps the scene height so the whole "three moods"
+   beat reads in a glance. The scene drops its 1:1 aspect-ratio here
+   and adopts a viewport-relative height; the lamp stays dominant via
+   the per-block image_focus / object-position.
+   max-height-shorthand-justified: same as the phone-height block above —
+   .casa-am__head carries the side gutter, not the section root. */
+@media (max-height: 800px) and (min-width: 1024px) {
+  .casa-am { padding: 28px 0; }
+  .casa-am__head { margin-bottom: 18px; }
+  .casa-am__scene { aspect-ratio: auto; height: clamp(220px, 32vh, 320px); }
+}
+
+/* Desktop / laptop ≥1025px ONLY — center the head text (kicker,
+   H2, lede) horizontally. Mobile + tablet keep the default
+   `text-align: start` (left). 2026-05-17 merchant request. */
+@media (min-width: 1025px) {
+  .casa-am__head { text-align: center; }
+  /* Lede has max-width: 56ch (~448px) so without `margin: 0 auto`
+     the block sits at the head's LEFT edge while its text centers
+     inside the 448px box. That puts the lede's optical center to
+     the LEFT of the H2's center — the lede block needs to centre
+     too so both text blocks share the same vertical centerline.
+     Mobile/tablet (<1025px) keep `margin: 0` from the base rule
+     so the lede stays left-flush with the H2 when both are
+     text-align: start. */
+  .casa-am__lede { margin: 0 auto; }
+}
+{% endstylesheet %}
+
+{% javascript %}
+/* Casa Apollo Moods — mobile carousel.
+   Clones are rendered SERVER-SIDE in Liquid (the outer
+   `for pass in (1..2)` Liquid loop emits each card twice, with
+   the second pass tagged `.casa-am__card--clone aria-hidden`).
+   CSS hides clones above 640px so desktop sees the static 3-up
+   grid. Mobile shows all 6 cards (3 originals + 3 clones) in a
+   horizontally-scrollable strip with native iOS swipe momentum.
+
+   Auto-rotation is JS-driven: a rAF loop bumps the viewport's
+   scrollLeft at the same pace the old `amMarquee` CSS keyframe
+   used (one set width / 7 seconds). The user can interrupt at
+   any time by dragging horizontally — pointerdown stops the
+   rAF, pointerup schedules a resume ~1.5s later. The shopper
+   can also keyboard-arrow through the cards thanks to native
+   `overflow-x: auto`. An IntersectionObserver on the section
+   root gates everything: the rAF loop (and the vivid lamp's
+   hue-cycle, via the .casa-am--anim class) only runs while the
+   section is on screen, and never under prefers-reduced-motion.
+
+   Wrap-around: at the moment scrollLeft >= mqShift (one full
+   set width), JS instantly subtracts mqShift, jumping the
+   container back into the originals zone. Because clone-N
+   occupies the exact same on-screen position that original-N
+   did one set ago, the jump is visually invisible. */
+(function () {
+  function isMobile() {
+    return window.matchMedia('(max-width: 640px)').matches;
+  }
+  var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function setup(section) {
+    var viewport = section.querySelector('[data-am-viewport]');
+    var track = section.querySelector('[data-am-track]');
+    if (!viewport || !track) return;
+
+    // Clones are already in the DOM from Liquid (data-am-cloned="1"
+    // on the track). Block kept as defensive guard.
+    if (isMobile() && track.dataset.amCloned !== '1') {
+      var originals = Array.from(track.children);
+      originals.forEach(function (card) {
+        var clone = card.cloneNode(true);
+        clone.setAttribute('aria-hidden', 'true');
+        clone.classList.add('casa-am__card--clone');
+        // Remove shopify_attributes from clones so the theme editor
+        // doesn't pick a clone when the merchant clicks a card.
+        clone.removeAttribute('data-shopify-editor-id');
+        track.appendChild(clone);
+      });
+      track.dataset.amCloned = '1';
+    }
+
+    if (isMobile() && !viewport.dataset.amCarouselBound) {
+      viewport.dataset.amCarouselBound = '1';
+
+      // --- measurements ---
+      // Width of one full set of originals (cards-per-set * (cardW + gap)).
+      // Read from the live DOM so the values stay accurate even if a
+      // future schema setting tweaks card width or gap.
+      function originalCards() {
+        return track.querySelectorAll('.casa-am__card:not(.casa-am__card--clone)');
+      }
+      function computeShift() {
+        var cards = originalCards();
+        if (!cards.length) return 0;
+        var cardW = cards[0].getBoundingClientRect().width;
+        var trackCS = getComputedStyle(track);
+        var gap = parseFloat(trackCS.columnGap || trackCS.gap) || 14;
+        return cards.length * (cardW + gap);
+      }
+      var mqShift = computeShift();
+
+      // --- auto-rotation pace ---
+      // Old keyframe: one set width over 7 seconds → mqShift / 7000 ms/px.
+      var PX_PER_MS = mqShift / 7000;
+
+      // --- state ---
+      var rafId = null;
+      var lastT = 0;
+      var paused = false;
+      var resumeTimer = null;
+      // Also held while the PAGE scrolls vertically (see the window 'scroll'
+      // listener below). Writing scrollLeft every frame *during* a page scroll
+      // competes with the page's own scroll on iOS's main thread and hitches
+      // both, so the strip freezes until the page settles.
+      var pageScrolling = false;
+      var pageScrollTimer = null;
+      // Float scroll position we own. scrollLeft is rounded to whole pixels
+      // by mobile WebKit/Blink, so writing the raw fractional accumulator
+      // each frame drops the sub-pixel remainder and the cadence stutters
+      // between 2px and 3px steps. Carrying the float here and rounding only
+      // the write keeps the per-frame advance even, which is the difference
+      // between a smooth and a "laggy" marquee.
+      var pos = 0;
+
+      function tick(t) {
+        // Clamp dt: while the page scrolls, iOS throttles/batches rAF, so a
+        // frame can arrive very late. Un-clamped, `pos += PX_PER_MS * dt`
+        // jumps a big catch-up step — a visible lurch. Cap at ~2 frames.
+        var dt = lastT === 0 ? 0 : Math.min(t - lastT, 32);
+        // On (re)start lastT resets to 0 — re-sync our float to the live
+        // scroll position so a user drag isn't fought.
+        if (lastT === 0) pos = viewport.scrollLeft;
+        lastT = t;
+        if (!paused && !pageScrolling && !prefersReducedMotion) {
+          pos += PX_PER_MS * dt;
+          if (pos >= mqShift) pos -= mqShift;
+          viewport.scrollLeft = Math.round(pos);
+        }
+        rafId = requestAnimationFrame(tick);
+      }
+
+      function startLoop() {
+        if (rafId !== null) return;
+        lastT = 0;
+        rafId = requestAnimationFrame(tick);
+      }
+      function stopLoop() {
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+
+      // --- pause on user interaction (drag / keyboard scroll) ---
+      function pauseAuto() {
+        paused = true;
+        if (resumeTimer) {
+          clearTimeout(resumeTimer);
+          resumeTimer = null;
+        }
+      }
+      function scheduleResume() {
+        if (resumeTimer) clearTimeout(resumeTimer);
+        resumeTimer = setTimeout(function () {
+          // After the user stops, wrap any cloned-zone position back
+          // into originals invisibly before resuming, so the next
+          // auto-advance starts from a clean state.
+          if (viewport.scrollLeft >= mqShift) {
+            viewport.scrollLeft -= mqShift;
+          } else if (viewport.scrollLeft < 0) {
+            viewport.scrollLeft += mqShift;
+          }
+          paused = false;
+          lastT = 0;
+        }, 1500);
+      }
+
+      viewport.addEventListener('pointerdown', pauseAuto, { passive: true });
+      viewport.addEventListener('pointerup', scheduleResume, { passive: true });
+      viewport.addEventListener('pointercancel', scheduleResume, { passive: true });
+      // Wheel / trackpad horizontal scroll also counts as user-driven.
+      viewport.addEventListener('wheel', function (e) {
+        if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+          pauseAuto();
+          scheduleResume();
+        }
+      }, { passive: true });
+
+      // Freeze the auto-advance while the PAGE scrolls vertically. iOS runs
+      // page scrolling off the main thread; the marquee's per-frame scrollLeft
+      // writes then contend with it and both hitch. Hold the strip still until
+      // the page scroll settles (~250ms after the last scroll event), then
+      // resume — the lastT reset re-syncs dt so the first frame back doesn't
+      // jump. A window 'scroll' event fires only for page/document scroll (an
+      // element's own scrollLeft writes don't bubble here), so this never trips
+      // on the marquee's own motion. Passive + one debounce timer: no per-frame
+      // work, no INP cost.
+      function onPageScroll() {
+        pageScrolling = true;
+        if (pageScrollTimer) clearTimeout(pageScrollTimer);
+        pageScrollTimer = setTimeout(function () {
+          pageScrolling = false;
+          lastT = 0;
+        }, 250);
+      }
+      window.addEventListener('scroll', onPageScroll, { passive: true });
+      // Exposed so shopify:section:unload can remove this window listener (the
+      // pointer/wheel listeners live on the viewport and GC with the element).
+      section.__amPageScrollCleanup = function () {
+        window.removeEventListener('scroll', onPageScroll);
+        if (pageScrollTimer) { clearTimeout(pageScrollTimer); pageScrollTimer = null; }
+        if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
+      };
+
+      // Recompute mqShift on resize (rotation, browser-chrome change).
+      var resizeRaf = 0;
+      window.addEventListener('resize', function () {
+        if (resizeRaf) cancelAnimationFrame(resizeRaf);
+        resizeRaf = requestAnimationFrame(function () {
+          mqShift = computeShift();
+          PX_PER_MS = mqShift / 7000;
+          if (viewport.scrollLeft >= mqShift) viewport.scrollLeft -= mqShift;
+        });
+      }, { passive: true });
+
+      // Expose start/stop for the visibility gate below (and the
+      // shopify:section:unload teardown). The loop is NOT kicked off
+      // here — the IntersectionObserver starts it when the section
+      // enters the viewport. Manual drag still works regardless
+      // because the scroll container is native.
+      section.__amStart = startLoop;
+      section.__amStop = stopLoop;
+    }
+
+    /* Visibility gate — same pattern as casa-aurasphere-scenes: the
+       marquee rAF loop and the vivid lamp hue-cycle (CSS class
+       .casa-am--anim, see the amVividHue rule in the stylesheet) run
+       ONLY while the section is on screen. Enter → add class + start
+       the loop; exit → remove class + cancelAnimationFrame. Under
+       prefers-reduced-motion neither ever starts — the static cards
+       remain fully usable (native scroll, no animation). */
+    if (!section.dataset.amIoBound) {
+      section.dataset.amIoBound = '1';
+      if (!prefersReducedMotion) {
+        if ('IntersectionObserver' in window) {
+          section.__amIO = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                section.classList.add('casa-am--anim');
+                if (section.__amStart) section.__amStart();
+              } else {
+                section.classList.remove('casa-am--anim');
+                if (section.__amStop) section.__amStop();
+              }
+            });
+          }, { threshold: 0.15, rootMargin: '200px' });
+          section.__amIO.observe(section);
+        } else {
+          // No IO support: fall back to always-on (pre-gate behaviour).
+          section.classList.add('casa-am--anim');
+          if (section.__amStart) section.__amStart();
+        }
+      }
+    }
+
+    /* Phoenix-only ambient overlay sync. Hooks the §05 section to the
+       same arm-pattern state §04 dispatches via the
+       casa-phoenix-pattern-change CustomEvent. No-op on non-Phoenix
+       templates because the `.casa-am__ambient` div is only rendered
+       when `template contains 'phoenix'`, and the CSS rules are
+       scoped to :root.is-phoenix. The ambient div sits behind every
+       content layer at z-index 0; this code positions the 5 blobs
+       and updates their colour each time §04 changes pattern. */
+    var ambient = section.querySelector('.casa-am__ambient');
+    if (ambient && !section.dataset.phxAmbBound) {
+      section.dataset.phxAmbBound = '1';
+      var phxAmbs = ambient.querySelectorAll('.casa-am__amb');
+      /* Anchor Y values span BOTH ends of the overlay so blobs paint
+         into BOTH cross-section gaps (2026-05-18 19th pass).
+         The overlay is now inset -340px above AND -340px below the
+         section, so total overlay height = 680px + section_height.
+         Percentages reference the FULL overlay (including extensions).
+         - Blobs 0,1: anchored in the upper extension + §05 header area,
+           meeting §04's downward overflow at the §04↔§05 gap.
+         - Blob 2: in §05's middle (card row area) for ambient sunset
+           behind the marquee.
+         - Blobs 3,4: anchored in §05's lower half + lower extension,
+           meeting §06's upward sunset bloom at the §05↔§06 gap. */
+      var PHX_AMB_ANCHOR_Y = [-12, 8, 38, 72, 108]; // % of overlay height
+      var PHX_AMB_SPREAD_X = 26;
+      var PHX_AMB_SPREAD_Y = 14;
+
+      function phxAmbApply(detail) {
+        if (!detail || !detail.armsArr) return;
+        var armsArr = detail.armsArr;
+        var filmHex = detail.filmHex || [];
+        var rect = ambient.getBoundingClientRect();
+        var W = rect.width;
+        var H = rect.height || 1;
+        for (var i = 0; i < 5; i++) {
+          var arm = armsArr[i] || { a: 0, f: i };
+          var angle = Number(arm.a) || 0;
+          var filmIdx = Math.max(0, Math.min(filmHex.length - 1, Number(arm.f) || 0));
+          var color = filmHex[filmIdx] || '#E8B86A';
+          var rad = angle * Math.PI / 180;
+          var xPct = 50 + Math.sin(rad) * PHX_AMB_SPREAD_X;
+          var yPct = PHX_AMB_ANCHOR_Y[i] - Math.cos(rad) * PHX_AMB_SPREAD_Y;
+          var xPx = xPct * W / 100;
+          var yPx = yPct * H / 100;
+          if (phxAmbs[i]) {
+            phxAmbs[i].style.transform = 'translate(' + xPx + 'px, ' + yPx + 'px) translate(-50%, -50%)';
+            phxAmbs[i].style.setProperty('--am-amb-color', color);
+          }
+        }
+      }
+
+      document.addEventListener('casa-phoenix-pattern-change', function (e) {
+        phxAmbApply(e.detail);
+      });
+
+      /* Cold-start pull. §04 fires its initial event synchronously
+         inside its own IIFE; depending on script order, §05's setup
+         may run before or after that. Pulling the active pick's
+         dataset directly guarantees §05 has the right colours on
+         first paint regardless of script timing. */
+      var pulled = (function () {
+        var arms = document.querySelector('.casa-arms');
+        if (!arms) return null;
+        var active = arms.querySelector('.casa-arms__pick.is-on') || arms.querySelector('.casa-arms__pick');
+        if (!active) return null;
+        var armsRaw = active.getAttribute('data-pat-arms') || '[]';
+        var filmRaw = (arms.getAttribute('data-film-hex') || '').split(',');
+        try {
+          return { armsArr: JSON.parse(armsRaw), filmHex: filmRaw };
+        } catch (err) {
+          return null;
+        }
+      })();
+      if (pulled) phxAmbApply(pulled);
+
+      /* Reposition on viewport resize — same rAF-debounced approach
+         §04 uses. Re-applies the last known pattern (cached via the
+         is-on pick on §04). */
+      var phxResizeRaf = 0;
+      window.addEventListener('resize', function () {
+        if (phxResizeRaf) return;
+        phxResizeRaf = requestAnimationFrame(function () {
+          phxResizeRaf = 0;
+          var arms = document.querySelector('.casa-arms');
+          if (!arms) return;
+          var active = arms.querySelector('.casa-arms__pick.is-on');
+          if (!active) return;
+          var armsRaw = active.getAttribute('data-pat-arms') || '[]';
+          var filmRaw = (arms.getAttribute('data-film-hex') || '').split(',');
+          try {
+            phxAmbApply({ armsArr: JSON.parse(armsRaw), filmHex: filmRaw });
+          } catch (err) {}
+        });
+      }, { passive: true });
+    }
+  }
+
+  function init() {
+    document.querySelectorAll('.casa-am').forEach(setup);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
+
+  document.addEventListener('shopify:section:load', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('casa-am')) {
+      setup(e.target);
+    } else if (e.target) {
+      var s = e.target.querySelector && e.target.querySelector('.casa-am');
+      if (s) setup(s);
+    }
+  });
+
+  // Theme-editor teardown: stop the rAF loop and disconnect the
+  // visibility observer so unmounted sections don't leak.
+  document.addEventListener('shopify:section:unload', function (e) {
+    if (!e.target) return;
+    var s = (e.target.classList && e.target.classList.contains('casa-am'))
+      ? e.target
+      : (e.target.querySelector && e.target.querySelector('.casa-am'));
+    if (!s) return;
+    if (s.__amStop) s.__amStop();
+    if (s.__amPageScrollCleanup) { s.__amPageScrollCleanup(); s.__amPageScrollCleanup = null; }
+    if (s.__amIO) { s.__amIO.disconnect(); s.__amIO = null; }
+  });
+})();
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "Apōllō Moods",
+  "tag": "section",
+  "class": "casa-apollo-moods-section",
+  "settings": [
+    { "type": "header", "content": "Heading" },
+    { "type": "text",            "id": "kicker",  "label": "Kicker (mono)",                                          "default": "05 · THREE WAYS TO LIVE WITH IT" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading (use <em>word</em> for italic gradient accent)", "default": "Calm. Layered. <em>Vivid.</em>" },
+    { "type": "textarea",        "id": "lede",    "label": "Lede",                                                   "default": "One lamp, three personalities. Pick the mood that fits the room you're in — the Apōllō shifts with you, no rewiring, no rebuying." },
+
+    { "type": "header", "content": "Card style" },
+    { "type": "select", "id": "card_style", "label": "Card border treatment",
+      "info": "Orbit ring = Apollo default (rotating conic-gradient frame + phase-locked bottom band). Emit halo = Phoenix style (cards emit their sunset colors outward into the background; no orbiting ring).",
+      "options": [
+        { "value": "orbit", "label": "Orbit ring (Apollo)" },
+        { "value": "emit",  "label": "Emit halo (Phoenix)" }
+      ],
+      "default": "orbit"
+    },
+
+    { "type": "header", "content": "Colors" },
+    { "type": "color", "id": "color_paper",  "label": "Paper",         "default": "#FAFAF7" },
+    { "type": "color", "id": "color_ink",    "label": "Ink",           "default": "#0A0A0F" },
+    { "type": "color", "id": "color_ink_2",  "label": "Card surface",  "default": "#13131A" },
+    { "type": "color", "id": "color_purple", "label": "Accent purple", "default": "#B0C3FA" },
+    { "type": "color", "id": "color_pink",   "label": "Accent pink",   "default": "#5E0A02" },
+    { "type": "color", "id": "color_cyan",   "label": "Accent cyan",   "default": "#F2FFA0" },
+
+    { "type": "header", "content": "Spacing" },
+    { "type": "range", "id": "padding_top",    "label": "Padding top",    "min": 0, "max": 160, "step": 4, "default": 36, "unit": "px" },
+    { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 160, "step": 4, "default": 36, "unit": "px" }
+  ],
+  "blocks": [
+    {
+      "type": "mood",
+      "name": "Mood card",
+      "limit": 4,
+      "settings": [
+        { "type": "text",         "id": "badge",       "label": "Badge",                                                                    "default": "MOOD 01" },
+        { "type": "text",         "id": "name",        "label": "Name",                                                                     "default": "Calm" },
+        { "type": "text",         "id": "use_when",    "label": "Use when",  "info": "1–4 words. Appears after \"USE WHEN\" in mono caps.", "default": "Bedroom hush" },
+        { "type": "textarea",     "id": "description", "label": "Description",                                                              "default": "A single warm tone, slow and steady. The Apōllō becomes the room's center of gravity — reading nook, candlelight, end of the day." },
+        { "type": "image_picker", "id": "image",       "label": "Scene photo",
+          "info": "Optional. When set, replaces the CSS scene with a real photo. Leave blank to use the CSS-rendered Apōllō scene below." },
+        { "type": "text",         "id": "image_focus", "label": "Image focal point",
+          "info": "CSS object-position value. Default 'center'. Use e.g. '50% 35%' to pull the lamp up if it sits high in the frame.",
+          "default": "center" },
+        { "type": "select",       "id": "mood_style",  "label": "Wall-wash style (no-photo fallback only)",
+          "info": "Only applies when no Scene photo is set. Single = one color (Calm). Layered = two colors split across the corner walls. Vivid = animated brand-gradient with the lamp cycling through the trinity.",
+          "options": [
+            { "value": "single",  "label": "Single tone"  },
+            { "value": "layered", "label": "Layered (two tones)" },
+            { "value": "vivid",   "label": "Vivid (brand gradient, animated)" }
+          ],
+          "default": "single"
+        },
+        { "type": "color", "id": "color_hex",           "label": "Mood color (primary)",   "info": "Used for badge tint, USE WHEN value, and chip strip color (and the no-photo wall-wash).", "default": "#5E0A02" },
+        { "type": "color", "id": "color_hex_secondary", "label": "Mood color (secondary)", "info": "Used for layered/vivid no-photo fallback + the second chip dot." },
+        { "type": "color", "id": "color_hex_tertiary",  "label": "Mood color (tertiary)",  "info": "Used for vivid no-photo fallback + the third chip dot." },
+        { "type": "text",  "id": "color_label",         "label": "Color chip caption",     "info": "Optional. Renders the chip strip under the description.", "default": "BRAND PINK" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Apōllō · Three Moods",
+      "blocks": [
+        {
+          "type": "mood",
+          "settings": {
+            "badge": "MOOD 01",
+            "name": "Calm",
+            "use_when": "Bedroom hush",
+            "description": "A single warm tone, slow and steady. The Apōllō becomes the room's center of gravity — reading nook, candlelight, end of the day.",
+            "mood_style": "single",
+            "color_hex": "#EC4899",
+            "color_label": "BRAND PINK"
+          }
+        },
+        {
+          "type": "mood",
+          "settings": {
+            "badge": "MOOD 02",
+            "name": "Layered",
+            "use_when": "Focus hours",
+            "description": "Pair a calm cyan with an indigo counterpoint. The light photographs the room rather than competing with it.",
+            "mood_style": "layered",
+            "color_hex": "#06B6D4",
+            "color_hex_secondary": "#6366F1",
+            "color_label": "CYAN + INDIGO"
+          }
+        },
+        {
+          "type": "mood",
+          "settings": {
+            "badge": "MOOD 03",
+            "name": "Vivid",
+            "use_when": "Dinner parties",
+            "description": "Saved multicolor scene — purple, pink, cyan in slow rotation. One remote button recalls it. Up to five user slots on the dial.",
+            "mood_style": "vivid",
+            "color_hex": "#9333EA",
+            "color_hex_secondary": "#5E0A02",
+            "color_hex_tertiary": "#F2FFA0",
+            "color_label": "BRAND TRINITY"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

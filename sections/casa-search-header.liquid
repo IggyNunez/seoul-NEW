@@ -1,0 +1,567 @@
+{%- comment -%}
+  casa-search-header.liquid
+  Used by: templates/search.json
+  Replaces: sections/search-header.liquid (Horizon default)
+
+  Brand v1 editorial search hero.
+  • inline_richtext heading with italic-gradient <em> accent
+  • brand-tokenized typography (--casa-pdp-h2-*)
+  • Paper or Ink surface (merchant pick)
+  • large centered search input, 16px font on mobile (no iOS auto-zoom)
+  • merchant-curated popular-search chips (block-driven)
+  • live result count when search is performed
+{%- endcomment -%}
+
+{%- liquid
+  assign surface     = section.settings.surface | default: 'paper'
+  assign align       = section.settings.alignment | default: 'center'
+  assign heading_idle  = section.settings.heading_idle
+  assign heading_active = section.settings.heading_active
+  assign subline_idle  = section.settings.subline_idle
+  assign placeholder   = section.settings.placeholder | default: 'Search lamps, mirrors, sculptural objects…'
+  assign chip_label    = section.settings.chip_label
+
+  assign pad_top     = section.settings.padding_top
+  assign pad_bottom  = section.settings.padding_bottom
+
+  assign chip_blocks = section.blocks | where: 'type', 'chip'
+-%}
+
+<section
+  id="casa-search-header-{{ section.id }}"
+  class="casa-search-hero casa-search-hero--{{ surface }} casa-search-hero--align-{{ align }}"
+  style="--csh-pt:{{ pad_top }}px;--csh-pb:{{ pad_bottom }}px;"
+>
+  <div class="casa-search-hero__inner">
+
+    {%- if search.performed -%}
+      <p class="casa-search-hero__eyebrow">
+        {%- if search.results_count == 0 -%}
+          No matches
+        {%- elsif search.results_count == 1 -%}
+          1 result for &ldquo;{{ search.terms | escape }}&rdquo;
+        {%- else -%}
+          {{ search.results_count }} results for &ldquo;{{ search.terms | escape }}&rdquo;
+        {%- endif -%}
+      </p>
+
+      <h1 class="casa-search-hero__title">
+        {%- if heading_active != blank -%}
+          {{ heading_active }}
+        {%- else -%}
+          Found in <em>focus.</em>
+        {%- endif -%}
+      </h1>
+    {%- else -%}
+      <h1 class="casa-search-hero__title">
+        {%- if heading_idle != blank -%}
+          {{ heading_idle }}
+        {%- else -%}
+          Find your <em>light.</em>
+        {%- endif -%}
+      </h1>
+
+      {%- if subline_idle != blank -%}
+        <p class="casa-search-hero__subline">{{ subline_idle }}</p>
+      {%- endif -%}
+    {%- endif -%}
+
+    {%- comment -%} ── Search input ── {%- endcomment -%}
+    <form
+      action="{{ routes.search_url }}"
+      method="get"
+      role="search"
+      class="casa-search-hero__form"
+    >
+      <label class="visually-hidden" for="casa-search-input-{{ section.id }}">
+        {{ 'content.search' | t | default: 'Search' }}
+      </label>
+
+      <span class="casa-search-hero__icon" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </span>
+
+      <input
+        type="search"
+        id="casa-search-input-{{ section.id }}"
+        name="q"
+        value="{{ search.terms | escape }}"
+        placeholder="{{ placeholder | escape }}"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+        class="casa-search-hero__input"
+      />
+
+      <input type="hidden" name="options[prefix]" value="last">
+
+      {%- if search.terms != blank -%}
+        <a href="{{ routes.search_url }}" class="casa-search-hero__clear" aria-label="Clear search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </a>
+      {%- endif -%}
+
+      <button type="submit" class="casa-search-hero__submit">
+        Search
+      </button>
+    </form>
+
+    {%- comment -%} ── Popular search chips ── {%- endcomment -%}
+    {%- if chip_blocks.size > 0 -%}
+      <div class="casa-search-hero__chips" aria-label="{{ chip_label | default: 'Popular searches' | escape }}">
+        {%- if chip_label != blank -%}
+          <span class="casa-search-hero__chips-label">{{ chip_label }}</span>
+        {%- endif -%}
+        <ul class="casa-search-hero__chips-list">
+          {%- for block in chip_blocks -%}
+            {%- liquid
+              assign chip_query = block.settings.query | strip
+              assign chip_text  = block.settings.label | default: chip_query
+              if chip_query == blank
+                continue
+              endif
+              # Build /search?q=<terms> manually — url_encode would double-encode the routes prefix
+              assign chip_url = routes.search_url | append: '?q=' | append: chip_query | replace: ' ', '+'
+            -%}
+            <li {{ block.shopify_attributes }}>
+              <a href="{{ chip_url }}" class="casa-search-hero__chip">
+                {{ chip_text }}
+              </a>
+            </li>
+          {%- endfor -%}
+        </ul>
+      </div>
+    {%- endif -%}
+
+  </div>
+</section>
+
+{% stylesheet %}
+  .casa-search-hero {
+    position: relative;
+    padding-top: var(--csh-pt, 56px);
+    padding-bottom: var(--csh-pb, 32px);
+    overflow: hidden;
+  }
+  .casa-search-hero *,
+  .casa-search-hero *::before,
+  .casa-search-hero *::after { box-sizing: border-box; }
+
+  /* Surface variants */
+  .casa-search-hero--paper {
+    background: var(--casa-paper, #FAFAF7);
+    color: var(--casa-ink, #0A0A0F);
+  }
+  .casa-search-hero--ink {
+    background: var(--casa-ink, #0A0A0F);
+    color: var(--casa-paper, #FAFAF7);
+  }
+
+  .casa-search-hero__inner {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .casa-search-hero--align-center .casa-search-hero__inner { align-items: center; text-align: center; }
+  .casa-search-hero--align-left   .casa-search-hero__inner { align-items: flex-start; text-align: left; }
+
+  /* Eyebrow (result count) */
+  .casa-search-hero__eyebrow {
+    margin: 0;
+    font-family: var(--font-body--family, 'Inter', sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.62;
+  }
+
+  /* Title — brand tokens + italic-gradient <em> */
+  .casa-search-hero__title {
+    margin: 0;
+    font-family: var(--casa-pdp-h2-family, var(--font-heading--family, 'Inter', sans-serif));
+    font-size: clamp(36px, 6vw, 64px);
+    font-weight: var(--casa-pdp-h2-weight, 500);
+    line-height: var(--casa-pdp-h2-line, 1.05);
+    letter-spacing: var(--casa-pdp-h2-tracking, -0.02em);
+  }
+  .casa-search-hero__title em {
+    font-style: italic;
+    background: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* Subline */
+  .casa-search-hero__subline {
+    margin: 0;
+    max-width: 520px;
+    font-family: var(--font-body--family, 'Inter', sans-serif);
+    font-size: 16px;
+    line-height: 1.55;
+    opacity: 0.7;
+  }
+
+  /* ── Search form ── */
+  .casa-search-hero__form {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 720px;
+    padding: 6px 6px 6px 52px;
+    margin-top: 8px;
+    background: var(--casa-paper, #FAFAF7);
+    border: 1px solid rgba(10, 10, 15, 0.12);
+    border-radius: 14px;
+    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+  }
+  .casa-search-hero--ink .casa-search-hero__form {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+  .casa-search-hero__form:focus-within {
+    border-color: transparent;
+    box-shadow: 0 0 0 2px rgba(176, 195, 250, 0.45),
+                0 8px 24px rgba(10, 10, 15, 0.10);
+    transform: translateY(-1px);
+  }
+
+  .casa-search-hero__icon {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    color: currentColor;
+    opacity: 0.62;
+    pointer-events: none;
+  }
+
+  .casa-search-hero__input {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-family: var(--font-body--family, 'Inter', sans-serif);
+    font-size: 16px;   /* prevents iOS auto-zoom on focus */
+    line-height: 1.4;
+    padding: 14px 8px;
+    outline: 0;
+  }
+  .casa-search-hero__input::placeholder {
+    color: currentColor;
+    opacity: 0.48;
+  }
+  .casa-search-hero__input::-webkit-search-decoration,
+  .casa-search-hero__input::-webkit-search-cancel-button,
+  .casa-search-hero__input::-webkit-search-results-button,
+  .casa-search-hero__input::-webkit-search-results-decoration { display: none; }
+
+  .casa-search-hero__clear {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    margin-right: 4px;
+    border-radius: 999px;
+    color: inherit;
+    opacity: 0.55;
+    transition: opacity .2s ease, background .2s ease;
+  }
+  .casa-search-hero__clear:hover,
+  .casa-search-hero__clear:focus-visible {
+    opacity: 1;
+    background: rgba(10, 10, 15, 0.06);
+  }
+  .casa-search-hero--ink .casa-search-hero__clear:hover,
+  .casa-search-hero--ink .casa-search-hero__clear:focus-visible {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .casa-search-hero__submit {
+    flex: 0 0 auto;
+    height: 44px;
+    padding: 0 22px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--casa-ink, #0A0A0F);
+    color: var(--casa-paper, #FAFAF7);
+    font-family: var(--font-body--family, 'Inter', sans-serif);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .2s ease, box-shadow .2s ease, transform .2s ease;
+  }
+  .casa-search-hero--ink .casa-search-hero__submit {
+    background: var(--casa-paper, #FAFAF7);
+    color: var(--casa-ink, #0A0A0F);
+  }
+  .casa-search-hero__submit:hover {
+    background: #1f1f25;
+    box-shadow: 0 8px 24px rgba(10, 10, 15, 0.18);
+  }
+  .casa-search-hero--ink .casa-search-hero__submit:hover {
+    background: #f0f0ee;
+    box-shadow: 0 8px 24px rgba(255, 255, 255, 0.18);
+  }
+
+  /* ── Popular chips ── */
+  .casa-search-hero__chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 12px;
+    margin-top: 4px;
+  }
+  .casa-search-hero--align-center .casa-search-hero__chips { justify-content: center; }
+  .casa-search-hero__chips-label {
+    font-family: var(--font-body--family, 'Inter', sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.55;
+  }
+  .casa-search-hero__chips-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .casa-search-hero--align-center .casa-search-hero__chips-list { justify-content: center; }
+
+  .casa-search-hero__chip {
+    display: inline-flex;
+    align-items: center;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(10, 10, 15, 0.16);
+    background: transparent;
+    color: inherit;
+    font-family: var(--font-body--family, 'Inter', sans-serif);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: border-color .2s ease, background .2s ease, color .2s ease, transform .2s ease;
+  }
+  .casa-search-hero--ink .casa-search-hero__chip {
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+  .casa-search-hero__chip:hover,
+  .casa-search-hero__chip:focus-visible {
+    border-color: transparent;
+    background: var(--casa-ink, #0A0A0F);
+    color: var(--casa-paper, #FAFAF7);
+    transform: translateY(-1px);
+  }
+  .casa-search-hero--ink .casa-search-hero__chip:hover,
+  .casa-search-hero--ink .casa-search-hero__chip:focus-visible {
+    background: var(--casa-paper, #FAFAF7);
+    color: var(--casa-ink, #0A0A0F);
+  }
+
+  /* ── Mobile ── */
+  @media (max-width: 749px) {
+    .casa-search-hero {
+      padding-top: max(32px, calc(var(--csh-pt, 56px) * 0.6));
+      padding-bottom: max(20px, calc(var(--csh-pb, 32px) * 0.6));
+    }
+    .casa-search-hero__inner {
+      gap: 16px;
+      padding: 0 16px;
+    }
+    .casa-search-hero__title {
+      font-size: clamp(28px, 8vw, 40px);
+      text-wrap: balance;
+    }
+    .casa-search-hero__form {
+      padding-left: 44px;
+    }
+    .casa-search-hero__icon { left: 14px; }
+    .casa-search-hero__submit {
+      height: 40px;
+      padding: 0 16px;
+      font-size: 12px;
+    }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .casa-search-hero__form,
+    .casa-search-hero__submit,
+    .casa-search-hero__chip {
+      transition: none;
+    }
+    .casa-search-hero__form:focus-within { transform: none; }
+  }
+
+  /* Visually hidden helper (fallback if global class missing) */
+  .casa-search-hero .visually-hidden {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0);
+    white-space: nowrap; border: 0;
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Search Hero",
+  "tag": "section",
+  "class": "casa-search-hero-section",
+  "enabled_on": { "templates": ["search"] },
+  "settings": [
+    {
+      "type": "header",
+      "content": "Surface"
+    },
+    {
+      "type": "select",
+      "id": "surface",
+      "label": "Background",
+      "options": [
+        { "value": "paper", "label": "Paper (#FAFAF7)" },
+        { "value": "ink",   "label": "Ink (#0A0A0F)" }
+      ],
+      "default": "paper"
+    },
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "Alignment",
+      "options": [
+        { "value": "center", "label": "Center" },
+        { "value": "left",   "label": "Left" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Idle heading (no query)"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading_idle",
+      "label": "Heading",
+      "default": "Find your <em>light.</em>",
+      "info": "Use <em>word.</em> to apply the italic-gradient accent."
+    },
+    {
+      "type": "text",
+      "id": "subline_idle",
+      "label": "Subline",
+      "default": "Lamps, mirrors and sculptural pieces — search the catalog, or start with a chip below."
+    },
+    {
+      "type": "header",
+      "content": "Active heading (search performed)"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading_active",
+      "label": "Heading",
+      "default": "Found in <em>focus.</em>"
+    },
+    {
+      "type": "header",
+      "content": "Search input"
+    },
+    {
+      "type": "text",
+      "id": "placeholder",
+      "label": "Placeholder",
+      "default": "Search lamps, mirrors, sculptural objects…"
+    },
+    {
+      "type": "text",
+      "id": "chip_label",
+      "label": "Chip row label",
+      "default": "Popular"
+    },
+    {
+      "type": "header",
+      "content": "Spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Top padding",
+      "min": 0,
+      "max": 160,
+      "step": 4,
+      "unit": "px",
+      "default": 64
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Bottom padding",
+      "min": 0,
+      "max": 160,
+      "step": 4,
+      "unit": "px",
+      "default": 32
+    }
+  ],
+  "blocks": [
+    {
+      "type": "chip",
+      "name": "Popular chip",
+      "limit": 8,
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Chip label",
+          "default": "Floor lamps"
+        },
+        {
+          "type": "text",
+          "id": "query",
+          "label": "Search query",
+          "info": "What gets submitted when the chip is clicked.",
+          "default": "floor lamp"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa Search Hero",
+      "settings": {
+        "surface": "paper",
+        "alignment": "center"
+      },
+      "blocks": [
+        { "type": "chip", "settings": { "label": "Floor lamps",    "query": "floor lamp" } },
+        { "type": "chip", "settings": { "label": "Mirrors",        "query": "infinity mirror" } },
+        { "type": "chip", "settings": { "label": "Smart RGB",      "query": "smart rgb" } },
+        { "type": "chip", "settings": { "label": "Mushroom lamps", "query": "mushroom" } },
+        { "type": "chip", "settings": { "label": "Sculptural",     "query": "sculptural" } },
+        { "type": "chip", "settings": { "label": "Bubble girls",   "query": "bubble" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

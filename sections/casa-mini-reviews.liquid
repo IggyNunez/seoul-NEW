@@ -1,0 +1,463 @@
+{%- comment -%}
+  Seoul Glow Lab — Mini Reviews (aggregate · distribution · 3 cards)
+  Per Casa Design v2 PDP Section §06.
+  Default preset ships with real Octamirror data (4.74★ · 354 reviews ·
+  83% five-star, plus three real reviews salvaged from Judge.me).
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign rating = s.avg_rating | default: 4.9
+  assign total = s.total_count | default: 2184
+-%}
+
+<section
+  id="casa-rev-{{ section.id }}"
+  class="casa-rev"
+  style="
+    --casa-rev-paper: {{ s.color_paper | default: '#FAFAF7' }};
+    --casa-rev-ink:   {{ s.color_ink   | default: '#0A0A0F' }};
+    --casa-rev-pink:  {{ s.color_pink  | default: '#5E0A02' }};
+    --casa-rev-purple:{{ s.color_purple| default: '#B0C3FA' }};
+    --casa-rev-cyan:  {{ s.color_cyan  | default: '#F2FFA0' }};
+    --casa-rev-pt:    {{ s.padding_top    | default: 96 }}px;
+    --casa-rev-pb:    {{ s.padding_bottom | default: 96 }}px;
+  "
+>
+  <div class="casa-rev__cap">
+    <header class="casa-rev__head">
+      <div class="casa-rev__head-left">
+        {%- if s.kicker != blank -%}
+          <p class="casa-rev__mono">{{ s.kicker }}</p>
+        {%- endif -%}
+        {%- if s.heading != blank -%}
+          <h2 class="casa-rev__h2">{{ s.heading }}</h2>
+        {%- else -%}
+          <h2 class="casa-rev__h2">{{ rating }} / 5 · {{ total }} verified.</h2>
+        {%- endif -%}
+      </div>
+
+      <div class="casa-rev__bars" aria-label="Rating distribution">
+        {%- assign stars_list = '5,4,3,2,1' | split: ',' -%}
+        {%- for n in stars_list -%}
+          {%- assign pct_key = 'pct_' | append: n -%}
+          {%- assign pct = s[pct_key] | default: 0 -%}
+          <div class="casa-rev__bar">
+            <span class="lbl">{{ n }} ★</span>
+            <span class="track" aria-hidden="true">
+              <span class="fill" style="width: {{ pct }}%;"></span>
+            </span>
+            <span class="pct">{{ pct }}%</span>
+          </div>
+        {%- endfor -%}
+      </div>
+    </header>
+
+    <div class="casa-rev__grid">
+      {%- for block in section.blocks -%}
+        {%- liquid
+          assign b = block.settings
+          assign stars = b.stars | default: 5
+          assign verified = b.verified
+        -%}
+        <article class="casa-rev__card" {{ block.shopify_attributes }}>
+          <div class="casa-rev__stars" aria-label="{{ stars }} out of 5 stars">
+            {%- for i in (1..stars) -%}★{%- endfor -%}
+            {%- if stars < 5 -%}
+              {%- assign offset = 5 | minus: stars -%}
+              {%- for i in (1..offset) -%}<span class="casa-rev__star--off">★</span>{%- endfor -%}
+            {%- endif -%}
+          </div>
+          {%- if b.quote != blank -%}
+            <blockquote class="casa-rev__quote">{{ b.quote }}</blockquote>
+          {%- endif -%}
+          <footer class="casa-rev__meta">
+            {%- if b.author != blank -%}
+              <strong>{{ b.author }}</strong>
+            {%- endif -%}
+            <span class="casa-rev__meta-tags">
+              {%- if verified -%}<span>VERIFIED</span>{%- endif -%}
+              {%- if b.size != blank -%}<span>{{ b.size | upcase }}</span>{%- endif -%}
+              {%- if b.date != blank -%}<span>{{ b.date | upcase }}</span>{%- endif -%}
+            </span>
+          </footer>
+        </article>
+      {%- endfor -%}
+    </div>
+
+    {%- if s.read_all_label != blank and s.read_all_url != blank -%}
+      <div class="casa-rev__more">
+        <a class="casa-rev__btn" href="{{ s.read_all_url }}">{{ s.read_all_label }}</a>
+      </div>
+    {%- endif -%}
+  </div>
+</section>
+
+{% stylesheet %}
+.casa-rev {
+  background: var(--casa-rev-paper, var(--casa-paper));
+  color: var(--casa-rev-ink, var(--casa-ink));
+  padding: var(--casa-rev-pt, 96px) 0 var(--casa-rev-pb, 96px);
+}
+.casa-rev__cap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px);
+}
+.casa-rev__mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--casa-rev-ink);
+  margin: 0 0 18px;
+}
+
+.casa-rev__head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(40px, 6vw, 80px);
+  align-items: center;
+  margin-bottom: clamp(40px, 5vw, 56px);
+}
+@media (max-width: 900px) {
+  .casa-rev__head { grid-template-columns: 1fr; gap: 28px; }
+}
+
+.casa-rev__h2 {
+  font-family: var(--font-body--family);
+  font-size: clamp(28px, 4.2vw, 44px);
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin: 0;
+  text-wrap: balance;
+}
+.casa-rev__h2 em {
+  font-style: italic;
+  font-weight: 800;
+  background: linear-gradient(90deg, var(--casa-rev-purple), var(--casa-rev-pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.casa-rev__bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.casa-rev__bar {
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  align-items: center;
+  gap: 12px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+}
+.casa-rev__bar .lbl { color: var(--casa-rev-ink); letter-spacing: 0.06em; }
+.casa-rev__bar .pct { color: #8A8A92; text-align: right; }
+.casa-rev__bar .track {
+  height: 6px;
+  background: #E8E8E4;
+  border-radius: 100px;
+  overflow: hidden;
+  display: block;
+}
+.casa-rev__bar .fill {
+  display: block;
+  height: 100%;
+  background: var(--casa-rev-ink);
+  border-radius: 100px;
+  transition: width 0.6s cubic-bezier(.2,.7,.2,1);
+}
+
+.casa-rev__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(20px, 2.5vw, 28px);
+}
+@media (max-width: 900px) {
+  .casa-rev__grid { grid-template-columns: 1fr; }
+}
+
+.casa-rev__card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: clamp(22px, 2.5vw, 28px);
+  background: var(--casa-paper);
+  border: 1px solid #E1E1DC;
+  border-radius: 12px;
+}
+.casa-rev__stars {
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  color: #FBBF24;
+}
+.casa-rev__star--off { color: #E8E8E4; }
+.casa-rev__quote {
+  font-family: var(--font-body--family);
+  font-size: 15px;
+  line-height: 1.6;
+  color: #54545C;
+  margin: 0;
+  font-style: italic;
+}
+.casa-rev__meta {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #E8E8E4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+.casa-rev__meta strong {
+  color: var(--casa-rev-ink);
+  font-weight: 500;
+}
+.casa-rev__meta-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: #8A8A92;
+}
+.casa-rev__meta-tags span:not(:last-child)::after {
+  content: '·';
+  margin-left: 8px;
+  color: #C9C9CF;
+}
+
+.casa-rev__more {
+  margin-top: clamp(28px, 4vw, 40px);
+  text-align: center;
+}
+.casa-rev__btn {
+  display: inline-block;
+  font-family: var(--font-body--family);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 14px 28px;
+  border: 1px solid var(--casa-rev-ink);
+  border-radius: 12px;
+  color: var(--casa-rev-ink);
+  text-decoration: none;
+  transition: background 0.2s cubic-bezier(.2,.7,.2,1), color 0.2s cubic-bezier(.2,.7,.2,1);
+}
+.casa-rev__btn:hover {
+  background: var(--casa-rev-ink);
+  color: var(--casa-paper);
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Mini Reviews",
+  "tag": "section",
+  "class": "casa-mini-reviews-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Heading"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker (mono)",
+      "default": "05 · CUSTOMER REVIEWS"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading (use <em>word</em> for italic gradient accent)",
+      "info": "Leave blank to auto-build from average + total settings. Overrides the auto-built avg/total when set."
+    },
+    {
+      "type": "header",
+      "content": "Aggregate rating"
+    },
+    {
+      "type": "text",
+      "id": "avg_rating",
+      "label": "Average rating",
+      "default": "4.9"
+    },
+    {
+      "type": "number",
+      "id": "total_count",
+      "label": "Total review count",
+      "default": 2184
+    },
+    {
+      "type": "header",
+      "content": "Distribution (percent of total)"
+    },
+    {
+      "type": "range",
+      "id": "pct_5",
+      "label": "5★ %",
+      "min": 0, "max": 100, "step": 1, "default": 92, "unit": "%"
+    },
+    {
+      "type": "range",
+      "id": "pct_4",
+      "label": "4★ %",
+      "min": 0, "max": 100, "step": 1, "default": 6, "unit": "%"
+    },
+    {
+      "type": "range",
+      "id": "pct_3",
+      "label": "3★ %",
+      "min": 0, "max": 100, "step": 1, "default": 1, "unit": "%"
+    },
+    {
+      "type": "range",
+      "id": "pct_2",
+      "label": "2★ %",
+      "min": 0, "max": 100, "step": 1, "default": 0, "unit": "%"
+    },
+    {
+      "type": "range",
+      "id": "pct_1",
+      "label": "1★ %",
+      "min": 0, "max": 100, "step": 1, "default": 1, "unit": "%"
+    },
+    {
+      "type": "header",
+      "content": "Read-all link"
+    },
+    {
+      "type": "url",
+      "id": "read_all_url",
+      "label": "URL"
+    },
+    {
+      "type": "text",
+      "id": "read_all_label",
+      "label": "Label",
+      "default": "Read all reviews"
+    },
+    {
+      "type": "header",
+      "content": "Colors"
+    },
+    {
+      "type": "color",
+      "id": "color_paper",
+      "label": "Paper",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "color_ink",
+      "label": "Ink",
+      "default": "#0A0A0F"
+    },
+    {
+      "type": "color",
+      "id": "color_purple",
+      "label": "Accent purple",
+      "default": "#B0C3FA"
+    },
+    {
+      "type": "color",
+      "id": "color_pink",
+      "label": "Accent pink",
+      "default": "#5E0A02"
+    },
+    {
+      "type": "color",
+      "id": "color_cyan",
+      "label": "Accent cyan",
+      "default": "#F2FFA0"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0, "max": 200, "step": 8, "default": 96, "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0, "max": 200, "step": 8, "default": 96, "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "review",
+      "name": "Review",
+      "settings": [
+        {
+          "type": "textarea",
+          "id": "quote",
+          "label": "Review text"
+        },
+        {
+          "type": "text",
+          "id": "author",
+          "label": "Author"
+        },
+        {
+          "type": "text",
+          "id": "size",
+          "label": "Size purchased",
+          "info": "e.g. Small / Medium / Large"
+        },
+        {
+          "type": "text",
+          "id": "date",
+          "label": "When",
+          "info": "e.g. 4 mo. ago"
+        },
+        {
+          "type": "range",
+          "id": "stars",
+          "label": "Stars",
+          "min": 1, "max": 5, "step": 1, "default": 5
+        },
+        {
+          "type": "checkbox",
+          "id": "verified",
+          "label": "Verified buyer",
+          "default": true
+        }
+      ]
+    }
+  ],
+  "max_blocks": 4,
+  "presets": [
+    {
+      "name": "Casa Mini Reviews",
+      "category": "Product",
+      "settings": {
+        "avg_rating": "4.74",
+        "total_count": 354,
+        "pct_5": 83,
+        "pct_4": 11,
+        "pct_3": 4,
+        "pct_2": 1,
+        "pct_1": 1,
+        "read_all_label": "Read all 354 reviews"
+      },
+      "blocks": [
+        { "type": "review", "settings": { "quote": "Looks like a regular mirror during the day, but when you switch this thing on it's INSANE. My friends are always so surprised!", "author": "Mia L.", "size": "Medium", "date": "4 mo. ago", "stars": 5, "verified": true } },
+        { "type": "review", "settings": { "quote": "I keep changing the colors to match my mood. It's seriously next-level.", "author": "Brenda S.", "size": "Large", "date": "2 mo. ago", "stars": 5, "verified": true } },
+        { "type": "review", "settings": { "quote": "Arrived on time… and I am in LOVE. Effects are fantastic, and it's perfect for my living room.", "author": "Tricia V.", "size": "Medium", "date": "6 mo. ago", "stars": 5, "verified": true } }
+      ]
+    }
+  ]
+}
+{% endschema %}

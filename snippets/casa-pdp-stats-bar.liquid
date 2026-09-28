@@ -1,28 +1,45 @@
 {%- comment -%}
   Casa PDP Stats Bar
-  Displays 3 configurable stat cards in a row (e.g. "98% LOVE IT", "50K HOUR LIFE", "2 Yr WARRANTY")
+  Displays up to 3 stat cards. Values resolved by the caller (block) from
+  product metafields → block settings → blank. This snippet only renders;
+  it does not pull defaults.
+
+  Parameters (preferred):
+    - stat_1_value, stat_1_label
+    - stat_2_value, stat_2_label
+    - stat_3_value, stat_3_label
+  Back-compat: if those params aren't passed, falls through to block.settings.
 {%- endcomment -%}
+
+{%- liquid
+  assign s1v = stat_1_value | default: block.settings.stat_1_value
+  assign s1l = stat_1_label | default: block.settings.stat_1_label
+  assign s2v = stat_2_value | default: block.settings.stat_2_value
+  assign s2l = stat_2_label | default: block.settings.stat_2_label
+  assign s3v = stat_3_value | default: block.settings.stat_3_value
+  assign s3l = stat_3_label | default: block.settings.stat_3_label
+-%}
 
 <div class="casa-stats-bar">
   <div class="casa-stats-bar__grid">
-    {%- if block.settings.stat_1_value != blank -%}
+    {%- if s1v != blank -%}
       <div class="casa-stats-bar__card">
-        <span class="casa-stats-bar__value">{{ block.settings.stat_1_value }}</span>
-        <span class="casa-stats-bar__label">{{ block.settings.stat_1_label }}</span>
+        <span class="casa-stats-bar__value">{{ s1v }}</span>
+        {%- if s1l != blank -%}<span class="casa-stats-bar__label">{{ s1l }}</span>{%- endif -%}
       </div>
     {%- endif -%}
 
-    {%- if block.settings.stat_2_value != blank -%}
+    {%- if s2v != blank -%}
       <div class="casa-stats-bar__card">
-        <span class="casa-stats-bar__value casa-stats-bar__value--pink">{{ block.settings.stat_2_value }}</span>
-        <span class="casa-stats-bar__label">{{ block.settings.stat_2_label }}</span>
+        <span class="casa-stats-bar__value casa-stats-bar__value--pink">{{ s2v }}</span>
+        {%- if s2l != blank -%}<span class="casa-stats-bar__label">{{ s2l }}</span>{%- endif -%}
       </div>
     {%- endif -%}
 
-    {%- if block.settings.stat_3_value != blank -%}
+    {%- if s3v != blank -%}
       <div class="casa-stats-bar__card">
-        <span class="casa-stats-bar__value casa-stats-bar__value--cyan">{{ block.settings.stat_3_value }}</span>
-        <span class="casa-stats-bar__label">{{ block.settings.stat_3_label }}</span>
+        <span class="casa-stats-bar__value casa-stats-bar__value--cyan">{{ s3v }}</span>
+        {%- if s3l != blank -%}<span class="casa-stats-bar__label">{{ s3l }}</span>{%- endif -%}
       </div>
     {%- endif -%}
   </div>
@@ -50,7 +67,7 @@
   align-items: center;
   justify-content: center;
   padding: 18px 12px;
-  background: transparent;
+  background: #f9f9f9;
   text-align: center;
   min-width: 0;
   overflow: hidden;
@@ -64,7 +81,7 @@
   font-size: 28px;
   font-weight: 700;
   line-height: 1.1;
-  background: linear-gradient(135deg, var(--cpm-accent-1, #9333ea), var(--cpm-accent-2, #ec4899));
+  background: linear-gradient(135deg, var(--cpm-accent-1, #B0C3FA), var(--cpm-accent-2, #5E0A02));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -74,14 +91,14 @@
 }
 
 .casa-stats-bar__value--pink {
-  background: linear-gradient(135deg, var(--cpm-accent-2, #ec4899), #f97316);
+  background: linear-gradient(135deg, var(--cpm-accent-2, #5E0A02), #f97316);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .casa-stats-bar__value--cyan {
-  background: linear-gradient(135deg, #06b6d4, #3b82f6);
+  background: linear-gradient(135deg, #F2FFA0, #3b82f6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

@@ -1,0 +1,201 @@
+{%- comment -%}
+  casa-mirror-presence-v4.liquid
+  Seoul Glow Lab — Chapter 05 "Find your size" (OctaMirror v4 PDP)
+
+  One wall, one camera, all three sizes in a single un-composited render.
+  Tapping a size lifts that mirror out of the scene (the other two dim under
+  a soft veil) and selects the matching Shopify variant; a change in the
+  buy box updates the stage. No cut-outs, no synthetic scaling: what you see
+  is the product photographer's own three-size frame.
+
+  Used by: templates/product.infinity-octamirror-v4.json
+  Blocks:  none (three fixed sizes read from product variants)
+  Settings: kicker, heading, lede, image, image_alt, per-size centre/radius
+            (% of the image) for the veil, labels, popular_size, depth line,
+            jump label, padding.
+
+  Media: 1:1 everywhere (the three mirrors span the full width of the
+  render; a portrait crop would cut the small one). Lazy, explicit dims.
+  Motion: opacity crossfades between three pre-masked veils; nothing else.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign uid = section.id
+  assign sizes_in = '11.8,19.7,27.6' | split: ','
+  assign sizes_cm = '30,50,70' | split: ','
+  assign default_size = '27.6'
+  if product.selected_or_first_available_variant.title contains '11.8'
+    assign default_size = '11.8'
+  elsif product.selected_or_first_available_variant.title contains '19.7'
+    assign default_size = '19.7'
+  endif
+-%}
+
+<section
+  id="casa-mp-{{ uid }}"
+  class="casa-mp"
+  data-casa-section="presence"
+  style="--casa-mp-pt: {{ s.padding_top | default: 72 }}px; --casa-mp-pb: {{ s.padding_bottom | default: 64 }}px; --mp-sx: {{ s.s_cx | default: 13.5 }}%; --mp-sy: {{ s.s_cy | default: 27 }}%; --mp-sr: {{ s.s_r | default: 9 }}%; --mp-mx: {{ s.m_cx | default: 82.5 }}%; --mp-my: {{ s.m_cy | default: 26.5 }}%; --mp-mr: {{ s.m_r | default: 14 }}%; --mp-lx: {{ s.l_cx | default: 45.5 }}%; --mp-ly: {{ s.l_cy | default: 26 }}%; --mp-lr: {{ s.l_r | default: 17.5 }}%;"
+>
+  <div class="casa-mp__cap">
+    <header class="casa-mp__head">
+      {%- if s.kicker != blank -%}<p class="casa-mp__mono">{{ s.kicker | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="casa-mp__h2">{{ s.heading }}</h2>{%- endif -%}
+      {%- if s.lede != blank -%}<p class="casa-mp__lede">{{ s.lede | escape }}</p>{%- endif -%}
+    </header>
+
+    <div class="casa-mp__grid">
+      <div class="casa-mp__stagewrap">
+        <div class="casa-mp__stage" data-casa-mp-stage data-size="{{ default_size }}">
+          {%- if s.image != blank -%}
+            {{ s.image | image_url: width: 2000 | image_tag:
+              widths: '480, 768, 1080, 1440, 2000',
+              sizes: '(min-width: 990px) 60vw, 100vw',
+              loading: 'lazy',
+              decoding: 'async',
+              class: 'casa-mp__img',
+              alt: s.image_alt | default: 'All three Infinity OctaMirror sizes lit on one wall above a console: 11.8, 19.7 and 27.6 inches' }}
+          {%- endif -%}
+          <div class="casa-mp__veil casa-mp__veil--s" aria-hidden="true"></div>
+          <div class="casa-mp__veil casa-mp__veil--m" aria-hidden="true"></div>
+          <div class="casa-mp__veil casa-mp__veil--l" aria-hidden="true"></div>
+          <span class="casa-mp__tag casa-mp__tag--s" aria-hidden="true">11.8 in · 30 cm</span>
+          <span class="casa-mp__tag casa-mp__tag--m" aria-hidden="true">19.7 in · 50 cm</span>
+          <span class="casa-mp__tag casa-mp__tag--l" aria-hidden="true">27.6 in · 70 cm</span>
+        </div>
+      </div>
+
+      <div class="casa-mp__panel">
+        <div class="casa-mp__chips" role="group" aria-label="Mirror size">
+          {%- for size in sizes_in -%}
+            {%- assign price_out = '' -%}
+            {%- for v in product.variants -%}
+              {%- if v.title contains size -%}{%- assign price_out = v.price | money -%}{%- endif -%}
+            {%- endfor -%}
+            <button type="button" class="casa-mp__chip" data-casa-mp-size="{{ size }}" aria-pressed="{% if size == default_size %}true{% else %}false{% endif %}">
+              <span class="casa-mp__chip-in">{{ size }} in</span>
+              <span class="casa-mp__chip-sub">{{ sizes_cm[forloop.index0] }} cm{% if price_out != blank %} · {{ price_out }}{% endif %}</span>
+              {%- if size == s.popular_size and s.popular_label != blank -%}<span class="casa-mp__chip-note">{{ s.popular_label | escape }}</span>{%- endif -%}
+            </button>
+          {%- endfor -%}
+        </div>
+        {%- if s.depth_line != blank -%}<p class="casa-mp__note">{{ s.depth_line | escape }}</p>{%- endif -%}
+        <a class="btn btn-tertiary casa-mp__jump" href="#MainContent" data-casa-mp-jump>{{ s.jump_label | default: 'Back to buy' | escape }}</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  (function () {
+    'use strict';
+    var root = document.getElementById('casa-mp-{{ uid }}');
+    if (!root || root.dataset.casaMpInit === '1') return;
+    root.dataset.casaMpInit = '1';
+    var stage = root.querySelector('[data-casa-mp-stage]');
+    var chips = Array.prototype.slice.call(root.querySelectorAll('[data-casa-mp-size]'));
+    function show(size, fromPicker) {
+      stage.setAttribute('data-size', size);
+      chips.forEach(function (c) { c.setAttribute('aria-pressed', String(c.dataset.casaMpSize === size)); });
+      if (!fromPicker && window.casa && window.casa.pdpEvent) window.casa.pdpEvent('size_interaction', { section: 'presence', label: size });
+    }
+    function selectVariant(size) {
+      var picker = document.querySelector('variant-picker');
+      if (!picker) return;
+      var inputs = Array.prototype.slice.call(picker.querySelectorAll('input[type="radio"], option'));
+      var hit = inputs.filter(function (i) { return (i.value || i.textContent || '').indexOf(size) !== -1; })[0];
+      if (!hit) return;
+      if (hit.tagName === 'OPTION') { hit.parentNode.value = hit.value; hit.parentNode.dispatchEvent(new Event('change', { bubbles: true })); }
+      else if (!hit.checked) { hit.click(); }
+    }
+    chips.forEach(function (c) { c.addEventListener('click', function () { show(c.dataset.casaMpSize, false); selectVariant(c.dataset.casaMpSize); }); });
+    document.addEventListener('variant:update', function (e) {
+      var r = (e.detail && (e.detail.resource || e.detail.variant)) || null;
+      var m = (r && r.title ? String(r.title) : '').match(/11\.8|19\.7|27\.6/);
+      if (m) show(m[0], true);
+    });
+    var jump = root.querySelector('[data-casa-mp-jump]');
+    if (jump) jump.addEventListener('click', function (ev) {
+      var form = document.querySelector('product-form, .product-form, form[action*="/cart/add"]');
+      if (form) { ev.preventDefault(); form.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    });
+  })();
+</script>
+
+{% stylesheet %}
+  .casa-mp { background: var(--bg-paper, #FAFAF7); color: var(--t-on-light, #0A0A0F); padding-block: var(--casa-mp-pt) var(--casa-mp-pb); }
+  .casa-mp__cap { max-width: 1280px; margin-inline: auto; padding-inline: clamp(20px, 5vw, 48px); }
+  .casa-mp__head { max-width: 42ch; margin-bottom: clamp(24px, 4vw, 40px); }
+  .casa-mp__mono { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--t-on-light-muted, #54545C); margin: 0 0 12px; }
+  .casa-mp__h2 { font-family: var(--casa-pdp-h2-family); font-weight: var(--casa-pdp-h2-weight); font-size: var(--casa-pdp-h2-size); letter-spacing: var(--casa-pdp-h2-tracking); line-height: var(--casa-pdp-h2-line); margin: 0; text-wrap: balance; }
+  .casa-mp__h2 em { font-style: italic; font-weight: 800; background-image: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; padding-right: 0.05em; }
+  .casa-mp__lede { font-family: var(--font-body--family); font-size: 16px; line-height: 1.5; color: var(--t-on-light-muted, #54545C); margin: 12px 0 0; max-width: 46ch; }
+
+  .casa-mp__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .casa-mp__stagewrap { margin-inline: calc(-1 * clamp(20px, 5vw, 48px)); }
+  .casa-mp__stage { position: relative; aspect-ratio: 1 / 1; overflow: hidden; background: #101018; }
+  .casa-mp__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* Three veils, each already masked around one mirror; the stage's data-size fades the right one in. */
+  .casa-mp__veil { position: absolute; inset: 0; background: rgba(10, 10, 15, 0.62); opacity: 0; transition: opacity 360ms var(--ease-out, ease); pointer-events: none; }
+  .casa-mp__veil--s { -webkit-mask-image: radial-gradient(circle at var(--mp-sx) var(--mp-sy), transparent var(--mp-sr), #000 calc(var(--mp-sr) + 7%)); mask-image: radial-gradient(circle at var(--mp-sx) var(--mp-sy), transparent var(--mp-sr), #000 calc(var(--mp-sr) + 7%)); }
+  .casa-mp__veil--m { -webkit-mask-image: radial-gradient(circle at var(--mp-mx) var(--mp-my), transparent var(--mp-mr), #000 calc(var(--mp-mr) + 7%)); mask-image: radial-gradient(circle at var(--mp-mx) var(--mp-my), transparent var(--mp-mr), #000 calc(var(--mp-mr) + 7%)); }
+  .casa-mp__veil--l { -webkit-mask-image: radial-gradient(circle at var(--mp-lx) var(--mp-ly), transparent var(--mp-lr), #000 calc(var(--mp-lr) + 7%)); mask-image: radial-gradient(circle at var(--mp-lx) var(--mp-ly), transparent var(--mp-lr), #000 calc(var(--mp-lr) + 7%)); }
+  .casa-mp__stage[data-size="11.8"] .casa-mp__veil--s, .casa-mp__stage[data-size="19.7"] .casa-mp__veil--m, .casa-mp__stage[data-size="27.6"] .casa-mp__veil--l { opacity: 1; }
+  .casa-mp__tag { position: absolute; transform: translate(-50%, 0); font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #FAFAF7; opacity: 0; transition: opacity 360ms; white-space: nowrap; }
+  .casa-mp__tag--s { left: var(--mp-sx); top: calc(var(--mp-sy) + var(--mp-sr) + 5%); }
+  .casa-mp__tag--m { left: var(--mp-mx); top: calc(var(--mp-my) + var(--mp-mr) + 5%); }
+  .casa-mp__tag--l { left: var(--mp-lx); top: calc(var(--mp-ly) + var(--mp-lr) + 5%); }
+  .casa-mp__stage[data-size="11.8"] .casa-mp__tag--s, .casa-mp__stage[data-size="19.7"] .casa-mp__tag--m, .casa-mp__stage[data-size="27.6"] .casa-mp__tag--l { opacity: 1; }
+
+  .casa-mp__chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--border-on-light, rgba(10,10,15,0.14)); border-bottom: 1px solid var(--border-on-light, rgba(10,10,15,0.14)); }
+  .casa-mp__chip { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-height: 64px; padding: 12px 8px 12px 0; background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; color: inherit; text-align: left; cursor: pointer; font-family: var(--font-body--family); }
+  .casa-mp__chip[aria-pressed="true"] { border-bottom-color: #0A0A0F; }
+  .casa-mp__chip:focus-visible { outline: 2px solid var(--c-purple, #B0C3FA); outline-offset: 2px; }
+  .casa-mp__chip-in { font-size: 18px; font-weight: 500; letter-spacing: -0.01em; }
+  .casa-mp__chip[aria-pressed="false"] .casa-mp__chip-in { color: var(--t-on-light-muted, #54545C); }
+  .casa-mp__chip-sub { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--t-on-light-muted, #54545C); }
+  .casa-mp__chip-note { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-purple, #B0C3FA); }
+  .casa-mp__note { font-family: var(--font-body--family); font-size: 14px; line-height: 1.5; color: var(--t-on-light-muted, #54545C); margin: 14px 0 0; max-width: 46ch; text-wrap: pretty; }
+  .casa-mp__jump { margin-top: 10px; }
+
+  @media (min-width: 990px) {
+    .casa-mp__grid { grid-template-columns: minmax(0, 60fr) minmax(0, 40fr); gap: 48px; align-items: center; }
+    .casa-mp__stagewrap { margin-inline: 0; }
+    .casa-mp__chips { grid-template-columns: minmax(0, 1fr); border-bottom: 0; }
+    .casa-mp__chip { flex-direction: row; align-items: baseline; gap: 14px; min-height: 60px; border-bottom: 1px solid var(--border-on-light, rgba(10,10,15,0.14)); margin-bottom: 0; padding: 16px 0; }
+    .casa-mp__chip[aria-pressed="true"] { border-bottom-color: var(--border-on-light, rgba(10,10,15,0.14)); }
+    .casa-mp__chip[aria-pressed="true"] .casa-mp__chip-in { text-decoration: underline; text-decoration-color: var(--c-pink, #5E0A02); text-underline-offset: 6px; }
+    .casa-mp__chip-note { margin-left: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) { .casa-mp__veil, .casa-mp__tag { transition: none; } }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Mirror Presence v4",
+  "tag": "section",
+  "class": "casa-mirror-presence-section",
+  "settings": [
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "05 · Find your size" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "One wall. <em>Three sizes.</em>" },
+    { "type": "textarea", "id": "lede", "label": "Lede", "default": "Tap a size. The buy box follows." },
+    { "type": "header", "content": "The three-size frame" },
+    { "type": "image_picker", "id": "image", "label": "Photo: all three sizes on one wall, one camera" },
+    { "type": "text", "id": "image_alt", "label": "Alt text" },
+    { "type": "header", "content": "Where each mirror sits (% of the image)" },
+    { "type": "number", "id": "s_cx", "label": "Small centre X", "default": 13.5 }, { "type": "number", "id": "s_cy", "label": "Small centre Y", "default": 27 }, { "type": "number", "id": "s_r", "label": "Small radius", "default": 9 },
+    { "type": "number", "id": "m_cx", "label": "Medium centre X", "default": 82.5 }, { "type": "number", "id": "m_cy", "label": "Medium centre Y", "default": 26.5 }, { "type": "number", "id": "m_r", "label": "Medium radius", "default": 14 },
+    { "type": "number", "id": "l_cx", "label": "Large centre X", "default": 45.5 }, { "type": "number", "id": "l_cy", "label": "Large centre Y", "default": 26 }, { "type": "number", "id": "l_r", "label": "Large radius", "default": 17.5 },
+    { "type": "header", "content": "Copy" },
+    { "type": "text", "id": "popular_size", "label": "Most-chosen size (11.8, 19.7 or 27.6)", "default": "27.6" },
+    { "type": "text", "id": "popular_label", "label": "Most-chosen label", "default": "Most chosen" },
+    { "type": "text", "id": "depth_line", "label": "Line under the sizes", "default": "All three are 5 in deep and hang on the included wall bracket." },
+    { "type": "text", "id": "jump_label", "label": "Jump link label", "default": "Back to buy" },
+    { "type": "header", "content": "Layout" },
+    { "type": "range", "id": "padding_top", "label": "Top padding", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 72 },
+    { "type": "range", "id": "padding_bottom", "label": "Bottom padding", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 64 }
+  ],
+  "presets": [ { "name": "Casa Mirror Presence v4", "category": "Product" } ]
+}
+{% endschema %}

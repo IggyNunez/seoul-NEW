@@ -1,42 +1,288 @@
 {% # theme-check-disable %}
+{%- comment -%}
+  ─────────────────────────────────────────────────────────────────────
+  METRICS-MATCHED FALLBACKS (FOUT size-jump fix)
+  ─────────────────────────────────────────────────────────────────────
+  2026-07-03 ROOT CAUSE UPDATE: the recurring site-wide "text shifts
+  size/shape on load" was NOT a FOUT and none of the tuning below could
+  ever fix it. Klaviyo's onsite-forms script injects
+  <style id="kl-custom-fonts"> importing Google Fonts Inter
+  (display=swap) under the SAME family name "Inter" — later-declared
+  faces win, and Google's Inter build is ~6% wider than Shopify's, so
+  the whole page re-rendered ~2s after paint. Fix: theme fonts are now
+  declared under the private family "<family> Casa" (see
+  snippets/casa-font-face.liquid) which app-injected fonts cannot
+  capture. The fallbacks below remain for genuine slow-network FOUT.
+  ─────────────────────────────────────────────────────────────────────
+  When a web font loads after first paint, the system fallback renders
+  at one set of glyph metrics and the loaded font renders at a different
+  set — even at the same `font-size` in CSS. The visible result is a
+  layout/size jump on swap (text appears small, then enlarges when the
+  web font kicks in). `font-display: optional` is supposed to prevent
+  swaps, but the browser still shows the fallback briefly during the
+  100ms block period, and on slow paints the size difference is plainly
+  visible (per the screen recording attached to the FOUT report).
+
+  Solution: declare a synthetic `<font> Fallback` family that points at a
+  system font (Arial / Helvetica) but applies size-adjust + ascent /
+  descent / line-gap overrides chosen so its rendered glyph box matches
+  the real font's. Add the synthetic family to the font stack ahead of
+  the generic sans-serif. Now when the fallback paints, it occupies the
+  same vertical space as the real font — when the real font swaps in,
+  nothing reflows. (Recipe values come from Next.js's well-tested font
+  fallback table for the corresponding font family.)
+
+  Currently we're only doing this for Inter (the merchant's heading
+  font, see config/settings_data.json: type_heading_font = "inter_n7").
+  If the merchant switches the heading family in Shopify, this fallback
+  becomes a no-op (the font stack still references "Inter Fallback" but
+  the metrics no longer match the new family) — at worst we degrade to
+  the FOUT we had before this fix. To re-tune for a different family,
+  measure empirically: render the same word with the loaded font vs
+  Arial-with-different-size-adjust values and pick the value that
+  matches widths within 0.5%.
+
+  CALIBRATED VALUES (size-adjust: 113%, ascent-override: 95%): the
+  generic Next.js Inter recipe (size-adjust: 107.4%, ascent: 90.2%)
+  undershot by ~5.8% on Shopify's CDN-served Inter italic at the hero
+  accent's actual font-size and weight. Live measurement of "Light" at
+  font-size: 108px / weight 700 / italic showed:
+    Inter (loaded):   243.97px wide
+    Arial @ 107.4%:   229.92px wide  (-5.76%)  ← was visibly smaller
+    Arial @ 113%:     243.04px wide  (-0.38%)  ← chosen
+    Arial @ 114%:     245.38px wide  (+0.58%)  ← also acceptable
+  113% sits within 1px of the loaded font's width — no perceptible
+  size jump on swap.
+{%- endcomment -%}
+<style>
+  /*
+    REVERTED 2026-05-12: I tried to "improve" this with a fallback
+    chain like `local('-apple-system'), local('BlinkMacSystemFont'),
+    local('Segoe UI'), local('Roboto'), local('Arial')` thinking it
+    would prefer the system font (SF on iOS) for tighter shape
+    match. That broke iOS Safari — `-apple-system` and
+    `BlinkMacSystemFont` are CSS font-family KEYWORDS, NOT real
+    font names that `local()` accepts. iOS Safari treats the whole
+    @font-face as malformed when it hits invalid local() arguments
+    and pulls text invisible until a scroll-triggered repaint.
+
+    Going back to the calibrated, working version:
+    Arial only. The size-adjust 113% was measured against Arial
+    specifically and verified to within 0.4% width match on the
+    hero accent.
+
+    If we want true SF-on-iOS shape matching later, the correct
+    approach is a UA-conditional fallback (Liquid or
+    media-query-prefers-color-scheme-style detection) — NOT
+    passing CSS keywords to local().
+  */
+  /*
+    2026-05-12: REMOVED `ascent-override`, `descent-override`,
+    `line-gap-override` from both blocks. iOS Safari does not
+    support these descriptors (WebKit bug 219735, status: NEW,
+    unresolved as of April 2025). They were silently dropped on
+    every iPhone — which left iOS with a PARTIAL metric match
+    (width via size-adjust 113%, but ascent / descent / line-gap
+    using Arial's native values). When real Inter swapped in,
+    width stayed the same but the vertical metrics jumped, which
+    is exactly what the user reported as "font sizes change
+    rapidly on initial load."
+
+    Per multi-agent research consensus (caniuse, WebKit bug
+    tracker, Shopify Dawn / Horizon themes, Stripe / Linear /
+    Vercel implementations, Capsize docs):
+
+      - `size-adjust` — supported in iOS Safari 17.0+ (Sept 2023).
+        KEEP. Matches width across all platforms.
+      - `ascent-override` — NOT supported in any iOS Safari.
+        REMOVE — causes partial-match jump on iOS.
+      - `descent-override` — same. REMOVE.
+      - `line-gap-override` — same. REMOVE.
+
+    Without the three unsupported descriptors, Arial uses its
+    native vertical metrics on both platforms. Inter's vertical
+    metrics are close enough to Arial's that the post-swap shift
+    is barely perceptible — far less than the previous "width
+    matched but height jumps" partial state.
+
+    DO NOT re-add these descriptors until the WebKit bug is
+    resolved AND the merchant's iOS minimum is bumped to that
+    Safari version.
+
+    Why we don't self-host Inter as a theme asset: the same agent
+    research established that fonts.shopifycdn.com is the same
+    edge as cdn.shopify.com, Dawn + Horizon both use Shopify's
+    font_face filter, and self-hosting loses Shopify's per-store
+    subsetting. Self-hosting is more work for ~zero benefit.
+  */
+  /*
+    2026-05-12 split: one fallback per style (Next.js pattern).
+    113% was calibrated for italic-700 at 108px (the hero accent
+    word "Light") and matches Inter italic within 0.4%. But Arial
+    UPRIGHT vs Inter UPRIGHT has a different aspect ratio than
+    their italic counterparts — at 113% the H1 upright lines
+    were over-widened, producing a visible narrow-on-swap when
+    Inter loaded inside font-display: optional's ~100ms window.
+
+    Upright now uses 107% (Next.js generic Inter recipe, close
+    match for Arial-upright vs Inter-upright). Italic stays at
+    113% (empirically validated for the accent). Selectors that
+    need the italic match must explicitly request
+    'Inter Fallback Italic' — see .casa-hero__title-gradient.
+  */
+  @font-face {
+    font-family: 'Inter Fallback';
+    src: local('Arial');
+    size-adjust: 107%;
+  }
+  @font-face {
+    font-family: 'Inter Fallback Italic';
+    src: local('Arial Italic'), local('Arial');
+    font-style: italic;
+    size-adjust: 113%;
+  }
+</style>
+{%- comment -%}
+  All font preloads stay at fetchpriority="high".
+
+  REVERTED 2026-05-11: an earlier attempt downgraded body / subheading /
+  accent fonts to fetchpriority="low" on the theory that the LCP image
+  was competing for HTTP/2 high-priority slots. That broke iOS Safari:
+  the hero title is hidden via opacity:0 until JS adds `.fonts-ready`,
+  which is gated by `document.fonts.ready`. That promise waits for ALL
+  @font-face fonts to settle — including body / subheading / accent.
+  Downgrading those fonts to "low" priority extended the wait window
+  on slow iOS connections from ~1 second to ~10 seconds, leaving the
+  title invisible for the entire load.
+
+  The merchant's recorded iOS reproduction (10 second invisible-title
+  window) traced directly to this regression. Going back to all-high
+  preloads costs ~3 high-priority HTTP/2 slots that the LCP image
+  could otherwise own, but the alternative is broken title rendering
+  on iOS Safari — unacceptable. To free those slots without breaking
+  iOS, the proper fix is to change the JS to check ONLY the heading +
+  heading-bold-italic fonts (via document.fonts.check()) instead of
+  document.fonts.ready (which waits for all). That's a separate change.
+{%- endcomment -%}
+{%- comment -%}
+  Preload dedup tracker. When two font slots resolve to the same file
+  (e.g. merchant has both `type_heading_font` and `type_accent_font`
+  set to Inter weight 700 → both resolve to `inter_n7.woff2`) the
+  browser would otherwise see two `<link rel="preload">` for the same
+  URL — wasted HTTP/2 high-priority slot, duplicate entry in the
+  resource graph, and a Lighthouse "Avoid multiple preloads for the
+  same resource" finding. Track URLs as we render and skip dupes.
+  Same dedup pattern as theme-styles-variables.liquid's
+  `rendered_fonts` tracker for `font_face` calls.
+{%- endcomment -%}
+{%- assign rendered_preload_urls = '' -%}
+
 {%- unless settings.type_body_font.system? -%}
-  <link
-    rel="preload"
-    as="font"
-    href="{{ settings.type_body_font | font_url }}"
-    type="font/woff2"
-    crossorigin
-    fetchpriority="low"
-  >
+  {%- assign body_url = settings.type_body_font | font_url -%}
+  {%- unless rendered_preload_urls contains body_url -%}
+    <link
+      rel="preload"
+      as="font"
+      href="{{ body_url }}"
+      type="font/woff2"
+      crossorigin
+      fetchpriority="high"
+    >
+    {%- assign rendered_preload_urls = rendered_preload_urls | append: body_url | append: '|' -%}
+  {%- endunless -%}
+  {%- comment -%}
+    Light (300) variant of the body font — used by .cpm__title on
+    PDPs (block: casa-title.liquid) as the visible product title.
+    Without preload + real @font-face, the browser synthesizes Light
+    from Regular and produces a visible mid-paint swap when Inter
+    finally loads (Elie reported 2026-05-14 on Apōllō Floor Lamp).
+    Real @font-face for 300 is declared in theme-styles-variables.liquid.
+  {%- endcomment -%}
+  {%- assign body_light = settings.type_body_font | font_modify: 'weight', '300' -%}
+  {%- if body_light and body_light.system? == false -%}
+    {%- assign body_light_url = body_light | font_url -%}
+    {%- unless rendered_preload_urls contains body_light_url -%}
+      <link
+        rel="preload"
+        as="font"
+        href="{{ body_light_url }}"
+        type="font/woff2"
+        crossorigin
+        fetchpriority="high"
+      >
+      {%- assign rendered_preload_urls = rendered_preload_urls | append: body_light_url | append: '|' -%}
+    {%- endunless -%}
+  {%- endif -%}
 {%- endunless -%}
 {%- unless settings.type_subheading_font.system? -%}
-  <link
-    rel="preload"
-    as="font"
-    href="{{ settings.type_subheading_font | font_url }}"
-    type="font/woff2"
-    crossorigin
-    fetchpriority="low"
-  >
+  {%- assign subheading_url = settings.type_subheading_font | font_url -%}
+  {%- unless rendered_preload_urls contains subheading_url -%}
+    <link
+      rel="preload"
+      as="font"
+      href="{{ subheading_url }}"
+      type="font/woff2"
+      crossorigin
+      fetchpriority="high"
+    >
+    {%- assign rendered_preload_urls = rendered_preload_urls | append: subheading_url | append: '|' -%}
+  {%- endunless -%}
 {%- endunless -%}
 {%- unless settings.type_heading_font.system? -%}
-  <link
-    rel="preload"
-    as="font"
-    href="{{ settings.type_heading_font | font_url }}"
-    type="font/woff2"
-    crossorigin
-    fetchpriority="low"
-  >
+  {%- assign heading_url = settings.type_heading_font | font_url -%}
+  {%- unless rendered_preload_urls contains heading_url -%}
+    <link
+      rel="preload"
+      as="font"
+      href="{{ heading_url }}"
+      type="font/woff2"
+      crossorigin
+      fetchpriority="high"
+    >
+    {%- assign rendered_preload_urls = rendered_preload_urls | append: heading_url | append: '|' -%}
+  {%- endunless -%}
+  {%- comment -%}
+    Hero accent word ("Light" on the homepage) and every section H2
+    italic-gradient `<em>` accent (brand book) use heading font at
+    weight 700 + italic. Without preloading the bold-italic variant
+    the browser briefly renders a lighter-weight italic on first
+    paint before swapping (visible FOUT). The `font-display: optional`
+    set in theme-styles-variables.liquid makes the swap less common,
+    but `optional` still allows the font to apply if it arrives
+    within the first paint window — which is exactly when the swap
+    was happening here. Preloading the bold-italic variant closes
+    that window so the correct weight is on the very first frame.
+    Used site-wide (not homepage-only) because every section H2
+    carries an italic-gradient `<em>` accent per the brand book.
+  {%- endcomment -%}
+  {%- assign heading_bold_italic = settings.type_heading_font | font_modify: 'weight', 'bold' | font_modify: 'style', 'italic' -%}
+  {%- if heading_bold_italic and heading_bold_italic.system? == false -%}
+    {%- assign hbi_url = heading_bold_italic | font_url -%}
+    {%- unless rendered_preload_urls contains hbi_url -%}
+      <link
+        rel="preload"
+        as="font"
+        href="{{ hbi_url }}"
+        type="font/woff2"
+        crossorigin
+        fetchpriority="high"
+      >
+      {%- assign rendered_preload_urls = rendered_preload_urls | append: hbi_url | append: '|' -%}
+    {%- endunless -%}
+  {%- endif -%}
 {%- endunless -%}
 {%- unless settings.type_accent_font.system? -%}
-  <link
-    rel="preload"
-    as="font"
-    href="{{ settings.type_accent_font | font_url }}"
-    type="font/woff2"
-    crossorigin
-    fetchpriority="low"
-  >
+  {%- assign accent_url = settings.type_accent_font | font_url -%}
+  {%- unless rendered_preload_urls contains accent_url -%}
+    <link
+      rel="preload"
+      as="font"
+      href="{{ accent_url }}"
+      type="font/woff2"
+      crossorigin
+      fetchpriority="high"
+    >
+    {%- assign rendered_preload_urls = rendered_preload_urls | append: accent_url | append: '|' -%}
+  {%- endunless -%}
 {%- endunless -%}
 {% # theme-check-enable %}

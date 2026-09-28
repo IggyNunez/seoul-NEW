@@ -1,0 +1,957 @@
+{%- comment -%}
+  casa-sizing-cube.liquid (v2 — premium redesign)
+  -----------------------------------------------
+  Dedicated sizing-strip section for the Infinity Cube + future tabletop
+  sculpture archetypes (Pyramid, AuraRing). 3 size cards at relative
+  visual scale, dynamic variant pricing via `money_with_currency`
+  (matches the canonical mirror sizing strip's currency pattern),
+  polished hover/featured states, brand-token surfaces.
+
+  Improvements over v1:
+    • Photos CONTAINED — scale applied to height (not width) inside a
+      fixed-height visual area, so they never overflow the card
+    • Prices pulled from `product.variants[N]` with money_with_currency
+      (no static text strings — international shoppers see correct ISO)
+    • Compare-at-price + savings badge per card when set
+    • Hover state: gradient border accent + subtle lift
+    • Featured state: gradient border + accent tag
+    • Number-tabular figures for dimensions (no layout shift)
+    • Mobile-tight: 3 cards stay inline at 375px; touch targets ≥44px
+
+  Brand tokens:
+    Ink #0A0A0F surface (Portal mood)
+    Brand gradient (purple→pink→cyan) on accent + border + hover
+    Inter typography · JetBrains Mono kicker + context tag
+    Tight padding clamp(40-72px) for editorial density
+
+  Reference patterns:
+    • Money formatting: sections/casa-sizing.liquid §money_with_currency
+    • Brand palette: docs/brand-book-v1.html §02 surfaces, §03 typography
+    • ui-ux-pro-max: number-tabular · state-clarity · touch-target ≥44px
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+  assign bg = s.color_bg | default: '#0A0A0F'
+  assign fg = s.color_text | default: '#FAFAF7'
+  assign muted = s.color_muted | default: '#A1A1AA'
+  assign line = 'rgba(255,255,255,0.10)'
+  assign purple = '#9333EA'
+  assign pink = '#EC4899'
+  assign cyan = '#06B6D4'
+
+  comment
+    Pull product variants for live, currency-aware pricing.
+    Position-based: block 1 → variants[0], block 2 → variants[1], etc.
+  endcomment
+  assign vlist = product.variants
+
+  comment
+    Surface-aware primary-CTA treatment. The merchant controls this
+    section's surface via color_bg (defaults to Ink). The per-size
+    Add to cart button must match the site's standard primary button
+    on whichever surface it lands on: ink .btn-primary on Paper/light,
+    white .btn-primary-on-dark on Ink/dark. color_brightness > 127 = light.
+  endcomment
+  assign bg_brightness = bg | color_brightness
+  if bg_brightness > 127
+    assign atc_btn_class = 'btn btn-primary btn-sm'
+  else
+    assign atc_btn_class = 'btn btn-primary-on-dark btn-sm'
+  endif
+-%}
+
+<section
+  id="casa-sz-cube-{{ section.id }}"
+  class="casa-sz-cube"
+  style="
+    --casa-sz-cube-bg: {{ bg }};
+    --casa-sz-cube-fg: {{ fg }};
+    --casa-sz-cube-muted: {{ muted }};
+    --casa-sz-cube-line: {{ line }};
+    --casa-sz-cube-purple: {{ purple }};
+    --casa-sz-cube-pink: {{ pink }};
+    --casa-sz-cube-cyan: {{ cyan }};
+    --casa-sz-cube-pt: {{ s.padding_top | default: 64 }}px;
+    --casa-sz-cube-pb: {{ s.padding_bottom | default: 64 }}px;
+  "
+>
+  <div class="casa-sz-cube__wrap">
+    <header class="casa-sz-cube__head">
+      {%- if s.kicker != blank -%}
+        <p class="casa-sz-cube__kicker">{{ s.kicker }}</p>
+      {%- endif -%}
+      {%- if s.heading != blank -%}
+        <h2 class="casa-sz-cube__h2">{{ s.heading }}</h2>
+      {%- endif -%}
+      {%- if s.lede != blank -%}
+        <p class="casa-sz-cube__lede">{{ s.lede }}</p>
+      {%- endif -%}
+    </header>
+
+    <div class="casa-sz-cube__row-wrap">
+    <div class="casa-sz-cube__row">
+      {%- for block in section.blocks -%}
+        {%- comment -%} Resolve price: live variant pricing only (canonical mirror pattern) {%- endcomment -%}
+        {%- assign vidx = forloop.index0 -%}
+        {%- assign v = vlist[vidx] -%}
+        {%- assign price_html = '' -%}
+        {%- assign was_html = '' -%}
+        {%- assign show_was = false -%}
+        {%- if v -%}
+          {%- assign price_html = v.price | money_with_currency | strip_html -%}
+          {%- if v.compare_at_price > v.price -%}
+            {%- assign was_html = v.compare_at_price | money_with_currency | strip_html -%}
+            {%- assign show_was = true -%}
+          {%- endif -%}
+        {%- endif -%}
+
+        {%- assign featured_class = '' -%}
+        {%- if block.settings.is_featured -%}
+          {%- assign featured_class = ' is-featured' -%}
+        {%- endif -%}
+
+        <div class="casa-sz-cube__card{{ featured_class }}" data-scale-pct="{{ block.settings.scale_pct | default: 70 }}" {{ block.shopify_attributes }}>
+          {%- if block.settings.is_featured and block.settings.featured_label != blank -%}
+            <span class="casa-sz-cube__featured-tag">{{ block.settings.featured_label }}</span>
+          {%- endif -%}
+
+          <div class="casa-sz-cube__visual">
+            {%- if block.settings.image != blank -%}
+              <div class="casa-sz-cube__photo" style="height: {{ block.settings.scale_pct | default: 70 }}%;">
+                {{
+                  block.settings.image
+                  | image_url: width: 600
+                  | image_tag:
+                      loading: 'lazy',
+                      decoding: 'async',
+                      widths: '300,450,600',
+                      sizes: '(min-width: 700px) 25vw, 33vw',
+                      alt: block.settings.name
+                }}
+              </div>
+            {%- else -%}
+              <div class="casa-sz-cube__photo casa-sz-cube__photo--placeholder" style="height: {{ block.settings.scale_pct | default: 70 }}%;"></div>
+            {%- endif -%}
+          </div>
+
+          <div class="casa-sz-cube__meta">
+            {%- if block.settings.name != blank -%}
+              <h3 class="casa-sz-cube__name">{{ block.settings.name }}</h3>
+            {%- endif -%}
+
+            {%- if block.settings.dim_imperial != blank or block.settings.dim_metric != blank -%}
+              <div class="casa-sz-cube__dim">
+                {%- if block.settings.dim_imperial != blank -%}
+                  <span class="casa-sz-cube__dim-line">{{ block.settings.dim_imperial }}</span>
+                {%- endif -%}
+                {%- if block.settings.dim_metric != blank -%}
+                  <span class="casa-sz-cube__dim-line casa-sz-cube__dim-line--metric">{{ block.settings.dim_metric }}</span>
+                {%- endif -%}
+              </div>
+            {%- endif -%}
+
+            {%- if block.settings.context != blank -%}
+              <span class="casa-sz-cube__context">{{ block.settings.context }}</span>
+            {%- endif -%}
+
+            {%- if price_html != blank -%}
+              <div class="casa-sz-cube__price-row">
+                <span class="casa-sz-cube__price">{{ price_html }}</span>
+                {%- if show_was -%}
+                  <span class="casa-sz-cube__was">{{ was_html }}</span>
+                {%- endif -%}
+              </div>
+            {%- endif -%}
+
+            {%- comment -%} Direct add-to-cart for THIS size's variant.
+              Progressive enhancement: the <a href> navigates to the
+              variant URL if JS is off/fails; the script intercepts and
+              adds via /cart/add.js, then opens the cart drawer. {%- endcomment -%}
+            {%- if v -%}
+              {%- if v.available -%}
+                <a
+                  class="casa-sz-cube__atc {{ atc_btn_class }}"
+                  href="{{ v.url }}"
+                  data-casa-szcube-atc="{{ v.id }}"
+                  aria-label="Add {{ block.settings.name | default: v.title | escape }} to cart"
+                >
+                  <span class="casa-sz-cube__atc-label" aria-live="polite">Add to cart</span>
+                </a>
+              {%- else -%}
+                <span class="casa-sz-cube__atc casa-sz-cube__atc--soldout" aria-disabled="true">Sold out</span>
+              {%- endif -%}
+            {%- endif -%}
+          </div>
+        </div>
+      {%- endfor -%}
+    </div>
+    {%- comment -%} Mobile-only carousel nav. Desktop shows all 3 cards in a
+      grid so the arrows are hidden there. Real <button>s = keyboard/AT
+      operable; the script scroll-snaps the row prev/next on tap. {%- endcomment -%}
+    <div class="casa-sz-cube__nav">
+      <button type="button" class="casa-sz-cube__arrow casa-sz-cube__arrow--prev" data-casa-szcube-prev aria-label="Previous size">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button type="button" class="casa-sz-cube__arrow casa-sz-cube__arrow--next" data-casa-szcube-next aria-label="Next size">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    </div>
+  </div>
+</section>
+
+{%- stylesheet -%}
+.casa-sz-cube {
+  background: var(--casa-sz-cube-bg);
+  color: var(--casa-sz-cube-fg);
+  padding-top: var(--casa-sz-cube-pt);
+  padding-bottom: var(--casa-sz-cube-pb);
+  position: relative;
+  font-family: var(--font-body--family);
+  /* Tabular figures globally for the section — prices + dims */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* Chapter seam — thin brand-gradient hairline at top of section */
+.casa-sz-cube::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  width: clamp(120px, 14vw, 200px);
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(176, 195, 250, 0.55),
+    rgba(94, 10, 2, 0.55),
+    rgba(242, 255, 160, 0.55),
+    transparent
+  );
+}
+
+.casa-sz-cube__wrap {
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 3vw, 32px);
+  box-sizing: border-box;
+}
+
+/* ─── Header ─────────────────────────────────────── */
+.casa-sz-cube__head {
+  text-align: center;
+  margin-bottom: clamp(32px, 4vw, 56px);
+}
+.casa-sz-cube__kicker {
+  font: 500 11px/1 'JetBrains Mono', monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--casa-sz-cube-muted);
+  margin: 0 0 14px;
+}
+.casa-sz-cube__h2 {
+  font: 600 clamp(32px, 4.5vw, 56px)/1.05 var(--font-body--family);
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--casa-sz-cube-fg);
+}
+.casa-sz-cube__h2 em {
+  font-style: italic;
+  font-weight: 800;
+  background: linear-gradient(95deg,
+    var(--casa-sz-cube-purple) 0%,
+    var(--casa-sz-cube-pink) 50%,
+    var(--casa-sz-cube-cyan) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.casa-sz-cube__lede {
+  color: var(--casa-sz-cube-muted);
+  max-width: 540px;
+  margin: 12px auto 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* ─── Card row ──────────────────────────────────── */
+.casa-sz-cube__row {
+  display: grid;
+  gap: clamp(12px, 1.5vw, 20px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+/* ─── Card ──────────────────────────────────────── */
+.casa-sz-cube__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--casa-sz-cube-line);
+  border-radius: 2px;
+  overflow: hidden;
+  min-height: 460px;
+  transition:
+    border-color 240ms ease,
+    transform 240ms ease,
+    background-color 240ms ease;
+}
+.casa-sz-cube__card::before {
+  /* gradient border on hover — pseudo overlays a fade-in border */
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg,
+    rgba(176, 195, 250, 0.45),
+    rgba(94, 10, 2, 0.45),
+    rgba(242, 255, 160, 0.45)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 240ms ease;
+}
+.casa-sz-cube__card:hover {
+  background: rgba(255, 255, 255, 0.035);
+  transform: translateY(-2px);
+}
+.casa-sz-cube__card:hover::before {
+  opacity: 1;
+}
+.casa-sz-cube__card.is-featured {
+  background: rgba(176, 195, 250, 0.06);
+}
+.casa-sz-cube__card.is-featured::before {
+  opacity: 1;
+}
+
+/* Featured tag — top center, mono uppercase */
+.casa-sz-cube__featured-tag {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  font: 500 9px/1 'JetBrains Mono', monospace;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #C4B5FD;
+  background: rgba(176, 195, 250, 0.18);
+  padding: 4px 8px;
+  border-radius: 2px;
+  border: 1px solid rgba(176, 195, 250, 0.32);
+}
+
+/* ─── Visual area — FIXED HEIGHT prevents overflow ────────── */
+.casa-sz-cube__visual {
+  width: 100%;
+  height: clamp(220px, 28vw, 340px);
+  display: flex;
+  align-items: flex-end;            /* photos sit on the "surface" */
+  justify-content: center;
+  overflow: hidden;
+  padding: 16px clamp(8px, 1.5vw, 14px) 0;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* Photo — sized by HEIGHT (not width) so it never overflows the visual area.
+   max-width: 100% prevents the square photo from exceeding the card width
+   on narrow mobile cards where height could exceed card width. */
+.casa-sz-cube__photo {
+  aspect-ratio: 1 / 1;
+  max-width: 100%;
+  overflow: hidden;
+  position: relative;
+  /* height is set inline via style="height: NN%" per block scale_pct */
+  /* width derived from aspect-ratio */
+}
+.casa-sz-cube__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.casa-sz-cube__photo--placeholder {
+  background: linear-gradient(135deg, #B0C3FA, #5E0A02, #F2FFA0);
+}
+
+/* ─── Meta panel ──────────────────────────────────── */
+.casa-sz-cube__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px clamp(12px, 2vw, 20px) 22px;
+  gap: 6px;
+  flex: 1 1 auto;
+}
+.casa-sz-cube__name {
+  font: 600 19px/1 var(--font-body--family);
+  letter-spacing: -0.012em;
+  margin: 0;
+  color: var(--casa-sz-cube-fg);
+}
+.casa-sz-cube__dim {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+}
+.casa-sz-cube__dim-line {
+  font-size: 12px;
+  color: var(--casa-sz-cube-muted);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.casa-sz-cube__dim-line--metric {
+  opacity: 0.75;
+  font-size: 11px;
+}
+.casa-sz-cube__context {
+  font: 500 10px/1.3 'JetBrains Mono', monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--casa-sz-cube-muted);
+  opacity: 0.8;
+  padding-top: 10px;
+  margin-top: 4px;
+  border-top: 1px solid var(--casa-sz-cube-line);
+  width: 100%;
+}
+.casa-sz-cube__card.is-featured .casa-sz-cube__context {
+  color: #C4B5FD;
+  opacity: 1;
+}
+
+/* Price row — currency + optional compare-at strike */
+.casa-sz-cube__price-row {
+  display: flex;
+  /* wrap so the was-price drops BELOW the now-price when both can't fit
+     side-by-side, rather than each fracturing its currency code. */
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  justify-content: center;
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.casa-sz-cube__price,
+.casa-sz-cube__was {
+  white-space: nowrap;
+}
+.casa-sz-cube__price {
+  font: 600 22px/1 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: -0.01em;
+  color: var(--casa-sz-cube-fg);
+  font-variant-numeric: tabular-nums;
+}
+.casa-sz-cube__was {
+  font: 400 14px/1 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* rgba(10,10,15,.6) = 5.2:1 on Paper (AA); muted@0.7 was borderline. */
+  color: rgba(10, 10, 15, 0.6);
+  text-decoration: line-through;
+  opacity: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Add to cart (per size) ──────────────────────── */
+.casa-sz-cube__atc {
+  width: 100%;
+  margin-top: 8px;
+}
+.casa-sz-cube__atc[aria-busy="true"] {
+  opacity: 0.85;
+  pointer-events: none;
+}
+/* Sold-out: same footprint as the button, visibly inert.
+   Border/bg derive from currentColor so the inert chip stays legible on
+   BOTH surfaces (white-alpha values would vanish on a Paper section). */
+.casa-sz-cube__atc--soldout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  border-radius: var(--r-lg, 10px);
+  border: 1px solid color-mix(in srgb, var(--casa-sz-cube-muted) 40%, transparent);
+  background: color-mix(in srgb, var(--casa-sz-cube-muted) 6%, transparent);
+  color: var(--casa-sz-cube-muted);
+  font: 600 13px/1 var(--font-body--family);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: not-allowed;
+}
+
+/* Carousel nav — hidden on desktop (all 3 cards visible in the grid);
+   revealed in the ≤700px carousel block below. */
+.casa-sz-cube__nav { display: none; }
+
+/* ─── Mobile (≤700px) — horizontal scroll-snap carousel. Each cube
+       card gets ~78vw width so it dominates the viewport, with ~15vw
+       of the next card peeking on the right to signal swipeability.
+       Two prior attempts at 3-up shrunk-text mobile (still too small)
+       and 1-up stack (lost comparison) both failed the merchant's bar.
+       Horizontal scroll keeps the comparison (you can swipe to compare)
+       AND gives each cube real visual presence. */
+@media (max-width: 700px) {
+  /* Row-wrap stays as a positioning context but the fade-gradient
+     mask removed — at Paper bg the fade rendered as a confusing
+     vertical strip on top of the scrolling images instead of a
+     clean edge mask. The next-card peek (25vw visible) + explicit
+     "Swipe →" hint below the carousel already carry the swipe
+     affordance without needing a gradient overlay. */
+  .casa-sz-cube__row-wrap {
+    position: relative;
+  }
+  .casa-sz-cube__row {
+    display: flex;
+    grid-template-columns: none;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 16px;
+    padding: 0 16px 8px;
+    margin: 0 -16px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .casa-sz-cube__row::-webkit-scrollbar { display: none; }
+  .casa-sz-cube__card {
+    min-height: auto;
+    /* 70vw: leaves ~25vw of the next card visible — clearer swipe
+       affordance than the earlier 78vw. */
+    flex: 0 0 70vw;
+    scroll-snap-align: start;
+    /* Drop card chrome on mobile — cube photo IS the card. Border,
+     translucent bg, and gradient-mask :before were competing with
+     the polychromatic cube glow. Photo-led presentation. */
+    background: transparent;
+    border: none;
+  }
+  .casa-sz-cube__card::before {
+    /* Hide the hover gradient-border pseudo on mobile too. */
+    display: none;
+  }
+  .casa-sz-cube__visual {
+    /* Image dominates the card — 90vw tall renders the cube at near-
+       full visual presence. The whole point of THE SCALE on mobile is
+       seeing each cube big, then swiping to compare. */
+    height: clamp(300px, 90vw, 480px);
+    padding: 0;
+  }
+  .casa-sz-cube__meta {
+    padding: 12px 4px 4px;
+    gap: 4px;
+  }
+  .casa-sz-cube__name { font-size: 18px; }
+  .casa-sz-cube__dim-line { font-size: 13px; }
+  .casa-sz-cube__price { font-size: 18px; }
+  .casa-sz-cube__was { font-size: 12px; }
+
+  /* Carousel nav — light glass chevrons below the row. Real <button>s
+     so they're keyboard/AT operable; the script scroll-snaps the row
+     prev/next on tap. The "next" arrow nudges a few times on load to
+     signal there are more sizes to swipe through. */
+  .casa-sz-cube__nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 18px;
+  }
+  .casa-sz-cube__arrow {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: var(--casa-sz-cube-fg);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: opacity 200ms ease, transform 200ms ease, border-color 200ms ease;
+  }
+  .casa-sz-cube__arrow:active { transform: scale(0.94); }
+  .casa-sz-cube__arrow:focus-visible {
+    outline: 2px solid var(--casa-sz-cube-purple);
+    outline-offset: 2px;
+  }
+  .casa-sz-cube__arrow:disabled {
+    opacity: 0.28;
+    pointer-events: none;
+  }
+  .casa-sz-cube__arrow--next {
+    animation: casa-szcube-nudge 2.4s ease-in-out 3;
+  }
+}
+
+@keyframes casa-szcube-nudge {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(3px); }
+}
+
+
+/* ─── Respect reduced-motion ────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .casa-sz-cube__card,
+  .casa-sz-cube__card::before {
+    transition: none;
+  }
+  .casa-sz-cube__card:hover {
+    transform: none;
+  }
+  .casa-sz-cube__arrow,
+  .casa-sz-cube__arrow--next {
+    transition: none;
+    animation: none;
+  }
+}
+{%- endstylesheet -%}
+
+<script>
+  /* casa-sizing-cube — per-size add-to-cart + mobile carousel arrows.
+     One bound handler per section, idempotent across theme-editor
+     remounts. Listeners live on elements inside the section (or on the
+     section root) so they're torn down with the DOM on unmount — no
+     global listeners to leak. */
+  (function () {
+    var root = document.getElementById('casa-sz-cube-{{ section.id }}');
+    if (!root || root.dataset.szcubeBound === '1') return;
+    root.dataset.szcubeBound = '1';
+
+    /* ---------- Add to cart (open cart drawer) ---------- */
+    function collectSectionIds() {
+      var ids = new Set();
+      document.querySelectorAll('[data-section-id], [id^="shopify-section-"]').forEach(function (el) {
+        var sid = el.dataset.sectionId || (el.id && el.id.replace(/^shopify-section-/, ''));
+        if (!sid) return;
+        var tag = (el.tagName || '').toLowerCase();
+        var cls = (el.className || '').toString();
+        if (/cart/i.test(tag) || /cart/i.test(cls) || /header/i.test(cls)) ids.add(sid);
+      });
+      return Array.from(ids);
+    }
+
+    function openAnyDrawer() {
+      var horizon = document.querySelector('cart-drawer-component');
+      if (horizon) {
+        try { if (typeof horizon.open === 'function') { horizon.open(); return true; } } catch (e) {}
+        try { if (typeof horizon.showDialog === 'function') { horizon.showDialog(); return true; } } catch (e) {}
+      }
+      var dawn = document.querySelector('cart-drawer, #cart-drawer, #CartDrawer');
+      if (dawn) {
+        try { if (typeof dawn.open === 'function') { dawn.open(); return true; } } catch (e) {}
+        try { if (typeof dawn.show === 'function') { dawn.show(); return true; } } catch (e) {}
+        dawn.classList.add('active', 'is-open', 'animate');
+        dawn.classList.remove('hidden');
+        dawn.setAttribute('open', '');
+        if (dawn.tagName.toLowerCase() === 'dialog') {
+          try { dawn.showModal(); return true; } catch (e) {}
+        }
+        return true;
+      }
+      var cartBtn = document.querySelector('.casa-header__cart-btn, [aria-label*="cart" i][role="button"], [aria-label*="cart" i].header__icon, a[href$="/cart"]');
+      if (cartBtn) { try { cartBtn.click(); return true; } catch (e) {} }
+      return false;
+    }
+
+    function broadcastCartUpdate(response, variantId) {
+      var detail = {
+        resource: response,
+        sourceId: 'casa-sz-cube-{{ section.id }}',
+        data: {
+          source: 'casa-sizing-cube',
+          itemCount: 1,
+          variantId: variantId,
+          sections: response && response.sections ? response.sections : {}
+        }
+      };
+      ['cart:update', 'cart:refresh', 'cart-update', 'cart:item-added', 'cart-drawer:refresh'].forEach(function (name) {
+        try { document.dispatchEvent(new CustomEvent(name, { bubbles: true, detail: detail })); } catch (e) {}
+      });
+    }
+
+    root.addEventListener('click', function (e) {
+      var cta = e.target.closest('[data-casa-szcube-atc]');
+      if (!cta || !root.contains(cta)) return;
+      var vid = cta.getAttribute('data-casa-szcube-atc');
+      if (!/^\d+$/.test(vid)) return; /* invalid — let the href navigate */
+
+      e.preventDefault();
+      if (cta.getAttribute('aria-busy') === 'true') return;
+      cta.setAttribute('aria-busy', 'true');
+
+      var labelEl = cta.querySelector('.casa-sz-cube__atc-label');
+      var orig = labelEl ? labelEl.textContent : '';
+      function setLabel(t) { if (labelEl) labelEl.textContent = (t == null ? orig : t); }
+      setLabel('Adding…');
+
+      var sectionIds = collectSectionIds();
+      var payload = { items: [{ id: parseInt(vid, 10), quantity: 1 }] };
+      if (sectionIds.length) payload.sections = sectionIds.join(',');
+
+      fetch('{{ routes.cart_add_url }}.js', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+        .then(function (res) { if (!res.ok && res.status !== 422) throw new Error('network'); return res.json(); })
+        .then(function (response) {
+          if (response && response.status) {
+            setLabel(response.message || 'Unavailable');
+            setTimeout(function () { setLabel(null); cta.removeAttribute('aria-busy'); }, 2200);
+            return;
+          }
+          broadcastCartUpdate(response, vid);
+          setLabel('Added ✓');
+          setTimeout(function () {
+            var opened = openAnyDrawer();
+            if (!opened) { window.location.href = '{{ routes.cart_url }}'; }
+          }, 60);
+          setTimeout(function () { setLabel(null); cta.removeAttribute('aria-busy'); }, 1500);
+        })
+        .catch(function () {
+          cta.removeAttribute('aria-busy');
+          setLabel(null);
+          window.location.href = cta.getAttribute('href');
+        });
+    });
+
+    /* ---------- Carousel arrows (mobile) ---------- */
+    var rowEl = root.querySelector('.casa-sz-cube__row');
+    var prevBtn = root.querySelector('[data-casa-szcube-prev]');
+    var nextBtn = root.querySelector('[data-casa-szcube-next]');
+    if (rowEl && prevBtn && nextBtn) {
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      function stepWidth() {
+        var card = rowEl.querySelector('.casa-sz-cube__card');
+        if (!card) return rowEl.clientWidth * 0.75;
+        var cs = getComputedStyle(rowEl);
+        var gap = parseFloat(cs.columnGap || cs.gap || '14') || 14;
+        return card.getBoundingClientRect().width + gap;
+      }
+      function scrollByCard(dir) {
+        rowEl.scrollBy({ left: dir * stepWidth(), behavior: reduce ? 'auto' : 'smooth' });
+      }
+      prevBtn.addEventListener('click', function () { scrollByCard(-1); });
+      nextBtn.addEventListener('click', function () { scrollByCard(1); });
+
+      var raf = null;
+      function syncArrows() {
+        raf = null;
+        var maxScroll = rowEl.scrollWidth - rowEl.clientWidth - 1;
+        prevBtn.disabled = rowEl.scrollLeft <= 1;
+        nextBtn.disabled = rowEl.scrollLeft >= maxScroll;
+      }
+      rowEl.addEventListener('scroll', function () {
+        if (raf == null) raf = requestAnimationFrame(syncArrows);
+      }, { passive: true });
+      syncArrows();
+    }
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Cube sizing strip",
+  "tag": "section",
+  "class": "casa-sz-cube-section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Header"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "kicker",
+      "label": "Kicker (mono)",
+      "default": "02 · THREE SIZES"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading",
+      "info": "Wrap one word in <em>…</em> for the brand italic-gradient accent.",
+      "default": "Pick the <em>scale</em> of the moment."
+    },
+    {
+      "type": "text",
+      "id": "lede",
+      "label": "Lede (subhead)",
+      "default": "Nightstand, coffee table, or console — the cube wants to be slightly more than the surface expects."
+    },
+    {
+      "type": "header",
+      "content": "Surface + brand colors"
+    },
+    {
+      "type": "color",
+      "id": "color_bg",
+      "label": "Background (Ink)",
+      "default": "#0A0A0F"
+    },
+    {
+      "type": "color",
+      "id": "color_text",
+      "label": "Text (Paper)",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "color_muted",
+      "label": "Muted text",
+      "default": "#A1A1AA"
+    },
+    {
+      "type": "header",
+      "content": "Padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0, "max": 160, "step": 4,
+      "unit": "px",
+      "default": 64
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0, "max": 160, "step": 4,
+      "unit": "px",
+      "default": 64
+    }
+  ],
+  "blocks": [
+    {
+      "type": "size",
+      "name": "Size card",
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Each block maps position-based to product.variants[N] in order (block 1 → Small variant, block 2 → Medium variant, block 3 → Large variant) for BOTH its displayed price AND its Add to cart button. Keep the block order aligned with the variant order — re-ordering blocks changes which variant gets added to cart. Currency formats automatically."
+        },
+        {
+          "type": "text",
+          "id": "name",
+          "label": "Size name",
+          "default": "Medium"
+        },
+        {
+          "type": "text",
+          "id": "dim_imperial",
+          "label": "Dimensions — imperial",
+          "info": "e.g. 6.5\" × 6.5\" × 6.5\"",
+          "default": "6.5\" × 6.5\" × 6.5\""
+        },
+        {
+          "type": "text",
+          "id": "dim_metric",
+          "label": "Dimensions — metric",
+          "info": "e.g. 16.5 × 16.5 × 16.5 cm",
+          "default": "16.5 × 16.5 × 16.5 cm"
+        },
+        {
+          "type": "text",
+          "id": "context",
+          "label": "Room context (mono tag)",
+          "info": "e.g. SIDE TABLE · CONSOLE",
+          "default": "SIDE TABLE · CONSOLE"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Photo"
+        },
+        {
+          "type": "range",
+          "id": "scale_pct",
+          "label": "Visual scale (% of card height)",
+          "info": "Tune so the 3 cards' photos read at correct relative size (Small ~52, Medium ~70, Large ~92).",
+          "min": 30, "max": 100, "step": 1,
+          "unit": "%",
+          "default": 70
+        },
+        {
+          "type": "checkbox",
+          "id": "is_featured",
+          "label": "Featured size",
+          "info": "Highlights the card with gradient border + accent tag.",
+          "default": false
+        },
+        {
+          "type": "text",
+          "id": "featured_label",
+          "label": "Featured tag",
+          "info": "e.g. MOST ORDERED — only shown if 'Featured' is on.",
+          "default": "MOST ORDERED"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 5,
+  "presets": [
+    {
+      "name": "Cube sizing strip",
+      "blocks": [
+        {
+          "type": "size",
+          "settings": {
+            "name": "Small",
+            "dim_imperial": "4.3\" × 4.3\" × 4.9\"",
+            "dim_metric": "11 × 11 × 12.5 cm",
+            "context": "NIGHTSTAND · DESK · GIFT",
+            "scale_pct": 52
+          }
+        },
+        {
+          "type": "size",
+          "settings": {
+            "name": "Medium",
+            "dim_imperial": "5.9\" × 5.9\" × 6.5\"",
+            "dim_metric": "15 × 15 × 16.5 cm",
+            "context": "SIDE TABLE · CONSOLE",
+            "scale_pct": 70
+          }
+        },
+        {
+          "type": "size",
+          "settings": {
+            "name": "Large",
+            "dim_imperial": "8.6\" × 8.6\" × 9.4\"",
+            "dim_metric": "22 × 22 × 24 cm",
+            "context": "COFFEE TABLE · CENTERPIECE",
+            "scale_pct": 92
+          }
+        }
+      ]
+    }
+  ],
+  "enabled_on": {
+    "templates": ["product"]
+  }
+}
+{% endschema %}

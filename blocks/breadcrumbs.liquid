@@ -1,26 +1,45 @@
 {%- doc -%}
   Breadcrumbs Block
-  Auto-generates breadcrumb navigation from Home > Collection > Product.
-  Uses the collection the customer navigated from (via Shopify's collection
-  context or sessionStorage fallback), not just the product's first collection.
+  Renders Home > Collection > Product on a PDP.
+  The middle crumb collection is chosen by snippet
+  `casa-breadcrumb-collection` first (metafield `custom.casa_breadcrumb_value`,
+  else the product's first category from its allow-list). The JSON-LD
+  breadcrumb uses the SAME snippet. If that snippet resolves nothing, Seoul's
+  fallback chain applies: the collection the customer navigated from (Shopify's
+  collection context, then a sessionStorage upgrade in JS), then the product's
+  first non-generic collection. Renders nothing outside a product.
 {%- enddoc -%}
 
 {%- liquid
   assign product_resource = closest.product
   assign block_settings = block.settings
+-%}
+{%- comment -%} Shared selector → keeps this crumb and the JSON-LD in agreement when it resolves. {%- endcomment -%}
+{%- capture casa_bc_handle -%}{%- render 'casa-breadcrumb-collection', product: product_resource -%}{%- endcapture -%}
+{%- liquid
+  assign casa_bc_handle = casa_bc_handle | strip
+  assign bc_collection = nil
+  assign bc_locked = false
+  if casa_bc_handle != blank
+    assign bc_collection = collections[casa_bc_handle]
+    if bc_collection != blank
+      assign bc_locked = true
+    endif
+  endif
 
   comment
-    Priority chain for the breadcrumb collection:
+    Seoul fallback chain (used only when the shared selector resolves nothing):
     1. Shopify's `collection` global (set when URL is /collections/.../products/...)
-    2. sessionStorage from last-visited collection page (JS)
+    2. sessionStorage from last-visited collection page (JS, below)
     3. Smart fallback: first non-generic collection the product belongs to
        (skips catch-all collections like All, Best Sellers, New Arrivals, etc.)
     4. Final fallback: product's first collection
   endcomment
-  assign bc_collection = collection
+  if bc_collection == blank
+    assign bc_collection = collection
+  endif
   if bc_collection == blank and product_resource.collections.size > 0
     assign generic_handles = 'all,frontpage,best-sellers,bestsellers,new-arrivals,new,sale,clearance,clearance-sale,featured,must-haves,6-must-haves,gift-cards,gifts,homepage' | split: ','
-    assign bc_collection = nil
     for col in product_resource.collections
       assign is_generic = false
       for gh in generic_handles
@@ -40,33 +59,35 @@
   endif
 -%}
 
-<nav
-  class="casa-breadcrumbs spacing-style"
-  aria-label="Breadcrumb"
-  style="{% render 'spacing-style', settings: block_settings %}"
-  {{ block.shopify_attributes }}
->
-  <ol class="casa-breadcrumbs__list" data-casa-breadcrumbs>
-    <li class="casa-breadcrumbs__item">
-      <a href="/" class="casa-breadcrumbs__link">Home</a>
-    </li>
-    {%- if bc_collection != blank -%}
-      <li class="casa-breadcrumbs__item" data-casa-bc-collection>
-        <span class="casa-breadcrumbs__separator" aria-hidden="true">&rsaquo;</span>
-        <a href="{{ bc_collection.url }}" class="casa-breadcrumbs__link" data-casa-bc-col-link>{{ bc_collection.title }}</a>
+{%- if product_resource != blank -%}
+  <nav
+    class="casa-breadcrumbs spacing-style"
+    aria-label="Breadcrumb"
+    style="{% render 'spacing-style', settings: block_settings %}"
+    {{ block.shopify_attributes }}
+  >
+    <ol class="casa-breadcrumbs__list" data-casa-breadcrumbs>
+      <li class="casa-breadcrumbs__item">
+        <a href="/" class="casa-breadcrumbs__link">Home</a>
       </li>
-    {%- else -%}
-      <li class="casa-breadcrumbs__item" data-casa-bc-collection style="display:none">
+      {%- if bc_collection != blank -%}
+        <li class="casa-breadcrumbs__item" data-casa-bc-collection{% if bc_locked %} data-casa-bc-locked{% endif %}>
+          <span class="casa-breadcrumbs__separator" aria-hidden="true">&rsaquo;</span>
+          <a href="{{ bc_collection.url }}" class="casa-breadcrumbs__link" data-casa-bc-col-link>{{ bc_collection.title }}</a>
+        </li>
+      {%- else -%}
+        <li class="casa-breadcrumbs__item" data-casa-bc-collection style="display:none">
+          <span class="casa-breadcrumbs__separator" aria-hidden="true">&rsaquo;</span>
+          <a href="#" class="casa-breadcrumbs__link" data-casa-bc-col-link></a>
+        </li>
+      {%- endif -%}
+      <li class="casa-breadcrumbs__item casa-breadcrumbs__item--current" aria-current="page">
         <span class="casa-breadcrumbs__separator" aria-hidden="true">&rsaquo;</span>
-        <a href="#" class="casa-breadcrumbs__link" data-casa-bc-col-link></a>
+        <span class="casa-breadcrumbs__current">{{ product_resource.title }}</span>
       </li>
-    {%- endif -%}
-    <li class="casa-breadcrumbs__item casa-breadcrumbs__item--current" aria-current="page">
-      <span class="casa-breadcrumbs__separator" aria-hidden="true">&rsaquo;</span>
-      <span class="casa-breadcrumbs__current">{{ product_resource.title }}</span>
-    </li>
-  </ol>
-</nav>
+    </ol>
+  </nav>
+{%- endif -%}
 
 <script>
   (function() {
@@ -75,7 +96,8 @@
     if (path.indexOf('/products/') !== -1) {
       var bcItem = document.querySelector('[data-casa-bc-collection]');
       var bcLink = document.querySelector('[data-casa-bc-col-link]');
-      if (bcItem && bcLink) {
+      // A merchant-set crumb (shared selector) wins over the last-visited collection.
+      if (bcItem && bcLink && !bcItem.hasAttribute('data-casa-bc-locked')) {
         try {
           var stored = JSON.parse(sessionStorage.getItem('casa_last_collection'));
           if (stored && stored.title && stored.url) {

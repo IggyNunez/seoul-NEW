@@ -1,0 +1,1696 @@
+{%- comment -%}
+  Seoul Glow Lab - Feature Bento Grid
+  Premium bento-grid feature section with full-bleed background images,
+  overlay gradients, and flexible layout options (2x2, asymmetric, equal).
+  Inspired by Nanoleaf feature layout.
+{%- endcomment -%}
+
+{%- comment -%} Auto-hide when no cards have content {%- endcomment -%}
+{%- assign _has_content = false -%}
+{%- for block in section.blocks -%}
+  {%- if block.settings.title != blank or block.settings.image != blank or block.settings.heading != blank -%}
+    {%- assign _has_content = true -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if _has_content == false and request.design_mode == false -%}
+  <style>#shopify-section-{{ section.id }} { display: none !important; }</style>
+{%- endif -%}
+
+{%- liquid
+  assign s = section.settings
+  assign layout        = s.layout_style | default: 'bento-2x2'
+  assign heading       = s.heading
+  assign subtitle      = s.subtitle
+  assign gap           = s.gap | default: 16
+  assign radius        = s.border_radius | default: 16
+  assign min_h         = s.min_height | default: 400
+  assign bg            = s.bg_color | default: '#0A0A0F'
+  assign text_c        = s.text_color | default: '#FAFAF7'
+  assign pt            = s.padding_top | default: 80
+  assign pb            = s.padding_bottom | default: 80
+  assign animate       = s.enable_animations
+-%}
+
+<section
+  class="casa-fbento"
+  id="casa-fbento-{{ section.id }}"
+  style="
+    --fbento-bg: {{ bg }};
+    --fbento-text: {{ text_c }};
+    --fbento-gap: {{ gap }}px;
+    --fbento-radius: {{ radius }}px;
+    --fbento-min-h: {{ min_h }}px;
+    --fbento-pt: {{ pt }}px;
+    --fbento-pb: {{ pb }}px;
+    --fbento-max-w: {% case s.section_width %}{% when 'full' %}100%{% when 'wide' %}1600px{% when 'narrow' %}1200px{% else %}1400px{% endcase %};
+    --fbento-px: {% if s.section_width == 'full' %}24px{% else %}40px{% endif %};
+    {%- if s.heading_color != blank %}--fbento-heading: {{ s.heading_color }};{% endif -%}
+    {%- if s.subtitle_color != blank %}--fbento-subtitle: {{ s.subtitle_color }};{% endif -%}
+    {%- if s.card_title_color != blank %}--fbento-card-title: {{ s.card_title_color }};{% endif -%}
+    {%- if s.card_desc_color != blank %}--fbento-card-desc: {{ s.card_desc_color }};{% endif -%}
+    {%- if s.cta_color != blank %}--fbento-cta: {{ s.cta_color }};{% endif -%}
+    {%- if s.cta_text_color != blank %}--fbento-cta-text: {{ s.cta_text_color }};{% endif -%}
+    {%- comment -%}
+      Heading-scale dropdown: merchant picks H1-H6 from Theme Settings -> Typography.
+    {%- endcomment -%}
+    {%- assign _fbento_heading_h = s.fbento_heading_level | default: 'h1' -%}
+    --fbento-heading-fs:   var(--font-{{ _fbento_heading_h }}--size);
+    --fbento-heading-fw:   var(--font-{{ _fbento_heading_h }}--weight);
+    --fbento-heading-lh:   var(--font-{{ _fbento_heading_h }}--line-height);
+    --fbento-heading-ls:   var(--font-{{ _fbento_heading_h }}--letter-spacing);
+    --fbento-heading-case: var(--font-{{ _fbento_heading_h }}--case);
+  "
+>
+  <div class="casa-fbento__wrap">
+    {%- if heading != blank or subtitle != blank -%}
+      <div class="casa-fbento__header">
+        {%- if heading != blank -%}
+          <h2 class="casa-fbento__heading">{{ heading }}</h2>
+        {%- endif -%}
+        {%- if subtitle != blank -%}
+          <p class="casa-fbento__subtitle">{{ subtitle }}</p>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    <div class="casa-fbento__grid casa-fbento__grid--{{ layout }}">
+      {%- for block in section.blocks -%}
+        {%- liquid
+          # If product_media_index is set, resolve the card image from
+          # product.images[index] (0-based) at render time. Lets the
+          # merchant point a bento card at any product media without
+          # re-uploading the same shot to Files. Falls back to the
+          # image_picker setting when index is blank or out of bounds.
+          assign card_image = block.settings.image
+          assign _pm_idx = block.settings.product_media_index
+          if _pm_idx != blank and _pm_idx != nil and product.images.size > 0
+            assign _pm_idx_int = _pm_idx | plus: 0
+            if _pm_idx_int >= 0 and _pm_idx_int < product.images.size
+              assign card_image = product.images[_pm_idx_int]
+            endif
+          endif
+          assign card_mob_img  = block.settings.mobile_image
+          assign card_fit      = block.settings.image_fit | default: 'cover'
+          assign card_focus    = block.settings.image_focus | default: 'center'
+          assign card_kicker   = block.settings.kicker
+          assign card_title    = block.settings.title
+          assign card_desc     = block.settings.description
+          assign card_pos      = block.settings.text_position | default: 'bottom-left'
+          assign card_overlay  = block.settings.overlay_opacity | default: 40
+          assign cta_text      = block.settings.cta_text
+          assign cta_url       = block.settings.cta_url
+          assign cta_style     = block.settings.cta_style | default: 'outline'
+          assign card_link     = block.settings.link
+          assign card_idx      = forloop.index
+
+          # Multi-variant bundle mode — for pair-multiples / arrangement cards
+          # where one click adds 2+ separate line items to the cart.
+          #
+          # Merchant sets `bundle_variant_ids` to a comma-separated list of
+          # numeric variant IDs from the current product. The card:
+          #   - Renders __PRICE__ as the SUM of those variants' prices
+          #   - Renders __COMPARE_STRIKE__ as the SUM of compare_at_prices
+          #   - On click, multi-POSTs all variants to /cart/add.js as
+          #     separate line items (single network round-trip)
+          #   - Falls back to /cart/<v1>:1,<v2>:1,... URL navigation if
+          #     JS fails (Shopify natively supports this GET endpoint)
+          #
+          # When `bundle_variant_ids` is set, it takes priority over the
+          # single-variant `cta_url` resolution below. This lets the same
+          # casa-feature-bento section power BOTH Calini single-variant
+          # cards AND Fleur bundle cards without a new section file.
+          assign bundle_ids_raw = block.settings.bundle_variant_ids | default: ''
+          assign bundle_mode = false
+          assign bundle_ids_list = ''
+          if bundle_ids_raw != blank
+            assign bundle_ids_list = bundle_ids_raw | split: ','
+            assign bundle_mode = true
+          endif
+
+          # Extract numeric variant id from cta_url (?variant=NNN[&...|#...]).
+          # When present we progressive-enhance the CTA to direct add-to-cart;
+          # if JS is off or fails, the <a href> still navigates to the
+          # variant URL as a graceful fallback.
+          assign atc_variant = ''
+          if cta_url contains 'variant='
+            assign _after = cta_url | split: 'variant=' | last
+            assign _v1 = _after | split: '&' | first
+            assign _v2 = _v1 | split: '#' | first
+            assign atc_variant = _v2
+          endif
+
+          # Dynamic price rendering — adapts to visitor's market via
+          # Shopify Markets + always shows ISO currency code per locked
+          # memory rule feedback_currency_code_always_visible.md.
+          #
+          # In the card's description, the merchant can use two tokens:
+          #   __PRICE__           -> variant.price | money_with_currency
+          #   __COMPARE_STRIKE__  -> <s>$X.XX USD</s> from either
+          #                          variant.compare_at_price OR a
+          #                          merchant-supplied sum of other
+          #                          variant IDs (compare_variant_ids).
+          #
+          # Resolve the variant from atc_variant against the current
+          # PDP product. Works on any product since `product` is the
+          # PDP context object.
+          assign card_variant = nil
+          assign price_str = ''
+          assign compare_str = ''
+          assign compare_strike = ''
+          assign savings_str = ''
+          assign bundle_count = 0
+          assign bundle_fallback_url = ''
+
+          # ----- Bundle mode (multi-variant) -----
+          if bundle_mode and product != blank
+            assign _bundle_price_cents = 0
+            assign _bundle_compare_cents = 0
+            for _id_raw in bundle_ids_list
+              assign _id = _id_raw | strip | times: 1
+              if _id > 0
+                for _v in product.variants
+                  if _v.id == _id
+                    assign _bundle_price_cents = _bundle_price_cents | plus: _v.price
+                    if _v.compare_at_price != blank and _v.compare_at_price > _v.price
+                      assign _bundle_compare_cents = _bundle_compare_cents | plus: _v.compare_at_price
+                    else
+                      assign _bundle_compare_cents = _bundle_compare_cents | plus: _v.price
+                    endif
+                    assign bundle_count = bundle_count | plus: 1
+                    assign bundle_fallback_url = bundle_fallback_url | append: _v.id | append: ':1,'
+                  endif
+                endfor
+              endif
+            endfor
+            # Trailing comma is tolerated by Shopify's /cart/<id>:<qty>[,...] endpoint
+            assign bundle_fallback_url = '/cart/' | append: bundle_fallback_url
+            if _bundle_price_cents > 0
+              assign price_str = _bundle_price_cents | money_with_currency
+              if _bundle_compare_cents > _bundle_price_cents
+                assign compare_str = _bundle_compare_cents | money_with_currency
+                assign compare_strike = '<s>' | append: compare_str | append: '</s>'
+                assign _savings_cents = _bundle_compare_cents | minus: _bundle_price_cents
+                if _savings_cents > 0
+                  assign savings_str = _savings_cents | money_with_currency
+                endif
+              endif
+            endif
+          endif
+
+          # ----- Single-variant mode (existing Calini behavior) -----
+          if atc_variant != blank and product != blank and bundle_mode == false
+            assign _vid_int = atc_variant | times: 1
+            for _v in product.variants
+              if _v.id == _vid_int
+                assign card_variant = _v
+                break
+              endif
+            endfor
+          endif
+          if card_variant != nil
+            assign price_str = card_variant.price | money_with_currency
+            # Compare-price source priority:
+            #   1. block.settings.compare_variant_ids — comma-separated
+            #      list of variant IDs whose prices to SUM (use for
+            #      bundle "vs. buying separately" comparisons)
+            #   2. card_variant.compare_at_price — falls back to the
+            #      variant's own compare-at when no sum is configured
+            assign _compare_cents = 0
+            assign _compare_ids = block.settings.compare_variant_ids | default: ''
+            if _compare_ids != blank
+              assign _compare_id_list = _compare_ids | split: ','
+              for _id_raw in _compare_id_list
+                assign _id = _id_raw | strip | times: 1
+                if _id > 0
+                  for _v in product.variants
+                    if _v.id == _id
+                      assign _compare_cents = _compare_cents | plus: _v.price
+                    endif
+                  endfor
+                endif
+              endfor
+            elsif card_variant.compare_at_price != blank and card_variant.compare_at_price > card_variant.price
+              assign _compare_cents = card_variant.compare_at_price
+            endif
+            assign savings_str = ''
+            if _compare_cents > 0
+              assign compare_str = _compare_cents | money_with_currency
+              assign compare_strike = '<s>' | append: compare_str | append: '</s>'
+              assign _savings_cents = _compare_cents | minus: card_variant.price
+              if _savings_cents > 0
+                assign savings_str = _savings_cents | money_with_currency
+              endif
+            endif
+          endif
+
+          # Some Shopify stores have the money filter configured to
+          # auto-wrap output in `<span class="money">$X</span>`. When that
+          # output is injected into the kicker (which renders escaped),
+          # the visitor sees the raw HTML tag as text. Strip the span
+          # wrapper from every money string before token replacement,
+          # then re-build compare_strike from the cleaned compare_str so
+          # the <s> tag survives.
+          assign price_str = price_str | strip_html
+          assign compare_str = compare_str | strip_html
+          assign savings_str = savings_str | strip_html
+          if compare_str != blank
+            assign compare_strike = '<s>' | append: compare_str | append: '</s>'
+          else
+            assign compare_strike = ''
+          endif
+
+          # Token replacement runs against BOTH description AND kicker —
+          # so a merchant can write "PAIR · SAVE __SAVINGS__" in the
+          # kicker and the section computes the actual delta in the
+          # visitor's currency. Never hardcode currency anywhere.
+          #
+          # Liquid evaluates JSON setting values once at template render
+          # so we use double-underscore placeholders rather than {{ }}
+          # (which would be eaten by Liquid as unknown vars and resolve
+          # to empty).
+          assign bundle_count_str = bundle_count | append: ''
+          if card_kicker != blank
+            assign card_kicker = card_kicker | replace: '__PRICE__', price_str
+            assign card_kicker = card_kicker | replace: '__COMPARE_PRICE__', compare_str
+            assign card_kicker = card_kicker | replace: '__COMPARE_STRIKE__', compare_strike
+            assign card_kicker = card_kicker | replace: '__SAVINGS__', savings_str
+            assign card_kicker = card_kicker | replace: '__BUNDLE_COUNT__', bundle_count_str
+          endif
+          if card_desc != blank
+            assign card_desc = card_desc | replace: '__PRICE__', price_str
+            assign card_desc = card_desc | replace: '__COMPARE_PRICE__', compare_str
+            assign card_desc = card_desc | replace: '__COMPARE_STRIKE__', compare_strike
+            assign card_desc = card_desc | replace: '__SAVINGS__', savings_str
+            assign card_desc = card_desc | replace: '__BUNDLE_COUNT__', bundle_count_str
+          endif
+        -%}
+
+        <div
+          class="casa-fbento__card casa-fbento__card--{{ card_idx }} casa-fbento__card--pos-{{ card_pos }}{% if animate %} casa-fbento__card--anim{% endif %}"
+          style="--fbento-overlay: {{ card_overlay | divided_by: 100.0 }};"
+          {{ block.shopify_attributes }}
+          {% if animate %}data-fbento-delay="{{ forloop.index0 | times: 120 }}"{% endif %}
+        >
+          {%- if card_link != blank and cta_text == blank -%}
+            <a href="{{ card_link }}" class="casa-fbento__card-link" aria-label="{{ card_title | escape }}">
+          {%- endif -%}
+
+          {%- comment -%} Background image {%- endcomment -%}
+          <div class="casa-fbento__img-wrap">
+            {%- if card_image != blank -%}
+              {%- if card_mob_img != blank -%}
+                <picture>
+                  <source media="(max-width: 749px)" srcset="{{ card_mob_img | image_url: width: 800 }}">
+                  <source media="(min-width: 750px)" srcset="{{ card_image | image_url: width: 1200 }}">
+                  <img
+                    src="{{ card_image | image_url: width: 1200 }}"
+                    alt="{{ card_image.alt | escape | default: card_title | escape }}"
+                    loading="lazy"
+                    class="casa-fbento__img casa-fbento__img--{{ card_fit }}"
+                    style="object-position: {{ card_focus | escape }};"
+                    width="{{ card_image.width }}"
+                    height="{{ card_image.height }}"
+                  >
+                </picture>
+              {%- else -%}
+                <img
+                  src="{{ card_image | image_url: width: 1200 }}"
+                  alt="{{ card_image.alt | escape | default: card_title | escape }}"
+                  loading="lazy"
+                  class="casa-fbento__img casa-fbento__img--{{ card_fit }}"
+                  style="object-position: {{ card_focus | escape }};"
+                  width="{{ card_image.width }}"
+                  height="{{ card_image.height }}"
+                >
+              {%- endif -%}
+            {%- else -%}
+              <div class="casa-fbento__placeholder">
+                {{ 'lifestyle-1' | placeholder_svg_tag: 'casa-fbento__placeholder-svg' }}
+              </div>
+            {%- endif -%}
+          </div>
+
+          {%- comment -%} Gradient overlay {%- endcomment -%}
+          <div class="casa-fbento__overlay"></div>
+
+          {%- comment -%} Text content {%- endcomment -%}
+          <div class="casa-fbento__content">
+            {%- if card_kicker != blank -%}
+              <span class="casa-fbento__kicker">{{ card_kicker | escape }}</span>
+            {%- endif -%}
+            {%- if card_title != blank -%}
+              <h3 class="casa-fbento__title">{{ card_title }}</h3>
+            {%- endif -%}
+            {%- comment -%}
+              Variant price block — its own row directly under the name so
+              the price never reads as body copy. Mono number register
+              (brand: numerals set in mono, distinct from the Inter name).
+              Opt-in per card via show_variant_price; bundle / included-list
+              cards keep their price inside the description instead. The was-
+              price self-hides when the variant has no compare-at.
+            {%- endcomment -%}
+            {%- if block.settings.show_variant_price and price_str != blank -%}
+              <div class="casa-fbento__price">
+                <span class="casa-fbento__price-now">{%- if compare_str != blank -%}<span class="visually-hidden">Sale price </span>{%- endif -%}{{ price_str }}</span>
+                {%- if compare_str != blank -%}
+                  <s class="casa-fbento__price-was"><span class="visually-hidden">Regular price </span>{{ compare_str }}</s>
+                {%- endif -%}
+              </div>
+            {%- endif -%}
+            {%- if card_desc != blank -%}
+              {%- comment -%}
+                <div> not <p> — descriptions can carry structured markup
+                (e.g. <ul> for an included-variant list, nested rows for
+                price+save layouts). The browser auto-breaks <p> around any
+                block-level child, which severs the .casa-fbento__desc
+                descendant CSS scope. When a price block is present the
+                description is demoted to a fine spec/detail line via
+                --spec.
+              {%- endcomment -%}
+              <div class="casa-fbento__desc{% if block.settings.show_variant_price %} casa-fbento__desc--spec{% endif %}">{{ card_desc }}</div>
+            {%- endif -%}
+            {%- if cta_text != blank -%}
+              {%- assign fbento_cta_treatment = block.settings.cta_treatment | default: 'secondary' -%}
+              {%- if bundle_mode -%}
+                {%- comment -%}
+                  Bundle mode CTA — multi-variant add-to-cart.
+                  href falls back to /cart/<id>:1,<id>:1,... so the
+                  click still adds all variants even without JS.
+                  data-fbento-atc-multi tells the JS handler to POST
+                  /cart/add.js with an items[] array instead of single id.
+                {%- endcomment -%}
+                <a
+                  href="{{ bundle_fallback_url }}"
+                  class="btn btn-{{ fbento_cta_treatment }} casa-fbento__cta casa-fbento__cta--{{ cta_style }} casa-fbento__cta--atc casa-fbento__cta--bundle"
+                  data-fbento-atc-multi="{{ bundle_ids_raw | escape }}"
+                  data-fbento-cta-label="{{ cta_text | escape }}"
+                >
+                  <span class="casa-fbento__cta-label">{{ cta_text }}</span>
+                </a>
+              {%- elsif cta_url != blank -%}
+                <a
+                  href="{{ cta_url }}"
+                  class="btn btn-{{ fbento_cta_treatment }} casa-fbento__cta casa-fbento__cta--{{ cta_style }}{% if atc_variant != blank %} casa-fbento__cta--atc{% endif %}"
+                  {% if atc_variant != blank %}data-fbento-atc="{{ atc_variant }}" data-fbento-cta-label="{{ cta_text | escape }}"{% endif %}
+                >
+                  <span class="casa-fbento__cta-label">{{ cta_text }}</span>
+                </a>
+              {%- endif -%}
+            {%- endif -%}
+          </div>
+
+          {%- if card_link != blank and cta_text == blank -%}
+            </a>
+          {%- endif -%}
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+{% stylesheet %}
+  /* ================================================
+     Seoul Glow Lab - Feature Bento Grid
+     ================================================ */
+  .casa-fbento {
+    background: var(--fbento-bg);
+    color: var(--fbento-text);
+    padding: var(--fbento-pt) 0 var(--fbento-pb);
+  }
+
+  .casa-fbento__wrap {
+    max-width: var(--fbento-max-w);
+    margin: 0 auto;
+    padding: 0 var(--fbento-px);
+  }
+
+  /* --- Header --- */
+  .casa-fbento__header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .casa-fbento__heading {
+    /* Heading scale comes from Theme Settings -> Typography via the
+       fbento_heading_level dropdown; legacy clamp/weight preserved as fallbacks. */
+    font-size: var(--fbento-heading-fs, clamp(28px, 4vw, 48px));
+    font-weight: var(--fbento-heading-fw, 400);
+    line-height: var(--fbento-heading-lh, 1.15);
+    letter-spacing: var(--fbento-heading-ls, -0.02em);
+    text-transform: var(--fbento-heading-case, uppercase);
+    margin: 0 0 12px;
+    color: var(--fbento-heading, var(--fbento-text));
+  }
+  .casa-fbento__subtitle {
+    font-size: clamp(15px, 1.5vw, 18px);
+    line-height: 1.6;
+    color: var(--fbento-subtitle, var(--fbento-text));
+    margin: 0 auto;
+    max-width: 640px;
+  }
+
+  /* --- Grid Layouts --- */
+  .casa-fbento__grid {
+    display: grid;
+    gap: var(--fbento-gap);
+  }
+
+  /* Layout: bento-2x2 (default)
+     Card 1 spans left column, full height (2 rows).
+     Cards 2+3 stack on the right. */
+  .casa-fbento__grid--bento-2x2 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  .casa-fbento__grid--bento-2x2 .casa-fbento__card--1 {
+    grid-row: 1 / 3;
+  }
+
+  /* Layout: bento-asymmetric
+     Row 1: 60% / 40%.  Row 2: 40% / 60%. */
+  .casa-fbento__grid--bento-asymmetric {
+    grid-template-columns: 3fr 2fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  .casa-fbento__grid--bento-asymmetric .casa-fbento__card--3 {
+    grid-column: 1;
+  }
+  .casa-fbento__grid--bento-asymmetric .casa-fbento__card--4 {
+    grid-column: 2;
+  }
+  /* Flip row-2 sizing: card-3 = 40%, card-4 = 60% */
+  @supports (grid-template-columns: subgrid) {
+    .casa-fbento__grid--bento-asymmetric {
+      grid-template-columns: 1fr;
+    }
+  }
+  /* Use a more compatible approach. minmax(0, 1fr) (not bare 1fr) so a
+     long child can't push a track past 1/60th and overflow on mobile. */
+  .casa-fbento__grid--bento-asymmetric {
+    grid-template-columns: repeat(60, minmax(0, 1fr));
+  }
+  .casa-fbento__grid--bento-asymmetric .casa-fbento__card--1 {
+    grid-column: 1 / 37;
+  }
+  .casa-fbento__grid--bento-asymmetric .casa-fbento__card--2 {
+    grid-column: 37 / 61;
+  }
+  .casa-fbento__grid--bento-asymmetric .casa-fbento__card--3 {
+    grid-column: 1 / 25;
+  }
+  .casa-fbento__grid--bento-asymmetric .casa-fbento__card--4 {
+    grid-column: 25 / 61;
+  }
+
+  /* Layout: equal-grid */
+  .casa-fbento__grid--equal-grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+
+  /* Layout: four-up (4 equal cards — proof grids, lookbook strips).
+     Photo-on-top, caption-below same as three-up. Desktop 4-col,
+     tablet 2-col, mobile 2-col. Use for spectrum / scenes / proof
+     strips where each card is photo-only and equal weight. */
+  .casa-fbento__grid--four-up {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: stretch;
+  }
+  @media (max-width: 800px) {
+    .casa-fbento__grid--four-up { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  /* Four-up inherits the three-up photo+caption stacking. */
+  .casa-fbento__grid--four-up .casa-fbento__card {
+    display: flex; flex-direction: column;
+    background: transparent; border-radius: 0;
+    overflow: visible; aspect-ratio: auto;
+    min-height: 0; box-shadow: none;
+  }
+  .casa-fbento__grid--four-up .casa-fbento__card:hover { box-shadow: none; transform: none; }
+  .casa-fbento__grid--four-up .casa-fbento__img-wrap {
+    position: relative; inset: auto;
+    aspect-ratio: 3 / 4;
+    border-radius: var(--fbento-radius);
+    overflow: hidden;
+    background: var(--casa-paper-elevated, #FFFFFF);
+  }
+  .casa-fbento__grid--four-up .casa-fbento__overlay { display: none; }
+  .casa-fbento__grid--four-up .casa-fbento__content {
+    position: static;
+    background: transparent;
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+    border: none; box-shadow: none; border-radius: 0;
+    padding: 0; margin: 0; width: auto; max-width: 100%;
+    gap: 0; align-items: flex-start; text-align: left;
+  }
+  /* Override the bottom-anchor for four-up positions. */
+  .casa-fbento__grid--four-up .casa-fbento__card--pos-bottom-left .casa-fbento__content,
+  .casa-fbento__grid--four-up .casa-fbento__card--pos-bottom-right .casa-fbento__content {
+    margin-top: 0;
+  }
+
+  /* Layout: five-up (5 equal cards — color picker / variant grid).
+     Same photo-on-top, caption-below as three-up; just narrower cards.
+     Mobile: 1-col stack. Tablet: 3-col. Desktop: 5-col.
+     Use for color-variant grids (Fleur Vase, future smart-RGB families). */
+  .casa-fbento__grid--five-up {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: stretch;
+  }
+  @media (max-width: 1100px) and (min-width: 750px) {
+    .casa-fbento__grid--five-up { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 749px) {
+    .casa-fbento__grid--five-up { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  /* Five-up inherits all the three-up card overrides — photo on top,
+     caption BELOW, no scrim, no chip. Just narrower per-card width. */
+  .casa-fbento__grid--five-up .casa-fbento__card,
+  .casa-fbento__grid--five-up .casa-fbento__img-wrap,
+  .casa-fbento__grid--five-up .casa-fbento__overlay,
+  .casa-fbento__grid--five-up .casa-fbento__content,
+  .casa-fbento__grid--five-up .casa-fbento__cta,
+  .casa-fbento__grid--five-up .casa-fbento__title,
+  .casa-fbento__grid--five-up .casa-fbento__desc {
+    /* Hook for any future five-up-specific tweak. For now, inherit three-up. */
+  }
+  .casa-fbento__grid--five-up .casa-fbento__card {
+    display: flex; flex-direction: column;
+    background: transparent; border-radius: 0;
+    overflow: visible; aspect-ratio: auto;
+    min-height: 0; box-shadow: none;
+  }
+  .casa-fbento__grid--five-up .casa-fbento__card:hover { box-shadow: none; transform: none; }
+  .casa-fbento__grid--five-up .casa-fbento__img-wrap {
+    position: relative; inset: auto;
+    aspect-ratio: 1 / 1;
+    border-radius: var(--fbento-radius);
+    overflow: hidden;
+    background: var(--casa-paper-elevated, #FFFFFF);
+  }
+  .casa-fbento__grid--five-up .casa-fbento__overlay { display: none; }
+  .casa-fbento__grid--five-up .casa-fbento__content {
+    position: static;
+    background: transparent;
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+    border: none; box-shadow: none; border-radius: 0;
+    padding: 14px 2px 0;
+    margin: 0; width: auto; max-width: 100%;
+    gap: 4px;
+    align-items: flex-start; text-align: left;
+  }
+  /* Smaller type for 5-up density. */
+  .casa-fbento__grid--five-up .casa-fbento__kicker { font-size: 10px; }
+  .casa-fbento__grid--five-up .casa-fbento__title { font-size: clamp(18px, 1.6vw, 22px); }
+  .casa-fbento__grid--five-up .casa-fbento__desc { font-size: 13px; }
+  .casa-fbento__grid--five-up .casa-fbento__cta { margin-top: 8px; align-self: flex-start; padding: 10px 16px; font-size: 10px; }
+
+  /* Layout: three-up (3 equal cards with photo + caption stacked).
+     Rule §1 from canon: NO overlays on product photos. So in three-up
+     the photo is its own square block, and the text (kicker, title,
+     sub-line, CTA) lives BELOW as a clean editorial caption — no
+     frosted-glass chip, no scrim, no occlusion of the product. */
+  .casa-fbento__grid--three-up {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+  }
+  .casa-fbento__grid--three-up .casa-fbento__card {
+    /* Restore natural stacking: photo box on top, text below */
+    display: flex;
+    flex-direction: column;
+    background: transparent;
+    border-radius: 0;
+    overflow: visible;
+    aspect-ratio: auto;
+    min-height: 0;
+    box-shadow: none;
+  }
+  .casa-fbento__grid--three-up .casa-fbento__card:hover {
+    box-shadow: none;
+    transform: none;
+  }
+  .casa-fbento__grid--three-up .casa-fbento__img-wrap {
+    position: relative;
+    inset: auto;
+    aspect-ratio: 1 / 1;
+    border-radius: var(--fbento-radius);
+    overflow: hidden;
+  }
+  /* Subtle paper-tone behind the photo so studio shots feel set into
+     the page, not pasted onto it. */
+  .casa-fbento__grid--three-up .casa-fbento__img-wrap {
+    background: var(--casa-paper-elevated, #FFFFFF);
+  }
+  /* Drop the gradient scrim — no overlay over the photo in three-up */
+  .casa-fbento__grid--three-up .casa-fbento__overlay {
+    display: none;
+  }
+  /* Caption block sits BELOW the photo. No glass chip, no backdrop
+     blur, no border, no shadow. Just left-aligned type on paper. */
+  .casa-fbento__grid--three-up .casa-fbento__content {
+    position: static;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 16px 4px 0;
+    margin: 0;
+    width: auto;
+    max-width: 100%;
+    gap: 6px;
+    align-items: flex-start;
+    text-align: left;
+    /* Fill the remaining card height so the CTA can anchor at the
+       bottom (see CTA rule below). Without flex:1 the content
+       collapses to its natural height. */
+    flex: 1 1 auto;
+  }
+  /* Override the default bottom-anchor (margin-top: auto from
+     .casa-fbento__card--pos-bottom-left) for the three-up grid.
+     Specificity bump (3 classes) is intentional — the pair-multiples
+     cards carry both .casa-fbento__card--pos-bottom-left and live
+     inside .casa-fbento__grid--three-up, and the bottom-anchor rule
+     was pushing the content to the bottom of the card and creating
+     inconsistent image→text gaps across cards with different
+     content heights (DUO 2 rows = 129px gap, TRIO 3 rows = 86px,
+     SET 5 rows = 0px). With this override the content sits flush
+     against the photo. */
+  .casa-fbento__grid--three-up .casa-fbento__card--pos-bottom-left .casa-fbento__content,
+  .casa-fbento__grid--three-up .casa-fbento__card--pos-bottom-right .casa-fbento__content {
+    margin-top: 0;
+  }
+  /* Anchor the CTA at the bottom of the content area so cards with
+     different content lengths still line up their buttons across the
+     row. The extra vertical space lives BETWEEN the price row and the
+     CTA, which is the natural place for it. */
+  .casa-fbento__grid--three-up .casa-fbento__cta {
+    margin-top: auto;
+    align-self: flex-start;
+  }
+  /* Title sits a touch larger now that it owns its own row */
+  .casa-fbento__grid--three-up .casa-fbento__title {
+    font-size: clamp(24px, 2.4vw, 32px);
+  }
+  .casa-fbento__grid--three-up .casa-fbento__desc {
+    opacity: 0.7;
+  }
+
+  /* --- Card --- */
+  .casa-fbento__card {
+    position: relative;
+    border-radius: var(--fbento-radius);
+    overflow: hidden;
+    min-height: var(--fbento-min-h);
+    display: flex;
+    cursor: default;
+    transition: box-shadow 0.35s ease, transform 0.35s ease;
+  }
+  .casa-fbento__card:hover {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    transform: translateY(-2px);
+  }
+  .casa-fbento__card-link {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    min-height: var(--fbento-min-h);
+  }
+
+  /* --- Image --- */
+  .casa-fbento__img-wrap {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+  .casa-fbento__img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  /* Default: fill the card edge-to-edge, crop overflow.
+     Use for lifestyle / scene photography where edges are negative space. */
+  .casa-fbento__img--cover { object-fit: cover; }
+  /* Show the whole image — adds whitespace on the off-axis dimension.
+     Use for studio shots (product-on-white) so the product is never cut. */
+  .casa-fbento__img--contain {
+    object-fit: contain;
+    background: var(--fbento-card-bg, transparent);
+  }
+  /* No zoom-on-hover for contain cards — the whitespace makes the scale
+     read as "the box grew," not "the product grew." Keep cover hovers. */
+  .casa-fbento__card:hover .casa-fbento__img--cover {
+    transform: scale(1.03);
+  }
+  /* height: auto + aspect-ratio instead of height: 100% in the three-up /
+     four-up / five-up layouts, where the img-wrap is in-flow with its
+     height derived from its own aspect-ratio (3/4 or 1/1 per variant) —
+     Safari 26 can fail to resolve a %-height against that (the /cart
+     flat-thumbnail class; immune pattern from .cart-items__media-image in
+     snippets/cart-products.liquid). Base layout keeps height: 100% — there
+     the wrap is position:absolute inset:0, a definite height (immune).
+     aspect-ratio: inherit reads the DOM parent, so <picture> (present when
+     a mobile image is set) must pass the wrap's ratio down the chain. */
+  .casa-fbento__img-wrap picture {
+    aspect-ratio: inherit;
+  }
+  .casa-fbento__grid--three-up .casa-fbento__img,
+  .casa-fbento__grid--four-up .casa-fbento__img,
+  .casa-fbento__grid--five-up .casa-fbento__img {
+    height: auto;
+    aspect-ratio: inherit;
+  }
+  .casa-fbento__placeholder {
+    width: 100%;
+    height: 100%;
+    background: var(--fbento-ink, var(--casa-ink));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .casa-fbento__placeholder-svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.2;
+  }
+
+  /* --- Overlay --- */
+  .casa-fbento__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+  /* Default: bottom gradient for bottom-positioned text.
+     Locked memory 2026-05-16: card overlays use LIGHT glass (rgba
+     255,255,255) — never dark frosted. Black scrims hide the product
+     color story; white scrims preserve it while solving text legibility. */
+  .casa-fbento__card--pos-bottom-left .casa-fbento__overlay,
+  .casa-fbento__card--pos-bottom-right .casa-fbento__overlay {
+    background: linear-gradient(
+      to top,
+      rgba(255, 255, 255, var(--fbento-overlay)) 0%,
+      rgba(255, 255, 255, calc(var(--fbento-overlay) * 0.5)) 40%,
+      transparent 100%
+    );
+  }
+  .casa-fbento__card--pos-top-left .casa-fbento__overlay,
+  .casa-fbento__card--pos-top-right .casa-fbento__overlay {
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, var(--fbento-overlay)) 0%,
+      rgba(255, 255, 255, calc(var(--fbento-overlay) * 0.5)) 40%,
+      transparent 100%
+    );
+  }
+  .casa-fbento__card--pos-center .casa-fbento__overlay {
+    background: rgba(255, 255, 255, var(--fbento-overlay));
+  }
+
+  /* --- Content positioning ---
+     Locked memory 2026-05-16: text card uses LIGHT frosted glass on
+     light bg. Never dark frosted. Ink text on white-tinted blur reads
+     cleanly without hiding the product image behind. */
+  .casa-fbento__content {
+    position: relative;
+    z-index: 2;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: fit-content;
+    max-width: calc(100% - 24px);
+    margin: 12px;
+    background: rgba(255, 255, 255, 0.72);
+    /* Backdrop blur dropped 14px → 10px and saturate stack removed
+       (2026-05-17, Elie report). Stacked backdrop-filter (blur +
+       saturate) doubles GPU cost — per casa-lint backdrop-filter-stacked
+       rule. The 72% white background already provides most of the
+       contrast lift; the saturate(1.05) was a barely-visible bump
+       not worth the compositor work. will-change promotes the layer
+       to GPU so scrolling the bento past the sticky header doesn't
+       re-invalidate the blur every frame. */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    will-change: backdrop-filter;
+    color: var(--casa-ink, #0A0A0F);
+    border-radius: 12px;
+    border: 1px solid rgba(10, 10, 15, 0.06);
+    box-shadow: 0 4px 24px -8px rgba(10, 10, 15, 0.12);
+  }
+  /* Force Ink text on the light-glass card regardless of section text token */
+  .casa-fbento__content .casa-fbento__title,
+  .casa-fbento__content .casa-fbento__desc {
+    color: var(--casa-ink, #0A0A0F);
+  }
+  /* bottom-left (default) */
+  .casa-fbento__card--pos-bottom-left .casa-fbento__content {
+    margin-top: auto;
+    align-items: flex-start;
+  }
+  /* bottom-right */
+  .casa-fbento__card--pos-bottom-right .casa-fbento__content {
+    margin-top: auto;
+    align-items: flex-end;
+    text-align: right;
+  }
+  /* top-left */
+  .casa-fbento__card--pos-top-left .casa-fbento__content {
+    margin-bottom: auto;
+    align-items: flex-start;
+  }
+  /* top-right */
+  .casa-fbento__card--pos-top-right .casa-fbento__content {
+    margin-bottom: auto;
+    align-items: flex-end;
+    text-align: right;
+  }
+  /* center */
+  .casa-fbento__card--pos-center .casa-fbento__content {
+    margin: auto;
+    align-items: center;
+    text-align: center;
+  }
+
+  /* --- Typography --- */
+  .casa-fbento__kicker {
+    display: block;
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--casa-ink-muted, rgba(10, 10, 15, 0.62));
+    margin: 0 0 2px;
+  }
+  .casa-fbento__title {
+    font-size: clamp(22px, 2.4vw, 30px);
+    font-weight: 600;
+    line-height: 1.1;
+    margin: 0;
+    color: var(--fbento-card-title, var(--fbento-text));
+    letter-spacing: -0.015em;
+  }
+  /* Hero card (Full Set) gets a larger title in 2x2 layout */
+  .casa-fbento__grid--bento-2x2 .casa-fbento__card--1 .casa-fbento__title {
+    font-size: clamp(28px, 3.2vw, 44px);
+  }
+  /* Brand italic-gradient accent for any <em> inside a card title */
+  .casa-fbento__title em {
+    font-style: italic;
+    background: linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .casa-fbento__desc {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+    color: var(--fbento-card-desc, var(--fbento-text));
+    opacity: 0.78;
+    max-width: 360px;
+  }
+
+  /* Variant price — single-variant cards (show_variant_price).
+     Own row directly under the name, mono number register so the
+     numerals read as data, cleanly separate from the Inter variant
+     name. now-price and struck was-price both keep their currency
+     code (merchant-locked 2026-07-11). tabular-nums keeps the digits
+     aligned; the was-price self-hides when there's no compare-at. */
+  .casa-fbento__price {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 2px 0 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .casa-fbento__price-now {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--fbento-card-title, var(--fbento-text));
+    white-space: nowrap;
+  }
+  .casa-fbento__price-was {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+    font-weight: 500;
+    /* muting comes from the colour, not opacity — override the global
+       `s { opacity: 0.62 }` so it doesn't compound and wash out. Alpha
+       is 0.6 (not 0.5): a struck compare-at communicates the discount,
+       so it's meaningful text and must clear WCAG AA. 0.6 over Paper
+       ≈ 5.2:1 (passes); 0.5 was ≈ 3.7:1 (fails). --casa-ink-muted is
+       the theme's fallback token for this value. */
+    opacity: 1;
+    color: var(--casa-ink-muted, rgba(10, 10, 15, 0.6));
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+    text-decoration-skip-ink: none;
+    white-space: nowrap;
+  }
+  /* When a price block is present the description becomes a fine
+     spec/detail line (dimensions), demoted below the price. Chained
+     selector (0,2,0) so it beats .grid--three-up .casa-fbento__desc
+     { opacity: 0.7 } and the five-up desc size override. */
+  .casa-fbento__desc.casa-fbento__desc--spec {
+    font-size: 12.5px;
+    line-height: 1.45;
+    opacity: 1;
+    color: var(--casa-ink-muted, rgba(10, 10, 15, 0.6));
+  }
+  /* Bundle cards: when the included-colour list is the spec detail
+     (price now lives in the block above), drop its trailing hairline
+     and bottom margin — it's the card's last element, nothing follows
+     it, so the separator would just dangle. Chained (0,3,0) so it beats
+     the base `.casa-fbento__desc .fbento-included` (0,2,0), which is
+     later in source. */
+  .casa-fbento__desc.casa-fbento__desc--spec .fbento-included {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+  /* Density parity with the five-up caption scale. */
+  .casa-fbento__grid--five-up .casa-fbento__price-now { font-size: 15px; }
+  .casa-fbento__grid--five-up .casa-fbento__price-was { font-size: 12px; }
+
+  /* Structured description for bundle / pair-multiples cards.
+
+     Editorial hierarchy:
+       .fbento-included         — clean list of variants, hairline below
+       .fbento-pricerow         — total + save, displayed as a row
+         .fbento-pricerow__total — large bold bundle price (the moment)
+         .fbento-pricerow__save  — brand-pink mono-caps savings chip
+
+     The parent .casa-fbento__desc sets opacity:0.78; the price total
+     overrides that with opacity:1 so the dollar figure reads at full
+     contrast. */
+  .casa-fbento__desc .fbento-included {
+    list-style: none;
+    margin: 0 0 14px;
+    padding: 0;
+    border-bottom: 1px solid rgba(10, 10, 15, 0.12);
+  }
+  .casa-fbento__desc .fbento-included li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+    color: var(--fbento-card-desc, var(--fbento-text));
+  }
+  .casa-fbento__desc .fbento-included li + li {
+    border-top: 1px solid rgba(10, 10, 15, 0.06);
+  }
+  /* Variant swatch — small two-tone gradient chip that previews the
+     actual dichroic color pair of the variant. The inline style on
+     each li sets the linear-gradient (purple/pink/yellow/cyan etc).
+     Inline style is unavoidable here because the colors are merchant
+     content, not theme tokens. */
+  .casa-fbento__desc .fbento-included__swatch {
+    display: inline-block;
+    width: 26px;
+    height: 26px;
+    border-radius: 5px;
+    border: 1px solid rgba(10, 10, 15, 0.1);
+    box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.4);
+    flex-shrink: 0;
+  }
+  .casa-fbento__desc .fbento-included__name {
+    flex: 1;
+    min-width: 0;
+  }
+  .casa-fbento__desc .fbento-pricerow {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .casa-fbento__desc .fbento-pricerow__total {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--fbento-card-desc, var(--fbento-text));
+    opacity: 1;
+  }
+  .casa-fbento__desc .fbento-pricerow__save {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #5E0A02;
+    opacity: 1;
+  }
+  /* Five-up grid is denser — tighten the price typography a touch */
+  .casa-fbento__grid--five-up .casa-fbento__desc .fbento-pricerow__total { font-size: 18px; }
+  .casa-fbento__grid--five-up .casa-fbento__desc .fbento-pricerow__save  { font-size: 10px; }
+
+  /* --- CTA Button ---
+     Brand class .btn .btn-[treatment] provides display, padding,
+     font, radius, transition, text-transform, letter-spacing, hover.
+     Section-specific override: margin-top spacer.
+     Legacy --outline/--solid modifier rules below kept so any merchant
+     template still using deprecated cta_style keeps rendering until
+     they pick a new treatment. */
+  .casa-fbento__cta {
+    margin-top: 8px;
+  }
+  /* Outline on the light-frosted card: Ink text + Ink border (18.5:1 AAA).
+     The previous white-on-white-50% combo failed contrast (1.13:1). */
+  .casa-fbento__cta--outline {
+    background: transparent;
+    color: var(--fbento-cta-text, var(--casa-ink, #0A0A0F));
+    border: 1.5px solid var(--fbento-cta, rgba(10, 10, 15, 0.85));
+  }
+  .casa-fbento__cta--outline:hover {
+    border-color: var(--casa-ink, #0A0A0F);
+    background: rgba(10, 10, 15, 0.06);
+    color: var(--casa-ink, #0A0A0F);
+  }
+  .casa-fbento__cta--solid {
+    background: var(--fbento-cta, #B0C3FA);
+    color: var(--fbento-cta-text, #fff);
+    border: 1.5px solid var(--fbento-cta, #B0C3FA);
+  }
+  .casa-fbento__cta--solid:hover {
+    /* Hover uses a subtly darker brand purple for tactile feedback;
+       falls back to the literal #7e22ce darken if --casa-purple-700
+       isn't defined globally. */
+    background: var(--casa-purple-700, #7e22ce);
+    border-color: var(--casa-purple-700, #7e22ce);
+  }
+
+  /* --- Scroll animations --- */
+  .casa-fbento__card--anim {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.35s ease;
+  }
+  .casa-fbento__card--visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* --- Mobile --- */
+  @media (max-width: 749px) {
+    .casa-fbento__wrap {
+      padding: 0 16px;
+    }
+    .casa-fbento__header {
+      margin-bottom: 32px;
+    }
+    .casa-fbento__grid--bento-2x2,
+    .casa-fbento__grid--bento-asymmetric,
+    .casa-fbento__grid--equal-grid,
+    .casa-fbento__grid--three-up {
+      grid-template-columns: 1fr !important;
+      grid-template-rows: auto !important;
+    }
+    .casa-fbento__grid--bento-2x2 .casa-fbento__card--1,
+    .casa-fbento__grid--bento-asymmetric .casa-fbento__card--1,
+    .casa-fbento__grid--bento-asymmetric .casa-fbento__card--2,
+    .casa-fbento__grid--bento-asymmetric .casa-fbento__card--3,
+    .casa-fbento__grid--bento-asymmetric .casa-fbento__card--4 {
+      grid-column: 1 / -1 !important;
+      grid-row: auto !important;
+    }
+    .casa-fbento__card {
+      min-height: 280px;
+    }
+    .casa-fbento__content {
+      padding: 20px 20px 24px;
+    }
+    .casa-fbento__title {
+      font-size: var(--font-h4--size, 20px);
+    }
+    .casa-fbento__grid--bento-2x2 .casa-fbento__card--1 .casa-fbento__title {
+      font-size: var(--font-h4--size, 22px);
+    }
+    .casa-fbento__desc {
+      font-size: 13px;
+    }
+  }
+
+  /* Tablet: 2-col equal for asymmetric/equal, keep 2x2 logic */
+  @media (min-width: 750px) and (max-width: 999px) {
+    .casa-fbento__grid--bento-asymmetric {
+      grid-template-columns: 1fr 1fr !important;
+    }
+    .casa-fbento__grid--bento-asymmetric .casa-fbento__card--1,
+    .casa-fbento__grid--bento-asymmetric .casa-fbento__card--2,
+    .casa-fbento__grid--bento-asymmetric .casa-fbento__card--3,
+    .casa-fbento__grid--bento-asymmetric .casa-fbento__card--4 {
+      grid-column: auto !important;
+    }
+    .casa-fbento__card {
+      min-height: 320px;
+    }
+  }
+{% endstylesheet %}
+
+<script>
+  (function () {
+    var section = document.getElementById('casa-fbento-{{ section.id }}');
+    if (!section) return;
+    var cards = section.querySelectorAll('.casa-fbento__card--anim');
+    if (!cards.length) return;
+
+    if (!('IntersectionObserver' in window)) {
+      cards.forEach(function (c) { c.classList.add('casa-fbento__card--visible'); });
+      return;
+    }
+
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          var card = entry.target;
+          var delay = parseInt(card.getAttribute('data-fbento-delay') || '0', 10);
+          setTimeout(function () {
+            card.classList.add('casa-fbento__card--visible');
+          }, delay);
+          observer.unobserve(card);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+    cards.forEach(function (c) { observer.observe(c); });
+  })();
+
+  /* ---------------- Direct add-to-cart on bento CTA ----------------
+     When a card's cta_url contains ?variant=<digits>, the Liquid
+     above emits data-fbento-atc + data-fbento-cta-label on the <a>.
+     We intercept the click, POST to /cart/add.js, dispatch every
+     cart-update event a theme listener might watch for, then open
+     the cart drawer. If anything fails the default href navigation
+     takes over (graceful fallback to the variant URL).
+
+     One bound handler per section. Idempotent for the theme editor
+     remount cycle. */
+  (function () {
+    var section = document.getElementById('casa-fbento-{{ section.id }}');
+    if (!section || section.dataset.fbentoAtcBound === '1') return;
+    section.dataset.fbentoAtcBound = '1';
+
+    function collectSectionIds() {
+      var ids = new Set();
+      document.querySelectorAll('[data-section-id], [id^="shopify-section-"]').forEach(function (el) {
+        var sid = el.dataset.sectionId
+          || (el.id && el.id.replace(/^shopify-section-/, ''));
+        if (!sid) return;
+        var tag = (el.tagName || '').toLowerCase();
+        var cls = (el.className || '').toString();
+        if (/cart/i.test(tag) || /cart/i.test(cls) || /header/i.test(cls)) ids.add(sid);
+      });
+      return Array.from(ids);
+    }
+
+    function openAnyDrawer() {
+      var horizon = document.querySelector('cart-drawer-component');
+      if (horizon) {
+        try { if (typeof horizon.open === 'function') { horizon.open(); return true; } } catch (e) {}
+        try { if (typeof horizon.showDialog === 'function') { horizon.showDialog(); return true; } } catch (e) {}
+      }
+      var dawn = document.querySelector('cart-drawer, #cart-drawer, #CartDrawer');
+      if (dawn) {
+        try { if (typeof dawn.open === 'function') { dawn.open(); return true; } } catch (e) {}
+        try { if (typeof dawn.show === 'function') { dawn.show(); return true; } } catch (e) {}
+        dawn.classList.add('active', 'is-open', 'animate');
+        dawn.classList.remove('hidden');
+        dawn.setAttribute('open', '');
+        if (dawn.tagName.toLowerCase() === 'dialog') {
+          try { dawn.showModal(); return true; } catch (e) {}
+        }
+        return true;
+      }
+      var cartBtn = document.querySelector('.casa-header__cart-btn, [aria-label*="cart" i][role="button"], [aria-label*="cart" i].header__icon, a[href$="/cart"]');
+      if (cartBtn) { try { cartBtn.click(); return true; } catch (e) {} }
+      return false;
+    }
+
+    function broadcastCartUpdate(response, variantId) {
+      var detail = {
+        resource: response,
+        sourceId: 'casa-fbento-{{ section.id }}',
+        data: {
+          source: 'casa-feature-bento',
+          itemCount: 1,
+          variantId: variantId,
+          sections: response && response.sections ? response.sections : {}
+        }
+      };
+      ['cart:update', 'cart:refresh', 'cart-update', 'cart:item-added', 'cart-drawer:refresh'].forEach(function (name) {
+        try { document.dispatchEvent(new CustomEvent(name, { bubbles: true, detail: detail })); } catch (e) {}
+      });
+    }
+
+    section.addEventListener('click', function (e) {
+      var cta = e.target.closest('[data-fbento-atc], [data-fbento-atc-multi]');
+      if (!cta || !section.contains(cta)) return;
+
+      /* Build the items[] payload — supports both single-variant and
+         multi-variant bundle cards. The merchant just sets a different
+         data attribute and the handler does the rest. */
+      var multiAttr = cta.getAttribute('data-fbento-atc-multi');
+      var singleAttr = cta.getAttribute('data-fbento-atc');
+      var items = [];
+      if (multiAttr) {
+        multiAttr.split(',').forEach(function (raw) {
+          var id = (raw || '').trim();
+          if (/^\d+$/.test(id)) items.push({ id: parseInt(id, 10), quantity: 1 });
+        });
+      } else if (singleAttr && /^\d+$/.test(singleAttr)) {
+        items.push({ id: parseInt(singleAttr, 10), quantity: 1 });
+      }
+      if (!items.length) return; /* nothing valid — fall through to href */
+
+      e.preventDefault();
+      if (cta.getAttribute('aria-busy') === 'true') return;
+      cta.setAttribute('aria-busy', 'true');
+
+      var labelEl = cta.querySelector('.casa-fbento__cta-label');
+      var origLabel = labelEl ? labelEl.textContent : cta.textContent;
+      function setLabel(t) { if (labelEl) labelEl.textContent = t == null ? origLabel : t; }
+      setLabel('Adding…');
+
+      /* Shopify's /cart/add.js accepts either form-encoded {id, quantity}
+         (single) OR JSON {items: [{id, quantity}, ...]} (multi). We always
+         use the JSON multi form — it works for 1 item too, and gives us
+         a single code path. */
+      var sectionIds = collectSectionIds();
+      var payload = { items: items };
+      if (sectionIds.length) payload.sections = sectionIds.join(',');
+
+      fetch('{{ routes.cart_add_url }}.js', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(function (res) {
+        if (!res.ok && res.status !== 422) throw new Error('network');
+        return res.json();
+      })
+      .then(function (response) {
+        if (response && response.status) {
+          /* Shopify returned an error (e.g. sold out). Surface the message. */
+          setLabel(response.message || 'Unavailable');
+          setTimeout(function () { setLabel(null); cta.removeAttribute('aria-busy'); }, 2200);
+          return;
+        }
+        broadcastCartUpdate(response, items.map(function (i) { return i.id; }).join(','));
+        setLabel(items.length > 1 ? 'Added ' + items.length + ' ✓' : 'Added ✓');
+        setTimeout(function () {
+          var opened = openAnyDrawer();
+          if (!opened) { window.location.href = '{{ routes.cart_url }}'; }
+        }, 60);
+        setTimeout(function () { setLabel(null); cta.removeAttribute('aria-busy'); }, 1500);
+      })
+      .catch(function () {
+        /* Network / parse failure — fall back to plain navigation
+           so the shopper still lands on the variant. */
+        cta.removeAttribute('aria-busy');
+        setLabel(null);
+        window.location.href = cta.getAttribute('href');
+      });
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Feature Bento Grid",
+  "tag": "section",
+  "class": "casa-fbento-section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "layout_style",
+      "label": "Layout style",
+      "options": [
+        { "value": "bento-2x2", "label": "Bento 2x2 (featured left)" },
+        { "value": "bento-asymmetric", "label": "Bento Asymmetric" },
+        { "value": "equal-grid", "label": "Equal Grid (2x2)" },
+        { "value": "three-up", "label": "Three Up (3 square cards)" },
+        { "value": "four-up", "label": "Four Up (4-col proof/lookbook grid)" },
+        { "value": "five-up", "label": "Five Up (5-col variant picker grid)" }
+      ],
+      "default": "bento-2x2"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading (use <em>word</em> for italic gradient accent)",
+      "default": "Elevate Your <em>Space</em>"
+    },
+    {
+      "type": "select",
+      "id": "fbento_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
+    },
+    {
+      "type": "textarea",
+      "id": "subtitle",
+      "label": "Subtitle",
+      "default": "Discover intelligent lighting features designed around the way you live."
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "Gap between cards",
+      "min": 8,
+      "max": 32,
+      "step": 2,
+      "default": 16,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "label": "Card border radius",
+      "min": 0,
+      "max": 32,
+      "step": 2,
+      "default": 16,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "min_height",
+      "label": "Card minimum height",
+      "min": 200,
+      "max": 600,
+      "step": 20,
+      "default": 400,
+      "unit": "px"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Background color",
+      "default": "#0A0A0F"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text color",
+      "default": "#FAFAF7"
+    },
+    {
+      "type": "color",
+      "id": "heading_color",
+      "label": "Section heading color",
+      "info": "Overrides text color for the section heading"
+    },
+    {
+      "type": "color",
+      "id": "subtitle_color",
+      "label": "Section subtitle color"
+    },
+    {
+      "type": "color",
+      "id": "card_title_color",
+      "label": "Card title color",
+      "info": "Overrides text color for card titles"
+    },
+    {
+      "type": "color",
+      "id": "card_desc_color",
+      "label": "Card description color"
+    },
+    {
+      "type": "color",
+      "id": "cta_color",
+      "label": "CTA button color"
+    },
+    {
+      "type": "color",
+      "id": "cta_text_color",
+      "label": "CTA button text color"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Padding top",
+      "min": 0,
+      "max": 160,
+      "step": 8,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Padding bottom",
+      "min": 0,
+      "max": 160,
+      "step": 8,
+      "default": 80,
+      "unit": "px"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_animations",
+      "label": "Enable scroll animations",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "section_width",
+      "label": "Section width",
+      "options": [
+        { "value": "full", "label": "Full width" },
+        { "value": "wide", "label": "Wide (1600px)" },
+        { "value": "contained", "label": "Contained (1400px)" },
+        { "value": "narrow", "label": "Narrow (1200px)" }
+      ],
+      "default": "contained"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "feature_card",
+      "name": "Feature Card",
+      "limit": 6,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Background image"
+        },
+        {
+          "type": "image_picker",
+          "id": "mobile_image",
+          "label": "Mobile image (optional)"
+        },
+        {
+          "type": "number",
+          "id": "product_media_index",
+          "label": "Use product media (index, optional)",
+          "info": "0-based index into the product's media library. If set, overrides Background image. Useful on PDP bentos that point at a specific product photo without re-uploading."
+        },
+        {
+          "type": "select",
+          "id": "image_fit",
+          "label": "Image fit",
+          "info": "Cover = fill the card and crop edges (lifestyle/scene photos). Contain = show the whole image with whitespace if needed (studio shots, product-on-white).",
+          "options": [
+            { "value": "cover",   "label": "Cover (crop to fill)" },
+            { "value": "contain", "label": "Contain (no crop)" }
+          ],
+          "default": "cover"
+        },
+        {
+          "type": "text",
+          "id": "image_focus",
+          "label": "Image focal point (object-position)",
+          "info": "CSS object-position. Default 'center'. Use e.g. 'center bottom' to keep a product anchored at the bottom of a tall card, or '50% 35%' to pull it up.",
+          "default": "center"
+        },
+        {
+          "type": "text",
+          "id": "kicker",
+          "label": "Kicker (eyebrow, optional)",
+          "info": "Short mono-caps label above the title. Currency tokens auto-replace at render: __PRICE__, __COMPARE_PRICE__, __COMPARE_STRIKE__, __SAVINGS__. Examples: SIDE TABLE · PAIR · SAVE __SAVINGS__ · NEW · BESTSELLER."
+        },
+        {
+          "type": "inline_richtext",
+          "id": "title",
+          "label": "Title",
+          "default": "Feature Title",
+          "info": "Inline rich text. Wrap one keyword in <em>…</em> to apply the brand gradient accent."
+        },
+        {
+          "type": "textarea",
+          "id": "description",
+          "label": "Description",
+          "info": "For single-variant cards, use this for the spec/detail line (e.g. dimensions) and turn ON 'Show variant price' below. Currency tokens still auto-replace for bundle / included-list cards: __PRICE__ -> current variant price, __COMPARE_PRICE__ -> compare-at price, __COMPARE_STRIKE__ -> <s>compare price</s>, __SAVINGS__ -> compare minus current. Never hardcode currency."
+        },
+        {
+          "type": "checkbox",
+          "id": "show_variant_price",
+          "label": "Show variant price under the title",
+          "default": false,
+          "info": "Renders the CTA variant's price on its own line below the name — now-price in mono, plus a struck was-price when the variant has a compare-at. Use for single-variant cards. Leave OFF for bundle / included-list cards that carry the price inside the description."
+        },
+        {
+          "type": "text",
+          "id": "compare_variant_ids",
+          "label": "Compare-price: sum of variant IDs (optional)",
+          "info": "Comma-separated numeric variant IDs. Their prices are summed for __COMPARE_STRIKE__. Use for bundle cards comparing to 'buying separately'. If blank, the variant's own compare_at_price is used."
+        },
+        {
+          "type": "text",
+          "id": "bundle_variant_ids",
+          "label": "Bundle add-to-cart: multi-variant IDs (optional)",
+          "info": "Comma-separated numeric variant IDs. When set, clicking the CTA adds ALL of them to the cart in one request (separate line items). Price tokens __PRICE__ / __COMPARE_PRICE__ / __COMPARE_STRIKE__ / __SAVINGS__ sum the variant prices. __BUNDLE_COUNT__ resolves to how many variants are in the bundle. Falls back to /cart/<id>:1,<id>:1 URL nav if JS is off. Use for Pair / Trio / Set arrangements."
+        },
+        {
+          "type": "select",
+          "id": "text_position",
+          "label": "Text position",
+          "options": [
+            { "value": "bottom-left", "label": "Bottom Left" },
+            { "value": "top-left", "label": "Top Left" },
+            { "value": "bottom-right", "label": "Bottom Right" },
+            { "value": "top-right", "label": "Top Right" },
+            { "value": "center", "label": "Center" }
+          ],
+          "default": "bottom-left"
+        },
+        {
+          "type": "range",
+          "id": "overlay_opacity",
+          "label": "Overlay opacity",
+          "min": 0,
+          "max": 100,
+          "step": 5,
+          "default": 40,
+          "unit": "%"
+        },
+        {
+          "type": "text",
+          "id": "cta_text",
+          "label": "Button text (optional)"
+        },
+        {
+          "type": "url",
+          "id": "cta_url",
+          "label": "Button URL"
+        },
+        {
+          "type": "select",
+          "id": "cta_style",
+          "label": "Button style (legacy)",
+          "info": "Deprecated. Superseded by Button treatment below.",
+          "options": [
+            { "value": "outline", "label": "Outline" },
+            { "value": "solid", "label": "Solid" }
+          ],
+          "default": "outline",
+          "visible_if": "{{ false }}"
+        },
+        {
+          "type": "select",
+          "id": "cta_treatment",
+          "label": "Button treatment",
+          "info": "Brand-book button style. Featured (gradient) is rare per brand book — reserved for hero/launch CTAs.",
+          "options": [
+            { "value": "primary",            "label": "Primary — solid ink (light surface)" },
+            { "value": "primary-on-dark",    "label": "Primary — solid white (dark surface)" },
+            { "value": "secondary",          "label": "Secondary — outline (light surface)" },
+            { "value": "secondary-on-dark",  "label": "Secondary — outline (dark surface)" },
+            { "value": "tertiary",           "label": "Tertiary — underlined link" },
+            { "value": "featured",           "label": "Featured — purple→pink gradient" }
+          ],
+          "default": "secondary"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Card link (if no button)"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 6,
+  "presets": [
+    {
+      "name": "Feature Bento Grid",
+      "settings": {
+        "layout_style": "bento-2x2",
+        "heading": "Elevate Your Space",
+        "subtitle": "Discover intelligent lighting features designed around the way you live.",
+        "enable_animations": true
+      },
+      "blocks": [
+        {
+          "type": "feature_card",
+          "settings": {
+            "title": "Bring Your Movies and Music to Life",
+            "description": "Sync your lights to your screen or speakers for an immersive sensory experience that transforms any room.",
+            "text_position": "bottom-left",
+            "overlay_opacity": 45,
+            "cta_text": "Learn More",
+            "cta_url": "",
+            "cta_style": "outline"
+          }
+        },
+        {
+          "type": "feature_card",
+          "settings": {
+            "title": "AI Magic Scenes",
+            "description": "Intelligent scenes that adapt to time of day and mood.",
+            "text_position": "bottom-left",
+            "overlay_opacity": 40
+          }
+        },
+        {
+          "type": "feature_card",
+          "settings": {
+            "title": "Convenient Control",
+            "description": "Manage every light from your phone, tablet, or desktop.",
+            "text_position": "bottom-left",
+            "overlay_opacity": 40
+          }
+        },
+        {
+          "type": "feature_card",
+          "settings": {
+            "title": "Go Hands-Free",
+            "description": "Works with Alexa, Google Home, and Apple HomeKit.",
+            "text_position": "bottom-left",
+            "overlay_opacity": 40
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

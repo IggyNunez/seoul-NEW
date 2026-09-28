@@ -137,7 +137,14 @@
     </p>
 
     {% if resource_type == 'product' %}
-      {% render 'price', product_resource: resource, show_unit_price: true %}
+      {%- comment -%}
+        hide_installments: true — predictive-search and search results
+        cards must never render Shop Pay installments. Even when the
+        shopper triggers predictive search from a PDP (where template.name
+        == 'product'), each suggestion is a card surface and BNPL must
+        stay off. Per merchant rule 2026-05-16.
+      {%- endcomment -%}
+      {% render 'price', product_resource: resource, show_unit_price: true, hide_installments: true %}
     {% elsif resource_type == 'collection' and single_thumbnail_collection == false %}
       <p class="resource-card__subtext paragraph">
         {{- 'content.search_results_resource_products_count' | t: count: resource.all_products_count -}}

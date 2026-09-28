@@ -1,0 +1,315 @@
+{%- comment -%}
+  casa-track-order.liquid
+  Used by: templates/page.track-order.json (page handle: track-order)
+  Purpose: Branded "Track Your Order" page. Hosts the Track123 order-tracking
+           widget (added as an @app block) as the FIRST thing the customer sees,
+           wrapped in Casa chrome: branded H1 with italic-gradient <em> accent,
+           a "Where's my order?" mini-FAQ, and a support CTA card.
+  Blocks:
+    - @app        → the Track123 "Shipment status" widget (merchant adds in editor)
+    - faq_item    → question (text) + answer (richtext)
+  Settings: surface (Paper|Ink), heading, subheading, widget fallback url,
+            support card (heading/body/email/phone/hours/button), spacing.
+  Notes:
+    - v1 — initial branded Track Your Order page.
+    - If no @app block is present yet, a fallback button links to the existing
+      Track123 app-proxy page so the lookup is never missing.
+    - The Track123 widget styles itself (configured in the Track123 dashboard);
+      this section only provides a neutral centered slot for it.
+{%- endcomment -%}
+
+{%- liquid
+  assign surface = section.settings.surface
+  if surface == 'ink'
+    assign bg = '#0A0A0F'
+    assign fg = '#FAFAF7'
+    assign muted = 'rgba(250,250,247,0.62)'
+    assign card_bg = 'rgba(255,255,255,0.04)'
+    assign line = 'rgba(255,255,255,0.14)'
+  else
+    assign bg = '#FAFAF7'
+    assign fg = '#0A0A0F'
+    assign muted = '#5b5b66'
+    assign card_bg = '#ffffff'
+    assign line = 'rgba(10,10,15,0.10)'
+  endif
+
+  assign app_block_count = 0
+  for block in section.blocks
+    if block.type == '@app'
+      assign app_block_count = app_block_count | plus: 1
+    endif
+  endfor
+
+  assign contact_url = pages['contact-us'].url | default: '/pages/contact-us'
+-%}
+
+<section
+  id="casa-trackorder-{{ section.id }}"
+  class="casa-trackorder casa-trackorder--{{ surface }}"
+  style="--to-bg:{{ bg }};--to-fg:{{ fg }};--to-muted:{{ muted }};--to-card:{{ card_bg }};--to-line:{{ line }};--to-pt:{{ section.settings.padding_top }}px;--to-pb:{{ section.settings.padding_bottom }}px;">
+
+  <div class="casa-trackorder__wrap">
+
+    {%- comment -%} 1 · Compact branded title (header to the widget) {%- endcomment -%}
+    <header class="casa-trackorder__head">
+      <h1 class="casa-trackorder__title">{{ section.settings.heading }}</h1>
+      {%- if section.settings.subheading != blank -%}
+        <div class="casa-trackorder__sub">{{ section.settings.subheading }}</div>
+      {%- endif -%}
+    </header>
+
+    {%- comment -%} 2 · WIDGET FIRST — Track123 @app block (or safe fallback) {%- endcomment -%}
+    <div class="casa-trackorder__widget">
+      {%- if app_block_count > 0 -%}
+        {%- for block in section.blocks -%}
+          {%- if block.type == '@app' -%}
+            <div class="casa-app-block" {{ block.shopify_attributes }}>{% render block %}</div>
+          {%- endif -%}
+        {%- endfor -%}
+      {%- else -%}
+        {%- if request.design_mode -%}
+          <p class="casa-trackorder__hint">Add the <strong>“Shipment status from Track123”</strong> app block here so the live tracking widget appears at the top of the page.</p>
+        {%- endif -%}
+        {%- if section.settings.fallback_url != blank -%}
+          <a class="btn btn-primary casa-trackorder__fallback" href="{{ section.settings.fallback_url }}">
+            {{ section.settings.fallback_label | default: 'TRACK MY ORDER' }}
+          </a>
+        {%- endif -%}
+      {%- endif -%}
+    </div>
+
+    {%- comment -%} 3 · "Where's my order?" mini-FAQ {%- endcomment -%}
+    {%- assign faq_count = 0 -%}
+    {%- for block in section.blocks -%}{%- if block.type == 'faq_item' -%}{%- assign faq_count = faq_count | plus: 1 -%}{%- endif -%}{%- endfor -%}
+    {%- if faq_count > 0 -%}
+      <div class="casa-trackorder__faq">
+        {%- if section.settings.faq_heading != blank -%}
+          <h2 class="casa-trackorder__h2">{{ section.settings.faq_heading }}</h2>
+        {%- endif -%}
+        <div class="casa-trackorder__faq-list">
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'faq_item' and block.settings.question != blank -%}
+              <details class="casa-trackorder__item" {{ block.shopify_attributes }}{% if forloop.first %} open{% endif %}>
+                <summary>{{ block.settings.question | escape }}</summary>
+                <div class="casa-trackorder__answer">{{ block.settings.answer }}</div>
+              </details>
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+      </div>
+    {%- endif -%}
+
+    {%- comment -%} 4 · Support CTA card {%- endcomment -%}
+    {%- if section.settings.support_heading != blank -%}
+      <div class="casa-trackorder__support">
+        <h2 class="casa-trackorder__support-h">{{ section.settings.support_heading }}</h2>
+        {%- if section.settings.support_body != blank -%}
+          <div class="casa-trackorder__support-body">{{ section.settings.support_body }}</div>
+        {%- endif -%}
+        <div class="casa-trackorder__support-rows">
+          {%- if section.settings.support_email != blank -%}<span><strong>Email</strong> <a href="mailto:{{ section.settings.support_email | escape }}">{{ section.settings.support_email | escape }}</a></span>{%- endif -%}
+          {%- if section.settings.support_phone != blank -%}<span><strong>Phone</strong> <a href="tel:{{ section.settings.support_phone | escape | replace: ' ', '' | replace: '(', '' | replace: ')', '' | replace: '-', '' }}">{{ section.settings.support_phone | escape }}</a></span>{%- endif -%}
+          {%- if section.settings.support_hours != blank -%}<span><strong>Hours</strong> {{ section.settings.support_hours | escape }}</span>{%- endif -%}
+        </div>
+        {%- if section.settings.support_button_label != blank -%}
+          <a class="btn btn-primary" href="{{ contact_url }}">{{ section.settings.support_button_label }}</a>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+  </div>
+</section>
+
+{% stylesheet %}
+.casa-trackorder {
+  background: var(--to-bg, #FAFAF7);
+  color: var(--to-fg, #0A0A0F);
+  padding-block: var(--to-pt, 40px) var(--to-pb, 56px);
+  font-family: var(--font-body--family, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
+}
+.casa-trackorder__wrap { max-width: 1080px; margin: 0 auto; padding-inline: 20px; }
+
+/* 1 · title */
+.casa-trackorder__head { text-align: center; margin-bottom: clamp(20px, 4vw, 28px); }
+.casa-trackorder__title {
+  margin: 0;
+  font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+  font-size: clamp(28px, 6vw, 44px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+.casa-trackorder__title em {
+  font-style: italic;
+  background: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.casa-trackorder__sub { margin: 12px auto 0; max-width: 46ch; color: var(--to-muted); font-size: 15px; line-height: 1.55; }
+.casa-trackorder__sub p { margin: 0; }
+
+/* 2 · widget slot */
+.casa-trackorder__widget { max-width: 760px; margin: 0 auto; min-height: 40px; }
+.casa-trackorder__widget .casa-app-block { width: 100%; }
+/* The branded H1 above is the page title — hide the Track123 widget's own
+   duplicate "Track Your Order" heading so there's a single title up top. */
+.casa-trackorder__widget .track123-form-title { display: none; }
+.casa-trackorder__hint {
+  text-align: center; color: var(--to-muted); font-size: 14px; line-height: 1.5;
+  border: 1px dashed var(--to-line); border-radius: 14px; padding: 18px; margin: 0 0 16px;
+}
+.casa-trackorder__fallback { display: inline-flex; }
+.casa-trackorder__widget:has(.casa-trackorder__fallback) { text-align: center; }
+
+/* shared H2 with gradient accent on <em> */
+.casa-trackorder__h2, .casa-trackorder__support-h {
+  font-family: var(--font-heading--family, var(--font-body--family, 'Inter', sans-serif));
+  font-weight: 700; letter-spacing: -0.01em; line-height: 1.1;
+}
+.casa-trackorder__h2 { font-size: clamp(22px, 4.5vw, 32px); text-align: center; margin: 0 0 22px; }
+.casa-trackorder__h2 em, .casa-trackorder__support-h em {
+  font-style: italic;
+  background: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* 3 · FAQ */
+.casa-trackorder__faq { margin-top: clamp(40px, 7vw, 64px); }
+.casa-trackorder__faq-list { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.casa-trackorder__item {
+  border: 1px solid var(--to-line); border-radius: 14px; background: var(--to-card); padding: 2px 18px;
+}
+.casa-trackorder__item summary {
+  list-style: none; cursor: pointer; font-weight: 600; font-size: 15px;
+  padding: 16px 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px;
+}
+.casa-trackorder__item summary::-webkit-details-marker { display: none; }
+.casa-trackorder__item summary::after { content: "+"; font-weight: 400; font-size: 22px; color: var(--c-purple, #B0C3FA); line-height: 1; }
+.casa-trackorder__item[open] summary::after { content: "\2013"; }
+.casa-trackorder__item summary:focus-visible { outline: 2px solid var(--c-purple, #B0C3FA); outline-offset: 2px; border-radius: 8px; }
+.casa-trackorder__answer { color: var(--to-muted); font-size: 14.5px; line-height: 1.6; padding-bottom: 16px; }
+.casa-trackorder__answer p { margin: 0 0 10px; }
+.casa-trackorder__answer p:last-child { margin-bottom: 0; }
+.casa-trackorder__answer ul { margin: 0; padding-left: 20px; }
+.casa-trackorder__answer li { margin: 4px 0; }
+
+/* 4 · support */
+.casa-trackorder__support {
+  margin: clamp(40px, 7vw, 64px) auto 0; max-width: 760px; text-align: center;
+  background: var(--to-card); border: 1px solid var(--to-line); border-radius: 18px; padding: clamp(24px, 5vw, 32px);
+}
+.casa-trackorder__support-h { font-size: clamp(20px, 4vw, 24px); margin: 0 0 8px; }
+.casa-trackorder__support-body { color: var(--to-muted); font-size: 14.5px; margin: 0 0 18px; }
+.casa-trackorder__support-body p { margin: 0; }
+.casa-trackorder__support-rows {
+  display: flex; flex-wrap: wrap; gap: 10px 28px; justify-content: center; margin-bottom: 20px; font-size: 14px; color: var(--to-fg);
+}
+.casa-trackorder__support-rows span { overflow-wrap: anywhere; min-width: 0; }
+.casa-trackorder__support-rows strong { font-weight: 600; }
+.casa-trackorder__support-rows a { color: inherit; text-decoration: underline; text-decoration-color: var(--c-purple, #B0C3FA); text-underline-offset: 2px; }
+.casa-trackorder__support-rows a:focus-visible { outline: 2px solid var(--c-purple, #B0C3FA); outline-offset: 2px; border-radius: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .casa-trackorder * { animation: none !important; transition: none !important; }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Track Order Page",
+  "tag": "section",
+  "class": "shopify-section--casa-track-order",
+  "settings": [
+    { "type": "header", "content": "Surface" },
+    {
+      "type": "select",
+      "id": "surface",
+      "label": "Background",
+      "options": [
+        { "value": "paper", "label": "Paper (light)" },
+        { "value": "ink", "label": "Ink (dark)" }
+      ],
+      "default": "paper"
+    },
+    { "type": "header", "content": "Title" },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading (use <em>word</em> for gradient accent)",
+      "default": "Track Your <em>Order</em>"
+    },
+    {
+      "type": "richtext",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "<p>Enter your order number and email to see exactly where your Casa pieces are.</p>"
+    },
+    { "type": "header", "content": "Widget fallback", "info": "Shown only until the Track123 app block is added to this section." },
+    {
+      "type": "text",
+      "id": "fallback_url",
+      "label": "Fallback link",
+      "info": "Where the fallback button points until the Track123 app block is added. Default: the Track123 app-proxy page.",
+      "default": "/apps/track123"
+    },
+    {
+      "type": "text",
+      "id": "fallback_label",
+      "label": "Fallback button label",
+      "default": "TRACK MY ORDER"
+    },
+    { "type": "header", "content": "FAQ" },
+    {
+      "type": "inline_richtext",
+      "id": "faq_heading",
+      "label": "FAQ heading (use <em>word</em> for accent)",
+      "default": "Quick <em>answers</em>"
+    },
+    { "type": "header", "content": "Support card" },
+    {
+      "type": "inline_richtext",
+      "id": "support_heading",
+      "label": "Support heading",
+      "default": "Still need a hand?"
+    },
+    {
+      "type": "richtext",
+      "id": "support_body",
+      "label": "Support body",
+      "default": "<p>Our team is happy to help track down your order.</p>"
+    },
+    { "type": "text", "id": "support_email", "label": "Email", "default": "info@seoulglowlab.com" },
+    { "type": "text", "id": "support_phone", "label": "Phone", "default": "+1 (404) 410-0199" },
+    { "type": "text", "id": "support_hours", "label": "Hours", "default": "Mon–Sat 9am–5pm EST" },
+    { "type": "text", "id": "support_button_label", "label": "Support button label", "default": "CONTACT SUPPORT" },
+    { "type": "header", "content": "Spacing" },
+    { "type": "range", "id": "padding_top", "label": "Padding top", "min": 0, "max": 100, "step": 4, "default": 40, "unit": "px" },
+    { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 100, "step": 4, "default": 56, "unit": "px" }
+  ],
+  "blocks": [
+    {
+      "type": "faq_item",
+      "name": "FAQ item",
+      "settings": [
+        { "type": "text", "id": "question", "label": "Question", "default": "When can I track my order?" },
+        { "type": "richtext", "id": "answer", "label": "Answer", "default": "<p>Once your order ships, you'll receive a confirmation email with a tracking ID. Please allow <strong>1–3 business days</strong> for tracking to become active.</p>" }
+      ]
+    },
+    { "type": "@app" }
+  ],
+  "presets": [
+    {
+      "name": "Track Order Page",
+      "blocks": [
+        { "type": "faq_item", "settings": { "question": "I just ordered — when can I track it?", "answer": "<p>Once your order ships, you'll receive a confirmation email with a tracking ID. Please allow <strong>1–3 business days</strong> for tracking information to become active.</p>" } },
+        { "type": "faq_item", "settings": { "question": "How long will delivery take?", "answer": "<p>All orders are processed within <strong>1–2 business days</strong>, then shipped with free express worldwide delivery. Estimated delivery times:</p><ul><li><strong>North America:</strong> 3–6 days</li><li><strong>Europe:</strong> 4–6 days</li><li><strong>Rest of the world:</strong> 4–8 days</li></ul><p>These windows cover most items. A few <strong>made-to-order or customizable pieces</strong> may need a little extra time to craft before they ship.</p>" } },
+        { "type": "faq_item", "settings": { "question": "Why did my order arrive in separate packages?", "answer": "<p>For larger products — or orders with <strong>multiple products</strong> — items may ship in <strong>separate packages</strong> to ensure safe delivery. If one arrives before the other, please allow a few additional days.</p>" } },
+        { "type": "faq_item", "settings": { "question": "Which carriers do you use?", "answer": "<p>We ship with free express worldwide delivery via <strong>UPS, FedEx, USPS, and DHL</strong>. The carrier is chosen automatically by your delivery address for the fastest, most reliable service.</p>" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

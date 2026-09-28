@@ -1,0 +1,40 @@
+{%- comment -%}
+  casa-font-face.liquid
+  Used by: snippets/theme-styles-variables.liquid (every theme font slot)
+  Param: font — a Shopify font drop (settings.type_*_font or font_modify result)
+
+  Declares the font under a PRIVATE family name: "<family> Casa"
+  (e.g. "Inter Casa") instead of Shopify's font_face filter, which
+  emits the public family name ("Inter").
+
+  WHY (root-caused 2026-07-03, do not revert to the font_face filter):
+  Klaviyo's onsite-forms script injects <style id="kl-custom-fonts">
+  with an @import of Google Fonts (Inter + Montserrat + Poppins,
+  display=swap) into the storefront head — ~70 faces registered under
+  the SAME family name "Inter" as the theme's fonts. Later-declared
+  faces win CSS font matching, so ~2s after first paint every Inter
+  element re-resolved from Shopify's Inter build to Google's Inter v20
+  build, whose glyphs are ~6% wider (measured: 181.3px vs 192.1px for
+  the same price string) — the recurring site-wide "text shifts size/
+  shape on load". No font-display / preload / fallback tuning can fix
+  a font-vs-font collision; a private family name kills the class.
+
+  Same Shopify-CDN file (font_url), same per-store subsetting, same
+  font-display: block policy as before — only the name is private.
+{%- endcomment -%}
+{%- comment -%}
+  Guard: font_modify can return nil (variant doesn't exist) and system
+  fonts have no CDN file — the retired font_face filter no-op'd on
+  both; without this guard we'd emit src: url("") with display: block
+  (= up to 3s invisible text + a bogus fetch). Mirrors the .system?
+  guard on the preloads in snippets/fonts.liquid.
+{%- endcomment -%}
+{%- if font != blank and font.system? != true -%}
+@font-face {
+  font-family: "{{ font.family }} Casa";
+  font-style: {{ font.style }};
+  font-weight: {{ font.weight }};
+  src: url("{{ font | font_url }}") format("woff2");
+  font-display: block;
+}
+{%- endif -%}

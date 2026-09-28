@@ -7,13 +7,37 @@
   # Layout settings
   assign layout = section.settings.layout | default: 'grid'
   assign columns = section.settings.columns | default: 4
+  assign mobile_columns = section.settings.mobile_columns | default: 2
+  # Card img `sizes`, computed from the configured column counts so the
+  # srcset pick matches the real slot width (the 901-1200px band is
+  # hardcoded 3-col in the CSS below; ≤900px reads mobile_columns).
+  # Carousel item widths are hardcoded viewport fractions (1/4 → 1/3 →
+  # 1/2 → 55%) that match the snippet's own default sizes, so carousel
+  # passes nil and lets the snippet default apply. mobile_columns is a
+  # select string — plus: 0 coerces for math.
+  assign _pg_cols_n = columns | plus: 0
+  assign _pg_mobile_n = mobile_columns | plus: 0
+  assign _pg_share_d = 100 | divided_by: _pg_cols_n
+  assign _pg_share_m = 100 | divided_by: _pg_mobile_n
+  assign card_sizes = nil
+  assign featured_first_sizes = nil
+  unless layout == 'carousel'
+    assign card_sizes = '(min-width: 1201px) ' | append: _pg_share_d | append: 'vw, (min-width: 901px) 33vw, ' | append: _pg_share_m | append: 'vw'
+  endunless
+  if layout == 'featured'
+    # Featured first card: span 2 columns >900px (66vw in the 3-col
+    # band), still span 2 of the mobile columns at 601-900px, span 1
+    # below 600px (see the featured :first-child rules in the CSS).
+    assign _pg_share_d2 = _pg_share_d | times: 2 | at_most: 100
+    assign featured_first_sizes = '(min-width: 1201px) ' | append: _pg_share_d2 | append: 'vw, (min-width: 901px) 66vw, (min-width: 601px) 100vw, ' | append: _pg_share_m | append: 'vw'
+  endif
   assign gap = section.settings.gap | default: 32
   assign product_limit = section.settings.product_limit | default: 4
 
   # Style settings
   assign bg_style = section.settings.background_style | default: 'light'
-  assign accent_primary = section.settings.accent_primary | default: '#9333ea'
-  assign accent_secondary = section.settings.accent_secondary | default: '#ec4899'
+  assign accent_primary = section.settings.accent_primary | default: '#B0C3FA'
+  assign accent_secondary = section.settings.accent_secondary | default: '#5E0A02'
   assign card_style = section.settings.card_style | default: 'default'
 
   # Animation settings
@@ -31,18 +55,30 @@
   assign title_size = section.settings.title_size | default: 'large'
   assign show_divider = section.settings.show_divider
 
-  # CRO Feature settings
-  assign show_quick_add = section.settings.show_quick_add
-  assign show_variant_swatches = section.settings.show_variant_swatches
-  assign show_wishlist = section.settings.show_wishlist
-  assign show_stock_urgency = section.settings.show_stock_urgency
-  assign stock_threshold = section.settings.stock_threshold | default: 5
-  assign show_installment = section.settings.show_installment
-  assign installment_count = section.settings.installment_count | default: 4
-  assign show_quick_view = section.settings.show_quick_view
-  assign show_hover_video = section.settings.show_hover_video
-  assign show_savings_highlight = section.settings.show_savings_highlight
-  assign show_social_proof = section.settings.show_social_proof
+  # Card settings — single override gate for display + CRO flags.
+  # Only assign these section-level values when the override is ON.
+  # Otherwise leave them as nil so casa-product-card falls back to
+  # its theme-setting defaults (settings.card_*).
+  assign override_card_features = section.settings.override_card_features
+  if override_card_features
+    # Display
+    assign show_badge = section.settings.show_badge
+    assign show_sale_badge = section.settings.show_sale_badge
+    assign show_rating = section.settings.show_rating
+    assign show_price = section.settings.show_price
+    # CRO
+    assign show_quick_add = section.settings.show_quick_add
+    assign show_variant_swatches = section.settings.show_variant_swatches
+    assign show_wishlist = section.settings.show_wishlist
+    assign show_stock_urgency = section.settings.show_stock_urgency
+    assign stock_threshold = section.settings.stock_threshold | default: 5
+    assign show_installment = section.settings.show_installment
+    assign installment_count = section.settings.installment_count | default: 4
+    assign show_quick_view = section.settings.show_quick_view
+    assign show_hover_video = section.settings.show_hover_video
+    assign show_savings_highlight = section.settings.show_savings_highlight
+    assign show_social_proof = section.settings.show_social_proof
+  endif
 
   # Text colors based on background
   if bg_style == 'dark' or bg_style == 'gradient-dark'
@@ -50,7 +86,7 @@
     assign text_secondary = 'rgba(255, 255, 255, 0.7)'
     assign tag_color = accent_primary
   else
-    assign text_primary = '#0a0a0a'
+    assign text_primary = 'var(--casa-ink)'
     assign text_secondary = '#6b7280'
     assign tag_color = accent_primary
   endif
@@ -79,25 +115,29 @@
   id="casa-pg-{{ section.id }}"
   class="casa-products-grid casa-products-grid--{{ layout }} casa-products-grid--bg-{{ bg_style }} casa-products-grid--cards-{{ card_style }}"
   style="
-    --pg-padding-top: {{ padding_top }}px;
-    --pg-padding-bottom: {{ padding_bottom }}px;
-    --pg-padding-mobile-top: {{ padding_mobile_top }}px;
-    --pg-padding-mobile-bottom: {{ padding_mobile_bottom }}px;
+    {%- if section.settings.override_spacing -%}
+      --pg-padding-top: {{ padding_top }}px;
+      --pg-padding-bottom: {{ padding_bottom }}px;
+      --pg-padding-mobile-top: {{ padding_mobile_top }}px;
+      --pg-padding-mobile-bottom: {{ padding_mobile_bottom }}px;
+    {%- endif -%}
     --pg-columns: {{ columns }};
+    --pg-columns-mobile: {{ mobile_columns }};
     --pg-gap: {{ gap }}px;
     --pg-accent-primary: {{ accent_primary }};
     --pg-accent-secondary: {{ accent_secondary }};
     --pg-text-primary: {{ text_primary }};
     --pg-text-secondary: {{ text_secondary }};
     --pg-tag-color: {{ tag_color }};
-    --pg-title-size: {{ title_font_size }};
-    --pg-title-size-mobile: {{ title_font_size_mobile }};
-    --card-title-size: {{ section.settings.card_title_size | default: 16 }}px;
-    --card-info-gap: {{ section.settings.card_info_gap | default: 8 }}px;
-    {%- if section.settings.atc_bg_1 != blank and section.settings.atc_bg_2 != blank -%}--card-atc-bg: linear-gradient(135deg, {{ section.settings.atc_bg_1 }}, {{ section.settings.atc_bg_2 }});{%- endif -%}
-    {%- if section.settings.atc_text != blank -%}--card-atc-text: {{ section.settings.atc_text }};{%- endif -%}
-    {%- if section.settings.options_bg_1 != blank and section.settings.options_bg_2 != blank -%}--card-options-bg: linear-gradient(135deg, {{ section.settings.options_bg_1 }}, {{ section.settings.options_bg_2 }});{%- endif -%}
-    {%- if section.settings.options_text != blank -%}--card-options-text: {{ section.settings.options_text }};{%- endif -%}
+    {%- comment -%}
+      Heading-scale dropdown: merchant picks H1-H6 from Theme Settings -> Typography.
+    {%- endcomment -%}
+    {%- assign _pg_title_h = section.settings.pg_heading_level | default: 'h1' -%}
+    --pg-title-fs:   var(--font-{{ _pg_title_h }}--size);
+    --pg-title-fw:   var(--font-{{ _pg_title_h }}--weight);
+    --pg-title-lh:   var(--font-{{ _pg_title_h }}--line-height);
+    --pg-title-ls:   var(--font-{{ _pg_title_h }}--letter-spacing);
+    --pg-title-case: var(--font-{{ _pg_title_h }}--case);
     --pg-max-w: {% case section.settings.section_width %}{% when 'full' %}100%{% when 'wide' %}1600px{% when 'narrow' %}1200px{% else %}1400px{% endcase %};
   "
   data-animation="{{ animation }}"
@@ -129,18 +169,63 @@
     </div>
 
     {%- comment -%} Products Grid {%- endcomment -%}
+    {%- assign pg_is_carousel = false -%}
+    {%- if layout == 'carousel' or section.settings.carousel_on_mobile -%}
+      {%- assign pg_is_carousel = true -%}
+    {%- endif -%}
+    <div class="casa-products-grid__track-wrapper{% if pg_is_carousel %} casa-products-grid__track-wrapper--carousel{% endif %}{% if section.settings.carousel_on_mobile and layout != 'carousel' %} casa-products-grid__track-wrapper--mobile-only{% endif %}">
+      {%- if pg_is_carousel -%}
+        <button type="button" class="casa-products-grid__overlay-arrow casa-products-grid__overlay-arrow--prev" data-pg-prev aria-label="Scroll left" disabled>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button type="button" class="casa-products-grid__overlay-arrow casa-products-grid__overlay-arrow--next" data-pg-next aria-label="Scroll right">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      {%- endif -%}
     <div class="casa-products-grid__grid" role="list">
+      {%- comment -%}
+        On product pages, exclude the current product from the recs
+        grid so a PDP doesn't recommend itself. Capture the handle
+        before the loop (the loop var shadows the global `product`).
+      {%- endcomment -%}
+      {%- assign _pg_current_handle = '' -%}
+      {%- if template contains 'product' and product != blank -%}
+        {%- assign _pg_current_handle = product.handle -%}
+      {%- endif -%}
+
       {%- if collection != blank and collection.products.size > 0 -%}
-        {%- for product in collection.products limit: product_limit -%}
+        {%- assign _pg_rendered = 0 -%}
+        {%- assign _pg_rendered_idx = 0 -%}
+        {%- for product in collection.products -%}
+          {%- if _pg_rendered >= product_limit -%}{%- break -%}{%- endif -%}
+          {%- if product.handle == _pg_current_handle -%}{%- continue -%}{%- endif -%}
+          {%- comment -%}
+            Stagger capped at index 4 so the 8th product card doesn't
+            wait 800ms (8 × 100ms default) after intersection to fade
+            in. Cap keeps the visual rhythm of the first ~5 cards
+            without punishing late cards on fast scrolls.
+          {%- endcomment -%}
+          {%- assign _stagger_i = _pg_rendered_idx | at_most: 4 -%}
           <div
             class="casa-products-grid__item"
-            style="--item-delay: {{ forloop.index0 | times: stagger_delay }}ms;"
+            style="--item-delay: {{ _stagger_i | times: stagger_delay }}ms;"
             role="listitem"
           >
+            {%- liquid
+              assign _card_sizes = card_sizes
+              if layout == 'featured' and _pg_rendered_idx == 0
+                assign _card_sizes = featured_first_sizes
+              endif
+            -%}
             {%- render 'casa-product-card',
               product: product,
               variant: card_style,
-              index: forloop.index0,
+              index: _pg_rendered_idx,
+              sizes: _card_sizes,
+              show_badge: show_badge,
+              show_sale_badge: show_sale_badge,
+              show_rating: show_rating,
+              show_price: show_price,
               show_quick_add: show_quick_add,
               show_variant_swatches: show_variant_swatches,
               show_wishlist: show_wishlist,
@@ -150,14 +235,18 @@
               installment_count: installment_count,
               show_quick_view: show_quick_view,
               show_hover_video: show_hover_video,
+              show_savings_highlight: show_savings_highlight,
               show_social_proof: show_social_proof
             -%}
           </div>
+          {%- assign _pg_rendered = _pg_rendered | plus: 1 -%}
+          {%- assign _pg_rendered_idx = _pg_rendered_idx | plus: 1 -%}
         {%- endfor -%}
       {%- else -%}
         {%- comment -%} Placeholder cards when no collection selected {%- endcomment -%}
         {%- for i in (1..product_limit) -%}
-          <div class="casa-products-grid__item casa-products-grid__placeholder" style="--item-delay: {{ forloop.index0 | times: stagger_delay }}ms;">
+          {%- assign _stagger_i = forloop.index0 | at_most: 4 -%}
+          <div class="casa-products-grid__item casa-products-grid__placeholder" style="--item-delay: {{ _stagger_i | times: stagger_delay }}ms;">
             <div class="casa-products-grid__placeholder-image">
               <div class="casa-products-grid__placeholder-shape"></div>
             </div>
@@ -169,6 +258,7 @@
         {%- endfor -%}
       {%- endif -%}
     </div>
+    </div>{%- comment -%} /track-wrapper {%- endcomment -%}
 
     {%- comment -%} View All Button {%- endcomment -%}
     {%- if section.settings.view_all_text != blank and collection != blank -%}
@@ -194,16 +284,20 @@
 
       var animation = section.dataset.animation;
       var items = section.querySelectorAll('.casa-products-grid__item');
+      var isMobile = window.matchMedia('(max-width: 900px)').matches;
 
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || isMobile) {
         items.forEach(function(item) {
           item.classList.add('casa-products-grid__item--visible');
           item.style.animation = 'none';
         });
-        return;
-      }
-
-      if (animation && animation !== 'none') {
+      } else if (animation && animation !== 'none') {
+        /* rootMargin '400px' pre-loads the animation 400px BEFORE the
+           item enters the viewport so the 600ms transition + stagger
+           have time to complete before the user sees the card. Prior
+           value was '-50px' which delayed trigger 50px PAST viewport
+           edge — guaranteed blank cards on fast scroll, especially for
+           the 4 product grids on the homepage. */
         var observer = new IntersectionObserver(function(entries) {
           entries.forEach(function(entry) {
             if (entry.isIntersecting) {
@@ -211,11 +305,55 @@
               observer.unobserve(entry.target);
             }
           });
-        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
-
+        }, { threshold: 0, rootMargin: '0px 0px 400px 0px' });
         items.forEach(function(item) { observer.observe(item); });
+        /* Safety net: if the observer hasn't fired within 1500ms of
+           init (fast scroller, observer missed first callback, off-
+           screen tab), force every card visible. Better to skip the
+           entrance animation than to leave cards invisible. */
+        setTimeout(function() {
+          items.forEach(function(item) {
+            if (!item.classList.contains('casa-products-grid__item--visible')) {
+              item.classList.add('casa-products-grid__item--visible');
+            }
+          });
+        }, 1500);
       } else {
         items.forEach(function(item) { item.classList.add('casa-products-grid__item--visible'); });
+      }
+
+      /* Overlay arrows for carousel layout */
+      var grid = section.querySelector('.casa-products-grid__grid');
+      var prevOverlay = section.querySelector('[data-pg-prev]');
+      var nextOverlay = section.querySelector('[data-pg-next]');
+      if (grid && (prevOverlay || nextOverlay)) {
+        function pgUpdateArrows() {
+          var sl = grid.scrollLeft;
+          var maxScroll = grid.scrollWidth - grid.clientWidth;
+          var atStart = sl <= 2;
+          var atEnd = sl >= maxScroll - 2;
+          var noOverflow = maxScroll <= 2;
+          if (prevOverlay) {
+            prevOverlay.disabled = atStart;
+            prevOverlay.classList.toggle('is-hidden', noOverflow);
+          }
+          if (nextOverlay) {
+            nextOverlay.disabled = atEnd;
+            nextOverlay.classList.toggle('is-hidden', noOverflow);
+          }
+        }
+        function pgScrollByDir(dir) {
+          var firstItem = grid.querySelector('.casa-products-grid__item');
+          if (!firstItem) return;
+          var gap = parseInt(getComputedStyle(grid).gap || 16);
+          var amount = (firstItem.offsetWidth + gap) * dir;
+          grid.scrollBy({ left: amount, behavior: 'smooth' });
+        }
+        if (prevOverlay) prevOverlay.addEventListener('click', function(){ pgScrollByDir(-1); });
+        if (nextOverlay) nextOverlay.addEventListener('click', function(){ pgScrollByDir(1); });
+        grid.addEventListener('scroll', pgUpdateArrows, { passive: true });
+        setTimeout(pgUpdateArrows, 100);
+        window.addEventListener('resize', pgUpdateArrows, { passive: true });
       }
     }
 
@@ -247,19 +385,35 @@
       "type": "text",
       "id": "tag",
       "label": "Tag",
-      "default": "Customer Favorites"
+      "default": "Bestsellers"
     },
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "title",
       "label": "Title",
-      "default": "Best Sellers"
+      "info": "Wrap a phrase in <em>...</em> for the brand italic-gradient accent (e.g. \"The room-changers. <em>Loved most.</em>\").",
+      "default": "The room-changers. <em>Loved most.</em>"
+    },
+    {
+      "type": "select",
+      "id": "pg_heading_level",
+      "label": "Title heading scale",
+      "info": "Pulls size, weight, line-height, letter-spacing, and case from Theme Settings → Typography.",
+      "options": [
+        { "value": "h1", "label": "Heading 1" },
+        { "value": "h2", "label": "Heading 2" },
+        { "value": "h3", "label": "Heading 3" },
+        { "value": "h4", "label": "Heading 4" },
+        { "value": "h5", "label": "Heading 5" },
+        { "value": "h6", "label": "Heading 6" }
+      ],
+      "default": "h1"
     },
     {
       "type": "textarea",
       "id": "subtitle",
       "label": "Subtitle",
-      "default": "The pieces our customers love most"
+      "default": "The pieces our customers can't stop talking about."
     },
     {
       "type": "select",
@@ -276,13 +430,15 @@
       "type": "select",
       "id": "title_size",
       "label": "Title size",
+      "info": "Deprecated — use Title heading scale instead. This field doesn't affect rendering.",
       "options": [
         { "value": "small", "label": "Small" },
         { "value": "medium", "label": "Medium" },
         { "value": "large", "label": "Large" },
         { "value": "xlarge", "label": "Extra Large" }
       ],
-      "default": "large"
+      "default": "large",
+      "visible_if": "{{ false }}"
     },
     {
       "type": "checkbox",
@@ -309,89 +465,94 @@
       "default": 4
     },
     {
-      "type": "select",
-      "id": "card_info_align",
-      "label": "Card text alignment",
-      "options": [
-        { "value": "left", "label": "Left" },
-        { "value": "center", "label": "Center" },
-        { "value": "right", "label": "Right" }
-      ],
-      "default": "left"
+      "type": "text",
+      "id": "view_all_text",
+      "label": "View all link text",
+      "default": "Shop All"
+    },
+    {
+      "type": "header",
+      "content": "Card settings"
+    },
+    {
+      "type": "paragraph",
+      "content": "All card display + features (badges, ratings, price, Quick Add, Wishlist, Quick View, etc.) follow Theme Settings → Casa Product Cards by default. Toggle the checkbox below to override them just for this section."
+    },
+    {
+      "type": "checkbox",
+      "id": "override_card_features",
+      "label": "Override theme card settings",
+      "info": "When OFF, this section uses the global Theme Settings. When ON, the toggles below take effect.",
+      "default": false
     },
     {
       "type": "checkbox",
       "id": "show_badge",
       "label": "Show product badges",
-      "default": true
+      "default": true,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_sale_badge",
       "label": "Show sale % badge",
       "info": "Auto-calculated discount percentage. Disable to hide sale badges while keeping custom badges.",
-      "default": true
+      "default": true,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_rating",
       "label": "Show star ratings",
-      "default": true
+      "default": true,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_price",
       "label": "Show prices",
-      "default": true
-    },
-    {
-      "type": "text",
-      "id": "view_all_text",
-      "label": "View all link text",
-      "default": "View All Products"
-    },
-    {
-      "type": "header",
-      "content": "CRO Features"
-    },
-    {
-      "type": "paragraph",
-      "content": "Conversion rate optimization features to boost sales"
+      "default": true,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_quick_add",
       "label": "Quick Add button",
       "info": "Add to cart without leaving the page",
-      "default": false
+      "default": false,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_variant_swatches",
       "label": "Color swatches",
       "info": "Show color options on the product card",
-      "default": false
+      "default": false,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_wishlist",
       "label": "Wishlist heart icon",
       "info": "Allow customers to save products",
-      "default": false
+      "default": false,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_quick_view",
       "label": "Quick View button",
       "info": "Preview product without leaving page",
-      "default": false
+      "default": false,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_stock_urgency",
       "label": "Low stock urgency badge",
       "info": "Show 'Only X left!' for low stock items",
-      "default": false
+      "default": false,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "range",
@@ -401,48 +562,51 @@
       "max": 20,
       "step": 1,
       "default": 5,
-      "info": "Show urgency badge when stock is at or below this number"
+      "info": "Show urgency badge when stock is at or below this number",
+      "visible_if": "{{ section.settings.override_card_features and section.settings.show_stock_urgency }}"
     },
     {
       "type": "checkbox",
       "id": "show_installment",
       "label": "Installment pricing",
-      "info": "Show 'Or 4× €X' below price",
-      "default": false
+      "info": "Locked OFF on every product card per merchant rule 2026-05-16 (BNPL only on PDP + cart). Setting kept for schema/template compatibility, hidden from editor.",
+      "default": false,
+      "visible_if": "{{ false }}"
     },
     {
       "type": "range",
       "id": "installment_count",
       "label": "Number of installments",
+      "info": "Locked OFF — see show_installment above.",
       "min": 2,
       "max": 12,
       "step": 1,
-      "default": 4
+      "default": 4,
+      "visible_if": "{{ false }}"
     },
     {
       "type": "checkbox",
       "id": "show_savings_highlight",
       "label": "Enhanced savings display",
       "info": "Show 'Save €X' badge for sale items",
-      "default": false
+      "default": false,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_social_proof",
       "label": "Social proof badges",
       "info": "Show 'Bestseller' or 'X sold this week'",
-      "default": false
+      "default": false,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "checkbox",
       "id": "show_hover_video",
       "label": "Hover video",
       "info": "Play product video on card hover (if available)",
-      "default": false
-    },
-    {
-      "type": "header",
-      "content": "Card overrides"
+      "default": false,
+      "visible_if": "{{ section.settings.override_card_features }}"
     },
     {
       "type": "paragraph",
@@ -546,27 +710,6 @@
       "default": "default"
     },
     {
-      "type": "range",
-      "id": "card_title_size",
-      "label": "Card title size",
-      "min": 10,
-      "max": 22,
-      "step": 1,
-      "unit": "px",
-      "default": 16
-    },
-    {
-      "type": "range",
-      "id": "card_info_gap",
-      "label": "Card info spacing",
-      "min": 0,
-      "max": 16,
-      "step": 1,
-      "unit": "px",
-      "default": 8,
-      "info": "Space between title, reviews, and price"
-    },
-    {
       "type": "header",
       "content": "Animation"
     },
@@ -618,51 +761,27 @@
       "type": "color",
       "id": "accent_primary",
       "label": "Primary accent",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "accent_secondary",
       "label": "Secondary accent",
-      "default": "#ec4899"
-    },
-    {
-      "type": "header",
-      "content": "Button Colors"
-    },
-    {
-      "type": "color",
-      "id": "atc_bg_1",
-      "label": "Add to Cart gradient start"
-    },
-    {
-      "type": "color",
-      "id": "atc_bg_2",
-      "label": "Add to Cart gradient end"
-    },
-    {
-      "type": "color",
-      "id": "atc_text",
-      "label": "Add to Cart text color"
-    },
-    {
-      "type": "color",
-      "id": "options_bg_1",
-      "label": "Select Options gradient start"
-    },
-    {
-      "type": "color",
-      "id": "options_bg_2",
-      "label": "Select Options gradient end"
-    },
-    {
-      "type": "color",
-      "id": "options_text",
-      "label": "Select Options text color"
+      "default": "#5E0A02"
     },
     {
       "type": "header",
       "content": "Spacing"
+    },
+    {
+      "type": "paragraph",
+      "content": "Follows Theme settings → Casa Section Spacing by default. Toggle to override."
+    },
+    {
+      "type": "checkbox",
+      "id": "override_spacing",
+      "label": "Override theme spacing",
+      "default": false
     },
     {
       "type": "range",
@@ -709,9 +828,9 @@
     {
       "name": "Casa Products Grid",
       "settings": {
-        "tag": "Customer Favorites",
-        "title": "Best Sellers",
-        "subtitle": "The pieces our customers love most"
+        "tag": "Bestsellers",
+        "title": "The room-changers.",
+        "subtitle": "The pieces our customers can't stop talking about."
       }
     },
     {
@@ -738,8 +857,11 @@
 
 .casa-products-grid {
   position: relative;
-  padding: var(--pg-padding-top) 80px var(--pg-padding-bottom);
+  padding: var(--pg-padding-top, var(--casa-section-pt, 80px)) 80px var(--pg-padding-bottom, var(--casa-section-pb, 80px));
   overflow: hidden;
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
 }
 
 .casa-products-grid__container {
@@ -749,33 +871,55 @@
   z-index: 1;
 }
 
+/* Ultrawide guardrail: carousel slides are ¼ of this container, so a
+   full-width container means 799px product cards at 3440px. Capping past
+   1920px holds cards at their ≤1920 size (~420px). min() lets the narrower
+   contained/wide/narrow presets keep winning; only "full" is affected. */
+@media screen and (min-width: 1920px) {
+  .casa-products-grid__container {
+    max-width: min(var(--pg-max-w, 1400px), var(--casa-content-max-w, 1920px));
+  }
+}
+
 /* ==========================================================================
    BACKGROUNDS
    ========================================================================== */
 
+/* Brand v1 surface lock: brand book mandates Paper or Ink, no others.
+   "Light" and "subtle" both resolve to Paper so the merchant's existing
+   choice keeps working but lands on a brand-legal value. See
+   docs/brand-book-v1.html §Surfaces. */
 .casa-products-grid--bg-light {
-  background: #ffffff;
+  background: var(--bg-paper, var(--casa-paper));
 }
 
 .casa-products-grid--bg-subtle {
-  background: #fafafa;
+  background: var(--bg-paper, var(--casa-paper));
 }
 
 .casa-products-grid--bg-dark {
-  background: #0a0a0f;
+  background: var(--bg-dark, var(--casa-ink));
 }
 
 .casa-products-grid--bg-gradient-dark {
   background: linear-gradient(180deg, #0a0a0f 0%, #12121a 50%, #0a0a0f 100%);
 }
 
-/* Ambient glow */
+/* Ambient glow — soft halo. Fixed size by design (decorative ornament
+   behind the grid, not a content surface). Overflow handled by parent
+   overflow: hidden on the section.
+   Pre-blurred radial-gradient instead of filter: blur(120px): the two
+   120px kernels were the largest blur rasters in the theme (~500×500
+   each) and re-rastered on scroll-into-view — same raster-budget class
+   as the 2026-07-15 fast-scroll white-outs. The gradient paints in one
+   cheap pass with an equivalent soft falloff (box enlarged to cover the
+   spread the blur used to add). */
 .casa-products-grid__ambient-glow {
   position: absolute;
-  width: 500px;
-  height: 500px;
+  width: min(760px, 90vw);
+  height: min(760px, 90vw);
+  aspect-ratio: 1;
   border-radius: 50%;
-  filter: blur(120px);
   opacity: 0.3;
   pointer-events: none;
 }
@@ -783,13 +927,23 @@
 .casa-products-grid__ambient-glow--left {
   top: 20%;
   left: -10%;
-  background: var(--pg-accent-primary);
+  background: radial-gradient(circle closest-side,
+    var(--pg-accent-primary) 0%,
+    color-mix(in srgb, var(--pg-accent-primary) 78%, transparent) 24%,
+    color-mix(in srgb, var(--pg-accent-primary) 42%, transparent) 48%,
+    color-mix(in srgb, var(--pg-accent-primary) 16%, transparent) 70%,
+    transparent 92%);
 }
 
 .casa-products-grid__ambient-glow--right {
   bottom: 20%;
   right: -10%;
-  background: var(--pg-accent-secondary);
+  background: radial-gradient(circle closest-side,
+    var(--pg-accent-secondary) 0%,
+    color-mix(in srgb, var(--pg-accent-secondary) 78%, transparent) 24%,
+    color-mix(in srgb, var(--pg-accent-secondary) 42%, transparent) 48%,
+    color-mix(in srgb, var(--pg-accent-secondary) 16%, transparent) 70%,
+    transparent 92%);
 }
 
 /* ==========================================================================
@@ -812,31 +966,60 @@
   text-align: right;
 }
 
+/* Eyebrow / kicker — brand "spec register": JetBrains Mono UPPERCASE,
+   0.08–0.12em tracking. Distinguishes from the voice register (Inter
+   sentence case) so the heading composition reads as label → voice →
+   support, not three lines of similar text. See locked typography
+   memory: "Mono labels stay distinct: UPPERCASE JetBrains Mono". */
 .casa-products-grid__tag {
   display: inline-block;
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 12px;
   font-weight: 600;
   color: var(--pg-tag-color);
   text-transform: uppercase;
-  letter-spacing: 2px;
-  margin-bottom: 12px;
+  letter-spacing: 0.12em;
+  margin-bottom: 16px;
 }
 
 .casa-products-grid__title {
-  font-size: var(--pg-title-size, 48px);
-  font-weight: 300;
+  /* Brand book v1 §03 locked H2 spec — Inter 500 / -0.015em / 1.10 LH.
+     white-space: nowrap forces single-line per merchant. Lower clamp
+     min (22 vs brand 28) ensures the longer titles fit on phones once
+     the em accent (1.15× size) is included. */
+  font-size: clamp(22px, 4vw, 40px);
+  font-weight: 500;
+  line-height: 1.10;
+  letter-spacing: -0.015em;
+  text-transform: none;
   margin: 0 0 16px 0;
-  letter-spacing: -1px;
   color: var(--pg-text-primary);
-  line-height: 1.1;
+  white-space: nowrap;
 }
 
+/* Italic-gradient <em> accent — LARGER (1.15em) per merchant. Italic
+   600 weight + brand gradient. line-height: 1 keeps the title row from
+   inflating with the bigger em. */
+.casa-products-grid__title em {
+  font-size: 1.15em;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1;
+  background-image: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Section divider hidden by default — brand "quiet chrome" reserves
+   gradient + purple for hero accent / stats / links / focus rings.
+   A decorative rule between title and subtitle adds chrome the brand
+   book doesn't sanction. Typography hierarchy carries the heading on
+   its own. The element stays in the markup so the merchant's existing
+   "Show divider" toggle keeps doing nothing harmful. */
 .casa-products-grid__divider {
-  width: 80px;
-  height: 3px;
-  background: linear-gradient(90deg, var(--pg-accent-primary), var(--pg-accent-secondary));
-  border-radius: 2px;
-  margin: 20px 0;
+  display: none;
 }
 
 .casa-products-grid__header--center .casa-products-grid__divider {
@@ -849,11 +1032,16 @@
 }
 
 .casa-products-grid__subtitle {
-  font-size: 18px;
-  color: var(--pg-text-secondary);
-  max-width: 600px;
+  /* Brand subtitle: muted ink on Paper. Uses --t-on-light-muted token
+     so it lands on the brand-canonical secondary color instead of
+     a one-off Tailwind gray that the merchant theme settings happen
+     to emit. Sized up slightly (17→18) so it has presence under
+     the H1 instead of disappearing as fine print. */
+  font-size: var(--casa-subtitle-size, 18px);
+  color: var(--pg-text-secondary, var(--t-on-light-muted, #54545C));
+  max-width: 540px;
   margin: 0;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 .casa-products-grid__header--center .casa-products-grid__subtitle {
@@ -871,13 +1059,87 @@
 
 .casa-products-grid__grid {
   display: grid;
-  grid-template-columns: repeat(var(--pg-columns), 1fr);
+  grid-template-columns: repeat(var(--pg-columns), minmax(0, 1fr));
   gap: var(--pg-gap);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.casa-products-grid__track-wrapper {
+  position: relative;
+  isolation: isolate;
+}
+
+.casa-products-grid__overlay-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, matches 2026-05-17 flicker-fix sweep) */
+  color: var(--casa-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+.casa-products-grid--bg-dark .casa-products-grid__overlay-arrow,
+.casa-products-grid--bg-gradient-dark .casa-products-grid__overlay-arrow {
+  background: rgba(10, 10, 15, 0.78);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+.casa-products-grid__overlay-arrow:hover:not(:disabled) {
+  background: var(--casa-paper);
+  color: var(--casa-ink);
+  transform: translateY(-50%) scale(1.05);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.15),
+    0 0 0 4px rgba(176, 195, 250, 0.18),
+    0 0 22px rgba(94, 10, 2, 0.35);
+}
+.casa-products-grid__overlay-arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.casa-products-grid__overlay-arrow.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.casa-products-grid__overlay-arrow--prev { left: -8px; }
+.casa-products-grid__overlay-arrow--next { right: -8px; }
+
+@media (min-width: 901px) {
+  .casa-products-grid__track-wrapper--mobile-only .casa-products-grid__overlay-arrow {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .casa-products-grid__overlay-arrow {
+    width: 40px;
+    height: 40px;
+  }
+  .casa-products-grid__overlay-arrow--prev { left: 4px; }
+  .casa-products-grid__overlay-arrow--next { right: 4px; }
 }
 
 /* Featured layout - first item larger */
 .casa-products-grid--featured .casa-products-grid__grid {
-  grid-template-columns: repeat(var(--pg-columns), 1fr);
+  grid-template-columns: repeat(var(--pg-columns), minmax(0, 1fr));
 }
 
 .casa-products-grid--featured .casa-products-grid__item:first-child {
@@ -910,6 +1172,24 @@
    ========================================================================== */
 
 .casa-products-grid__item {
+  /* Flex column so the casa-product-card child can stretch via
+     height:100% to fill the grid track height. Without display:flex
+     here, the item is block-level and the card content-sizes — cards
+     with real swatches end up taller than cards with reserve, leaving
+     a visible card-frame gap on the shorter ones. */
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  /* min-width:0 caps the slide at its flex-basis. Without it the slide
+     keeps min-width:auto (= its content min-content), and SHIPPING Safari
+     leaks the overflow-clipped variant-swatch row's FULL width up the
+     flex chain (slide → card → __info), so the card with the most
+     variants (e.g. Bubble Girls) grows wider than its 25%/33% track —
+     and aspect-ratio:1 on __image turns that extra width into extra
+     height, making one card's image visibly larger. Chromium and
+     Playwright-WebKit clamp to the basis and never show it; only real
+     Safari does. Same guard already used on __swatches one level deeper. */
+  min-width: 0;
   opacity: 0;
   transform: translateY(30px);
   transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
@@ -957,23 +1237,31 @@
   margin-top: 48px;
 }
 
+/* View-all uses the Casa global utility button system —
+   adaptive neutral pill (black on light sections, white on dark
+   sections). Single source of truth: --casa-btn-utility-* vars
+   in theme-styles-variables.liquid */
 .casa-products-grid__view-all {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 16px 32px;
-  background: linear-gradient(135deg, var(--pg-accent-primary), var(--pg-accent-secondary));
-  color: white;
+  padding: var(--casa-btn-utility-padding-y) var(--casa-btn-utility-padding-x);
+  background: var(--casa-btn-utility-bg);
+  color: var(--casa-btn-utility-color);
+  border: none;
+  border-radius: var(--casa-btn-utility-radius);
+  font-family: var(--casa-btn-utility-font-family);
+  font-size: var(--casa-btn-utility-font-size);
+  font-weight: var(--casa-btn-utility-font-weight);
+  text-transform: var(--casa-btn-utility-transform);
+  letter-spacing: var(--casa-btn-utility-tracking);
   text-decoration: none;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 50px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: background 0.25s ease, transform 0.25s ease;
 }
 
 .casa-products-grid__view-all:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(147, 51, 234, 0.3);
+  background: var(--casa-btn-utility-hover-bg);
+  transform: translateY(-1px);
 }
 
 .casa-products-grid__view-all svg {
@@ -984,18 +1272,12 @@
   transform: translateX(4px);
 }
 
-/* Dark background view-all styling */
-.casa-products-grid--bg-dark .casa-products-grid__view-all,
-.casa-products-grid--bg-gradient-dark .casa-products-grid__view-all {
-  box-shadow: 0 0 30px rgba(147, 51, 234, 0.2);
-}
-
 /* ==========================================================================
    PLACEHOLDERS
    ========================================================================== */
 
 .casa-products-grid__placeholder {
-  background: #ffffff;
+  background: var(--casa-paper);
   border-radius: 20px;
   overflow: hidden;
 }
@@ -1024,6 +1306,9 @@
   background: linear-gradient(135deg, var(--pg-accent-primary), var(--pg-accent-secondary));
   clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
   opacity: 0.5;
+  /* perf-justified: placeholder shimmer only renders when a product
+     card has no image — empty-state loading affordance. animates
+     opacity/transform (compositor-only). Not on critical path. */
   animation: pgPlaceholderPulse 2s ease-in-out infinite;
 }
 
@@ -1066,7 +1351,7 @@
 
 @media (max-width: 1200px) {
   .casa-products-grid {
-    padding: var(--pg-padding-top) 40px var(--pg-padding-bottom);
+    padding: var(--pg-padding-top, var(--casa-section-pt, 60px)) 40px var(--pg-padding-bottom, var(--casa-section-pb, 60px));
   }
 
   .casa-products-grid__grid {
@@ -1080,12 +1365,31 @@
 
 @media (max-width: 900px) {
   .casa-products-grid__grid {
-    --pg-columns: 2;
+    --pg-columns: var(--pg-columns-mobile, 2);
     gap: 24px;
   }
 
+  /* Disable entrance animations on mobile — instant reveal */
+  .casa-products-grid__item {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  /* Mobile: tighter clamp so the longest title on this section
+     ("Five shapes. One transformation.") fits on one line at 320px.
+     white-space: nowrap inherited from base. */
   .casa-products-grid__title {
-    font-size: var(--pg-title-size-mobile, 32px);
+    font-size: clamp(14px, 4.5vw, 22px);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+  .casa-products-grid__title em {
+    font-size: 1.15em;
+  }
+  .casa-products-grid__subtitle {
+    font-size: var(--casa-subtitle-size, 16px);
   }
 
   .casa-products-grid__header {
@@ -1102,34 +1406,37 @@
   }
 
   .casa-products-grid__ambient-glow {
-    width: 300px;
-    height: 300px;
+    /* Scaled with the base rule's 500→760 change: the old 300px box got
+       its visible spread from filter: blur(120px) (the override never
+       touched filter); the gradient's falloff ends inside the box, so
+       the box itself must carry the old footprint. */
+    width: min(456px, 90vw);
+    height: min(456px, 90vw);
   }
 }
 
 @media (max-width: 600px) {
   .casa-products-grid {
-    padding: var(--pg-padding-mobile-top) 20px var(--pg-padding-mobile-bottom);
+    padding: var(--pg-padding-mobile-top, var(--casa-section-pt-m, 40px)) 20px var(--pg-padding-mobile-bottom, var(--casa-section-pb-m, 40px));
   }
 
   .casa-products-grid__grid {
     gap: 16px;
   }
 
-  .casa-products-grid__title {
-    font-size: var(--pg-title-size-mobile, 28px);
-  }
-
-  .casa-products-grid__subtitle {
-    font-size: 16px;
-  }
+  /* Title font-size handled by Horizon heading tokens. */
 
   .casa-products-grid--featured .casa-products-grid__item:first-child {
     grid-column: span 1;
   }
 
+  /* ~1.8 cards visible — partial 2nd card peeks to signal "scroll for more".
+     Mirrors casa-recently-viewed.liquid:1244 peek pattern. Replaces a
+     fixed 280px width that, on a 375px viewport with 20px side-padding,
+     left only ~55px for the next card to peek (looked like 1 card). */
   .casa-products-grid--carousel .casa-products-grid__item {
-    flex: 0 0 280px;
+    flex: 0 0 calc(55% - 6px);
+    min-width: calc(55% - 6px);
   }
 
   .casa-products-grid__view-all {

@@ -1,0 +1,429 @@
+{%- comment -%}
+  casa-infinity-explainer.liquid
+  Seoul Glow Lab — "How five inches becomes infinite." (category education)
+
+  Ink section. A cutaway side-view of an infinity mirror — half-silvered
+  front glass, LED ring, full mirror behind — with the light path drawn
+  bouncing between the two surfaces and the reflections receding past the
+  wall, so a first-time visitor understands the optical principle in a
+  few seconds. Three short numbered steps carry the words; a two-cell
+  strip separates PHYSICAL depth (the frame) from PERCEIVED depth (the
+  tunnel). Ends on the reflection note so the "is it still a mirror when
+  it's on?" objection is answered right here.
+
+  Used by: templates/product.infinity-octamirror-v3.json
+  Blocks:  none (three fixed steps — the physics has exactly three parts)
+  Settings: kicker, heading (inline_richtext, one <em>), lede,
+            step_N_title / step_N_body, depth_physical, depth_perceived,
+            reflection_note, padding_top / padding_bottom.
+
+  The diagram is decorative (aria-hidden); every fact it draws is also in
+  the copy, so nothing critical lives only in the picture. Motion is a
+  single stroke-dash drift on the light path, gated by data-casa-anim-gate
+  (assets/casa-anim-gate.js pauses it off-screen) and disabled under
+  prefers-reduced-motion.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+-%}
+
+<section
+  id="casa-ie-{{ section.id }}"
+  class="casa-ie"
+  data-casa-anim-gate
+  data-casa-section="explainer"
+  style="
+    --casa-ie-pt: {{ s.padding_top | default: 64 }}px;
+    --casa-ie-pb: {{ s.padding_bottom | default: 64 }}px;
+  "
+>
+  <div class="casa-ie__cap">
+    <header class="casa-ie__head">
+      {%- if s.kicker != blank -%}
+        <p class="casa-ie__mono">{{ s.kicker | escape }}</p>
+      {%- endif -%}
+      {%- if s.heading != blank -%}
+        <h2 class="casa-ie__h2">{{ s.heading }}</h2>
+      {%- endif -%}
+      {%- if s.lede != blank -%}
+        <p class="casa-ie__lede">{{ s.lede | escape }}</p>
+      {%- endif -%}
+    </header>
+
+    <div class="casa-ie__body">
+      {%- comment -%} CUTAWAY — side view, eye on the left, wall on the right {%- endcomment -%}
+      <figure class="casa-ie__fig" aria-hidden="true">
+        <svg class="casa-ie__svg" viewBox="0 0 640 420" focusable="false">
+          <defs>
+            <linearGradient id="casa-ie-led-{{ section.id }}" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#B0C3FA" />
+              <stop offset="50%" stop-color="#5E0A02" />
+              <stop offset="100%" stop-color="#F2FFA0" />
+            </linearGradient>
+            <linearGradient id="casa-ie-fade-{{ section.id }}" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#5E0A02" stop-opacity="0.9" />
+              <stop offset="100%" stop-color="#F2FFA0" stop-opacity="0.05" />
+            </linearGradient>
+          </defs>
+
+          {%- comment -%} Wall (hatched) {%- endcomment -%}
+          <g class="casa-ie__wall">
+            <rect x="452" y="40" width="26" height="340" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.35)" stroke-width="1" />
+            <path d="M452 60 l26 -20 M452 100 l26 -20 M452 140 l26 -20 M452 180 l26 -20 M452 220 l26 -20 M452 260 l26 -20 M452 300 l26 -20 M452 340 l26 -20 M452 380 l26 -20" stroke="rgba(255,255,255,0.22)" stroke-width="1" />
+          </g>
+
+          {%- comment -%} Frame body: 5 in deep, back mirror against the wall, front glass to the left {%- endcomment -%}
+          <g class="casa-ie__frame">
+            <rect x="332" y="90" width="120" height="240" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" />
+            <line x1="446" y1="94" x2="446" y2="326" stroke="#FFFFFF" stroke-width="3" />
+            <line x1="338" y1="94" x2="338" y2="326" stroke="rgba(255,255,255,0.75)" stroke-width="1.5" stroke-dasharray="7 4" />
+            <circle cx="346" cy="112" r="4" fill="url(#casa-ie-led-{{ section.id }})" />
+            <circle cx="346" cy="308" r="4" fill="url(#casa-ie-led-{{ section.id }})" />
+          </g>
+
+          {%- comment -%} Light path: LED -> back mirror -> front glass -> back ... each pass fainter; one ray escapes to the eye at every front hit {%- endcomment -%}
+          <g class="casa-ie__rays" fill="none" stroke-linecap="round">
+            <path class="casa-ie__ray casa-ie__ray--flow" d="M346 112 L444 128 L340 146 L444 164 L340 182 L444 200 L340 218" stroke="url(#casa-ie-fade-{{ section.id }})" stroke-width="2" />
+            <path d="M340 146 L120 168" stroke="#5E0A02" stroke-opacity="0.85" stroke-width="1.5" />
+            <path d="M340 182 L120 190" stroke="#5E0A02" stroke-opacity="0.55" stroke-width="1.5" />
+            <path d="M340 218 L120 212" stroke="#F2FFA0" stroke-opacity="0.35" stroke-width="1.5" />
+          </g>
+
+          {%- comment -%} Eye {%- endcomment -%}
+          <g class="casa-ie__eye" transform="translate(92 190)">
+            <path d="M-30 0 Q0 -22 30 0 Q0 22 -30 0 Z" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="1.5" />
+            <circle cx="0" cy="0" r="7" fill="rgba(255,255,255,0.85)" />
+          </g>
+
+          {%- comment -%} What the eye sees: the ring repeating, smaller and fainter, past the wall {%- endcomment -%}
+          <g class="casa-ie__ghosts" fill="none" stroke-width="1.5">
+            <rect x="478" y="112" width="18" height="196" rx="2" stroke="#5E0A02" stroke-opacity="0.55" />
+            <rect x="508" y="134" width="14" height="152" rx="2" stroke="#5E0A02" stroke-opacity="0.38" />
+            <rect x="534" y="152" width="11" height="116" rx="2" stroke="#F2FFA0" stroke-opacity="0.28" />
+            <rect x="556" y="166" width="9" height="88" rx="2" stroke="#F2FFA0" stroke-opacity="0.2" />
+            <rect x="574" y="176" width="7" height="68" rx="2" stroke="#F2FFA0" stroke-opacity="0.14" />
+            <rect x="589" y="184" width="6" height="52" rx="2" stroke="#F2FFA0" stroke-opacity="0.1" />
+            <rect x="602" y="190" width="5" height="40" rx="2" stroke="#F2FFA0" stroke-opacity="0.07" />
+          </g>
+
+          {%- comment -%} Dimension lines {%- endcomment -%}
+          <g class="casa-ie__dims" font-family="'JetBrains Mono', ui-monospace, monospace" letter-spacing="1.2">
+            <line x1="332" y1="352" x2="452" y2="352" stroke="rgba(255,255,255,0.7)" stroke-width="1" />
+            <line x1="332" y1="346" x2="332" y2="358" stroke="rgba(255,255,255,0.7)" stroke-width="1" />
+            <line x1="452" y1="346" x2="452" y2="358" stroke="rgba(255,255,255,0.7)" stroke-width="1" />
+            <text x="392" y="378" text-anchor="middle" fill="rgba(255,255,255,0.85)">{{ s.dim_physical_label | default: '5 IN · PHYSICAL' | escape }}</text>
+            <line x1="478" y1="352" x2="620" y2="352" stroke="rgba(242, 255, 160,0.7)" stroke-width="1" stroke-dasharray="4 4" />
+            <path d="M612 347 l8 5 -8 5" fill="none" stroke="rgba(242, 255, 160,0.7)" stroke-width="1" />
+            <text x="549" y="378" text-anchor="middle" fill="rgba(242, 255, 160,0.85)">{{ s.dim_perceived_label | default: 'PERCEIVED' | escape }}</text>
+            <text x="338" y="78" text-anchor="middle" fill="rgba(255,255,255,0.6)">{{ s.label_front | default: 'FRONT' | escape }}</text>
+            <text x="446" y="78" text-anchor="middle" fill="rgba(255,255,255,0.6)">{{ s.label_back | default: 'BACK' | escape }}</text>
+            <text x="92" y="244" text-anchor="middle" fill="rgba(255,255,255,0.6)">{{ s.label_you | default: 'YOU' | escape }}</text>
+          </g>
+        </svg>
+      </figure>
+
+      {%- comment -%} STEPS {%- endcomment -%}
+      <ol class="casa-ie__steps" role="list">
+        <li class="casa-ie__step">
+          <span class="casa-ie__n">01</span>
+          <div>
+            <h3 class="casa-ie__step-title">{{ s.step_1_title | escape }}</h3>
+            <p class="casa-ie__step-body">{{ s.step_1_body | escape }}</p>
+          </div>
+        </li>
+        <li class="casa-ie__step">
+          <span class="casa-ie__n">02</span>
+          <div>
+            <h3 class="casa-ie__step-title">{{ s.step_2_title | escape }}</h3>
+            <p class="casa-ie__step-body">{{ s.step_2_body | escape }}</p>
+          </div>
+        </li>
+        <li class="casa-ie__step">
+          <span class="casa-ie__n">03</span>
+          <div>
+            <h3 class="casa-ie__step-title">{{ s.step_3_title | escape }}</h3>
+            <p class="casa-ie__step-body">{{ s.step_3_body | escape }}</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    {%- comment -%} DEPTH STRIP — the one distinction people get wrong {%- endcomment -%}
+    <dl class="casa-ie__depth">
+      <div class="casa-ie__depth-cell">
+        <dt class="casa-ie__mono casa-ie__mono--dim">{{ s.depth_physical_label | default: 'Physical depth' | escape }}</dt>
+        <dd class="casa-ie__depth-v">{{ s.depth_physical | escape }}</dd>
+      </div>
+      <div class="casa-ie__depth-cell">
+        <dt class="casa-ie__mono casa-ie__mono--dim">{{ s.depth_perceived_label | default: 'Perceived depth' | escape }}</dt>
+        <dd class="casa-ie__depth-v casa-ie__depth-v--accent">{{ s.depth_perceived | escape }}</dd>
+      </div>
+    </dl>
+
+    {%- if s.reflection_note != blank -%}
+      <p class="casa-ie__note">{{ s.reflection_note | escape }}</p>
+    {%- endif -%}
+  </div>
+
+  {%- comment -%}
+    PDP engagement instrumentation rides on this section because it only
+    ships on the templates that carry the full narrative. The script is
+    guarded, so a second explainer instance would not double-bind.
+  {%- endcomment -%}
+  {%- if product != blank -%}
+    <div data-casa-analytics data-product-handle="{{ product.handle }}" data-product-id="{{ product.id }}" hidden></div>
+    <script src="{{ 'casa-pdp-analytics.js' | asset_url }}" defer></script>
+  {%- endif -%}
+</section>
+
+{% stylesheet %}
+.casa-ie {
+  position: relative;
+  background: var(--bg-dark, #0A0A0F);
+  color: #fff;
+  padding: var(--casa-ie-pt, 64px) 0 var(--casa-ie-pb, 64px);
+  overflow: hidden;
+}
+/* Chapter seam: this section follows another Ink section. */
+.casa-ie::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: clamp(120px, 14vw, 200px);
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, rgba(176, 195, 250,0.55), rgba(94, 10, 2,0.55), rgba(242, 255, 160,0.55), transparent);
+}
+.casa-ie__cap {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 clamp(20px, 5vw, 64px);
+}
+.casa-ie__mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0;
+  color: var(--c-cyan, #F2FFA0);
+}
+.casa-ie__mono--dim { color: rgba(255,255,255,0.5); }
+.casa-ie__head {
+  max-width: 720px;
+  margin: 0 0 clamp(24px, 4vw, 40px);
+}
+.casa-ie__head .casa-ie__mono { margin-bottom: 14px; }
+.casa-ie__h2 {
+  font-family: var(--casa-pdp-h2-family, var(--font-body--family));
+  font-size: var(--casa-pdp-h2-size, clamp(28px, 4vw, 40px));
+  font-weight: var(--casa-pdp-h2-weight, 500);
+  letter-spacing: var(--casa-pdp-h2-tracking, -0.015em);
+  line-height: var(--casa-pdp-h2-line, 1.1);
+  margin: 0;
+  color: #fff;
+  text-wrap: balance;
+}
+.casa-ie__h2 em {
+  font-style: italic;
+  font-weight: 800;
+  background-image: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.casa-ie__lede {
+  margin: 14px 0 0;
+  font-size: clamp(15px, 1.4vw, 17px);
+  line-height: 1.55;
+  color: rgba(255,255,255,0.78);
+  max-width: 60ch;
+  text-wrap: pretty;
+}
+
+.casa-ie__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: center;
+}
+.casa-ie__fig {
+  margin: 0;
+  /* Sized by aspect-ratio so the figure never reflows when the SVG paints. */
+  aspect-ratio: 640 / 420;
+}
+.casa-ie__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.casa-ie__dims text { font-size: 12px; }
+@media (max-width: 640px) {
+  /* The SVG scales to ~0.52 on a 375px phone; 20 user units ≈ 10.5px. */
+  .casa-ie__dims text { font-size: 20px; }
+}
+.casa-ie__ray--flow {
+  stroke-dasharray: 9 7;
+  /* perf-justified: the section root carries data-casa-anim-gate, so
+     casa-anim-gate.js sets data-casa-anim="paused" off-screen and the
+     rule below stops this animation; content-visibility was dropped
+     because it blanked the figure in full-page captures. */
+  animation: casa-ie-flow 1.6s linear infinite;
+}
+@keyframes casa-ie-flow {
+  from { stroke-dashoffset: 32; }
+  to   { stroke-dashoffset: 0; }
+}
+[data-casa-anim="paused"] .casa-ie__ray--flow { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .casa-ie__ray--flow { animation: none; }
+}
+
+.casa-ie__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: clamp(14px, 2vw, 22px);
+}
+.casa-ie__step {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  padding-top: clamp(12px, 1.6vw, 18px);
+  border-top: 1px solid rgba(255,255,255,0.14);
+}
+.casa-ie__n {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--c-pink, #5E0A02);
+  padding-top: 5px;
+}
+.casa-ie__step-title {
+  font-family: var(--font-body--family, 'Inter', sans-serif);
+  font-size: clamp(16px, 1.5vw, 19px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0 0 6px;
+  color: #fff;
+}
+.casa-ie__step-body {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.74);
+  text-wrap: pretty;
+}
+
+.casa-ie__depth {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: clamp(28px, 4vw, 44px) 0 0;
+  padding: 0;
+}
+.casa-ie__depth-cell {
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 12px;
+  padding: clamp(14px, 2vw, 22px);
+  background: rgba(255,255,255,0.04);
+}
+.casa-ie__depth-cell dt { margin-bottom: 8px; }
+.casa-ie__depth-v {
+  margin: 0;
+  font-family: var(--font-body--family, 'Inter', sans-serif);
+  font-size: clamp(20px, 2.6vw, 30px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: #fff;
+  text-wrap: balance;
+}
+.casa-ie__depth-v--accent {
+  background-image: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  width: fit-content;
+  padding-bottom: 0.08em;
+}
+.casa-ie__note {
+  margin: 18px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.7);
+  max-width: 68ch;
+  text-wrap: pretty;
+}
+
+@media (max-width: 899px) {
+  .casa-ie__body { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+}
+@media (max-width: 640px) {
+  .casa-ie__depth { gap: 8px; }
+  .casa-ie__depth-cell { padding: 12px; border-radius: 10px; }
+  .casa-ie__depth-v { font-size: 17px; }
+  .casa-ie__step-body { font-size: 14px; }
+}
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Infinity Explainer",
+  "tag": "section",
+  "class": "casa-infinity-explainer-section",
+  "settings": [
+    { "type": "header", "content": "Heading" },
+    { "type": "text", "id": "kicker", "label": "Kicker (mono)", "default": "02 · HOW IT WORKS" },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Heading (one <em>word</em> for the gradient accent)",
+      "default": "How five inches becomes <em>infinite.</em>"
+    },
+    {
+      "type": "textarea",
+      "id": "lede",
+      "label": "Lede",
+      "default": "An infinity mirror is two mirrors and a ring of light. The front one is only partly silvered, so it reflects the room when the LEDs are off and opens into the tunnel when they're on."
+    },
+    { "type": "header", "content": "Diagram labels" },
+    { "type": "text", "id": "dim_physical_label", "label": "Physical dimension label", "default": "5 IN · PHYSICAL" },
+    { "type": "text", "id": "dim_perceived_label", "label": "Perceived dimension label", "default": "PERCEIVED" },
+    { "type": "text", "id": "label_front", "label": "Front-glass label", "default": "FRONT" },
+    { "type": "text", "id": "label_back", "label": "Back-mirror label", "default": "BACK" },
+    { "type": "text", "id": "label_you", "label": "Viewer label", "default": "YOU" },
+    { "type": "header", "content": "Step 1" },
+    { "type": "text", "id": "step_1_title", "label": "Title", "default": "A real mirror in front" },
+    { "type": "textarea", "id": "step_1_body", "label": "Body", "default": "The front glass is only partly silvered. With the LEDs off it reflects like any mirror — so it's a mirror first." },
+    { "type": "header", "content": "Step 2" },
+    { "type": "text", "id": "step_2_title", "label": "Title", "default": "A ring of LEDs, a full mirror behind" },
+    { "type": "textarea", "id": "step_2_body", "label": "Body", "default": "Inside the frame, an LED ring sits between the front glass and a fully mirrored back panel." },
+    { "type": "header", "content": "Step 3" },
+    { "type": "text", "id": "step_3_title", "label": "Title", "default": "Every bounce is smaller and dimmer" },
+    { "type": "textarea", "id": "step_3_body", "label": "Body", "default": "Light bounces between the two surfaces, and a little escapes to your eye on each pass. Each reflection of the ring sits further back, so you read a tunnel receding behind the wall." },
+    { "type": "header", "content": "Depth strip" },
+    { "type": "text", "id": "depth_physical_label", "label": "Left label", "default": "Physical depth" },
+    { "type": "text", "id": "depth_physical", "label": "Left value", "default": "5 in (12.5 cm) — all three sizes" },
+    { "type": "text", "id": "depth_perceived_label", "label": "Right label", "default": "Perceived depth" },
+    { "type": "text", "id": "depth_perceived", "label": "Right value", "default": "As far as the reflections stay bright" },
+    {
+      "type": "textarea",
+      "id": "reflection_note",
+      "label": "Reflection note",
+      "default": "Your reflection stays in both states. Lights off, it's a clear, true mirror. Lights on, it's still there — fainter, layered inside the tunnel."
+    },
+    { "type": "header", "content": "Padding" },
+    { "type": "range", "id": "padding_top", "label": "Padding top", "min": 0, "max": 160, "step": 8, "default": 64, "unit": "px" },
+    { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 160, "step": 8, "default": 64, "unit": "px" }
+  ],
+  "presets": [
+    { "name": "Casa Infinity Explainer", "category": "Product" }
+  ]
+}
+{% endschema %}

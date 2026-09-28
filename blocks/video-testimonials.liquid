@@ -8,7 +8,39 @@
 {%- enddoc -%}
 
 {%- assign s = block.settings -%}
-{%- assign video_ids = "1,2,3,4,5,6,7,8" | split: "," -%}
+
+{%- comment -%}
+  Video source resolution (priority):
+    1. product.metafields.custom.video_testimonials  — list.file_reference of Video files
+    2. block.settings video_hosted_1..12 fallback (block-editor-driven)
+  Section self-hides (renders nothing) when both are empty.
+{%- endcomment -%}
+{%- comment -%}
+  list.file_reference returns a list of file drops via `.value`.
+  Each item is a Video (with `.sources`), MediaImage, or GenericFile depending on file type.
+{%- endcomment -%}
+{%- assign mf_videos = product.metafields.custom.video_testimonials.value -%}
+{%- assign use_metafield = false -%}
+{%- if mf_videos != blank and mf_videos.size > 0 -%}
+  {%- assign use_metafield = true -%}
+  {%- assign video_count = mf_videos.size -%}
+{%- else -%}
+  {%- assign video_count = 0 -%}
+  {%- for n in (1..12) -%}
+    {%- assign hkey = "video_hosted_" | append: n -%}
+    {%- if s[hkey] != blank -%}
+      {%- assign video_count = video_count | plus: 1 -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+{%- if video_count == 0 -%}{%- comment -%} Self-hide: no metafield videos, no settings videos {%- endcomment -%}{%- else -%}
+
+{%- if use_metafield -%}
+  {%- assign loop_iter = mf_videos -%}
+{%- else -%}
+  {%- assign loop_iter = "1,2,3,4,5,6,7,8,9,10,11,12" | split: "," -%}
+{%- endif -%}
 
 <div
   class="casa-vtm spacing-style"
@@ -28,20 +60,30 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
     </button>
   <div class="casa-vtm__row">
-    {%- for vid in video_ids -%}
-      {%- assign thumb_key      = "thumbnail_"      | append: vid -%}
-      {%- assign hosted_key     = "video_hosted_"    | append: vid -%}
-      {%- assign picker_key     = "video_picker_"    | append: vid -%}
-      {%- assign url_key        = "video_url_"       | append: vid -%}
-      {%- assign name_key       = "author_"          | append: vid -%}
-      {%- assign prod_key       = "product_"         | append: vid -%}
+    {%- for item in loop_iter -%}
+      {%- if use_metafield -%}
+        {%- assign hosted = item -%}
+        {%- assign thumb  = blank -%}
+        {%- assign picker = blank -%}
+        {%- assign vurl   = "" -%}
+        {%- assign name   = "" -%}
+        {%- assign prod   = blank -%}
+      {%- else -%}
+        {%- assign vid = item -%}
+        {%- assign thumb_key      = "thumbnail_"      | append: vid -%}
+        {%- assign hosted_key     = "video_hosted_"    | append: vid -%}
+        {%- assign picker_key     = "video_picker_"    | append: vid -%}
+        {%- assign url_key        = "video_url_"       | append: vid -%}
+        {%- assign name_key       = "author_"          | append: vid -%}
+        {%- assign prod_key       = "product_"         | append: vid -%}
 
-      {%- assign thumb   = s[thumb_key] -%}
-      {%- assign hosted  = s[hosted_key] -%}
-      {%- assign picker  = s[picker_key] -%}
-      {%- assign vurl    = s[url_key] -%}
-      {%- assign name    = s[name_key] -%}
-      {%- assign prod    = s[prod_key] -%}
+        {%- assign thumb   = s[thumb_key] -%}
+        {%- assign hosted  = s[hosted_key] -%}
+        {%- assign picker  = s[picker_key] -%}
+        {%- assign vurl    = s[url_key] -%}
+        {%- assign name    = s[name_key] -%}
+        {%- assign prod    = s[prod_key] -%}
+      {%- endif -%}
 
       {%- comment -%} Resolve the best video source {%- endcomment -%}
       {%- assign resolved_url = "" -%}
@@ -153,8 +195,15 @@
   </div>
 </div>
 
-{%- comment -%} Modal — rendered once, populated by JS {%- endcomment -%}
-<div class="casa-vtm__modal" id="casa-vtm-modal-{{ block.id }}" aria-hidden="true">
+{%- comment -%}
+  Modal — rendered once, populated by JS.
+  `inert` removes the close/prev/next buttons from tab order while the
+  modal is closed. Required because aria-hidden alone leaves focusable
+  children tabbable (the closed modal is opacity:0/pointer-events:none,
+  so keyboard focus would land on invisible controls) — a WCAG 2.1 fail.
+  JS toggles both aria-hidden and inert in lockstep on open/close.
+{%- endcomment -%}
+<div class="casa-vtm__modal" id="casa-vtm-modal-{{ block.id }}" aria-hidden="true" inert>
   <div class="casa-vtm__backdrop"></div>
   <div class="casa-vtm__player">
     <button type="button" class="casa-vtm__close" aria-label="Close video">
@@ -208,6 +257,55 @@
     updateRowArrows();
     if (rowPrev) rowPrev.addEventListener('click', function() { row.scrollBy({ left: -(row.clientWidth * 0.6), behavior: 'smooth' }); });
     if (rowNext) rowNext.addEventListener('click', function() { row.scrollBy({ left: row.clientWidth * 0.6, behavior: 'smooth' }); });
+
+    /* ── Click-drag scrolling (desktop only — touch devices use native swipe) ── */
+    /* Detect once. Hover-capable === mouse/trackpad. Touch screens skip this entire block. */
+    var isPointerDevice = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    if (isPointerDevice) {
+      var isDown = false;
+      var startX = 0;
+      var startScrollLeft = 0;
+      var dragDistance = 0;
+      var DRAG_THRESHOLD = 5; /* px before we count a movement as a drag vs. a click */
+
+      row.addEventListener('mousedown', function(e) {
+        /* Don't hijack mousedown on the play button (lets card click open modal) or on arrows */
+        if (e.target.closest('.casa-vtm__play, .casa-vtm__arrow, button, a')) return;
+        isDown = true;
+        dragDistance = 0;
+        startX = e.pageX;
+        startScrollLeft = row.scrollLeft;
+        row.classList.add('is-dragging');
+        /* Disable snap while dragging — snap reasserts after mouseup */
+        row.style.scrollSnapType = 'none';
+      });
+
+      var endDrag = function() {
+        if (!isDown) return;
+        isDown = false;
+        row.classList.remove('is-dragging');
+        row.style.scrollSnapType = ''; /* restore CSS-defined snap */
+      };
+      window.addEventListener('mouseup', endDrag);
+      row.addEventListener('mouseleave', endDrag);
+
+      row.addEventListener('mousemove', function(e) {
+        if (!isDown) return;
+        e.preventDefault(); /* prevent text/image selection while dragging */
+        var dx = e.pageX - startX;
+        dragDistance = Math.abs(dx);
+        row.scrollLeft = startScrollLeft - dx;
+      });
+
+      /* Suppress the trailing click after a drag so we don't open the modal accidentally */
+      row.addEventListener('click', function(e) {
+        if (dragDistance > DRAG_THRESHOLD) {
+          e.preventDefault();
+          e.stopPropagation();
+          dragDistance = 0;
+        }
+      }, true);
+    }
   }
 
   var backdrop = modal.querySelector('.casa-vtm__backdrop');
@@ -236,6 +334,23 @@
   if (modalPrev) modalPrev.addEventListener('click', function(e) { e.stopPropagation(); openCardByIndex(currentCardIndex - 1); });
   if (modalNext) modalNext.addEventListener('click', function(e) { e.stopPropagation(); openCardByIndex(currentCardIndex + 1); });
 
+  /* ── Offscreen-pause gate ──
+     Governed background videos (video[data-casa-pause]) keep decoding
+     beneath the lightbox scrim unless told otherwise — the quick-view
+     lesson (535db60f). body.casa-vtm-open is read by
+     assets/casa-offscreen-pause.js (cross-checked against a live open
+     modal so a stranded class self-heals); the refresh applies it now.
+     On close, keep the class while ANOTHER video lightbox is still open
+     — the selector covers both the block and section variants. */
+  function syncVideoGate(opening) {
+    if (opening) {
+      document.body.classList.add('casa-vtm-open');
+    } else if (!document.querySelector('.casa-vtm__modal--open, .casa-vtm-section__modal--open')) {
+      document.body.classList.remove('casa-vtm-open');
+    }
+    if (window.casa && window.casa.offscreenPauseRefresh) window.casa.offscreenPauseRefresh();
+  }
+
   /* ── Detect URL type ── */
   function parseUrl(url) {
     var yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
@@ -245,8 +360,19 @@
     return { type: 'direct', id: url };
   }
 
+  /* ── Focus management ──
+     Restore-to-trigger on close (WCAG 2.4.3): remember what had focus
+     before the modal opened, move focus to the close button on open,
+     hand it back on close. `wasOpen` guards prev/next re-entry
+     (openCardByIndex re-runs open() while the modal is up) so focus
+     isn't yanked off the nav button and the trigger isn't overwritten
+     with a modal control. */
+  var lastTrigger = null;
+
   /* ── Open modal ── */
   function open(url) {
+    var wasOpen = modal.classList.contains('casa-vtm__modal--open');
+    if (!wasOpen) lastTrigger = document.activeElement;
     var info = parseUrl(url);
     wrap.innerHTML = '';
     muteBtn.style.display = 'none';
@@ -281,11 +407,16 @@
 
     modal.classList.add('casa-vtm__modal--open');
     modal.setAttribute('aria-hidden', 'false');
+    modal.removeAttribute('inert');
     document.body.style.overflow = 'hidden';
+    syncVideoGate(true);
+    if (!wasOpen && closeBtn) closeBtn.focus();
   }
 
   /* ── Open modal with Shopify-hosted video ── */
   function openHosted(sourcesJson) {
+    var wasOpen = modal.classList.contains('casa-vtm__modal--open');
+    if (!wasOpen) lastTrigger = document.activeElement;
     wrap.innerHTML = '';
     muteBtn.style.display = 'flex';
     var vid = document.createElement('video');
@@ -316,18 +447,29 @@
     updateMuteIcon(true);
     modal.classList.add('casa-vtm__modal--open');
     modal.setAttribute('aria-hidden', 'false');
+    modal.removeAttribute('inert');
     document.body.style.overflow = 'hidden';
+    syncVideoGate(true);
+    if (!wasOpen && closeBtn) closeBtn.focus();
   }
 
   /* ── Close modal ── */
   function close() {
     modal.classList.remove('casa-vtm__modal--open');
     modal.setAttribute('aria-hidden', 'true');
+    modal.setAttribute('inert', '');
     document.body.style.overflow = '';
     wrap.innerHTML = '';
     currentVideo = null;
     muteBtn.style.display = 'none';
     productBar.style.display = 'none';
+    syncVideoGate(false);
+    /* inert just blurred focus to <body>; hand it back to the card
+       that opened the modal (skip if the DOM re-rendered it away). */
+    if (lastTrigger && lastTrigger.focus && document.contains(lastTrigger)) {
+      lastTrigger.focus();
+    }
+    lastTrigger = null;
   }
 
   /* ── Mute toggle ── */
@@ -385,6 +527,8 @@
 })();
 </script>
 
+{%- endif -%}{%- comment -%} /video_count == 0 self-hide gate {%- endcomment -%}
+
 {% stylesheet %}
 /* ══════════════════════════════════════════════════════════════════════
    CASA VIDEO TESTIMONIALS — Ambassador video row + sticky modal
@@ -395,12 +539,29 @@
   min-width: 0;
 }
 
-/* ── Heading ── */
+/* ── Heading ── (Brand v1: H4 sub-section tier — quiet chrome,
+     italic-gradient accent on `<em>` keyword. Inherits Casa typography
+     tokens so a global font/scale change updates this header too.) */
 .casa-vtm__heading {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0 0 16px;
-  line-height: 1.3;
+  font-family: var(--casa-pdp-h2-family, var(--font-heading--family, 'Inter', sans-serif));
+  font-size: var(--casa-text-h4, 18px);
+  font-weight: var(--casa-font-semibold, 600);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0 0 12px;
+  color: var(--color-foreground, #0a0a0f);
+  text-wrap: balance;
+}
+/* Italic-gradient accent — purple → pink → cyan, clipped to text.
+   One <em> per heading, on the genre-loaded keyword. */
+.casa-vtm__heading em {
+  font-style: italic;
+  font-weight: 700;
+  background: var(--grad-text, linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 /* ── Row wrapper with arrows ── */
@@ -430,23 +591,66 @@
 }
 .casa-vtm__arrow--prev { left: -16px; }
 .casa-vtm__arrow--next { right: -16px; }
-.casa-vtm__arrow:hover { background: rgba(147,51,234,0.5); border-color: rgba(147,51,234,0.5); }
+.casa-vtm__arrow:hover { background: rgba(176, 195, 250,0.5); border-color: rgba(176, 195, 250,0.5); }
 .casa-vtm__arrow:disabled { opacity: 0.3; cursor: default; }
 
 /* ── Horizontal scroll row ── */
 .casa-vtm__row {
   display: flex;
-  justify-content: center;
+  /* DO NOT use `justify-content: center` here — when the content
+     overflows, centering pushes the first card past the left edge
+     (negative scrollLeft) and the user can't scroll back to it. The
+     first card visibly clips on mobile. With flex-start (default),
+     the row starts at scrollLeft 0 and every card is reachable.
+     For the case where content fits without overflow, add a small
+     pad on both ends so cards aren't flush with the edge. */
   gap: 12px;
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-snap-type: x mandatory;
+  /* `proximity` (not `mandatory`) so a partial drag/swipe doesn't snap-back
+     mid-motion; cards still snap when you release nearby. Feels more natural
+     for both desktop click-drag and mobile thumb-swipe. */
+  scroll-snap-type: x proximity;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 4px;
+  /* pan-x pan-y: let the browser pan this row horizontally AND let a vertical
+     swipe scroll the page. Native axis-locking already routes a near-horizontal
+     swipe to the carousel and a near-vertical swipe to the page, so bare `pan-x`
+     (the old value) bought nothing but a bug: a finger that starts on this row
+     could no longer scroll the page vertically. Fixed 2026-07-09 — do NOT
+     revert to pan-x (vertical-scroll trap). */
+  touch-action: pan-x pan-y;
+  /* Pointer-device drag affordance. Touch devices ignore cursor. */
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  padding-block-end: 4px;
+  padding-inline: 4px;
+  scroll-padding-inline: 4px;
   scrollbar-width: none;
+}
+.casa-vtm__row.is-dragging {
+  cursor: grabbing;
+  scroll-behavior: auto; /* never animate during a drag */
 }
 .casa-vtm__row::-webkit-scrollbar {
   display: none;
+}
+
+/* Hide the prev/next arrow buttons on touch-only devices — mobile uses native
+   swipe instead. Keyboard + mouse users on desktop still get the arrows. */
+@media (hover: none) and (pointer: coarse) {
+  .casa-vtm__arrow { display: none !important; }
+}
+
+/* Narrow viewports (≤480px ≈ all phones AND desktop windows resized down):
+   the arrows are positioned with `right: -16px` to hang 16px outside the
+   carousel for an "overflow ear" look. That overhang clips past the right
+   viewport edge whenever the carousel container is the full viewport width
+   (every phone and any desktop browser resized below ~480px). Real phones
+   already hide arrows via the `hover: none` rule above; this rule extends
+   the hide to any narrow viewport so the overhang never escapes the page. */
+@media (max-width: 480px) {
+  .casa-vtm__arrow { display: none !important; }
 }
 
 /* ── Card ── */
@@ -471,8 +675,13 @@
 
 /* ── Thumbnail ── */
 .casa-vtm__thumb {
+  /* height: auto + aspect-ratio instead of height: 100% — the card's
+     height comes from its own aspect-ratio, and Safari 26 can fail to
+     resolve a %-height against that (the /cart flat-thumbnail class;
+     immune pattern from .cart-items__media-image in snippets/cart-products.liquid). */
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: 9 / 16;
   object-fit: cover;
   display: block;
 }
@@ -608,9 +817,11 @@
 .casa-vtm__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  /* No backdrop-filter: full-viewport surface with a VIDEO playing
+     above it — the exact stack that dropped the quick-view overlay
+     layer for whole frames at 240Hz even on a static page (535db60f).
+     The player card is opaque; a deeper dim carries the separation. */
+  background: rgba(0, 0, 0, 0.72);
 }
 
 /* ── Player card ── */
@@ -723,8 +934,8 @@
 
 @media (max-width: 749px) {
   .casa-vtm__heading {
-    font-size: 17px;
-    margin-bottom: 12px;
+    font-size: var(--casa-text-h4-mobile, 16px);
+    margin-bottom: 10px;
   }
 
   .casa-vtm__row {
@@ -775,10 +986,11 @@
   "tag": null,
   "settings": [
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "heading",
       "label": "Heading",
-      "default": "What our Ambassadors are saying"
+      "info": "Optional. Wrap one keyword in <em>…</em> for the brand italic-gradient accent (e.g. In the <em>wild</em>.). Leave blank to hide the heading entirely — the video row reads as a UGC strip on its own.",
+      "default": "In the <em>wild</em>."
     },
     {
       "type": "header",
@@ -1069,6 +1281,150 @@
     {
       "type": "product",
       "id": "product_8",
+      "label": "Linked product"
+    },
+    {
+      "type": "header",
+      "content": "Video 9"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_9",
+      "label": "Thumbnail",
+      "info": "Optional — auto-generates from YouTube if empty"
+    },
+    {
+      "type": "video",
+      "id": "video_hosted_9",
+      "label": "Shopify-hosted video"
+    },
+    {
+      "type": "video_url",
+      "id": "video_picker_9",
+      "label": "YouTube / Vimeo URL",
+      "accept": ["youtube", "vimeo"]
+    },
+    {
+      "type": "text",
+      "id": "video_url_9",
+      "label": "Direct video URL (fallback)"
+    },
+    {
+      "type": "text",
+      "id": "author_9",
+      "label": "Author name"
+    },
+    {
+      "type": "product",
+      "id": "product_9",
+      "label": "Linked product"
+    },
+    {
+      "type": "header",
+      "content": "Video 10"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_10",
+      "label": "Thumbnail",
+      "info": "Optional — auto-generates from YouTube if empty"
+    },
+    {
+      "type": "video",
+      "id": "video_hosted_10",
+      "label": "Shopify-hosted video"
+    },
+    {
+      "type": "video_url",
+      "id": "video_picker_10",
+      "label": "YouTube / Vimeo URL",
+      "accept": ["youtube", "vimeo"]
+    },
+    {
+      "type": "text",
+      "id": "video_url_10",
+      "label": "Direct video URL (fallback)"
+    },
+    {
+      "type": "text",
+      "id": "author_10",
+      "label": "Author name"
+    },
+    {
+      "type": "product",
+      "id": "product_10",
+      "label": "Linked product"
+    },
+    {
+      "type": "header",
+      "content": "Video 11"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_11",
+      "label": "Thumbnail",
+      "info": "Optional — auto-generates from YouTube if empty"
+    },
+    {
+      "type": "video",
+      "id": "video_hosted_11",
+      "label": "Shopify-hosted video"
+    },
+    {
+      "type": "video_url",
+      "id": "video_picker_11",
+      "label": "YouTube / Vimeo URL",
+      "accept": ["youtube", "vimeo"]
+    },
+    {
+      "type": "text",
+      "id": "video_url_11",
+      "label": "Direct video URL (fallback)"
+    },
+    {
+      "type": "text",
+      "id": "author_11",
+      "label": "Author name"
+    },
+    {
+      "type": "product",
+      "id": "product_11",
+      "label": "Linked product"
+    },
+    {
+      "type": "header",
+      "content": "Video 12"
+    },
+    {
+      "type": "image_picker",
+      "id": "thumbnail_12",
+      "label": "Thumbnail",
+      "info": "Optional — auto-generates from YouTube if empty"
+    },
+    {
+      "type": "video",
+      "id": "video_hosted_12",
+      "label": "Shopify-hosted video"
+    },
+    {
+      "type": "video_url",
+      "id": "video_picker_12",
+      "label": "YouTube / Vimeo URL",
+      "accept": ["youtube", "vimeo"]
+    },
+    {
+      "type": "text",
+      "id": "video_url_12",
+      "label": "Direct video URL (fallback)"
+    },
+    {
+      "type": "text",
+      "id": "author_12",
+      "label": "Author name"
+    },
+    {
+      "type": "product",
+      "id": "product_12",
       "label": "Linked product"
     },
     {

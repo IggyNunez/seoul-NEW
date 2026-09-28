@@ -76,11 +76,11 @@
   class="casa-pdp-feat casa-pdp-feat--{{ layout }}{% if anim %} casa-pdp-feat--animated{% endif %}{% if parallax and layout == 'immersive' %} casa-pdp-feat--parallax{% endif %}"
   data-desc-size="{{ desc_size }}"
   style="
-    --feat-bg: {{ bg_c | default: '#0a0a0a' }};
-    --feat-text: {{ txt_c | default: '#f5f5f5' }};
+    --feat-bg: {{ bg_c | default: '#0A0A0F' }};
+    --feat-text: {{ txt_c | default: '#E5E3DC' }};
     --feat-muted: {{ muted_c | default: '#a1a1aa' }};
-    --feat-accent1: {{ accent1 | default: '#9333ea' }};
-    --feat-accent2: {{ accent2 | default: '#ec4899' }};
+    --feat-accent1: {{ accent1 | default: '#B0C3FA' }};
+    --feat-accent2: {{ accent2 | default: '#5E0A02' }};
     --feat-cols: {{ cols }};
     --feat-gap: {{ gap_val }}px;
     --feat-card-rad: {{ card_rad }}px;
@@ -91,6 +91,11 @@
     --feat-pt: {{ pt }}px;
     --feat-pb: {{ pb }}px;
     --feat-overlay-op: {{ overlay_op }};
+    --feat-card-align: {{ section.settings.card_align | default: 'left' }};
+    --feat-cols-mobile: {{ section.settings.mobile_columns | default: '1' }};
+    --feat-stat-fs-mobile: {{ section.settings.stat_font_size_mobile | default: 36 }}px;
+    --feat-title-fs: {{ section.settings.title_font_size | default: 16 }}px;
+    --feat-desc-fs: {{ section.settings.desc_font_size | default: 14 }}px;
   "
   data-section-id="{{ section.id }}"
   data-layout="{{ layout }}"
@@ -104,7 +109,7 @@
     {%- comment -%} Background media layer {%- endcomment -%}
     <div class="casa-pdp-feat__bg-wrap">
       {%- if bg_video != blank -%}
-        <video class="casa-pdp-feat__bg-video" autoplay muted loop playsinline>
+        <video class="casa-pdp-feat__bg-video" data-casa-pause muted loop playsinline preload="metadata">
           <source src="{{ bg_video }}" type="video/mp4">
         </video>
       {%- elsif bg_img != blank and show_img -%}
@@ -115,6 +120,8 @@
           <img
             class="casa-pdp-feat__bg-img"
             src="{{ bg_img | image_url: width: 1920 }}"
+            width="{{ bg_img.width }}"
+            height="{{ bg_img.height }}"
             alt="{{ bg_img.alt | escape }}"
             loading="lazy"
             style="object-position: {{ focal | replace: '_', ' ' | default: 'center center' }};"
@@ -171,7 +178,7 @@
                   {%- endif -%}
                 </div>
               {%- elsif blk_cust != blank -%}
-                <img class="casa-pdp-feat__custom-icon" src="{{ blk_cust | image_url: width: 160 }}" alt="{{ blk_cust.alt | escape }}" loading="lazy">
+                <img class="casa-pdp-feat__custom-icon" src="{{ blk_cust | image_url: width: 160 }}" width="{{ blk_cust.width }}" height="{{ blk_cust.height }}" alt="{{ blk_cust.alt | escape }}" loading="lazy">
               {%- elsif blk_icon != blank and blk_icon != 'none' -%}
                 <div class="casa-pdp-feat__icon-wrap">
                   {%- render 'casa-pdp-feat-icon', icon: blk_icon -%}
@@ -195,7 +202,7 @@
     <div class="casa-pdp-feat__split{% if img_pos == 'right' %} casa-pdp-feat__split--reverse{% endif %}">
       <div class="casa-pdp-feat__split-media">
         {%- if bg_video != blank -%}
-          <video class="casa-pdp-feat__split-video" autoplay muted loop playsinline>
+          <video class="casa-pdp-feat__split-video" data-casa-pause muted loop playsinline preload="metadata">
             <source src="{{ bg_video }}" type="video/mp4">
           </video>
         {%- elsif bg_img != blank -%}
@@ -206,6 +213,8 @@
             <img
               class="casa-pdp-feat__split-img"
               src="{{ bg_img | image_url: width: 1200 }}"
+              width="{{ bg_img.width }}"
+              height="{{ bg_img.height }}"
               alt="{{ bg_img.alt | escape }}"
               loading="lazy"
               style="object-position: {{ focal | replace: '_', ' ' | default: 'center center' }};"
@@ -252,7 +261,7 @@
                     {%- endif -%}
                   </div>
                 {%- elsif blk_cust != blank -%}
-                  <img class="casa-pdp-feat__custom-icon" src="{{ blk_cust | image_url: width: 160 }}" alt="{{ blk_cust.alt | escape }}" loading="lazy">
+                  <img class="casa-pdp-feat__custom-icon" src="{{ blk_cust | image_url: width: 160 }}" width="{{ blk_cust.width }}" height="{{ blk_cust.height }}" alt="{{ blk_cust.alt | escape }}" loading="lazy">
                 {%- elsif blk_icon != blank and blk_icon != 'none' -%}
                   <div class="casa-pdp-feat__icon-wrap">
                     {%- render 'casa-pdp-feat-icon', icon: blk_icon -%}
@@ -308,7 +317,7 @@
           >
             {%- if blk_cimg != blank -%}
               <div class="casa-pdp-feat__card-bg">
-                <img src="{{ blk_cimg | image_url: width: 800 }}" alt="{{ blk_cimg.alt | escape }}" loading="lazy">
+                <img src="{{ blk_cimg | image_url: width: 800 }}" width="{{ blk_cimg.width }}" height="{{ blk_cimg.height }}" alt="{{ blk_cimg.alt | escape }}" loading="lazy">
                 <div class="casa-pdp-feat__card-bg-overlay"></div>
               </div>
             {%- else -%}
@@ -327,7 +336,7 @@
                   {%- endif -%}
                 </div>
               {%- elsif blk_cust != blank -%}
-                <img class="casa-pdp-feat__custom-icon" src="{{ blk_cust | image_url: width: 160 }}" alt="{{ blk_cust.alt | escape }}" loading="lazy">
+                <img class="casa-pdp-feat__custom-icon" src="{{ blk_cust | image_url: width: 160 }}" width="{{ blk_cust.width }}" height="{{ blk_cust.height }}" alt="{{ blk_cust.alt | escape }}" loading="lazy">
               {%- elsif blk_icon != blank and blk_icon != 'none' -%}
                 <div class="casa-pdp-feat__icon-wrap">
                   {%- render 'casa-pdp-feat-icon', icon: blk_icon -%}
@@ -347,9 +356,10 @@
 
   {%- endif -%}
 </section>
+{%- endunless -%}
 
 {%- comment -%} ==================== STYLES ==================== {%- endcomment -%}
-<style>
+{% stylesheet %}
 /* ===================================================================
    Seoul Glow Lab - PDP Features | Premium Section
    =================================================================== */
@@ -378,6 +388,9 @@
   inset: 0;
   z-index: 0;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .casa-pdp-feat__bg-picture {
@@ -386,12 +399,26 @@
   height: 100%;
 }
 
-.casa-pdp-feat__bg-img,
-.casa-pdp-feat__bg-video {
+.casa-pdp-feat__bg-img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  will-change: transform;
+}
+
+/* Video: cap at native source resolution (1080×1080 square) to prevent
+   browser upscaling and the smeared/blurred look that comes from forcing
+   a square loop to fill a wide hero. The section's bg_color frames it
+   on the sides; on tall viewports it letterboxes top/bottom too.
+   --object-fit: contain so the full frame is always visible — no crop. */
+.casa-pdp-feat__bg-video {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: min(1080px, 100%);
+  max-height: min(1080px, 100%);
+  object-fit: contain;
   will-change: transform;
 }
 
@@ -479,6 +506,7 @@
   padding: clamp(1.25rem, 2.5vw, 2rem);
   border-radius: var(--feat-card-rad);
   overflow: hidden;
+  text-align: var(--feat-card-align, left);
   transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
               box-shadow 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -495,11 +523,20 @@
   transition: opacity 0.6s ease-out, transform 0.6s ease-out;
 }
 
-/* --- Glassmorphic --- */
+/* --- Glassmorphic ---
+   Backdrop blur dropped 20px → 10px and saturate(1.5) stack removed
+   (2026-05-17). Stacked backdrop-filter (blur + saturate) doubles GPU
+   cost — and these cards scroll through the viewport on PDPs alongside
+   videos and other heavy paint elements. The 3.5% white background
+   already does the contrast lift; saturate(1.5) was a heavy boost the
+   3.5% bg can't actually saturate meaningfully anyway. will-change
+   promotes to GPU layer so scroll past the cards doesn't re-blur.
+   Same pattern as 2e7e8e4 (.casa-header::before). */
 .casa-pdp-feat__card--glass {
   background: rgba(255, 255, 255, 0.035);
-  backdrop-filter: blur(20px) saturate(1.5);
-  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: backdrop-filter;
   border: 1px solid rgba(255, 255, 255, 0.07);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.22),
               inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -568,7 +605,7 @@
 .casa-pdp-feat__card-bg-placeholder {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, rgba(147, 51, 234, 0.15), rgba(236, 72, 153, 0.1));
+  background: linear-gradient(135deg, rgba(176, 195, 250, 0.15), rgba(94, 10, 2, 0.1));
 }
 
 .casa-pdp-feat__card-bg-overlay {
@@ -605,8 +642,8 @@
 }
 
 .casa-pdp-feat__stat {
-  font-size: clamp(2.5rem, 5vw, var(--feat-stat-fs));
-  font-weight: var(--feat-stat-fw);
+  font-size: var(--feat-stat-fs, 48px);
+  font-weight: var(--feat-stat-fw, 300);
   letter-spacing: -0.035em;
   background: linear-gradient(135deg, var(--feat-accent1), var(--feat-accent2));
   -webkit-background-clip: text;
@@ -661,7 +698,7 @@
    TITLE & DESCRIPTION
    --------------------------------------------------------------- */
 .casa-pdp-feat__card-title {
-  font-size: clamp(0.95rem, 1.35vw, 1.2rem);
+  font-size: var(--feat-title-fs, 16px);
   font-weight: 600;
   margin: 0 0 0.3rem;
   color: var(--feat-text);
@@ -669,10 +706,45 @@
 }
 
 .casa-pdp-feat__card-desc {
-  font-size: clamp(0.8rem, 1.1vw, 0.875rem);
+  font-size: var(--feat-desc-fs, 14px);
   color: var(--feat-muted);
   margin: 0;
   line-height: 1.55;
+}
+
+/* Card alignment — center aligns ALL card content including text */
+.casa-pdp-feat[style*="--feat-card-align: center"] .casa-pdp-feat__card {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  text-align: center !important;
+}
+.casa-pdp-feat[style*="--feat-card-align: center"] .casa-pdp-feat__card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center !important;
+}
+.casa-pdp-feat[style*="--feat-card-align: center"] .casa-pdp-feat__card-title,
+.casa-pdp-feat[style*="--feat-card-align: center"] .casa-pdp-feat__card-desc,
+.casa-pdp-feat[style*="--feat-card-align: center"] .casa-pdp-feat__stat,
+.casa-pdp-feat[style*="--feat-card-align: center"] .casa-pdp-feat__stat-wrap,
+.casa-pdp-feat[style*="--feat-card-align: center"] .casa-pdp-feat__icon-wrap {
+  text-align: center !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+.casa-pdp-feat[style*="--feat-card-align: right"] .casa-pdp-feat__card {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  text-align: right !important;
+}
+.casa-pdp-feat[style*="--feat-card-align: right"] .casa-pdp-feat__card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right !important;
 }
 
 /* ---------------------------------------------------------------
@@ -799,8 +871,11 @@
    RESPONSIVE
    --------------------------------------------------------------- */
 @media (max-width: 989px) {
+  .casa-pdp-feat__stat {
+    font-size: var(--feat-stat-fs-mobile, 36px);
+  }
   .casa-pdp-feat__grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(var(--feat-cols-mobile, 1), 1fr);
   }
 
   .casa-pdp-feat__split {
@@ -832,7 +907,7 @@
 
 @media (max-width: 599px) {
   .casa-pdp-feat__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(var(--feat-cols-mobile, 1), 1fr);
   }
 
   .casa-pdp-feat__card--image {
@@ -869,7 +944,7 @@
     transform: none;
   }
 }
-</style>
+{% endstylesheet %}
 
 {%- comment -%} ==================== JAVASCRIPT ==================== {%- endcomment -%}
 <script>
@@ -937,7 +1012,6 @@
   }
 })();
 </script>
-{%- endunless -%}
 
 {% schema %}
 {
@@ -963,14 +1037,13 @@
     {
       "type": "text",
       "id": "subheading",
-      "label": "Subheading",
-      "default": "Why Choose Us"
+      "label": "Subheading"
     },
     {
-      "type": "text",
+      "type": "inline_richtext",
       "id": "heading",
-      "label": "Heading",
-      "default": "Engineered for Brilliance"
+      "label": "Heading (use <em>word</em> for italic gradient accent)",
+      "info": "Product-specific — enter per template. Pre-2026-05-17 defaulted to generic smart-tech copy."
     },
     {
       "type": "select",
@@ -1077,14 +1150,35 @@
     },
     {
       "type": "select",
+      "id": "card_align",
+      "label": "Card text alignment",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "select",
       "id": "columns",
-      "label": "Columns",
+      "label": "Columns (desktop)",
       "options": [
         { "value": "2", "label": "2" },
         { "value": "3", "label": "3" },
         { "value": "4", "label": "4" }
       ],
       "default": "3"
+    },
+    {
+      "type": "select",
+      "id": "mobile_columns",
+      "label": "Columns (mobile)",
+      "options": [
+        { "value": "1", "label": "1" },
+        { "value": "2", "label": "2" }
+      ],
+      "default": "1"
     },
     {
       "type": "range",
@@ -1129,13 +1223,13 @@
       "type": "color",
       "id": "bg_color",
       "label": "Background Color",
-      "default": "#0a0a0a"
+      "default": "#0A0A0F"
     },
     {
       "type": "color",
       "id": "text_color",
       "label": "Text Color",
-      "default": "#f5f5f5"
+      "default": "#E5E3DC"
     },
     {
       "type": "color",
@@ -1147,13 +1241,13 @@
       "type": "color",
       "id": "accent_primary",
       "label": "Accent Primary",
-      "default": "#9333ea"
+      "default": "#B0C3FA"
     },
     {
       "type": "color",
       "id": "accent_secondary",
       "label": "Accent Secondary",
-      "default": "#ec4899"
+      "default": "#5E0A02"
     },
     {
       "type": "header",
@@ -1180,6 +1274,36 @@
         { "value": "600", "label": "600 - Semi Bold" }
       ],
       "default": "300"
+    },
+    {
+      "type": "range",
+      "id": "stat_font_size_mobile",
+      "label": "Stat Font Size (mobile)",
+      "min": 20,
+      "max": 64,
+      "step": 4,
+      "default": 36,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "title_font_size",
+      "label": "Card title font size",
+      "min": 12,
+      "max": 24,
+      "step": 1,
+      "default": 16,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "desc_font_size",
+      "label": "Card description font size",
+      "min": 10,
+      "max": 18,
+      "step": 1,
+      "default": 14,
+      "unit": "px"
     },
     {
       "type": "range",
@@ -1279,8 +1403,7 @@
         {
           "type": "text",
           "id": "title",
-          "label": "Title",
-          "default": "Feature"
+          "label": "Title"
         },
         {
           "type": "textarea",
@@ -1341,70 +1464,13 @@
       "category": "Product",
       "settings": {
         "layout_style": "immersive",
-        "subheading": "Why Choose Us",
-        "heading": "Engineered for Brilliance",
         "heading_size": "large",
         "columns": "3",
         "card_style": "glassmorphic",
         "enable_parallax": true,
         "enable_animations": true
       },
-      "blocks": [
-        {
-          "type": "feature",
-          "settings": {
-            "stat_number": "16M+",
-            "title": "Vibrant Colors",
-            "description": "Choose from over 16 million colors to match any mood or setting",
-            "icon": "palette"
-          }
-        },
-        {
-          "type": "feature",
-          "settings": {
-            "stat_number": "50K+",
-            "title": "Hour LED Life",
-            "description": "Built to last for years of continuous illumination",
-            "icon": "clock"
-          }
-        },
-        {
-          "type": "feature",
-          "settings": {
-            "stat_number": "2",
-            "stat_suffix": "Year",
-            "title": "Warranty",
-            "description": "Full coverage guarantee for total peace of mind",
-            "icon": "shield"
-          }
-        },
-        {
-          "type": "feature",
-          "settings": {
-            "stat_number": "12",
-            "stat_suffix": "Hours",
-            "title": "Battery Life",
-            "description": "USB-C rechargeable for portable convenience",
-            "icon": "zap"
-          }
-        },
-        {
-          "type": "feature",
-          "settings": {
-            "title": "App Controlled",
-            "description": "Full control from your phone with our intuitive app",
-            "icon": "smartphone"
-          }
-        },
-        {
-          "type": "feature",
-          "settings": {
-            "title": "Music Reactive",
-            "description": "Syncs to the beat for an immersive audio-visual experience",
-            "icon": "eye"
-          }
-        }
-      ]
+      "blocks": []
     }
   ]
 }

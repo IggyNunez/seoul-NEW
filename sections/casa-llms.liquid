@@ -1,0 +1,72 @@
+{%- comment -%}
+  Renders the body of /llms.txt — a markdown-formatted file that
+  AI crawlers (ChatGPT, Claude, Perplexity, Gemini) read to
+  understand the site's purpose, structure, and key content.
+
+  The page using this section should be assigned a custom template
+  page.llms.json. Then create a URL redirect /llms.txt -> /pages/llms
+  in the Shopify admin so the file is served at the canonical
+  /llms.txt path.
+
+  llms.txt spec: https://llmstxt.org/
+{%- endcomment -%}
+
+{%- comment -%} Output as plain text — no HTML wrapper.
+  Brand name is "Seoul Glow Lab" (capital D) per locked brand decision
+  (2026-05-12). Hardcoded here so the AI-crawler manifest stays
+  consistent even if shop.name drifts in the admin.
+{%- endcomment -%}{%- liquid
+  assign _description = settings.casa_seo_brand_description | default: shop.description | default: 'Premium lighting brand.'
+-%}{% layout none %}# Seoul Glow Lab
+
+> {{ _description | strip_html | strip_newlines | strip }}
+
+## About
+
+{% if page.content != blank %}{{ page.content | strip_html | strip }}{% else %}{{ _description | strip_html | strip }}{% endif %}
+
+## Key pages
+
+- [Shop all]({{ request.origin }}/collections/all): Complete product catalog
+- [Bestsellers]({{ request.origin }}/collections/best-sellers): Top-rated products{% if collections['lighting'] != blank %}
+- [Lighting]({{ request.origin }}/collections/lighting): All lighting products{% endif %}{% if collections['infinity-mirrors'] != blank %}
+- [Infinity mirrors]({{ request.origin }}/collections/infinity-mirrors): Signature category{% endif %}{% if collections['floor-lamps'] != blank %}
+- [Floor lamps]({{ request.origin }}/collections/floor-lamps): Statement floor lighting{% endif %}{% if collections['table-lamps'] != blank %}
+- [Table lamps]({{ request.origin }}/collections/table-lamps): Accent table lighting{% endif %}
+- [About]({{ request.origin }}/pages/about-us-1): Brand story and values
+- [FAQ]({{ request.origin }}/pages/faq): Common customer questions
+- [Contact]({{ request.origin }}/pages/contact-us): Customer service
+
+## Featured products
+
+{% assign _featured_collection = collections['best-sellers'] | default: collections['frontpage'] | default: collections.all %}{% for product in _featured_collection.products limit: 15 %}- [{{ product.title }}]({{ request.origin }}{{ product.url }}): {{ product.description | strip_html | strip_newlines | truncatewords: 30 | strip }}
+{% endfor %}
+
+## Policies
+
+- [Shipping]({{ request.origin }}/policies/shipping-policy): Shipping terms
+- [Returns]({{ request.origin }}/policies/refund-policy): Return policy
+- [Privacy]({{ request.origin }}/policies/privacy-policy): Privacy policy
+- [Terms]({{ request.origin }}/policies/terms-of-service): Terms of service
+
+{% if settings.casa_seo_contact_phone != blank or settings.casa_seo_contact_email != blank %}## Contact
+
+{% if settings.casa_seo_contact_phone != blank %}- Phone: {{ settings.casa_seo_contact_phone }}
+{% endif %}{% if settings.casa_seo_contact_email != blank %}- Email: {{ settings.casa_seo_contact_email }}
+{% endif %}{% endif %}{% schema %}
+{
+  "name": "Casa LLMs.txt",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Renders /llms.txt content. Assign this section to a Page using template page.llms.json, then add a URL redirect /llms.txt -> /pages/llms in admin > Online Store > Navigation > URL Redirects."
+    }
+  ],
+  "presets": [
+    {
+      "name": "Casa LLMs.txt",
+      "category": "Casa"
+    }
+  ]
+}
+{% endschema %}

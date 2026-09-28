@@ -1,0 +1,537 @@
+{%- comment -%}
+  Seoul Glow Lab — AuraSphere Placement & Scale
+  Editorial form profile (matte pill + halo + oversized dimensions)
+  + photo scenarios picker (sofa / bed / office) with overlay annotations.
+{%- endcomment -%}
+
+{%- liquid
+  assign aura_shape = section.settings.aura_shape | default: 'sphere'
+  assign product_name_short = section.settings.product_name_short | default: 'AuraSphere'
+  case aura_shape
+    when 'panel'
+      assign profile_rx = 4
+    when 'frame'
+      assign profile_rx = 2
+    when 'ring'
+      assign profile_rx = 21
+    when 'edge'
+      assign profile_rx = 4
+    else
+      assign profile_rx = 21
+  endcase
+  assign cap = section.settings.container_max | default: 1440
+  assign py = section.settings.padding_y | default: 96
+  assign py_m = section.settings.padding_y_mobile | default: 56
+-%}
+
+<section
+  id="aurasphere-placement-{{ section.id }}"
+  class="cdl-aurasphere-placement"
+  data-section-id="{{ section.id }}"
+  style="
+    --cdl-cap: {{ cap }}px;
+    --cdl-py: {{ py }}px;
+    --cdl-py-m: {{ py_m }}px;
+  "
+>
+  <div class="cdl-as-place__cap">
+    <div class="cdl-as-place__head">
+      <div class="cdl-mono">{{ section.settings.kicker | default: '06 · WHERE IT FITS' }}</div>
+      <h2 class="cdl-h2">{{ section.settings.heading | default: 'Designed to mount. <em>Designed to scale.</em>' }}</h2>
+      <p class="cdl-lede">{{ section.settings.lede | default: 'A 20-inch circle that sits 1.2 inches (3 cm) off the wall. Big enough to anchor a sofa, small enough to cluster. Here’s how it lives.' }}</p>
+    </div>
+
+    <div class="cdl-as-place__layout">
+      <div class="cdl-as-place__profile">
+        <div class="cdl-as-place__profile-head">
+          <span class="cdl-mono">{{ section.settings.form_kicker | default: 'FORM' }}</span>
+          <h3>{{ section.settings.form_heading | default: 'A 20-inch (50 cm) disc floating 1.2 inches (3 cm) off the wall — lit from behind, so all you see is the glow.' }}</h3>
+        </div>
+
+        <div class="cdl-as-place__profile-stage">
+          <svg viewBox="0 0 800 460" class="cdl-as-place__profile-svg" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <radialGradient id="profileWash-{{ section.id }}" cx="20%" cy="50%" r="48%">
+                <stop offset="0%"  stop-color="{{ section.settings.halo_a | default: '#F2FFA0' }}" stop-opacity="0.55" />
+                <stop offset="55%" stop-color="{{ section.settings.halo_b | default: '#B0C3FA' }}" stop-opacity="0.18" />
+                <stop offset="100%" stop-color="{{ section.settings.halo_a | default: '#F2FFA0' }}" stop-opacity="0" />
+              </radialGradient>
+              <filter id="profileBlur-{{ section.id }}" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="22" />
+              </filter>
+              <linearGradient id="discBevel-{{ section.id }}" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%"   stop-color="#1a1a22" />
+                <stop offset="55%"  stop-color="#0a0a0e" />
+                <stop offset="100%" stop-color="#000" />
+              </linearGradient>
+            </defs>
+            {%- if aura_shape == 'edge' -%}
+              <ellipse cx="155" cy="230" rx="200" ry="200" fill="url(#profileWash-{{ section.id }})" filter="url(#profileBlur-{{ section.id }})" />
+              <polygon points="20,72 155,90 155,388 20,406" fill="rgba(10,10,15,0.05)" />
+              <polygon points="290,72 155,90 155,388 290,406" fill="rgba(10,10,15,0.02)" />
+              <line x1="155" y1="90" x2="155" y2="388" stroke="rgba(10,10,15,0.22)" stroke-width="1" />
+              <line x1="20" y1="406" x2="155" y2="388" stroke="rgba(10,10,15,0.14)" stroke-width="0.75" />
+              <line x1="155" y1="388" x2="290" y2="406" stroke="rgba(10,10,15,0.14)" stroke-width="0.75" />
+              <rect x="149" y="92" width="12" height="294" rx="3" fill="url(#discBevel-{{ section.id }})" />
+              <rect x="158" y="96" width="2.5" height="286" rx="1.25" fill="rgba(255,255,255,0.05)" />
+            {%- else -%}
+              <ellipse cx="155" cy="230" rx="240" ry="200" fill="url(#profileWash-{{ section.id }})" filter="url(#profileBlur-{{ section.id }})" />
+              <line x1="155" y1="0" x2="155" y2="460" stroke="rgba(10,10,15,0.10)" stroke-width="1" />
+              <rect x="155" y="80" width="42" height="300" rx="{{ profile_rx }}" fill="url(#discBevel-{{ section.id }})" />
+              <rect x="190" y="84" width="6" height="292" rx="3" fill="rgba(255,255,255,0.04)" />
+            {%- endif -%}
+            <text x="280" y="200" font-size="84" font-family="'Inter Casa', 'Inter Fallback', sans-serif" font-weight="200" fill="#0a0a0e" letter-spacing="-0.04em">{{ section.settings.dim_a_value | default: '20' }}<tspan font-size="42" dy="-22" font-weight="300">{{ section.settings.dim_a_unit | default: 'in' }}</tspan></text>
+            <text x="280" y="232" font-size="11" font-family="JetBrains Mono, monospace" fill="#0a0a0e" opacity="0.5" letter-spacing="0.16em">{{ section.settings.dim_a_label | default: 'DIAMETER · ⌀ 50 CM' }}</text>
+            <text x="280" y="334" font-size="84" font-family="'Inter Casa', 'Inter Fallback', sans-serif" font-weight="200" fill="#0a0a0e" letter-spacing="-0.04em">{{ section.settings.dim_b_value | default: '3' }}<tspan font-size="42" dy="-22" font-weight="300">{{ section.settings.dim_b_unit | default: 'in' }}</tspan></text>
+            <text x="280" y="366" font-size="11" font-family="JetBrains Mono, monospace" fill="#0a0a0e" opacity="0.5" letter-spacing="0.16em">{{ section.settings.dim_b_label | default: 'OFF THE WALL · 4 CM' }}</text>
+          </svg>
+        </div>
+
+        <div class="cdl-as-place__profile-meta">
+          {%- if section.settings.meta_1_value != blank -%}
+            <span><strong>{{ section.settings.meta_1_value }}</strong><em>{{ section.settings.meta_1_label }}</em></span>
+          {%- endif -%}
+          {%- if section.settings.meta_2_value != blank -%}
+            <span><strong>{{ section.settings.meta_2_value }}</strong><em>{{ section.settings.meta_2_label }}</em></span>
+          {%- endif -%}
+          {%- if section.settings.meta_4_value != blank -%}
+            <span><strong>{{ section.settings.meta_4_value }}</strong><em>{{ section.settings.meta_4_label }}</em></span>
+          {%- endif -%}
+        </div>
+      </div>
+
+      <div class="cdl-as-place__scenarios">
+        <div class="cdl-as-place__tabs" role="tablist">
+          {%- assign idx = 0 -%}
+          {%- for block in section.blocks -%}
+            {%- if block.type == 'scenario' -%}
+              {%- assign sid = block.settings.scenario_id | default: block.id -%}
+              <button
+                class="cdl-as-place__tab{% if idx == 0 %} is-on{% endif %}"
+                data-scenario="{{ sid }}"
+                type="button"
+                role="tab"
+              >
+                <span class="cdl-mono">{{ idx | plus: 1 | prepend: '00' | slice: -2, 2 }}</span>
+                <strong>{{ block.settings.label | default: 'Scenario' }}</strong>
+              </button>
+              {%- assign idx = idx | plus: 1 -%}
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+
+        <div class="cdl-as-place__panel">
+          <div class="cdl-as-place__photo-stack" data-photo-stack>
+            {%- assign idx = 0 -%}
+            {%- for block in section.blocks -%}
+              {%- if block.type == 'scenario' -%}
+                {%- assign sid = block.settings.scenario_id | default: block.id -%}
+                <div class="cdl-as-place__photo{% if idx == 0 %} is-active{% endif %}" data-photo="{{ sid }}">
+                  {%- if block.settings.image != blank -%}
+                    <img
+                      src="{{ block.settings.image | image_url: width: 1200 }}"
+                      alt="{{ product_name_short }} {{ block.settings.label | escape }}"
+                      width="1200"
+                      height="900"
+                      loading="lazy"
+                    />
+                  {%- elsif block.settings.image_url != blank -%}
+                    <img
+                      src="{{ block.settings.image_url }}"
+                      alt="{{ product_name_short }} {{ block.settings.label | escape }}"
+                      width="1200"
+                      height="900"
+                      loading="lazy"
+                    />
+                  {%- else -%}
+                    <div class="cdl-as-place__photo-empty"></div>
+                  {%- endif -%}
+                  <div class="cdl-as-place__photo-overlay">
+                    <span class="cdl-mono">IN SITU</span>
+                    <p>{{ block.settings.overlay | default: '' }}</p>
+                  </div>
+                </div>
+                {%- assign idx = idx | plus: 1 -%}
+              {%- endif -%}
+            {%- endfor -%}
+          </div>
+          <p class="cdl-as-place__copy" data-copy>
+            {%- for block in section.blocks -%}
+              {%- if block.type == 'scenario' -%}
+                {{ block.settings.copy | default: '' }}
+                {%- break -%}
+              {%- endif -%}
+            {%- endfor -%}
+          </p>
+          <div class="cdl-as-place__copies" hidden>
+            {%- for block in section.blocks -%}
+              {%- if block.type == 'scenario' -%}
+                {%- assign sid = block.settings.scenario_id | default: block.id -%}
+                <div data-copy-for="{{ sid }}">{{ block.settings.copy | default: '' }}</div>
+              {%- endif -%}
+            {%- endfor -%}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% stylesheet %}
+.cdl-aurasphere-placement {
+  background: var(--casa-paper);
+  color: #0a0a0e;
+  padding: var(--cdl-py, 96px) 24px;
+  font-family: var(--font-body--family);
+  position: relative;
+}
+.cdl-as-place__cap {
+  max-width: var(--cdl-cap, 1440px);
+  margin: 0 auto;
+}
+.cdl-as-place__head { max-width: 720px; margin-bottom: 56px; }
+.cdl-as-place__head .cdl-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: rgba(10,10,15,0.55);
+  margin-bottom: 18px;
+}
+.cdl-as-place__head h2.cdl-h2 {
+  font-family: var(--font-body--family);
+  font-weight: 300;
+  font-size: clamp(28px, 4.2vw, 44px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin: 0 0 14px;
+  color: #0a0a0e;
+}
+.cdl-as-place__head h2 em {
+  display: block;
+  font-style: italic;
+  font-weight: 800;
+  background: linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.cdl-as-place__head p.cdl-lede {
+  font-size: 15px;
+  line-height: 1.55;
+  color: rgba(10,10,15,0.65);
+  max-width: 600px;
+  margin: 0;
+}
+
+.cdl-as-place__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 48px;
+  align-items: start;
+}
+
+.cdl-as-place__profile {
+  display: grid;
+  gap: 24px;
+}
+.cdl-as-place__profile-head .cdl-mono {
+  display: inline-block;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(10,10,15,0.4);
+  margin-bottom: 12px;
+}
+.cdl-as-place__profile-head h3 {
+  font-family: var(--font-body--family);
+  font-weight: 300;
+  font-size: clamp(20px, 2.4vw, 28px);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 0;
+  max-width: 520px;
+}
+.cdl-as-place__profile-stage {
+  background: linear-gradient(180deg, #f4f4ee 0%, #efefe9 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(10,10,15,0.06);
+  overflow: hidden;
+  aspect-ratio: 800 / 460;
+  width: 100%;
+}
+.cdl-as-place__profile-svg { width: 100%; height: 100%; display: block; }
+.cdl-as-place__profile-meta {
+  /* Single row, all specs on one line at every width (flex, no wrap).
+     Skips blank specs (e.g. AuraEdge has no depth spec) so there's no
+     empty column. */
+  display: flex;
+  gap: 20px;
+  border-top: 1px solid rgba(10,10,15,0.10);
+  padding-top: 20px;
+}
+.cdl-as-place__profile-meta span {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cdl-as-place__profile-meta strong {
+  font-family: var(--font-body--family);
+  font-weight: 300;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  color: #0a0a0e;
+}
+.cdl-as-place__profile-meta em {
+  font-style: normal;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: rgba(10,10,15,0.5);
+}
+
+.cdl-as-place__scenarios {
+  display: grid;
+  gap: 16px;
+}
+.cdl-as-place__tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  /* Bleed the rail to the edges on mobile so the row scrolls naturally */
+  margin: 0 -16px;
+  padding: 0 16px 4px;
+}
+.cdl-as-place__tabs::-webkit-scrollbar { display: none; }
+.cdl-as-place__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: transparent;
+  border: 1px solid rgba(10,10,15,0.18);
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  color: #0a0a0e;
+  transition: all 0.2s ease;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  scroll-snap-align: start;
+}
+.cdl-as-place__tab:hover { border-color: rgba(10,10,15,0.4); }
+.cdl-as-place__tab.is-on {
+  background: #0a0a0e;
+  color: #fff;
+  border-color: #0a0a0e;
+}
+.cdl-as-place__tab .cdl-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  opacity: 0.6;
+}
+.cdl-as-place__tab strong {
+  font-family: var(--font-body--family);
+  font-size: 13px;
+  font-weight: 500;
+}
+.cdl-as-place__panel {
+  display: grid;
+  gap: 16px;
+}
+.cdl-as-place__photo-stack {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #1a1a22;
+}
+.cdl-as-place__photo {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.cdl-as-place__photo.is-active { opacity: 1; }
+.cdl-as-place__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
+}
+.cdl-as-place__photo-empty {
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, #f4f4ee, #e8e8e2);
+}
+.cdl-as-place__photo-overlay {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 80%;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  will-change: backdrop-filter; /* GPU layer: avoid per-frame re-blur (perf, matches 2026-05-17 flicker-fix sweep) */
+}
+.cdl-as-place__photo-overlay .cdl-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.7);
+}
+.cdl-as-place__photo-overlay p {
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+  color: #fff;
+}
+.cdl-as-place__copy {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(10,10,15,0.7);
+  margin: 0;
+  max-width: 540px;
+}
+
+@media (max-width: 900px) {
+  .cdl-aurasphere-placement { padding: 40px 24px; }
+  .cdl-as-place__head { margin-bottom: 20px; }
+  .cdl-as-place__head h2 em { display: inline; }
+  .cdl-as-place__layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .cdl-as-place__profile-meta { gap: 10px; }
+  .cdl-as-place__profile-meta strong { font-size: 16px; }
+  .cdl-as-place__profile-meta em { font-size: 9px; letter-spacing: 0.12em; }
+  .cdl-as-place__profile { padding-top: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cdl-as-place__photo { transition: none; }
+}
+{% endstylesheet %}
+
+{% javascript %}
+(function () {
+  function init(root) {
+    if (root.__cdlASPlaceInit) return; root.__cdlASPlaceInit = true;
+
+    var tabs = root.querySelectorAll('[data-scenario]');
+    var photos = root.querySelectorAll('[data-photo]');
+    var copyEl = root.querySelector('[data-copy]');
+    var copyMap = {};
+    root.querySelectorAll('[data-copy-for]').forEach(function (n) {
+      copyMap[n.dataset.copyFor] = n.textContent;
+    });
+
+    function activate(id) {
+      tabs.forEach(function (t) {
+        t.classList.toggle('is-on', t.dataset.scenario === id);
+      });
+      photos.forEach(function (p) {
+        p.classList.toggle('is-active', p.dataset.photo === id);
+      });
+      if (copyEl && copyMap[id]) copyEl.textContent = copyMap[id];
+    }
+
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () {
+        activate(t.dataset.scenario);
+      });
+    });
+  }
+
+  document.querySelectorAll('.cdl-aurasphere-placement').forEach(init);
+  document.addEventListener('shopify:section:load', function (ev) {
+    var node = ev.target.querySelector('.cdl-aurasphere-placement');
+    if (node) init(node);
+  });
+})();
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "AuraSphere · Placement",
+  "tag": "section",
+  "class": "casa-aurasphere-placement-wrapper",
+  "settings": [
+    { "type": "header", "content": "Shape (per-product)" },
+    {
+      "type": "select",
+      "id": "aura_shape",
+      "label": "Aura shape",
+      "info": "Drives the form-profile rect's corner radius — pill for sphere, sharp corners for panel/frame.",
+      "default": "sphere",
+      "options": [
+        { "value": "sphere", "label": "Sphere (pill profile)" },
+        { "value": "panel",  "label": "Panel (square corners)" },
+        { "value": "frame",  "label": "Frame (sharp corners)" },
+        { "value": "ring",   "label": "Ring (pill profile)" },
+        { "value": "edge",   "label": "Edge (corner bar)" }
+      ]
+    },
+    { "type": "text", "id": "product_name_short", "label": "Product short name", "info": "Used in image alt text", "default": "AuraSphere" },
+    { "type": "header", "content": "Header" },
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "06 · WHERE IT FITS" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "Designed to mount. <em>Designed to scale.</em>" },
+    { "type": "textarea", "id": "lede", "label": "Lede", "default": "A 20-inch circle that sits 1.2 inches (3 cm) off the wall. Big enough to anchor a sofa, small enough to cluster. Here’s how it lives." },
+    { "type": "header", "content": "Form profile" },
+    { "type": "text", "id": "form_kicker", "label": "Form kicker", "default": "FORM" },
+    { "type": "text", "id": "form_heading", "label": "Form heading", "default": "A 20-inch (50 cm) disc floating 1.2 inches (3 cm) off the wall — lit from behind, so all you see is the glow." },
+    { "type": "color", "id": "halo_a", "label": "Halo color A", "default": "#F2FFA0" },
+    { "type": "color", "id": "halo_b", "label": "Halo color B", "default": "#B0C3FA" },
+    { "type": "header", "content": "Profile dimensions" },
+    { "type": "text", "id": "dim_a_value", "label": "Dim A value", "default": "20" },
+    { "type": "text", "id": "dim_a_unit", "label": "Dim A unit", "default": "in" },
+    { "type": "text", "id": "dim_a_label", "label": "Dim A label", "default": "DIAMETER · ⌀ 50 CM" },
+    { "type": "text", "id": "dim_b_value", "label": "Dim B value", "default": "1.5" },
+    { "type": "text", "id": "dim_b_unit", "label": "Dim B unit", "default": "in" },
+    { "type": "text", "id": "dim_b_label", "label": "Dim B label", "default": "OFF THE WALL · 4 CM" },
+    { "type": "header", "content": "Spec strip" },
+    { "type": "text", "id": "meta_1_value", "label": "Spec 1 value", "default": "20 in" },
+    { "type": "text", "id": "meta_1_label", "label": "Spec 1 label", "default": "diameter" },
+    { "type": "text", "id": "meta_2_value", "label": "Spec 2 value", "default": "1.2 in" },
+    { "type": "text", "id": "meta_2_label", "label": "Spec 2 label", "default": "depth" },
+    { "type": "text", "id": "meta_4_value", "label": "Spec 4 value", "default": "2 anchors" },
+    { "type": "text", "id": "meta_4_label", "label": "Spec 4 label", "default": "drywall" },
+    { "type": "header", "content": "Layout" },
+    { "type": "range", "id": "container_max", "label": "Container max width", "min": 1100, "max": 1600, "step": 20, "default": 1440, "unit": "px" },
+    { "type": "range", "id": "padding_y", "label": "Vertical padding (desktop)", "min": 32, "max": 160, "step": 8, "default": 96, "unit": "px" },
+    { "type": "range", "id": "padding_y_mobile", "label": "Vertical padding (mobile)", "min": 24, "max": 96, "step": 4, "default": 56, "unit": "px" }
+  ],
+  "blocks": [
+    {
+      "type": "scenario",
+      "name": "Scenario",
+      "settings": [
+        { "type": "text", "id": "scenario_id", "label": "Scenario ID", "default": "sofa" },
+        { "type": "text", "id": "label", "label": "Tab label", "default": "Above a sofa" },
+        { "type": "image_picker", "id": "image", "label": "Photo (Shopify)" },
+        { "type": "text", "id": "image_url", "label": "Photo URL fallback" },
+        { "type": "text", "id": "overlay", "label": "Photo overlay copy", "default": "Center 8–10\" above the back cushions." },
+        { "type": "textarea", "id": "copy", "label": "Caption copy", "default": "Hang the center of the Sphere 8–10 in / 20–25 cm above the back cushions. The 20\" disc reads as one architectural moment over a sectional." }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "AuraSphere · Placement",
+      "blocks": [
+        { "type": "scenario", "settings": { "scenario_id": "sofa",   "label": "Above a sofa",     "image_url": "https://casadilumo.com/cdn/shop/files/Full_Circular_Wall_Lamp_Scene_04_magenta_3cb67831-ac49-448d-af5a-55c8d595cd8d.webp?width=1500", "overlay": "Center 8–10\" above the back cushions.", "copy": "Hang the center of the Sphere 8–10 in / 20–25 cm above the back cushions. The 20\" disc reads as one architectural moment over a sectional." } },
+        { "type": "scenario", "settings": { "scenario_id": "bed",    "label": "Over a headboard", "image_url": "https://casadilumo.com/cdn/shop/files/Full_Circular_Wall_Lamp_Scene_05_multicolor_4_ef83bf9d-f1bd-45fd-8674-b576e66c71be.webp?width=1500", "overlay": "Center 12\" above the pillow line.", "copy": "Centered above the bed, 12 in / 30 cm above the pillow line. Schedule a wake-up sunrise scene for 6:30 AM." } },
+        { "type": "scenario", "settings": { "scenario_id": "office", "label": "Behind a desk",    "image_url": "https://casadilumo.com/cdn/shop/files/Full_Circular_Wall_Lamp_Scene_06_purple_4ac1034c-91aa-44c5-a9aa-7da0d0407e45.webp?width=1500", "overlay": "Mounted at eye-height, centered to the monitor.", "copy": "Mounted at eye-height behind the monitor. Music-reactive mode picks up game audio and pulses the halo in time." } }
+      ]
+    }
+  ]
+}
+{% endschema %}

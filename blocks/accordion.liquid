@@ -1,8 +1,22 @@
 
 
 {% assign block_settings = block.settings %}
+
+{%- comment -%} Auto-hide accordion wrapper when no child blocks have content {%- endcomment -%}
+{%- assign _acc_has_content = false -%}
+{%- for child_block in block.blocks -%}
+  {%- if child_block.settings.heading != blank -%}
+    {%- assign _acc_has_content = true -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if _acc_has_content == false and request.design_mode == false -%}
+  {%- style -%}[data-block-id="{{ block.id }}"] { display: none !important; }{%- endstyle -%}
+{%- endif -%}
+
 <div
   class="accordion accordion--{{ block.id }} accordion--{{ block_settings.icon }} border-style spacing-style{% if block_settings.inherit_color_scheme == false %} color-{{ block_settings.color_scheme }}{% endif %}{% if block_settings.dividers %} accordion--dividers{% endif %}"
+  {% if block_settings.single_open %}data-acc-single-open="true"{% endif %}
   style="
     --summary-font-family: var(--font-{{ block_settings.type_preset }}--family);
      --summary-font-style: var(--font-{{ block_settings.type_preset }}--style);
@@ -17,6 +31,84 @@
 >
   {% content_for 'blocks' %}
 </div>
+
+{%- unless request.design_mode -%}
+<script>
+(function(){
+  var acc = document.querySelector('.accordion--{{ block.id }}');
+  if (!acc) return;
+  var rows = acc.querySelectorAll('accordion-custom');
+  var visibleCount = 0;
+  rows.forEach(function(row) {
+    var content = row.querySelector('[data-acc-content], .details-content');
+    var heading = row.querySelector('.details__header');
+    var headingText = heading ? heading.textContent.trim() : '';
+    var contentText = content ? content.textContent.trim() : '';
+    if (headingText === '' || contentText === '') {
+      row.style.display = 'none';
+    } else {
+      visibleCount++;
+    }
+  });
+  if (visibleCount === 0) {
+    acc.style.display = 'none';
+  }
+
+  /* ── Single-open + scroll anchoring ──────────────────────────────
+     When "Only one row open at a time" is on, opening a row closes
+     the others. If a TALLER row above the tapped one collapses, the
+     page shrinks upward while the browser keeps scrollTop fixed — so
+     the row you just opened jumps above the fold and you have to
+     scroll back up to find it. Fix: keep the tapped summary visually
+     fixed by compensating scroll for whatever height collapsed above.
+
+     The sibling being closed is not :focus-within, so base.css gives
+     it `transition: none` — it collapses INSTANTLY, which makes the
+     synchronous re-measure exact. The row being opened keeps focus
+     and animates as normal. Compensation is armed only by a real
+     summary activation (tap / Enter / Space) and consumed once per
+     activation, so neither the programmatic default-open pass on load
+     nor a later breakpoint-change pass ever nudges the scroll. Row
+     queries are scoped to direct children, so a nested <details>
+     inside a row's app/theme content is ignored. */
+  if (acc.dataset.accSingleOpen === 'true' && !acc.dataset.accBound) {
+    acc.dataset.accBound = '1';
+    var engaged = false;
+    var arm = function (ev) { if (ev.target.closest('summary')) engaged = true; };
+    acc.addEventListener('pointerdown', arm, true);
+    acc.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') arm(ev);
+    }, true);
+
+    acc.addEventListener('toggle', function (e) {
+      var wasEngaged = engaged;
+      engaged = false; /* consume — exactly one compensation per activation */
+
+      var d = e.target;
+      if (!(d instanceof HTMLDetailsElement) || !d.open) return;
+
+      /* Act only on a top-level row (acc > accordion-custom > details),
+         never on a nested <details> inside a row's content. */
+      var row = d.parentElement;
+      if (!row || row.tagName !== 'ACCORDION-CUSTOM' || row.parentElement !== acc) return;
+
+      var summary = d.querySelector(':scope > summary');
+      var beforeTop = (wasEngaged && summary) ? summary.getBoundingClientRect().top : 0;
+
+      acc.querySelectorAll(':scope > accordion-custom > details[open]').forEach(function (other) {
+        if (other !== d) other.open = false; /* instant: sibling isn't :focus-within */
+      });
+
+      /* Keep the row the user just opened anchored under their finger. */
+      if (wasEngaged && summary) {
+        var delta = summary.getBoundingClientRect().top - beforeTop;
+        if (delta) window.scrollBy({ top: delta, left: 0, behavior: 'instant' }); /* never smooth */
+      }
+    }, true); /* capture phase — toggle doesn't bubble */
+  }
+})();
+</script>
+{%- endunless -%}
 
 {% stylesheet %}
   .accordion {
@@ -99,6 +191,13 @@
       "type": "checkbox",
       "id": "dividers",
       "label": "t:settings.dividers",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "single_open",
+      "label": "Only one row open at a time",
+      "info": "Opening a row automatically closes the others",
       "default": true
     },
     {

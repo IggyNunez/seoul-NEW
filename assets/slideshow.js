@@ -146,9 +146,19 @@ export class Slideshow extends Component {
     // Unregister from shared viewport observer
     SlideshowViewportObserver.getInstance().unobserve(this);
 
+    // Casa: tear down any in-flight pointer drag so its document/window
+    // listeners can't outlive the element. A variant/color swap replaces the
+    // media gallery via `replaceWith` and can fire mid-drag; without this the
+    // stranded pointermove listener would scroll the (detached) track on every
+    // bare cursor move — the "carousel follows the pointer" bug.
+    this.#dragController?.abort();
+    this.#dragController = null;
+    this.#dragging = false;
+
     if (this.#scroll) {
       const { scroller } = this.refs;
       scroller.removeEventListener('mousedown', this.#handleMouseDown);
+      scroller.removeEventListener('pointerdown', this.#handlePointerDown);
       this.#scroll.destroy();
     }
 
@@ -425,7 +435,7 @@ export class Slideshow extends Component {
     if (current) current.textContent = `${value + 1}`;
 
     for (const controls of [thumbnails, dots]) {
-      controls?.forEach((el, i) => el.setAttribute('aria-selected', `${i === value}`));
+      controls?.forEach((el, i) => el.setAttribute('aria-current', `${i === value}`));
     }
 
     if (previous) previous.disabled = Boolean(!this.infinite && value === 0);
@@ -552,6 +562,17 @@ export class Slideshow extends Component {
     });
 
     scroller.addEventListener('mousedown', this.#handleMouseDown);
+    scroller.addEventListener('pointerdown', this.#handlePointerDown, { passive: true });
+
+    /* Casa: warm the FIRST neighbor (slide 1) immediately on mount, before
+       the user touches anything. The Liquid side already emits slide 1 as
+       loading="eager" — this is belt-and-braces in case a Section Rendering
+       API response or a cached AJAX render landed it as lazy. Honors
+       saveData like #handlePointerDown does. */
+    if (!navigator.connection?.saveData) {
+      const slideCount = this.slides?.length ?? 0;
+      if (slideCount >= 2) this.#warmSlide(1);
+    }
 
     this.addEventListener('mouseenter', this.suspend);
     this.addEventListener('mouseleave', this.resume);
@@ -667,6 +688,16 @@ export class Slideshow extends Component {
   #dragging = false;
 
   /**
+   * Casa: holds the AbortController for the in-flight pointer drag so that
+   * disconnectedCallback can tear it down if the slideshow is removed mid-drag
+   * (e.g. a variant/color swap runs media-gallery `this.replaceWith(...)`).
+   * Without this the document-level `pointermove` listener would be stranded
+   * and the carousel would "follow" the bare cursor across the whole page.
+   * @type {AbortController | null}
+   */
+  #dragController = null;
+
+  /**
    * Handles the 'mousedown' event to start dragging slides.
    * @param {MouseEvent} event - The mousedown event.
    */
@@ -688,7 +719,10 @@ export class Slideshow extends Component {
     const { axis } = this.#scroll;
     const startPosition = event[axis];
 
+    // Casa: abort any drag whose teardown was missed before arming a new one.
+    this.#dragController?.abort();
     const controller = new AbortController();
+    this.#dragController = controller;
     const { signal } = controller;
     const startTime = performance.now();
     let previous = startPosition;
@@ -703,6 +737,20 @@ export class Slideshow extends Component {
      * @param {PointerEvent} event - The pointermove event.
      */
     const onPointerMove = (event) => {
+      // Casa fix (root cause of "carousel follows the bare cursor"): if no
+      // button is held, this drag's teardown (pointerup/cancel) was missed —
+      // released over browser chrome, Alt-Tab mid-drag, a native <img> drag,
+      // a long task swallowing the pointerup, or the gallery being replaced by
+      // a variant swap. Left unguarded, this document-level listener keeps
+      // scrolling the track on a bare hover anywhere on the page. `buttons`
+      // is a bitmask: 0 = nothing pressed. Mouse/touch/pen all report a
+      // non-zero mask during a genuine press (touch primary contact = 1), so
+      // real drags are unaffected. Settle and tear down instead.
+      if (event.buttons === 0) {
+        onPointerUp(event);
+        return;
+      }
+
       const current = event[axis];
       const initialDelta = startPosition - current;
 
@@ -751,6 +799,7 @@ export class Slideshow extends Component {
      */
     const onPointerUp = async (event) => {
       controller.abort();
+      if (this.#dragController === controller) this.#dragController = null;
       const { current, slides } = this;
       const { scroller } = this.refs;
 
@@ -772,7 +821,9 @@ export class Slideshow extends Component {
       this.#scroll.to(newSlide);
 
       this.removeAttribute('dragging');
-      this.releasePointerCapture(event.pointerId);
+      // Casa: window `blur`/`lostpointercapture` teardown events carry no
+      // pointerId; guard so releasePointerCapture doesn't throw NotFoundError.
+      if (event.pointerId != null) this.releasePointerCapture(event.pointerId);
 
       this.#centerSelectedThumbnail(newIndex);
 
@@ -809,11 +860,89 @@ export class Slideshow extends Component {
      */
     document.addEventListener('pointerdown', onPointerUp, { signal });
     document.addEventListener('pointercancel', onPointerUp, { signal });
-    document.addEventListener('pointercapturelost', onPointerUp, { signal });
+    // Casa: the real capture-loss event is `lostpointercapture` (the old
+    // `pointercapturelost` name was a no-op typo); it fires on the capturing
+    // element, so listen there. Plus a window `blur` backstop so Alt-Tab /
+    // focus loss mid-drag tears the drag down instead of stranding the
+    // document-level pointermove listener.
+    this.addEventListener('lostpointercapture', onPointerUp, { signal });
+    window.addEventListener('blur', onPointerUp, { signal });
   };
 
   #handlePointerEnter = () => {
     this.setAttribute('actioned', '');
+  };
+
+  /**
+   * Casa: tracks which slide indexes have had their lazy <img> promoted to eager.
+   * Each slide is warmed at most once per session; a re-warm would be a no-op
+   * because the request is already in flight or cached.
+   */
+  #warmedSlides = new Set();
+
+  /**
+   * Casa: promotes the lazy <img> on the given slide to fire its network
+   * request now. We do this on pointerdown (swipe-intent) so the next slide's
+   * image is in cache before the swipe animation finishes — fixes the
+   * scanline-white-slice on iOS Safari where horizontal scroll-snap lazy
+   * heuristics defer offscreen carousel images until they're nearly visible.
+   *
+   * For video slides this promotes only the poster <img>. The <video>
+   * element's preload="metadata" (Shopify default) is untouched, so we don't
+   * burn cellular data fetching video bytes on neighbor preload.
+   *
+   * @param {number} index - slide index to warm
+   */
+  #warmSlide = (index) => {
+    if (this.#warmedSlides.has(index)) return;
+    const slide = this.refs.slides?.[index];
+    if (!slide) return;
+    const img = slide.querySelector('img');
+    if (!(img instanceof HTMLImageElement)) return;
+    this.#warmedSlides.add(index);
+    if (img.complete) return;
+    /* The Liquid lazy path emits sizes="auto, <ladder>", and `auto` is only
+       valid while loading="lazy". Once we flip to eager the whole sizes
+       value is invalid and the browser falls back to a ~100vw slot, fetching
+       a near-viewport-width candidate for a ~260px card slot (measured on
+       /search: a 2846w pick for infinity-pyramid's 3840px source). Strip the
+       auto prefix so the concrete ladder governs candidate selection. */
+    const sizesAttr = img.getAttribute('sizes');
+    if (sizesAttr && /^auto\s*,/.test(sizesAttr)) {
+      img.setAttribute('sizes', sizesAttr.replace(/^auto\s*,\s*/, ''));
+    }
+    img.fetchPriority = 'high';
+    img.loading = 'eager';
+    /* Belt-and-braces: explicitly kick the fetch + decode pipeline.
+       iOS Safari sometimes defers the fetch when loading="lazy" is
+       reassigned to "eager" on an offscreen img — it waits for the
+       next layout pass. img.decode() resolves a Promise once bytes
+       are downloaded AND decoded; calling it immediately forces
+       Safari to start the network request right now. We don't await
+       the promise (we don't care about the result, just the side
+       effect of triggering it). Errors are swallowed because a
+       cancelled fetch or removed img would reject. */
+    if (typeof img.decode === 'function') {
+      img.decode().catch(() => {});
+    }
+  };
+
+  /**
+   * Casa: on pointerdown over the scroll track, preload the next and previous
+   * slide's images. pointerdown fires on touch + mouse + pen via the Pointer
+   * Events API — works on iOS 13+. Honors Data Saver to avoid burning
+   * cellular on users who opted out.
+   */
+  #handlePointerDown = () => {
+    if (navigator.connection?.saveData) return;
+    const slideCount = this.slides?.length ?? 0;
+    if (slideCount <= 1) return;
+    const current = this.current;
+    const lastIndex = slideCount - 1;
+    const next = current >= lastIndex ? 0 : current + 1;
+    const prev = current <= 0 ? lastIndex : current - 1;
+    this.#warmSlide(next);
+    if (prev !== next) this.#warmSlide(prev);
   };
 
   get slides() {
@@ -840,10 +969,24 @@ export class Slideshow extends Component {
     if (!this.hasAttribute('auto-hide-controls')) return;
 
     const { scroller, slideshowControls } = this.refs;
+    const fits = scroller.scrollWidth <= scroller.offsetWidth;
 
-    if (!(slideshowControls instanceof HTMLElement)) return;
+    if (slideshowControls instanceof HTMLElement) {
+      slideshowControls.hidden = fits;
+    }
 
-    slideshowControls.hidden = scroller.scrollWidth <= scroller.offsetWidth;
+    /* Casa: also hide <slideshow-arrows> when content fits.
+       Horizon's default only auto-hides the dots/pagination wrapper,
+       leaving the arrow buttons rendered with no overflow to scroll —
+       most visible on ultrawide where 4+ cards fit without scrolling.
+       NOTE: setting .hidden alone doesn't win against the
+       `slideshow-arrows { display: flex }` rule in base.css, since
+       [hidden]'s default `display:none` is UA-level. Set inline
+       display directly so it wins specificity. */
+    const slideshowArrows = this.querySelector(':scope > slideshow-container > slideshow-arrows');
+    if (slideshowArrows instanceof HTMLElement) {
+      slideshowArrows.style.display = fits ? 'none' : '';
+    }
   }
 
   /**

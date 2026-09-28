@@ -102,6 +102,23 @@
         class="cart-drawer__content"
         aria-label="{{ 'accessibility.cart' | t }}"
       >
+        <div class="cart-drawer__empty-logo" aria-hidden="true">
+          {%- comment -%}
+            sizes: .cart-drawer__empty-logo-img caps the slot at
+            max-width: 140px (casa-header.liquid); without sizes the
+            w-descriptor srcset assumes a 100vw slot (over-fetch + the
+            Safari 26 intrinsic trap — see snippets/casa-cart-items.liquid).
+          {%- endcomment -%}
+          {%- if settings.logo_inverse != blank -%}
+            {{ settings.logo_inverse | image_url: width: 240 | image_tag: class: 'cart-drawer__empty-logo-img', alt: shop.name, loading: 'lazy', sizes: '140px' }}
+          {%- elsif settings.logo != blank -%}
+            {{ settings.logo | image_url: width: 240 | image_tag: class: 'cart-drawer__empty-logo-img', alt: shop.name, loading: 'lazy', sizes: '140px' }}
+          {%- elsif section.settings.logo_image != blank -%}
+            {{ section.settings.logo_image | image_url: width: 240 | image_tag: class: 'cart-drawer__empty-logo-img', alt: shop.name, loading: 'lazy', sizes: '140px' }}
+          {%- else -%}
+            <span class="cart-drawer__empty-logo-text">{{ section.settings.logo_text | default: shop.name | upcase }}</span>
+          {%- endif -%}
+        </div>
         <div class="sgl-cart-empty-icon">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3">
             <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
@@ -198,10 +215,11 @@
                 </div>
               {%- endif -%}
 
-              {%- comment -%} ═══ CRO: Free Shipping Progress Bar ═══ {%- endcomment -%}
+              {%- comment -%} ═══ CRO: Free Shipping Progress Bar / Always-on Badge ═══ {%- endcomment -%}
               {%- liquid
                 assign free_shipping_threshold = settings.free_shipping_threshold | default: 0
-                if free_shipping_threshold > 0
+                assign always_free_shipping = settings.cart_always_free_shipping
+                if free_shipping_threshold > 0 and always_free_shipping == false
                   assign cart_total_cents = cart.total_price
                   assign threshold_cents = free_shipping_threshold | times: 100
                   assign remaining_cents = threshold_cents | minus: cart_total_cents
@@ -212,7 +230,14 @@
                   assign remaining_amount = remaining_cents | money_without_trailing_zeros
                 endif
               -%}
-              {%- if free_shipping_threshold > 0 -%}
+              {%- if always_free_shipping -%}
+                <div class="cart-cro__shipping-bar cart-cro__shipping-bar--always">
+                  <p class="cart-cro__shipping-text cart-cro__shipping-text--success">
+                    {%- render 'casa-icon', icon: 'truck', size: 16 -%}
+                    <span><strong>FREE shipping</strong> on all orders</span>
+                  </p>
+                </div>
+              {%- elsif free_shipping_threshold > 0 -%}
                 <div class="cart-cro__shipping-bar">
                   {%- if remaining_cents > 0 -%}
                     <p class="cart-cro__shipping-text">
@@ -232,21 +257,9 @@
               {%- endif -%}
 
 
-              {%- comment -%} ═══ CRO: Delivery Estimate ═══ {%- endcomment -%}
-              {%- if settings.cart_show_delivery_estimate -%}
-                {%- liquid
-                  assign processing_days = settings.cart_processing_days | default: 1
-                  assign shipping_days = settings.cart_shipping_days | default: 5
-                  assign cutoff_time = settings.cart_cutoff_time | default: '14:00'
-                  assign total_days = processing_days | plus: shipping_days
-                -%}
-                <div class="cart-cro__delivery">
-                  {%- render 'casa-icon', icon: 'calendar', size: 16 -%}
-                  <span class="cart-cro__delivery-text">
-                    Order now for delivery in <strong>{{ total_days }}-{{ total_days | plus: 2 }} business days</strong>
-                  </span>
-                </div>
-              {%- endif -%}
+              {%- comment -%} Generic drawer delivery estimate removed — the per-product
+                  "Estimated delivery" date shows per line (cart-products.liquid), so a
+                  store-wide "delivery in N-M business days" guess conflicted with it. {%- endcomment -%}
 
               <scroll-hint
                 class="cart-drawer__content"
@@ -256,7 +269,7 @@
                 <scroll-hint
                   class="cart-drawer__items"
                 >
-                  {% render 'cart-products', drawer_context: 'drawer' %}
+                  {% render 'cart-products' %}
                 </scroll-hint>
 
                 {%- comment -%} ═══ CRO: Savings Display ═══ {%- endcomment -%}
@@ -309,7 +322,12 @@
                               <div class="cart-cro__upsell-item">
                                 <a href="{{ product.url }}" class="cart-cro__upsell-image">
                                   {%- if product.featured_image -%}
-                                    {{ product.featured_image | image_url: width: 80 | image_tag: loading: 'lazy', width: 80, height: 80 }}
+                                    {%- comment -%}
+                                      sizes: .cart-cro__upsell-image is a fixed 56×56 box
+                                      (img fills it); sizes-less srcset would default the
+                                      slot to 100vw — see snippets/casa-cart-items.liquid.
+                                    {%- endcomment -%}
+                                    {{ product.featured_image | image_url: width: 80 | image_tag: loading: 'lazy', width: 80, height: 80, sizes: '56px' }}
                                   {%- endif -%}
                                 </a>
                                 <div class="cart-cro__upsell-info">
@@ -342,7 +360,7 @@
                       <span class="cart-cro__gift-label">
                         {%- render 'casa-icon', icon: 'gift', size: 16 -%}
                         {{ settings.cart_gift_wrap_text | default: 'Add gift wrapping' }}
-                        <span class="cart-cro__gift-price">{{ settings.cart_gift_wrap_price | default: '$5.00' }}</span>
+                        <span class="cart-cro__gift-price">+{{ settings.cart_gift_wrap_price | default: 500 | money_with_currency }}</span>
                       </span>
                     </label>
                     <div class="cart-cro__gift-message" style="display: none;">
@@ -578,21 +596,26 @@
   .cart-drawer__dialog:modal {
     max-height: 100dvh;
     overflow-y: hidden;
+    overscroll-behavior: contain;
   }
 
   .cart-drawer__inner {
     height: 100%;
     overflow: hidden;
+    overscroll-behavior: contain;
   }
 
   .cart-drawer__content {
-    height: calc(100% - var(--header-height));
+    /* Casa scroll fix: this stock (orphaned) drawer's styles still compile into the
+       shared CSS bundle and collided with the live casa-header drawer, freezing cart
+       scroll on iOS. overflow/height removed so casa-header's single-scroller model
+       (.cart-drawer__content { overflow-y: auto }) governs. */
     display: flex;
     flex-direction: column;
     padding: 0;
     background-color: var(--color-background);
     flex-grow: 1;
-    overflow-y: auto;
+    min-height: 0;
   }
 
   .cart-drawer__heading {
@@ -631,9 +654,6 @@
     margin-bottom: 0;
   }
 
-  .cart-drawer__items .cart-items__table-row:last-child {
-    border-bottom: none;
-  }
 
   .cart-drawer__summary {
     --cart-drawer-summary-padding: var(--padding-lg);
@@ -644,25 +664,22 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--gap-xl);
+    gap: var(--gap-sm);
     padding: var(--cart-drawer-summary-padding);
+    padding-block-end: var(--padding-md);
     margin-top: auto;
     background-color: var(--color-background);
     /* stylelint-disable-next-line color-named */
     mask-image: linear-gradient(to bottom, transparent, black var(--cart-drawer-summary-padding));
 
     @media screen and (min-width: 750px) {
-      --cart-drawer-summary-padding: var(--padding-2xl);
+      --cart-drawer-summary-padding: var(--padding-xl);
     }
   }
 
   .cart-drawer__dialog[cart-summary-sticky='false'] .cart-drawer__summary {
     position: static;
     mask-image: none;
-  }
-
-  .cart-drawer__dialog[cart-summary-sticky='false'] .cart-drawer__items {
-    overflow: unset;
   }
 
   .cart-actions summary {
@@ -681,7 +698,10 @@
     display: flex;
     flex-direction: column;
     padding-inline: var(--cart-drawer-padding);
-    overflow-y: auto;
+    padding-block-end: var(--gap-2xl, 32px);
+    /* Casa scroll fix: nested-scroller declarations removed (see .cart-drawer__content
+       above). The live casa-header drawer scrolls at .cart-drawer__content, not here —
+       an inner scroller here fought that model and iOS refused to touch-scroll it. */
 
     @media screen and (min-width: 750px) {
       padding-inline: var(--cart-drawer-padding-desktop);
@@ -695,9 +715,8 @@
   }
 
   .cart-drawer__items .cart-items__table-row:last-child {
-    border-bottom: none;
-    padding-block-end: 0;
-    margin-block-end: 0;
+    padding-block-end: var(--gap-xl);
+    margin-block-end: var(--gap-xl);
   }
 
   .cart-drawer--empty .cart-drawer__inner {
@@ -884,9 +903,9 @@
 
   /* ── CRO CSS Custom Properties ── */
   .cart-drawer {
-    --cro-accent: #9333ea;
-    --cro-accent-light: #a855f7;
-    --cro-accent-rgb: 147, 51, 234;
+    --cro-accent: #B0C3FA;
+    --cro-accent-light: #B0C3FA;
+    --cro-accent-rgb: 176, 195, 250;
     --cro-success: #10b981;
     --cro-success-light: #34d399;
     --cro-warning: #f59e0b;
@@ -895,7 +914,7 @@
     --cro-text-muted: #9ca3af;
     --cro-border: #e5e7eb;
     --cro-bg-light: #f9fafb;
-    --cro-bg-accent: rgba(147, 51, 234, 0.05);
+    --cro-bg-accent: rgba(176, 195, 250, 0.05);
   }
 
   /* ── Cart Announcement Banner ── */
@@ -983,27 +1002,6 @@
   @keyframes cro-shimmer {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
-  }
-
-  /* ── Delivery Estimate ── */
-  .cart-cro__delivery {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    background: white;
-    border-bottom: 1px solid var(--cro-border);
-    font-size: 13px;
-    color: var(--cro-text-secondary);
-  }
-
-  .cart-cro__delivery svg {
-    color: var(--cro-accent);
-    flex-shrink: 0;
-  }
-
-  .cart-cro__delivery strong {
-    color: var(--cro-text-primary);
   }
 
   /* ── Savings Display ── */
@@ -1135,7 +1133,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--cro-accent, #9333ea);
+    background: var(--cro-accent, #B0C3FA);
     color: white;
     border: none;
     border-radius: 50%;
@@ -1152,7 +1150,7 @@
   }
 
   .cart-cro__upsell-add:hover {
-    background: var(--cro-accent-light, #a855f7);
+    background: var(--cro-accent-light, #B0C3FA);
     transform: scale(1.05);
   }
 
@@ -1234,11 +1232,12 @@
   .cart-cro__trust-badges {
     display: flex;
     justify-content: center;
-    gap: 16px;
-    padding: 16px 0;
-    margin-top: 16px;
+    gap: 14px;
+    padding-top: 8px;
+    margin-top: 0;
     border-top: 1px solid var(--cro-border);
     flex-wrap: wrap;
+    width: 100%;
   }
 
   .cart-cro__trust-badge {
@@ -1308,25 +1307,17 @@
     flex-shrink: 0;
   }
 
-  /* ── Enhanced Checkout Button ── */
-  .cart-drawer .cart__checkout-button {
-    background: linear-gradient(135deg, var(--cro-accent), var(--cro-accent-light));
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    text-transform: none;
-    letter-spacing: 0;
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-
-  .cart-drawer .cart__checkout-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(var(--cro-accent-rgb), 0.3);
-  }
-
-  .cart-drawer .cart__checkout-button:active {
-    transform: translateY(0);
-  }
+  /* ── Enhanced Checkout Button — REMOVED 2026-07-12 ──
+     The .cart-drawer .cart__checkout-button rules that lived here (purple
+     --cro-accent gradient + hover glow + active press) compiled into the
+     global bundle AFTER casa-header's Ink brand-button block and, at equal
+     specificity, were winning the non-!important cascade battles on the LIVE
+     drawer: hover showed a purple rgba(176, 195, 250,.3) glow + 2px lift and
+     :active/transition came from here, not the brand button. This snippet's
+     markup only renders via the dead stock sections/header.liquid, but its
+     stylesheet block ships regardless of render — do not add competing
+     .cart__checkout-button rules here. The checkout CTA is styled in
+     sections/casa-header.liquid (Ink .btn-primary mirror). */
 
   /* ── Cart Drawer Dialog Enhancements ── */
   .cart-drawer__dialog {

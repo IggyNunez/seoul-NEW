@@ -1,0 +1,126 @@
+{%- comment -%}
+  casa-mirror-rooms-v4.liquid
+  Seoul Glow Lab — Chapter 03 "Real homes" (OctaMirror v4 PDP)
+
+  Three customer photographs from Judge.me reviews, shown large, each with
+  the reviewer's name, the room and one sentence of their own. Paper
+  surface, no cards, no borders, no badges: the photographs do the work.
+
+  Used by: templates/product.infinity-octamirror-v4.json
+  Blocks:  home (image, alt, name, room, size, quote) — three maximum
+  Settings: kicker, heading (inline_richtext, one <em>), lede, source_note,
+            padding_top / padding_bottom.
+
+  Media: every photo is cropped to 4:5 (portrait-first), lazy, explicit
+  dimensions. Phone: stacked full width. Desktop: three equal columns.
+{%- endcomment -%}
+
+{%- liquid
+  assign s = section.settings
+-%}
+
+<section
+  id="casa-mr-{{ section.id }}"
+  class="casa-mr"
+  data-casa-section="rooms"
+  style="--casa-mr-pt: {{ s.padding_top | default: 72 }}px; --casa-mr-pb: {{ s.padding_bottom | default: 64 }}px;"
+>
+  <div class="casa-mr__cap">
+    <header class="casa-mr__head">
+      {%- if s.kicker != blank -%}<p class="casa-mr__mono">{{ s.kicker | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="casa-mr__h2">{{ s.heading }}</h2>{%- endif -%}
+      {%- if s.lede != blank -%}<p class="casa-mr__lede">{{ s.lede | escape }}</p>{%- endif -%}
+    </header>
+
+    {%- if section.blocks.size > 0 -%}
+      <ul class="casa-mr__grid" role="list">
+        {%- for block in section.blocks limit: 3 -%}
+          {%- liquid
+            assign b = block.settings
+            assign alt = b.alt
+            if alt == blank
+              assign alt = 'Infinity OctaMirror in ' | append: b.name | append: '’s home, from their Judge.me review'
+            endif
+          -%}
+          <li class="casa-mr__item" {{ block.shopify_attributes }}>
+            <figure class="casa-mr__fig">
+              <div class="casa-mr__pic">
+                {%- if b.image != blank -%}
+                  {{ b.image | image_url: width: 1200 | image_tag:
+                    widths: '390, 560, 780, 1000, 1200',
+                    sizes: '(min-width: 990px) 30vw, 100vw',
+                    loading: 'lazy',
+                    decoding: 'async',
+                    class: 'casa-mr__img',
+                    alt: alt }}
+                {%- endif -%}
+              </div>
+              <figcaption class="casa-mr__meta">
+                {%- if b.quote != blank -%}<p class="casa-mr__quote">“{{ b.quote | strip | escape }}”</p>{%- endif -%}
+                <p class="casa-mr__who">{{ b.name | escape }}{% if b.room != blank %} · {{ b.room | escape }}{% endif %}{% if b.size != blank %} · {{ b.size | escape }}{% endif %}</p>
+              </figcaption>
+            </figure>
+          </li>
+        {%- endfor -%}
+      </ul>
+    {%- endif -%}
+
+    {%- if s.source_note != blank -%}<p class="casa-mr__source">{{ s.source_note | escape }}</p>{%- endif -%}
+  </div>
+</section>
+
+{% stylesheet %}
+  .casa-mr { background: var(--bg-paper, #FAFAF7); color: var(--t-on-light, #0A0A0F); padding-block: var(--casa-mr-pt) var(--casa-mr-pb); }
+  .casa-mr__cap { max-width: 1280px; margin-inline: auto; padding-inline: clamp(20px, 5vw, 48px); }
+  .casa-mr__head { max-width: 40ch; margin-bottom: clamp(24px, 4vw, 40px); }
+  .casa-mr__mono { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--t-on-light-muted, #54545C); margin: 0 0 12px; }
+  .casa-mr__h2 { font-family: var(--casa-pdp-h2-family); font-weight: var(--casa-pdp-h2-weight); font-size: var(--casa-pdp-h2-size); letter-spacing: var(--casa-pdp-h2-tracking); line-height: var(--casa-pdp-h2-line); margin: 0; text-wrap: balance; }
+  .casa-mr__h2 em { font-style: italic; font-weight: 800; background-image: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; padding-right: 0.05em; }
+  .casa-mr__lede { font-family: var(--font-body--family); font-size: 16px; line-height: 1.5; color: var(--t-on-light-muted, #54545C); margin: 12px 0 0; max-width: 46ch; }
+
+  .casa-mr__grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 36px; }
+  .casa-mr__fig { margin: 0; }
+  .casa-mr__pic { aspect-ratio: 4 / 5; overflow: hidden; background: #ECEBE6; }
+  .casa-mr__img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 45%; display: block; }
+  .casa-mr__meta { padding-top: 14px; }
+  .casa-mr__quote { font-family: var(--font-body--family); font-size: 17px; line-height: 1.42; margin: 0 0 6px; text-wrap: pretty; max-width: 36ch; }
+  .casa-mr__who { font-family: var(--font-mono--family, 'JetBrains Mono', monospace); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--t-on-light-muted, #54545C); margin: 0; }
+  .casa-mr__source { font-family: var(--font-body--family); font-size: 13px; color: var(--t-on-light-muted, #54545C); margin: 28px 0 0; max-width: 60ch; }
+
+  @media (min-width: 750px) {
+    .casa-mr__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+    .casa-mr__quote { font-size: 15px; }
+  }
+{% endstylesheet %}
+
+{% schema %}
+{
+  "name": "Casa Mirror Rooms v4",
+  "tag": "section",
+  "class": "casa-mirror-rooms-section",
+  "settings": [
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "03 · Real homes" },
+    { "type": "inline_richtext", "id": "heading", "label": "Heading", "default": "Three homes, <em>their photos.</em>" },
+    { "type": "textarea", "id": "lede", "label": "Lede", "default": "Posted with their Judge.me reviews, in the rooms they chose." },
+    { "type": "text", "id": "source_note", "label": "Source note", "default": "Photos and words as published by the reviewers on Judge.me." },
+    { "type": "range", "id": "padding_top", "label": "Top padding", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 72 },
+    { "type": "range", "id": "padding_bottom", "label": "Bottom padding", "min": 0, "max": 120, "step": 4, "unit": "px", "default": 64 }
+  ],
+  "blocks": [
+    {
+      "type": "home",
+      "name": "Home",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Photo (portrait works best)" },
+        { "type": "text", "id": "alt", "label": "Alt text" },
+        { "type": "text", "id": "name", "label": "Reviewer name", "default": "Reviewer" },
+        { "type": "text", "id": "room", "label": "Room (their words)" },
+        { "type": "text", "id": "size", "label": "Size, only if the review says" },
+        { "type": "textarea", "id": "quote", "label": "One sentence from the review" }
+      ]
+    }
+  ],
+  "max_blocks": 3,
+  "presets": [ { "name": "Casa Mirror Rooms v4", "category": "Product" } ]
+}
+{% endschema %}

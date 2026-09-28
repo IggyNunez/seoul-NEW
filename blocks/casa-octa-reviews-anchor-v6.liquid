@@ -1,0 +1,84 @@
+{% doc %}
+  Anchors V6 review links and renders the app heading without duplicate CSS text.
+{% enddoc %}
+
+<casa-v6-review-anchor id="casa-octa-reviews" aria-hidden="true" {{ block.shopify_attributes }}></casa-v6-review-anchor>
+
+{% stylesheet %}
+  casa-v6-review-anchor {
+    display: block;
+    flex: 0 0 0;
+    align-self: stretch;
+    height: 0;
+    min-height: 0;
+    scroll-margin-top: 120px;
+  }
+
+  .shopify-section:has(casa-v6-review-anchor) .jdgm-rev-widg__title {
+    font-size: var(--casa-pdp-h2-size, clamp(24px, 4vw, 40px)) !important;
+    font-weight: var(--casa-pdp-h2-weight, 600);
+  }
+
+  .shopify-section:has(casa-v6-review-anchor) .jdgm-rev-widg__title::before,
+  .shopify-section:has(casa-v6-review-anchor) .jdgm-rev-widg__title::after {
+    content: none;
+  }
+
+  .casa-v6-review-title__emphasis {
+    font-weight: 600;
+    font-style: italic;
+    background-image: linear-gradient(95deg, #B0C3FA 0%, #5E0A02 50%, #F2FFA0 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  @media (forced-colors: active) {
+    .casa-v6-review-title__emphasis {
+      background-image: none;
+      -webkit-text-fill-color: CanvasText;
+      color: CanvasText;
+    }
+  }
+{% endstylesheet %}
+
+{% javascript %}
+  if (!customElements.get('casa-v6-review-anchor')) {
+    customElements.define('casa-v6-review-anchor', class extends HTMLElement {
+      connectedCallback() {
+        const section = this.closest('.shopify-section');
+        if (!section) return;
+
+        const nameHeadings = () => {
+          section.querySelectorAll('.jdgm-rev-widg__title').forEach((heading) => {
+            if (heading.querySelector('.casa-v6-review-title__emphasis')) return;
+            const words = heading.textContent.trim().match(/^(Customer\s+)(Reviews)\.?$/);
+            if (!words) return;
+            const emphasis = document.createElement('span');
+            emphasis.className = 'casa-v6-review-title__emphasis';
+            emphasis.textContent = `${words[2]}.`;
+            heading.replaceChildren(document.createTextNode(words[1]), emphasis);
+          });
+        };
+
+        nameHeadings();
+        this.observer = new MutationObserver(nameHeadings);
+        this.observer.observe(section, { childList: true, characterData: true, subtree: true });
+      }
+
+      disconnectedCallback() {
+        this.observer?.disconnect();
+      }
+    });
+  }
+{% endjavascript %}
+
+{% schema %}
+{
+  "name": "OctaMirror V6 review link",
+  "tag": null,
+  "settings": [],
+  "presets": [{ "name": "OctaMirror V6 review link" }]
+}
+{% endschema %}

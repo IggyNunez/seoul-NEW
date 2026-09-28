@@ -4,7 +4,18 @@ import { Component } from '@theme/component';
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 5;
+/* Double-tap magnification target — the level a tap zooms TO. */
 const DEFAULT_ZOOM = 1.5;
+/* Scale the zoom view OPENS at (and resets to on close).
+   Was DEFAULT_ZOOM, i.e. the lightbox opened already magnified 1.5× and
+   panned, so on a phone every slide landed somewhere different and spilled
+   past the edges — "images are all over the place, not contained"
+   (merchant screen recording, 2026-08-13). Opening at 1× shows the whole
+   image, consistently, on every slide; double-tap and pinch still magnify
+   to DEFAULT_ZOOM / MAX_ZOOM exactly as before. */
+const INITIAL_ZOOM = MIN_ZOOM;
+/* Float-comparison slack when asking "is this at 1×?" */
+const ZOOM_TOLERANCE = 0.05;
 const DOUBLE_TAP_DELAY = 300;
 const DOUBLE_TAP_DISTANCE = 50;
 const DRAG_THRESHOLD = 10;
@@ -12,11 +23,11 @@ const DRAG_THRESHOLD = 10;
 export class DragZoomWrapper extends Component {
   #controller = new AbortController();
   /** @type {number} */
-  #scale = DEFAULT_ZOOM;
+  #scale = INITIAL_ZOOM;
   /** @type {number} */
   #initialDistance = 0;
   /** @type {number} */
-  #startScale = DEFAULT_ZOOM;
+  #startScale = INITIAL_ZOOM;
   /** @type {Point} */
   #translate = { x: 0, y: 0 };
   /** @type {Point} */
@@ -47,6 +58,13 @@ export class DragZoomWrapper extends Component {
   connectedCallback() {
     super.connectedCallback();
     if (!this.#image) return;
+
+    // Reconnect support: disconnect aborts the controller permanently and
+    // #initialized blocked any re-bind, so touch zoom/drag died for good
+    // after the element was re-rendered or re-parented. Fresh controller
+    // and a cleared flag per connection.
+    this.#controller = new AbortController();
+    this.#initialized = false;
 
     this.#initResizeListener();
     window.addEventListener(DialogCloseEvent.eventName, this.#resetZoom);
@@ -98,12 +116,27 @@ export class DragZoomWrapper extends Component {
   /**
    * @param {TouchEvent} event
    */
-  #handleTouchStart = (event) => {
-    preventDefault(event);
+  /* Only take the gesture when there is actually something to do with it.
+     This used to preventDefault() every touchstart, which swallows the
+     browser's native horizontal scroll-snap swipe on the zoom gallery. It
+     went unnoticed while the viewer opened at 1.5×, because a one-finger
+     drag panned the magnified image so *something* happened. Now that it
+     opens contained at 1× there is nothing to pan (see #constrainTranslation:
+     "at minimum zoom the full image should be visible with no dragging
+     allowed") — so the swipe was simply eaten and the shopper could not move
+     between images on a phone (merchant, iPhone, 2026-08-13).
 
+     Rules: pinch (2 touches) and a pan while zoomed IN are ours, so we
+     preventDefault and handle them. A single touch at 1× is the gallery's —
+     we record it for double-tap detection but let the event through, so
+     scroll-snap paging works natively. A confirmed double-tap is ours at any
+     scale (it toggles zoom), so it preventDefaults at that point. */
+  #handleTouchStart = (event) => {
     const touchCount = event.touches.length;
 
     if (touchCount === 2) {
+      preventDefault(event);
+
       // Early exit if touches are invalid
       const touch1 = event.touches[0];
       const touch2 = event.touches[1];
@@ -118,31 +151,30 @@ export class DragZoomWrapper extends Component {
       // Use performance.now() for better precision and performance
       const currentTime = performance.now();
       const timeSinceLastTap = currentTime - this.#lastTapTime;
+      const isZoomedIn = this.#scale > MIN_ZOOM + ZOOM_TOLERANCE;
 
-      // Early exit if too much time has passed
-      if (timeSinceLastTap >= DOUBLE_TAP_DELAY) {
-        this.#storeTapInfo(currentTime, touch);
-        this.#startDragGestureFromTouch(touch);
+      // A second tap inside the double-tap window and radius toggles zoom.
+      if (
+        timeSinceLastTap < DOUBLE_TAP_DELAY &&
+        this.#lastTapPosition &&
+        getDistance(touch, this.#lastTapPosition) < DOUBLE_TAP_DISTANCE
+      ) {
+        preventDefault(event);
+        this.#handleDoubleTapFromTouch(touch);
+        this.#lastTapTime = 0; // Reset to prevent triple-tap
+        this.#lastTapPosition = null;
         return;
-      }
-
-      // Only check distance if we have a previous tap within time window
-      if (this.#lastTapPosition) {
-        // Distance calculation with early exit
-        const distance = getDistance(touch, this.#lastTapPosition);
-
-        if (distance < DOUBLE_TAP_DISTANCE) {
-          // This is a double-tap, handle zoom toggle
-          this.#handleDoubleTapFromTouch(touch);
-          this.#lastTapTime = 0; // Reset to prevent triple-tap
-          this.#lastTapPosition = null;
-          return;
-        }
       }
 
       // Store tap info for potential double-tap detection
       this.#storeTapInfo(currentTime, touch);
-      this.#startDragGestureFromTouch(touch);
+
+      // Only claim the drag when zoomed in; at 1× the swipe belongs to the
+      // gallery and must reach the browser untouched.
+      if (isZoomedIn) {
+        preventDefault(event);
+        this.#startDragGestureFromTouch(touch);
+      }
     }
   };
 
@@ -198,7 +230,7 @@ export class DragZoomWrapper extends Component {
       this.#translate = { x: 0, y: 0 }; // Center the image
     } else {
       // Toggle between zoom levels: 1x ↔ 1.5x
-      const tolerance = 0.05; // Small tolerance for floating point comparison
+      const tolerance = ZOOM_TOLERANCE;
 
       if (Math.abs(this.#scale - MIN_ZOOM) < tolerance) {
         // Currently at 1x, go to 1.5x
@@ -236,18 +268,23 @@ export class DragZoomWrapper extends Component {
   /**
    * @param {TouchEvent} event
    */
+  /* Same rule as touchstart: preventDefault only for gestures we own.
+     #isDragging is now set only while zoomed in, so a one-finger move at 1×
+     falls through to the browser and pages the gallery. */
   #handleTouchMove = (event) => {
-    preventDefault(event);
-
     const touchCount = event.touches.length;
 
     if (touchCount === 2) {
+      preventDefault(event);
+
       const touch1 = event.touches[0];
       const touch2 = event.touches[1];
       if (touch1 && touch2) {
         this.#processZoomGesture(touch1, touch2);
       }
     } else if (touchCount === 1 && this.#isDragging) {
+      preventDefault(event);
+
       const touch = event.touches[0];
       if (touch) {
         this.#processDragGesture(touch);
@@ -439,13 +476,13 @@ export class DragZoomWrapper extends Component {
   };
 
   /**
-   * Reset zoom to default state (1.5x scale, centered position)
+   * Reset zoom to default state (1x = fully contained, centered)
    * Called when zoom is exited/closed
    */
   #resetZoom = () => {
     // Reset scale and translation to defaults
-    this.#scale = DEFAULT_ZOOM;
-    this.#startScale = DEFAULT_ZOOM;
+    this.#scale = INITIAL_ZOOM;
+    this.#startScale = INITIAL_ZOOM;
     this.#translate.x = 0;
     this.#translate.y = 0;
 
@@ -458,7 +495,7 @@ export class DragZoomWrapper extends Component {
     this.#hasDraggedBeyondThreshold = false;
 
     // Update CSS properties to reflect reset state
-    this.style.setProperty('--drag-zoom-scale', DEFAULT_ZOOM.toString());
+    this.style.setProperty('--drag-zoom-scale', INITIAL_ZOOM.toString());
     this.style.setProperty('--drag-zoom-translate-x', '0px');
     this.style.setProperty('--drag-zoom-translate-y', '0px');
   };

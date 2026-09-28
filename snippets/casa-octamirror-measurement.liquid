@@ -1,0 +1,179 @@
+{% doc %}
+  Records the served OctaMirror version and the consented source of a cart addition.
+  @example
+  {% render 'casa-octamirror-measurement' %}
+{% enddoc %}
+
+{% if request.page_type == 'product' and product.handle == 'infinity-octamirror' and request.design_mode == false %}
+  {% if template.suffix == 'infinity-octamirror-v2' or template.suffix == 'infinity-octamirror-v6' or template.suffix == 'infinity-octamirror-v7' %}
+    <casa-octamirror-measurement
+      hidden
+      data-product-id="{{ product.id }}"
+      data-pdp-version="{{ template.suffix }}"
+      data-pdp-release="{% if template.suffix == 'infinity-octamirror-v7' %}20260913-v7-1{% elsif template.suffix == 'infinity-octamirror-v6' %}20260921-v6-finalization-1{% else %}20260907-1{% endif %}"
+      data-theme-id="{{ theme.id }}"
+      data-variant-ids="{{ product.variants | map: 'id' | join: ',' }}"
+      data-measurement-status="waiting"
+    ></casa-octamirror-measurement>
+  {% endif %}
+{% endif %}
+
+{% javascript %}
+  (() => {
+    if (customElements.get('casa-octamirror-measurement')) return;
+    const propertyKeys = ['_casa_pdp_version', '_casa_pdp_environment', '_casa_pdp_release'];
+    const handled = new WeakSet();
+
+    class CasaOctamirrorMeasurement extends HTMLElement {
+      connectedCallback() {
+        if (this.controller || this.dataset.productId !== '7417547391130') return;
+        this.main = this.closest('main');
+        if (!this.main) return;
+        this.controller = new AbortController();
+        const { signal } = this.controller;
+        this.variants = new Set(this.dataset.variantIds.split(','));
+        this.pageId ||= crypto.randomUUID();
+        this.sequence ||= 0;
+        const query = new URL(location.href).searchParams;
+        this.dataset.pdpEnvironment = query.get('casa_pdp_qa') === '1' || query.has('preview_theme_id')
+          ? 'qa'
+          : this.dataset.themeId !== '152924782746' ? 'preview'
+            : query.has('view') ? 'alternate' : 'live';
+
+        document.addEventListener('visitorConsentCollected', () => this.syncConsent(), { signal });
+        document.addEventListener('visibilitychange', () => this.expose(), { signal });
+        window.addEventListener('pageshow', () => this.syncConsent(), { signal });
+        window.addEventListener('load', () => this.initializePrivacy(), { once: true, signal });
+        this.main.addEventListener('submit', () => this.syncForms(), { capture: true, signal });
+        this.main.addEventListener('formdata', (event) => {
+          if (!this.isProductForm(event.target)) return;
+          const values = this.properties();
+          propertyKeys.forEach((key) => {
+            if (this.allowed()) event.formData.set(`properties[${key}]`, values[key]);
+            else event.formData.delete(`properties[${key}]`);
+          });
+        }, { capture: true, signal });
+        document.addEventListener('variant:update', (event) => {
+          if (String(event.detail?.data?.productId) === this.dataset.productId) this.syncForms();
+        }, { signal });
+        document.addEventListener('cart:update', (event) => {
+          const data = event.detail?.data;
+          const variant = String(event.detail?.sourceId || '');
+          if (handled.has(event) || data?.source !== 'product-form-component' || data.didError ||
+              String(data.productId) !== this.dataset.productId || !this.variants.has(variant)) return;
+          const quantity = Number(data.itemCount);
+          if (!Number.isInteger(quantity) || quantity < 1) return;
+          handled.add(event);
+          this.emit('cart_success', variant, { quantity });
+        }, { signal });
+        this.observer = new MutationObserver((records) => {
+          if (records.some((record) => [...record.addedNodes].some((node) =>
+            node.nodeType === 1 && (node.matches('form, product-form-component') || node.querySelector('form'))
+          ))) this.syncForms();
+        });
+        this.observer.observe(this.main, { childList: true, subtree: true });
+        this.initializePrivacy();
+      }
+
+      allowed() {
+        try { return window.Shopify?.customerPrivacy?.analyticsProcessingAllowed() === true; }
+        catch { return false; }
+      }
+
+      initializePrivacy() {
+        this.syncConsent();
+        if (!window.Shopify?.customerPrivacy && typeof window.Shopify?.loadFeatures === 'function') {
+          window.Shopify.loadFeatures([{ name: 'consent-tracking-api', version: '0.1' }], () => {
+            if (this.isConnected) this.syncConsent();
+          });
+        }
+      }
+
+      isProductForm(form) {
+        return form?.matches('form') &&
+          form.closest('product-form-component')?.dataset.productId === this.dataset.productId &&
+          this.variants.has(form.querySelector('input[name="id"]')?.value);
+      }
+
+      forms() {
+        return [...this.main.querySelectorAll('product-form-component form')].filter((form) => this.isProductForm(form));
+      }
+
+      properties() {
+        return {
+          _casa_pdp_version: this.dataset.pdpVersion,
+          _casa_pdp_environment: this.dataset.pdpEnvironment,
+          _casa_pdp_release: this.dataset.pdpRelease
+        };
+      }
+
+      syncForms() {
+        const enabled = this.allowed();
+        this.forms().forEach((form) => {
+          Object.entries(this.properties()).forEach(([key, value]) => {
+            let input = form.querySelector(`input[name="properties[${key}]"]`);
+            if (!enabled) { input?.remove(); return; }
+            if (!input) {
+              input = document.createElement('input');
+              input.type = 'hidden';
+              input.name = `properties[${key}]`;
+              input.dataset.casaOctamirrorProperty = '';
+              form.append(input);
+            }
+            input.value = value;
+          });
+        });
+      }
+
+      syncConsent() {
+        this.dataset.measurementStatus = this.allowed() ? 'consented' : 'consent-blocked';
+        this.syncForms();
+        this.expose();
+      }
+
+      expose() {
+        if (this.exposed || this.exposing || document.visibilityState !== 'visible') return;
+        const variant = this.forms()[0]?.querySelector('input[name="id"]')?.value;
+        if (!variant) return;
+        this.exposing = true;
+        this.emit('view', variant).then((sent) => { this.exposed = sent; }).finally(() => { this.exposing = false; });
+      }
+
+      async emit(action, variant, extra = {}) {
+        if (!this.isConnected || !this.allowed()) return false;
+        const publish = window.Shopify?.analytics?.publish;
+        if (typeof publish !== 'function') {
+          this.dataset.measurementStatus = 'publisher-unavailable';
+          return false;
+        }
+        const eventId = `${this.pageId}:${++this.sequence}`;
+        try {
+          const result = await publish.call(window.Shopify.analytics, 'casa:octamirror_pdp', {
+            schema_version: 1, action,
+            product_id: this.dataset.productId, variant_id: variant,
+            pdp_version: this.dataset.pdpVersion, pdp_environment: this.dataset.pdpEnvironment,
+            pdp_release: this.dataset.pdpRelease, theme_id: this.dataset.themeId,
+            event_id: eventId, ...extra
+          });
+          if (result === false) throw new Error('Publisher declined');
+          this.dataset.measurementStatus = 'published-to-shopify';
+          this.dataset.lastAction = action;
+          this.dataset.lastVariantId = variant;
+          this.dataset.eventCount = String(this.sequence);
+          return true;
+        } catch {
+          this.dataset.measurementStatus = 'publish-failed';
+          return false;
+        }
+      }
+
+      disconnectedCallback() {
+        this.controller?.abort();
+        this.controller = null;
+        this.observer?.disconnect();
+        this.main?.querySelectorAll('[data-casa-octamirror-property]').forEach((input) => input.remove());
+      }
+    }
+    customElements.define('casa-octamirror-measurement', CasaOctamirrorMeasurement);
+  })();
+{% endjavascript %}

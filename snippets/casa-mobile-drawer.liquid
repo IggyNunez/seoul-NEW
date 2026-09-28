@@ -7,23 +7,63 @@
 <div class="casa-drawer-overlay" id="casa-drawer-overlay" aria-hidden="true"></div>
 
 {%- comment -%} ── Drawer Panel ── {%- endcomment -%}
-<div class="casa-drawer{% if drawer_glassmorphic %} casa-drawer--glass{% endif %}" id="casa-drawer" role="dialog" aria-modal="true" aria-label="Navigation menu" style="--drawer-logo-height: {{ drawer_logo_height | default: 28 }}px;">
+{%- comment -%}
+  Glass variant suppressed — brand book "two surfaces only" rule.
+  The .casa-drawer--glass class chain rendered the panel as a
+  translucent light surface using merchant glass tint, breaking
+  the white-text-on-Ink contract. The merchant's drawer_glassmorphic
+  setting still exists in the schema for backward compatibility but
+  no longer affects the visual surface. All chrome stays brand Ink.
+{%- endcomment -%}
+<div class="casa-drawer" id="casa-drawer" role="dialog" aria-modal="true" aria-label="Navigation menu" style="--drawer-logo-height: {{ drawer_logo_height | default: 28 }}px;">
+  <div class="casa-drawer__frost-cover" aria-hidden="true"></div>
 
   {%- comment -%} Header {%- endcomment -%}
   <div class="casa-drawer__header">
-    {%- comment -%} Use drawer_logo_image if set, else fall back to header logo_image {%- endcomment -%}
+    {%- comment -%}
+      Logo: render drawer_logo_image if set, else main logo_image,
+      else the wordmark text. ALL image variants get the same
+      brightness/invert filter via CSS (`.casa-drawer__logo-img`)
+      so a dark monochrome logo reads as white on the Ink frost.
+      The merchant uploads their standard dark logo — no separate
+      white asset needed.
+    {%- endcomment -%}
     {%- assign effective_logo = drawer_logo_image | default: logo_image -%}
     <div class="casa-drawer__logo">
       {%- if effective_logo != blank -%}
-        {{ effective_logo | image_url: width: 160 | image_tag: class: 'casa-drawer__logo-img', alt: logo_text | default: shop.name, loading: 'lazy' }}
+        {%- liquid
+          # sizes: the CSS slot is --drawer-logo-height (always set inline
+          # on .casa-drawer, default 28px; width: auto), so slot width =
+          # height × aspect ratio. The ≤375px var() fallbacks never fire —
+          # the inline custom property always wins. Sizes-less srcset
+          # would default the slot to 100vw (Safari 26 intrinsic trap —
+          # see snippets/casa-cart-items.liquid).
+          # alt is precomputed: a piped fallback inside the arg list
+          # (alt: x | default: y) TERMINATES image_tag's args — default
+          # swallowed the original loading: 'lazy' (verified missing in
+          # shipped HTML), and would swallow sizes the same way.
+          assign _dlogo_alt = logo_text | default: shop.name
+          assign _dlogo_h = drawer_logo_height | default: 28
+          assign _dlogo_slot = _dlogo_h | times: effective_logo.aspect_ratio | ceil
+          if _dlogo_slot < 1
+            # aspect_ratio unavailable → fall back to the src width so we
+            # never emit sizes="0px" (smallest-rendition trap)
+            assign _dlogo_slot = 160
+          endif
+          assign _dlogo_sizes = _dlogo_slot | append: 'px'
+        -%}
+        {{ effective_logo | image_url: width: 600 | image_tag: class: 'casa-drawer__logo-img', alt: _dlogo_alt, loading: 'lazy', widths: '160, 320, 480, 600', sizes: _dlogo_sizes }}
       {%- else -%}
         <span class="casa-drawer__logo-text">{{ logo_text | default: 'SEOUL GLOW LAB' }}</span>
       {%- endif -%}
     </div>
     <div class="casa-drawer__header-actions">
-      <button class="casa-drawer__header-btn" aria-label="Search" onclick="document.querySelector('.casa-drawer').classList.remove('active'); document.querySelector('.casa-drawer-overlay').classList.remove('active'); document.body.style.overflow = ''; document.querySelector('#search-modal')?.showDialog?.();">
-        {%- render 'casa-icon', icon: 'search', size: 20 -%}
-      </button>
+      {%- comment -%}
+        Search lives in the quick-actions row below — removed the
+        duplicate header-bar Search button so the drawer doesn't
+        show the same affordance twice. Close X stays as the only
+        header-bar control.
+      {%- endcomment -%}
       <button class="casa-drawer__close" data-casa-drawer-close aria-label="Close menu">
         {%- render 'casa-icon', icon: 'close', size: 20 -%}
       </button>
@@ -33,90 +73,200 @@
   {%- comment -%} Scrollable Content {%- endcomment -%}
   <div class="casa-drawer__content">
 
-    {%- comment -%} Featured Promo Card (CRO: entire card clickable when promo_link set) {%- endcomment -%}
-    {%- if promo_link != blank -%}
-      <a href="{{ promo_link }}" class="casa-drawer__featured casa-drawer__featured--clickable">
-    {%- else -%}
-      <div class="casa-drawer__featured">
-    {%- endif -%}
-      <div class="casa-drawer__featured-content">
-        <div class="casa-drawer__featured-visual">
-          {%- if promo_image -%}
-            {{ promo_image | image_url: width: 200 | image_tag: loading: 'lazy', class: 'casa-drawer__featured-img' }}
-          {%- elsif video_url != blank -%}
-            <video class="casa-drawer__featured-video" autoplay loop muted playsinline>
-              <source src="{{ video_url }}" type="video/mp4">
-            </video>
-          {%- else -%}
-            <div class="casa-drawer__featured-placeholder">
-              {%- render 'casa-icon', icon: 'sparkles', size: 24 -%}
-            </div>
-          {%- endif -%}
-        </div>
-        <div class="casa-drawer__featured-text">
-          <span class="casa-drawer__featured-label">
-            {%- render 'casa-icon', icon: 'sparkles', size: 12 -%}
-            {{ promo_title | default: 'New Collection' }}
-          </span>
-          <p class="casa-drawer__featured-desc">{{ promo_subtitle | default: 'Infinity Mirror Series now available' }}</p>
-          <span class="casa-drawer__featured-link" aria-hidden="true">
-            {{ mobile_promo_btn_text | default: 'Shop Now' }} {%- render 'casa-icon', icon: 'arrow-right', size: 14 -%}
-          </span>
-        </div>
-      </div>
-    {%- if promo_link != blank -%}
+    {%- comment -%}
+      Level 1 brand intro — italic-gradient brand-voice headline that
+      opens the drawer with a brand moment. Same shimmer treatment as
+      the desktop megamenu's featured top-bar. The clamp() font-size
+      guarantees one-line fit at the narrowest realistic drawer
+      (340px = 308px content area).
+    {%- endcomment -%}
+    <div class="casa-drawer-intro">
+      <p class="casa-drawer-intro__headline">Find your <em>light.</em></p>
+    </div>
+
+    {%- comment -%}
+      Quick-actions row — Search · Account · Cart.
+
+      Search and Cart open the SAME UI as the header buttons:
+        - Search: opens the <dialog id="search-modal"> (snippet
+          search-modal.liquid). Header search uses
+          on:click="#search-modal/showDialog" — we use vanilla
+          showModal() so it works without Horizon component.
+        - Cart: triggers <cart-drawer-component> open. The header
+          cart button opens the same drawer.
+      Account is a real page (no modal) so it stays a link.
+
+      Each action also closes the drawer first via
+      data-casa-drawer-close so it doesn't sit in the way.
+    {%- endcomment -%}
+    <div class="casa-drawer-quick-actions">
+      <button type="button" class="casa-drawer-quick-action" aria-label="Search" data-casa-drawer-quick-search>
+        {%- render 'casa-icon', icon: 'search', size: 18 -%}
+        <span class="casa-drawer-quick-action__label">Search</span>
+      </button>
+      <a href="{{ routes.account_url }}" class="casa-drawer-quick-action" aria-label="Account">
+        {%- render 'casa-icon', icon: 'user', size: 18 -%}
+        <span class="casa-drawer-quick-action__label">Account</span>
       </a>
-    {%- else -%}
-      </div>
-    {%- endif -%}
-
-    {%- comment -%} Navigation Items {%- endcomment -%}
-    <nav class="casa-drawer__nav" aria-label="Main navigation">
-      {%- for link in linklists[menu].links -%}
-        {%- assign link_collection = collections[link.handle] -%}
-        {%- assign link_icon = link.handle -%}
-        {%- assign link_badge = '' -%}
-        {%- if link_collection.metafields.sgl.icon != blank -%}
-          {%- assign link_icon = link_collection.metafields.sgl.icon -%}
-        {%- endif -%}
-        {%- if link_collection.metafields.sgl.badge != blank -%}
-          {%- assign link_badge = link_collection.metafields.sgl.badge -%}
-        {%- endif -%}
-
-        <div class="casa-drawer__nav-item">
-          {%- if link.links.size > 0 -%}
-            {%- comment -%} Has children → opens submenu panel {%- endcomment -%}
-            <button class="casa-drawer__nav-link" data-casa-submenu-open="{{ link.handle }}" aria-expanded="false" aria-controls="casa-submenu-{{ link.handle }}">
-              <div class="casa-drawer__nav-icon">
-                {%- render 'casa-icon', icon: link_icon, size: 22 -%}
-              </div>
-              <div class="casa-drawer__nav-content">
-                <span class="casa-drawer__nav-title">{{ link.title }}</span>
-              </div>
-              {%- if link_badge != blank -%}
-                <span class="casa-drawer__nav-badge casa-drawer__nav-badge--{{ link_badge | downcase }}">{{ link_badge }}</span>
-              {%- endif -%}
-              <div class="casa-drawer__nav-arrow">
-                {%- render 'casa-icon', icon: 'chevron-right', size: 16 -%}
-              </div>
-            </button>
-          {%- else -%}
-            {%- comment -%} No children → direct link {%- endcomment -%}
-            <a href="{{ link.url }}" class="casa-drawer__nav-link">
-              <div class="casa-drawer__nav-icon">
-                {%- render 'casa-icon', icon: link_icon, size: 22 -%}
-              </div>
-              <div class="casa-drawer__nav-content">
-                <span class="casa-drawer__nav-title">{{ link.title }}</span>
-              </div>
-              {%- if link_badge != blank -%}
-                <span class="casa-drawer__nav-badge casa-drawer__nav-badge--{{ link_badge | downcase }}">{{ link_badge }}</span>
-              {%- endif -%}
-            </a>
+      <button type="button" class="casa-drawer-quick-action" data-casa-drawer-quick-cart aria-label="Cart{% if cart.item_count > 0 %}, {{ cart.item_count }} item{% if cart.item_count != 1 %}s{% endif %}{% endif %}">
+        {%- comment -%}
+          Icon + badge share a positioned wrapper so the count pins to the
+          cart glyph's top-right corner (reads as "items in cart"), not the
+          grid cell's corner — the centered icon otherwise left the badge
+          floating far to the upper-right, detached from the cart.
+        {%- endcomment -%}
+        <span class="casa-drawer-quick-action__icon-wrap">
+          {%- render 'casa-icon', icon: 'cart', size: 18 -%}
+          {%- if cart.item_count > 0 -%}
+            <span class="casa-drawer-quick-action__badge" aria-hidden="true">{{ cart.item_count }}</span>
           {%- endif -%}
-        </div>
+        </span>
+        <span class="casa-drawer-quick-action__label">Cart</span>
+      </button>
+    </div>
+
+    {%- comment -%}
+      Top-level rows. Each row is a 64pt-min-height button with:
+        - 36×36 brand-tinted icon chip on the left
+        - Title (17px Inter 600) + sub (12px muted) — both on one line
+        - Right chevron
+      Tap → drills into Level 2 submenu (data-casa-submenu-open="<handle>"
+      is preserved from the previous design so the existing JS handler
+      picks them up).
+
+      Title is short (one word) so always fits on one line. Sub is kept
+      short by design ("All collections", "86 products", "FAQ & support")
+      so no truncation. White-space: nowrap defensive.
+
+      Icon resolution by URL handle / title — falls back to `grid` for
+      unknown handles.
+    {%- endcomment -%}
+    <div class="casa-drawer-top-rows">
+      {%- for link in linklists[menu].links -%}
+        {%- assign _link_url_parts = link.url | split: '/' -%}
+        {%- assign _link_handle = _link_url_parts | last | downcase -%}
+        {%- assign _link_collection = nil -%}
+        {%- if link.type == 'collection_link' and link.object != blank -%}
+          {%- assign _link_collection = link.object -%}
+        {%- else -%}
+          {%- assign _link_collection = collections[_link_handle] -%}
+        {%- endif -%}
+        {%- assign _link_title_lc = link.title | downcase | strip -%}
+
+        {%- comment -%}
+          Icon resolution priority:
+            1. Collection's `casa.icon` metafield (merchant-controlled
+               exact match; same pattern as the desktop megamenu).
+               Lets the merchant pick any icon per collection in
+               Shopify admin without changing code.
+            2. Handle / title detection (broad fallback for menus
+               that haven't been tagged with the metafield yet).
+               More specific matches FIRST (best-sellers, new-arrivals,
+               etc.) before generic "shop" fallback so they don't get
+               grabbed by the catch-all.
+            3. Default: 'grid' (browse-all icon).
+
+          More-specific handle matches go FIRST so they win over
+          partial overlaps (e.g. "best-sellers" must match the star
+          branch before falling into the shop branch via 'best').
+        {%- endcomment -%}
+        {%- assign _link_icon = 'grid' -%}
+        {%- if _link_collection != blank and _link_collection.metafields.sgl.icon != blank -%}
+          {%- assign _link_icon = _link_collection.metafields.sgl.icon -%}
+        {%- elsif _link_handle contains 'best-seller' or _link_handle contains 'bestseller' or _link_handle contains 'popular' or _link_title_lc contains 'best seller' or _link_title_lc contains 'bestseller' or _link_title_lc contains 'popular' -%}
+          {%- assign _link_icon = 'star' -%}
+        {%- elsif _link_handle contains 'new-arrival' or _link_handle contains 'arrival' or _link_handle == 'new' or _link_handle contains 'whats-new' or _link_title_lc contains 'new arrival' or _link_title_lc contains 'whats new' -%}
+          {%- assign _link_icon = 'sparkles' -%}
+        {%- elsif _link_handle contains 'gift' or _link_handle contains 'perfect-for' or _link_title_lc contains 'gift' -%}
+          {%- assign _link_icon = 'gift' -%}
+        {%- elsif _link_handle contains 'sale' or _link_title_lc contains 'sale' -%}
+          {%- assign _link_icon = 'tag' -%}
+        {%- elsif _link_handle contains 'mirror' or _link_handle contains 'infinity' or _link_title_lc contains 'mirror' -%}
+          {%- assign _link_icon = 'hexagon' -%}
+        {%- elsif _link_handle contains 'neon' or _link_handle contains 'led-sign' or _link_title_lc contains 'neon' -%}
+          {%- assign _link_icon = 'zap' -%}
+        {%- elsif _link_handle contains 'mushroom' or _link_title_lc contains 'mushroom' -%}
+          {%- assign _link_icon = 'moon' -%}
+        {%- elsif _link_handle contains 'bubble' or _link_title_lc contains 'bubble' -%}
+          {%- assign _link_icon = 'sparkles' -%}
+        {%- elsif _link_handle contains 'lighting' or _link_handle contains 'lamp' or _link_title_lc contains 'lighting' or _link_title_lc contains 'lamp' -%}
+          {%- assign _link_icon = 'lamp' -%}
+        {%- elsif _link_handle contains 'reward' or _link_handle contains 'loyalty' or _link_handle contains 'smile' or _link_title_lc contains 'reward' or _link_title_lc contains 'loyalty' -%}
+          {%- comment -%}
+            Rewards / loyalty programs (Smile.io renders an anchor
+            with handle "#smile-home" — without this branch it
+            would fall into the home-decor branch below because
+            the handle contains 'home').
+          {%- endcomment -%}
+          {%- assign _link_icon = 'award' -%}
+        {%- elsif _link_handle contains 'home-decor' or _link_handle contains 'decor' or _link_handle contains 'furniture' or _link_title_lc contains 'home decor' or _link_title_lc contains 'decor' or _link_title_lc contains 'furniture' -%}
+          {%- comment -%}
+            Home Decor uses `layers` (a stacked-polygons abstract)
+            instead of `home`. At 18×18 the standard Feather home
+            icon's inner door rectangle reads as a second small
+            house, so the row visually looks like townhouses
+            rather than a single home. layers signals "curated
+            objects" which fits the category better and reads
+            cleanly at small sizes.
+          {%- endcomment -%}
+          {%- assign _link_icon = 'layers' -%}
+        {%- elsif _link_handle contains 'home' or _link_title_lc contains 'home' -%}
+          {%- assign _link_icon = 'home' -%}
+        {%- elsif _link_handle contains 'accessor' or _link_handle contains 'accent' or _link_title_lc contains 'accessor' or _link_title_lc contains 'accent' -%}
+          {%- assign _link_icon = 'box' -%}
+        {%- elsif _link_handle contains 'help' or _link_handle contains 'support' or _link_handle contains 'faq' or _link_title_lc contains 'help' or _link_title_lc contains 'support' -%}
+          {%- assign _link_icon = 'headphones' -%}
+        {%- elsif _link_handle contains 'all-product' or _link_handle == 'all' or _link_handle contains 'shop-all' or _link_title_lc == 'shop all' or _link_title_lc == 'all products' or _link_title_lc == 'shop' -%}
+          {%- assign _link_icon = 'grid' -%}
+        {%- endif -%}
+
+        {%- comment -%} One-line subtitle: products_count if collection link, otherwise short genre copy {%- endcomment -%}
+        {%- assign _link_sub = '' -%}
+        {%- assign _link_count = 0 -%}
+        {%- if _link_collection != blank -%}
+          {%- assign _link_count = _link_collection.all_products_count | default: _link_collection.products_count -%}
+        {%- endif -%}
+        {%- if _link_count > 0 -%}
+          {%- assign _link_sub = _link_count | append: ' products' -%}
+        {%- elsif _link_handle contains 'help' or _link_title_lc contains 'help' -%}
+          {%- assign _link_sub = 'FAQ & support' -%}
+        {%- elsif _link_handle == 'all' or _link_title_lc contains 'shop' -%}
+          {%- assign _link_sub = 'All collections' -%}
+        {%- endif -%}
+
+        {%- if link.links.size > 0 -%}
+          <button type="button" class="casa-drawer-top-row" data-casa-submenu-open="{{ link.handle }}" aria-haspopup="true" aria-expanded="false" aria-controls="casa-submenu-{{ link.handle }}">
+            <span class="casa-drawer-top-row__icon">
+              {%- render 'casa-icon', icon: _link_icon, size: 18 -%}
+            </span>
+            <span class="casa-drawer-top-row__text">
+              <span class="casa-drawer-top-row__title">{{ link.title }}</span>
+              {%- if _link_sub != blank -%}
+                <span class="casa-drawer-top-row__sub">{{ _link_sub }}</span>
+              {%- endif -%}
+            </span>
+            <span class="casa-drawer-top-row__arrow" aria-hidden="true">
+              {%- render 'casa-icon', icon: 'chevron-right', size: 16 -%}
+            </span>
+          </button>
+        {%- else -%}
+          <a href="{{ link.url }}" class="casa-drawer-top-row">
+            <span class="casa-drawer-top-row__icon">
+              {%- render 'casa-icon', icon: _link_icon, size: 18 -%}
+            </span>
+            <span class="casa-drawer-top-row__text">
+              <span class="casa-drawer-top-row__title">{{ link.title }}</span>
+              {%- if _link_sub != blank -%}
+                <span class="casa-drawer-top-row__sub">{{ _link_sub }}</span>
+              {%- endif -%}
+            </span>
+            <span class="casa-drawer-top-row__arrow" aria-hidden="true">
+              {%- render 'casa-icon', icon: 'chevron-right', size: 16 -%}
+            </span>
+          </a>
+        {%- endif -%}
       {%- endfor -%}
-    </nav>
+    </div>
 
     {%- comment -%} Secondary Menu (extra pages: About, Contact, FAQ, etc.) {%- endcomment -%}
     {%- if drawer_secondary_menu != blank and linklists[drawer_secondary_menu].links.size > 0 -%}
@@ -135,74 +285,142 @@
         </div>
       </div>
     {%- endif -%}
-
-    {%- comment -%} Divider {%- endcomment -%}
-    <div class="casa-drawer__divider"></div>
-
-    {%- comment -%} Quick Links (pre-rendered from blocks) {%- endcomment -%}
-    {%- if mobile_quick_links_html != blank -%}
-      <div class="casa-drawer__secondary">
-        <div class="casa-drawer__secondary-title">{{ mobile_quick_links_title | default: 'Quick Links' }}</div>
-        <div class="casa-drawer__secondary-links">
-          {{ mobile_quick_links_html }}
-        </div>
-      </div>
-    {%- endif -%}
   </div>
 
   {%- comment -%} Footer {%- endcomment -%}
   <div class="casa-drawer__footer">
-    {%- comment -%} Country/Currency Selector {%- endcomment -%}
-    {%- if localization.available_countries.size > 1 or localization.available_languages.size > 1 -%}
-      <button class="casa-drawer__locale-btn" aria-label="Country and language">
-        {%- render 'casa-icon', icon: 'globe', size: 18 -%}
-        <span class="casa-drawer__locale-country">{{ localization.country.name }}</span>
-        <span class="casa-drawer__locale-currency">({{ localization.country.currency.iso_code }} {{ localization.country.currency.symbol }})</span>
+    {%- comment -%}
+      Locale row — tappable button that opens the shared
+      casa-localization-drawer (the same drawer the header locale
+      button uses). aria-label="Country and language" is the hook
+      the existing header script wires up — it'll close this drawer
+      first, wait for the slide-out, then open the locale drawer.
+      Compact one-line treatment so it earns its footprint as a
+      control, not as a passive label.
+    {%- endcomment -%}
+    <button type="button" class="casa-drawer-locale-footer" aria-label="Country and language">
+      <span class="casa-drawer-locale-footer__text">{{ cart.currency.iso_code }} · {{ localization.language.iso_code | upcase }} · {{ localization.country.name | default: 'Worldwide' }}</span>
+      <span class="casa-drawer-locale-footer__chevron" aria-hidden="true">
         {%- render 'casa-icon', icon: 'chevron-right', size: 14 -%}
-      </button>
-    {%- endif -%}
+      </span>
+    </button>
 
+    {%- comment -%}
+      Social URLs mirrored from sections/footer-group.json `casa_footer.social_*`.
+      Seoul: values mirror the footer-group.json social-links block
+      (only Instagram is set there; blank entries are skipped below).
+      To change a social URL: update BOTH this snippet and footer-group.json.
+      The drawer is rendered from header-group so it can't read footer section settings directly.
+    {%- endcomment -%}
+    {%- liquid
+      assign _social_ig = 'https://www.instagram.com/seoulglowlab/'
+      assign _social_tt = ''
+      assign _social_pi = ''
+      assign _social_fb = ''
+      assign _social_yt = ''
+    -%}
     <div class="casa-drawer__social">
-      <a href="{{ settings.social_instagram_link }}" class="casa-drawer__social-link" aria-label="Instagram" target="_blank" rel="noopener">
-        {%- render 'casa-icon', icon: 'instagram', size: 20 -%}
-      </a>
-      <a href="{{ settings.social_tiktok_link }}" class="casa-drawer__social-link" aria-label="TikTok" target="_blank" rel="noopener">
-        {%- render 'casa-icon', icon: 'tiktok', size: 20 -%}
-      </a>
-      <a href="{{ settings.social_pinterest_link }}" class="casa-drawer__social-link" aria-label="Pinterest" target="_blank" rel="noopener">
-        {%- render 'casa-icon', icon: 'pinterest', size: 20 -%}
-      </a>
-      <a href="{{ settings.social_youtube_link }}" class="casa-drawer__social-link" aria-label="YouTube" target="_blank" rel="noopener">
-        {%- render 'casa-icon', icon: 'youtube', size: 20 -%}
-      </a>
+      {%- if _social_ig != blank -%}
+        <a href="{{ _social_ig }}" class="casa-drawer__social-link" aria-label="Instagram" target="_blank" rel="noopener">
+          {%- render 'casa-icon', icon: 'instagram', size: 20 -%}
+        </a>
+      {%- endif -%}
+      {%- if _social_tt != blank -%}
+        <a href="{{ _social_tt }}" class="casa-drawer__social-link" aria-label="TikTok" target="_blank" rel="noopener">
+          {%- render 'casa-icon', icon: 'tiktok', size: 20 -%}
+        </a>
+      {%- endif -%}
+      {%- if _social_pi != blank -%}
+        <a href="{{ _social_pi }}" class="casa-drawer__social-link" aria-label="Pinterest" target="_blank" rel="noopener">
+          {%- render 'casa-icon', icon: 'pinterest', size: 20 -%}
+        </a>
+      {%- endif -%}
+      {%- if _social_fb != blank -%}
+        <a href="{{ _social_fb }}" class="casa-drawer__social-link" aria-label="Facebook" target="_blank" rel="noopener">
+          {%- render 'casa-icon', icon: 'facebook', size: 20 -%}
+        </a>
+      {%- endif -%}
+      {%- if _social_yt != blank -%}
+        <a href="{{ _social_yt }}" class="casa-drawer__social-link" aria-label="YouTube" target="_blank" rel="noopener">
+          {%- render 'casa-icon', icon: 'youtube', size: 20 -%}
+        </a>
+      {%- endif -%}
     </div>
     <p class="casa-drawer__copyright">&copy; {{ 'now' | date: '%Y' }} {{ logo_text | default: 'Seoul Glow Lab' }}. All rights reserved.</p>
   </div>
 </div>
 
+{%- comment -%}
+  Resolve "show badges" once: section override > theme setting.
+  Passed to every submenu panel render so the merchant has a single
+  toggle without each panel re-resolving.
+{%- endcomment -%}
+{%- if submenu_show_badges_override -%}
+  {%- assign _submenu_show_badges = submenu_show_badges -%}
+{%- else -%}
+  {%- assign _submenu_show_badges = settings.card_show_badges -%}
+{%- endif -%}
+
+{%- comment -%}
+  Featured banner + products list visibility — section-level toggles
+  default to true. Per-link suppression still possible via collection
+  metafields (casa.hide_submenu_featured / casa.hide_submenu_products),
+  resolved inside the panel snippet.
+{%- endcomment -%}
+{%- if submenu_show_featured == nil -%}{%- assign submenu_show_featured = true -%}{%- endif -%}
+{%- if submenu_show_products == nil -%}{%- assign submenu_show_products = true -%}{%- endif -%}
+{%- if submenu_show_icons == nil -%}{%- assign submenu_show_icons = true -%}{%- endif -%}
+
 {%- comment -%} ── Render Submenu Panels ── {%- endcomment -%}
 {%- for link in linklists[menu].links -%}
   {%- if link.links.size > 0 -%}
-    {%- render 'casa-submenu-panel', link: link, panel_id: link.handle, submenu_product_limit: submenu_product_limit, drawer_glassmorphic: drawer_glassmorphic -%}
+    {%- render 'casa-submenu-panel',
+      link: link,
+      panel_id: link.handle,
+      submenu_product_limit: submenu_product_limit,
+      drawer_glassmorphic: drawer_glassmorphic,
+      show_badges: _submenu_show_badges,
+      show_featured: submenu_show_featured,
+      show_products: submenu_show_products,
+      show_icons: submenu_show_icons,
+      featured_label_support: featured_label_support,
+      support_title: support_title,
+      support_description: support_description,
+      support_email: support_email,
+      support_phone: support_phone,
+      support_chat_label: support_chat_label,
+      support_chat_link: support_chat_link,
+      support_btn_text: support_btn_text,
+      support_btn_link: support_btn_link
+    -%}
   {%- endif -%}
 {%- endfor -%}
 
 {% stylesheet %}
-  /* ── Drawer Overlay ── */
+  /* ── Drawer Overlay ──
+     backdrop-filter is gated on .is-settled (set by casa-navigation.js
+     once the drawer's slide finishes) so iOS never ANIMATES or slides a
+     live blur: `transition: all` used to tween blur 0→4px over 300ms,
+     re-blurring the full viewport every frame over playing videos — the
+     compositor stall behind the 1–2s burger-tap freeze (2026-07-04).
+     Closed state stays blur-free (visibility: hidden alone does not free
+     a backdrop-filter compositing layer). */
   .casa-drawer-overlay {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    z-index: 1100;
+    z-index: 99998;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.3s;
+    transition: opacity 0.3s, visibility 0.3s;
   }
   .casa-drawer-overlay.active {
     opacity: 1;
     visibility: visible;
+  }
+  .casa-drawer-overlay.active.is-settled {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
   }
 
   /* ── Drawer Panel ── */
@@ -213,17 +431,67 @@
     width: 100%;
     max-width: 340px;
     height: 100%;
-    background: linear-gradient(180deg, color-mix(in srgb, var(--casa-drawer-bg, #0a0a0f) 100%, white 5%) 0%, var(--casa-drawer-bg, #0a0a0f) 100%);
-    z-index: 1200;
+    /* Brand v1 frosted Ink — Ink family but tuned lighter and more
+       frosted than the previous 0.86/0.90 + 48px blur. Drops opacity
+       to 0.72 → 0.78 so the page underneath actually shows through
+       the frost, and bumps blur to 72px / saturate 180% so the
+       diffusion reads as real frosted glass instead of "semi-solid
+       dark panel." Math (white page behind):
+         top    @ 0.72 → ~rgb(79, 79, 82), white text ≈ 4.6:1 (WCAG AA)
+         bottom @ 0.78 → ~rgb(64, 64, 67), white text ≈ 6.4:1 (WCAG AA+)
+       Gradient is darker at the bottom because the items list lives
+       there — small body text needs the higher-contrast end. Over
+       Ink-mood pages (Portal hero) the frost stays near-Ink, which
+       is correct. */
+    background: linear-gradient(180deg, rgba(20, 20, 28, 0.72) 0%, rgba(10, 10, 15, 0.78) 100%);
+    box-shadow:
+      4px 0 32px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    z-index: 99999;
     transform: translateX(-100%);
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    color: white;
+    color: var(--casa-paper);
   }
   .casa-drawer.active {
     transform: translateX(0);
+  }
+  /* Frost arrives only once the slide has settled (.is-settled from
+     casa-navigation.js): a 72px backdrop-filter MOVING with the slide
+     re-samples + re-blurs its backdrop every frame on iOS — the 2026-07-04
+     burger-tap compositor stall. Rasters once, static. Also keeps the
+     closed drawer from holding a permanent blur layer (same fix the
+     overlay above got in 0cfe1ea5; the panel never did). Close drops
+     .is-settled synchronously, so the slide-out is blur-free too.
+     perf-justified: static-only blur while user is actively in the
+     drawer; brand-frosted Ink is the chrome identity */
+  .casa-drawer.active.is-settled {
+    backdrop-filter: blur(72px) saturate(180%);
+    -webkit-backdrop-filter: blur(72px) saturate(180%);
+  }
+  /* Slide-in face: the panel wears near-solid Ink while it moves (the
+     frost only rasters at .is-settled — without this, page text reads
+     through the 0.72 gradient for ~300ms), then cross-fades away to
+     reveal the frost. Opacity-only, compositor-cheap; symmetrically
+     re-covers the blur-free slide-out when close drops .is-settled.
+     z-index:-1 paints above the panel's own background but below all
+     content (the drawer's fixed+z-index creates the stacking context). */
+  .casa-drawer__frost-cover {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(180deg, rgba(18, 18, 25, 0.97) 0%, rgba(9, 9, 13, 0.98) 100%);
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  .casa-drawer.is-settled .casa-drawer__frost-cover {
+    opacity: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .casa-drawer__frost-cover { transition: none; }
   }
 
   /* Ambient glow - uses drawer accent color */
@@ -234,7 +502,7 @@
     right: 0;
     width: 200px;
     height: 400px;
-    background: radial-gradient(ellipse, rgba(var(--casa-drawer-accent-rgb, 147, 51, 234), 0.15) 0%, transparent 70%);
+    background: radial-gradient(ellipse, rgba(var(--casa-drawer-accent-rgb, 176, 195, 250), 0.15) 0%, transparent 70%);
     pointer-events: none;
   }
   .casa-drawer::after {
@@ -244,7 +512,7 @@
     left: 0;
     width: 200px;
     height: 300px;
-    background: radial-gradient(ellipse, rgba(var(--casa-glow-secondary-rgb, 236, 72, 153), 0.1) 0%, transparent 70%);
+    background: radial-gradient(ellipse, rgba(var(--casa-glow-secondary-rgb, 94, 10, 2), 0.1) 0%, transparent 70%);
     pointer-events: none;
   }
 
@@ -267,11 +535,19 @@
     height: var(--drawer-logo-height, 28px);
     width: auto;
     object-fit: contain;
+    /* Flatten dark monochrome logo to white so it reads on the
+       Ink drawer surface. brightness(0) crushes any image to
+       pure black regardless of original tones; invert(1) flips
+       that to pure white. The merchant uploads their standard
+       dark logo (same asset as the header) — no separate white
+       asset needed. */
+    filter: brightness(0) invert(1);
   }
   .casa-drawer__logo-text {
     font-size: 14px;
     font-weight: 300;
     letter-spacing: 3px;
+    color: var(--casa-paper);
   }
   .casa-drawer__close {
     width: 40px;
@@ -313,18 +589,332 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+    /* Keep the gesture in the menu. Without containment, a swipe that
+       reaches either end of this list chains out and scrolls the PAGE
+       instead — which is what made the background move while the menu was
+       open, and why the menu never scrolled far enough to reach the last
+       item. */
+    overscroll-behavior: contain;
     position: relative;
     z-index: 1;
+  }
+
+  /* Body lock applied by casa-navigation.js while the drawer is open. The
+     negative `top` it sets holds the page visually where the customer left
+     it; position:fixed is what actually stops iOS touch scrolling. */
+  body.casa-nav-drawer-locked {
+    position: fixed;
+    width: 100%;
+    overflow: hidden;
   }
   .casa-drawer__content::-webkit-scrollbar { width: 4px; }
   .casa-drawer__content::-webkit-scrollbar-track { background: transparent; }
   .casa-drawer__content::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
 
+  /* ═══════════════════════════════════════════════════════════
+     LEVEL 1 — BRAND INTRO
+     Italic-gradient shimmer headline that opens the drawer with a
+     brand moment. Mirrors the desktop megamenu featured top-bar.
+     clamp() font-size guarantees one-line fit at the narrowest
+     drawer (340px = 308px content). NEVER wraps.
+     ═══════════════════════════════════════════════════════════ */
+  .casa-drawer-intro {
+    /* Eyebrow dropped — drawer header already displays the Seoul Glow Lab
+       logo + wordmark, so a second "SEOUL GLOW LAB" line below it was
+       redundant and hard to read on light backgrounds. The italic-
+       gradient headline IS the brand-voice opener; it carries the
+       brand moment alone. */
+    padding: 16px 16px 16px;
+  }
+  .casa-drawer-intro__headline {
+    font-size: clamp(24px, 8vw, 30px);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    /* Casa Paper #FAFAF7 — brand off-white, NOT pure #FFF (per locked
+       brand decision: "get rid of the white"). Matches desktop
+       megamenu's --casa-section-text pattern. */
+    color: var(--casa-paper);
+    margin: 0;
+    white-space: nowrap;
+    overflow: visible;
+  }
+  .casa-drawer-intro__headline em {
+    font-style: italic;
+    font-weight: 800;
+    background-image: linear-gradient(90deg, #B0C3FA, #5E0A02, #F2FFA0, #5E0A02, #B0C3FA);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    /* perf-justified: paused by default, runs only while the drawer is
+       open — background-position keyframes on clipped text used to tick
+       forever inside the CLOSED drawer (the gap aa5ad747 left). */
+    animation: casa-drawer-intro-shimmer 6s linear infinite;
+    animation-play-state: paused;
+  }
+  .casa-drawer.active .casa-drawer-intro__headline em {
+    animation-play-state: running;
+  }
+  @keyframes casa-drawer-intro-shimmer {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .casa-drawer-intro__headline em { animation: none; }
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     LEVEL 1 — QUICK ACTIONS
+     Search · Account · Cart. 3-column grid; 64pt min-height
+     touch targets. Cart badge fades in when cart.item_count > 0.
+     ═══════════════════════════════════════════════════════════ */
+  .casa-drawer-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 0 16px 8px;
+  }
+  /* Flat tab-bar treatment: no per-button card so they don't
+     read as raised keyboard keys. Background fades in only on
+     hover/active/focus as touch feedback. */
+  .casa-drawer-quick-action {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 8px;
+    border-radius: 10px;
+    background: transparent;
+    border: 0;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: background 0.18s ease;
+    min-height: 56px;
+  }
+  .casa-drawer-quick-action:hover,
+  .casa-drawer-quick-action:active,
+  .casa-drawer-quick-action:focus-visible {
+    background: rgba(94, 10, 2, 0.06);
+  }
+  .casa-drawer-quick-action:focus-visible {
+    outline: 2px solid var(--casa-drawer-accent, #B0C3FA);
+    outline-offset: -2px;
+  }
+  .casa-drawer-quick-action svg {
+    width: 18px;
+    height: 18px;
+    color: var(--casa-paper);
+  }
+  .casa-drawer-quick-action__label {
+    font-family: var(--font-body--family);
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(250, 250, 247, 0.85);
+    white-space: nowrap;
+  }
+  /* Icon + badge wrapper — sized to the 18px glyph so the absolutely-
+     positioned badge anchors to the CART ICON, not the whole grid cell.
+     Cell-anchored (top/right: 6px) left the count floating in the cell
+     corner, far from the centered icon, so it didn't read as a cart
+     count. */
+  .casa-drawer-quick-action__icon-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+  }
+  .casa-drawer-quick-action__badge {
+    position: absolute;
+    /* Centered on the icon's top-right corner — the recognized
+       "count on the cart" position. Robust for 1- or 2-digit counts:
+       the pill grows symmetrically about the corner. */
+    top: 0;
+    left: 100%;
+    transform: translate(-50%, -50%);
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 999px;
+    /* Solid brand purple to match the header cart bubble (which uses
+       --casa-cart-bubble-bg, default #B0C3FA). --casa-drawer-accent is
+       the drawer's own accent token (same #B0C3FA default, used for the
+       focus outline + glows). Solid purple clears WCAG AA for the digits
+       (Paper on #B0C3FA ≈ 5.2:1) — the old purple→pink gradient dipped to
+       ~3.5:1 at the pink stop. Paper text, not pure #fff (locked brand). */
+    background: var(--casa-drawer-accent, #B0C3FA);
+    color: var(--casa-paper, #FAFAF7);
+    font-family: var(--font-body--family);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    /* Ink ring detaches the pill from the cart glyph it overlaps. */
+    box-shadow: 0 0 0 2px rgba(10, 10, 15, 0.92);
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     LEVEL 1 — TOP-LEVEL ROWS
+     Each row is a 64pt-min-height drill-down trigger with icon
+     chip + title + sub + chevron. All text on one line.
+     ═══════════════════════════════════════════════════════════ */
+  .casa-drawer-top-rows {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0 0;
+  }
+  .casa-drawer-top-row {
+    appearance: none;
+    -webkit-appearance: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font: inherit;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    text-decoration: none;
+    color: inherit;
+    min-height: 64px;
+    transition: background 0.18s ease;
+  }
+  .casa-drawer-top-row:hover,
+  .casa-drawer-top-row:active {
+    background: rgba(94, 10, 2, 0.04);
+  }
+  .casa-drawer-top-row:last-child {
+    border-bottom: none;
+  }
+  .casa-drawer-top-row__icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(176, 195, 250, 0.18), rgba(94, 10, 2, 0.12));
+    /* Seoul: nav item icons hidden (was .casa-drawer__nav-icon { display: none }) */
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: var(--casa-paper);
+  }
+  .casa-drawer-top-row__icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .casa-drawer-top-row__text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .casa-drawer-top-row__title {
+    font-family: var(--font-body--family);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    /* Casa Paper, brand off-white per locked decision. */
+    color: var(--casa-paper);
+    /* Hard rule: NEVER wraps to a second line. Ellipsis if a long
+       merchant-added title overruns the available row width. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .casa-drawer-top-row__sub {
+    font-size: 12px;
+    color: rgba(250, 250, 247, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .casa-drawer-top-row__arrow {
+    flex-shrink: 0;
+    color: rgba(250, 250, 247, 0.4);
+    transition: transform 0.18s ease, color 0.18s ease;
+  }
+  .casa-drawer-top-row__arrow svg {
+    width: 16px;
+    height: 16px;
+  }
+  .casa-drawer-top-row:hover .casa-drawer-top-row__arrow,
+  .casa-drawer-top-row:active .casa-drawer-top-row__arrow {
+    transform: translateX(2px);
+    color: var(--casa-paper);
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     LEVEL 1 — LOCALE FOOTER
+     Tappable button row that opens the shared casa-localization-
+     drawer. Mono UPPERCASE spec-register on the left, chevron on
+     the right (signals "opens a panel"). Compact 36pt-min row
+     instead of a 64pt full-bleed strip — earns its space as a
+     control, not a passive label.
+     ═══════════════════════════════════════════════════════════ */
+  .casa-drawer-locale-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 16px;
+    margin-bottom: 8px;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+    transition: background 0.18s ease;
+    /* 44pt min height to clear iOS/Material touch target floor */
+    min-height: 44px;
+  }
+  .casa-drawer-locale-footer:hover,
+  .casa-drawer-locale-footer:active,
+  .casa-drawer-locale-footer:focus-visible {
+    background: rgba(94, 10, 2, 0.04);
+  }
+  .casa-drawer-locale-footer:focus-visible {
+    outline: 2px solid var(--casa-drawer-accent, #B0C3FA);
+    outline-offset: -2px;
+  }
+  .casa-drawer-locale-footer__text {
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(250, 250, 247, 0.55);
+    white-space: nowrap;
+    overflow: visible;
+  }
+  .casa-drawer-locale-footer__chevron {
+    display: inline-flex;
+    color: rgba(250, 250, 247, 0.35);
+    transition: transform 0.18s ease, color 0.18s ease;
+  }
+  .casa-drawer-locale-footer:hover .casa-drawer-locale-footer__chevron,
+  .casa-drawer-locale-footer:focus-visible .casa-drawer-locale-footer__chevron {
+    color: rgba(250, 250, 247, 0.7);
+    transform: translateX(2px);
+  }
+
   /* ── Featured Card ── */
   .casa-drawer__featured {
-    margin: 16px;
-    padding: 20px;
-    background: linear-gradient(135deg, rgba(var(--casa-drawer-accent-rgb, 147, 51, 234), 0.2), rgba(var(--casa-glow-secondary-rgb, 236, 72, 153), 0.15));
+    margin: 8px;
+    padding: 7px;
+    background: linear-gradient(135deg, rgba(var(--casa-drawer-accent-rgb, 176, 195, 250), 0.2), rgba(var(--casa-glow-secondary-rgb, 94, 10, 2), 0.15));
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     position: relative;
@@ -337,7 +927,7 @@
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, var(--casa-drawer-accent, #9333ea), var(--casa-glow-secondary, #ec4899), var(--casa-support-primary, #06b6d4));
+    background: linear-gradient(90deg, var(--casa-drawer-accent, #B0C3FA), var(--casa-glow-secondary, #5E0A02), var(--casa-support-primary, #F2FFA0));
   }
   .casa-drawer__featured-content {
     display: flex;
@@ -369,7 +959,7 @@
   }
   .casa-drawer__featured--clickable:active {
     transform: scale(0.98);
-    border-color: rgba(var(--casa-drawer-accent-rgb, 147, 51, 234), 0.4);
+    border-color: rgba(var(--casa-drawer-accent-rgb, 176, 195, 250), 0.4);
   }
   .casa-drawer__featured-img {
     width: 100%;
@@ -383,7 +973,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, rgba(var(--casa-drawer-accent-rgb, 147, 51, 234), 0.3), rgba(var(--casa-glow-secondary-rgb, 236, 72, 153), 0.2));
+    background: linear-gradient(135deg, rgba(var(--casa-drawer-accent-rgb, 176, 195, 250), 0.3), rgba(var(--casa-glow-secondary-rgb, 94, 10, 2), 0.2));
     border-radius: 12px;
     color: rgba(255, 255, 255, 0.5);
   }
@@ -395,7 +985,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: var(--casa-glow-secondary, #ec4899);
+    color: var(--casa-glow-secondary, #5E0A02);
     margin-bottom: 4px;
   }
   .casa-drawer__featured-desc {
@@ -407,7 +997,12 @@
   .casa-drawer__featured-link {
     font-size: 12px;
     font-weight: 600;
-    color: var(--casa-drawer-accent, #9333ea);
+    color: var(--casa-drawer-accent, #B0C3FA);
+    /* Brand book typography for the inline "Shop now" link
+       (secondary token — this is a tertiary/link-style CTA). */
+    text-transform: var(--button-text-case-secondary, uppercase);
+    letter-spacing: 0.06em;
+    text-indent: 0.06em;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
@@ -423,7 +1018,7 @@
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 16px 20px;
+    padding: 6px 18px;
     color: white;
     text-decoration: none;
     transition: all 0.2s;
@@ -444,15 +1039,27 @@
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    background: linear-gradient(135deg, rgba(var(--casa-drawer-accent-rgb, 147, 51, 234), 0.15), rgba(var(--casa-glow-secondary-rgb, 236, 72, 153), 0.1));
+    background: linear-gradient(135deg, rgba(var(--casa-drawer-accent-rgb, 176, 195, 250), 0.15), rgba(var(--casa-glow-secondary-rgb, 94, 10, 2), 0.1));
     align-items: center;
     justify-content: center;
     transition: all 0.3s;
     flex-shrink: 0;
+    overflow: hidden;
+  }
+  .casa-drawer__nav-icon--img {
+    background: none;
+    padding: 0;
+  }
+  .casa-drawer__nav-collection-img {
+    width: 44px;
+    height: 44px;
+    object-fit: cover;
+    border-radius: 12px;
+    display: block;
   }
   .casa-drawer__nav-link:active .casa-drawer__nav-icon {
-    background: linear-gradient(135deg, var(--casa-drawer-accent, #9333ea), var(--casa-glow-secondary, #ec4899));
-    box-shadow: 0 4px 16px rgba(var(--casa-drawer-accent-rgb, 147, 51, 234), 0.4);
+    background: linear-gradient(135deg, var(--casa-drawer-accent, #B0C3FA), var(--casa-glow-secondary, #5E0A02));
+    box-shadow: 0 4px 16px rgba(var(--casa-drawer-accent-rgb, 176, 195, 250), 0.4);
   }
 
   .casa-drawer__nav-content { flex: 1; }
@@ -522,7 +1129,7 @@
   }
   .casa-drawer__secondary-link:active {
     background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(var(--casa-drawer-accent-rgb, 147, 51, 234), 0.3);
+    border-color: rgba(var(--casa-drawer-accent-rgb, 176, 195, 250), 0.3);
     color: white;
   }
 
@@ -563,7 +1170,7 @@
   }
   .casa-drawer__locale-btn:active {
     background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(var(--casa-drawer-accent-rgb, 147, 51, 234), 0.3);
+    border-color: rgba(var(--casa-drawer-accent-rgb, 176, 195, 250), 0.3);
   }
   .casa-drawer__locale-country {
     flex: 1;
@@ -594,8 +1201,8 @@
     color: white;
   }
   .casa-drawer__social-link:active {
-    background: var(--casa-drawer-accent, #9333ea);
-    border-color: var(--casa-drawer-accent, #9333ea);
+    background: var(--casa-drawer-accent, #B0C3FA);
+    border-color: var(--casa-drawer-accent, #B0C3FA);
   }
   .casa-drawer__copyright {
     font-size: 11px;
@@ -609,11 +1216,21 @@
      All colors driven by --casa-glass-* CSS custom properties
      set in casa-header.liquid from customizer settings.
      ═══════════════════════════════════════════════════════ */
+  /* Glass variant NEUTRALIZED to brand Ink.
+     Per brand book "two surfaces only — Paper or Ink", the glass
+     theme rendered the panel as a translucent light surface using
+     merchant-set --casa-glass-tint-rgb (was rgb(250,250,250) at 0.9
+     opacity) — white text on light glass = invisible. Forced to the
+     same brand Casa Ink as the default panel. The merchant's
+     drawer_glassmorphic setting still toggles the class but no
+     longer changes the visual surface. */
   .casa-drawer--glass {
-    background: rgba(var(--casa-glass-tint-rgb), var(--casa-glass-opacity));
-    backdrop-filter: blur(var(--casa-glass-blur)) saturate(180%);
-    -webkit-backdrop-filter: blur(var(--casa-glass-blur)) saturate(180%);
-    color: var(--casa-glass-text);
+    background: linear-gradient(180deg, #14141C 0%, #0A0A0F 100%);
+    color: var(--casa-paper);
+  }
+  .casa-drawer--glass.active {
+    /* No backdrop-filter — solid Ink panel doesn't need it, and the
+       blur was a major GPU cost. */
   }
   .casa-drawer--glass::before,
   .casa-drawer--glass::after {
@@ -937,5 +1554,71 @@
       width: 34px;
       height: 34px;
     }
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     OVERLAY PRIORITY GUARD
+     When the mobile drawer is open, nothing should layer on top.
+     This block hides known third-party + in-theme overlays that
+     would otherwise compete for z-index priority. The drawer
+     itself runs at z-index 99998-100000 (overlay/drawer/submenu)
+     to beat all in-theme modals; this block additionally hides
+     third-party widgets we can't control via z-index alone.
+     ═══════════════════════════════════════════════════════════ */
+  body.casa-drawer-active .klaviyo-form,
+  body.casa-drawer-active [class*="klaviyo-form"],
+  body.casa-drawer-active .kl-private-reset-css-Xuajs1,
+  body.casa-drawer-active iframe[id^="klaviyo"],
+  body.casa-drawer-active iframe[name^="klaviyo"],
+  body.casa-drawer-active [class*="needsclick"][class*="kl-private"],
+  body.casa-drawer-active #shopify-pc__banner,
+  body.casa-drawer-active #shopify-pc__prefs,
+  body.casa-drawer-active #shopify-section-cookie-banner,
+  body.casa-drawer-active [class*="cookie-banner"],
+  body.casa-drawer-active [id*="cookie-banner"],
+  body.casa-drawer-active [class*="cookie-consent"],
+  body.casa-drawer-active [id*="cookie-consent"],
+  body.casa-drawer-active #tidio-chat,
+  body.casa-drawer-active [class*="intercom"],
+  body.casa-drawer-active [class*="gorgias"],
+  body.casa-drawer-active [id*="drift-frame"],
+  body.casa-drawer-active .casa-locale-drawer,
+  body.casa-drawer-active .casa-locale-backdrop,
+  body.casa-drawer-active .casa-quickview-modal-wrapper,
+  body.casa-drawer-active [class*="casa-pdp-gallery"][class*="lightbox"],
+  body.casa-drawer-active [class*="casa-lookbook"][class*="lightbox"] {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  /* Hide the PAGE header action buttons (search / account / cart /
+     locale) that sit behind the drawer panel. Necessary because
+     the drawer is now lighter-frosted (0.72/0.78 + 72px blur), so
+     the page header's icons would otherwise bleed through the
+     glass and read as ghosted duplicates of the drawer's own
+     quick-action row. The header LOGO area still bleeds through
+     because the drawer renders its own logo at the same y-offset
+     — that's intentional (the logo IS the brand mark, not a
+     control). */
+  body.casa-drawer-active .casa-header__search-btn,
+  body.casa-drawer-active .casa-header__account-btn,
+  body.casa-drawer-active .casa-header__cart-btn,
+  body.casa-drawer-active .casa-header__locale-btn {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     SUBMENU ACTIVE STATE
+     When any Level 2 submenu is open, hide the parent drawer
+     behind it. The submenu panel is partial-frost (0.86 opacity),
+     so without this the drawer's top-row chevrons would bleed
+     through. visibility: hidden preserves the drawer's DOM /
+     scroll position so back-arrow returns the user to the same
+     spot. JS toggles `body.casa-submenu-active` in
+     casa-navigation.js openSubmenu/closeSubmenu.
+     ═══════════════════════════════════════════════════════════ */
+  body.casa-submenu-active .casa-drawer {
+    visibility: hidden;
   }
 {% endstylesheet %}

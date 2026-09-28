@@ -1,0 +1,31 @@
+{%- doc -%}
+  Adds real review ratings to Shopify's native Product or ProductGroup.
+  Shopify's structured_data filter owns product identity, variants and offers.
+  The shared @id enriches that entity without overriding its type or prices.
+  The installment fragment has no product-information section, so it needs
+  the same native filter here as its sole product-data source.
+{%- enddoc -%}
+
+{%- if request.page_type == 'product' and product != blank -%}
+  {%- if template.suffix == 'installment-fragment' -%}
+    <script type="application/ld+json">{{ product | structured_data }}</script>
+  {%- endif -%}
+  {%- liquid
+    assign schema_rating = product.metafields.reviews.rating.value.rating | default: product.metafields.reviews.rating.value
+    assign schema_scale = product.metafields.reviews.rating.value.scale_max | default: 5
+    assign schema_count = product.metafields.reviews.rating_count | default: 0
+  -%}
+  {%- if schema_rating and schema_count and schema_count > 0 -%}
+<script type="application/ld+json">{
+"@context":"https://schema.org",
+"@id":{{ request.origin | append: product.url | append: '#product' | json }},
+"aggregateRating":{
+"@type":"AggregateRating",
+"ratingValue":{{ schema_rating | json }},
+"bestRating":{{ schema_scale | json }},
+"worstRating":1,
+"reviewCount":{{ schema_count | json }}
+}
+}</script>
+  {%- endif -%}
+{%- endif -%}
